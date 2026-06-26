@@ -23,5 +23,9 @@ Thumbs.db
 # Secrets
 *.jks
 *.keystore
-google-services.json
 **/secrets.properties
+# Firebase service account — هرگز commit نشود
+*-firebase-adminsdk-*.json
+**/firebase-service-account.json
+# کپی ریشه repo؛ نسخه commit‌شده فقط android/app/
+/google-services.json

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "541217652499",
+    "project_id": "divarfiling",
+    "storage_bucket": "divarfiling.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:541217652499:android:2ce529bfcc6282002ea4e6",
+        "android_client_info": {
+          "package_name": "ir.divarfiling.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYq3XkMeV8ikCDJ8Y9aVTJsLw6eoONMYc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
