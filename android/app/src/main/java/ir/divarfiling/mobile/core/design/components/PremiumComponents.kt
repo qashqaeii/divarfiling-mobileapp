@@ -1,13 +1,13 @@
 package ir.divarfiling.mobile.core.design.components
 
-import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,14 +15,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -39,12 +42,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppElevations
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
+import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DfAnimation
-import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.DfElevation
-import ir.divarfiling.mobile.core.design.DfShapes
-import ir.divarfiling.mobile.core.design.DfSpacing
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 data class DfNavItem(
     val route: String,
@@ -64,17 +73,19 @@ fun DfBottomNavigation(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(DfElevation.navBar, DfShapes.BottomNav, ambientColor = DfColors.Shadow),
-        shape = DfShapes.BottomNav,
-        color = DfColors.Surface,
+            .navigationBarsPadding()
+            .shadow(AppElevations.navBar, AppShapes.BottomNav, ambientColor = AppColors.Shadow),
+        shape = AppShapes.BottomNav,
+        color = AppColors.Surface,
         tonalElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = DfSpacing.sm, vertical = DfSpacing.sm),
+                .height(AppSpacing.bottomNavHeight)
+                .padding(horizontal = AppSpacing.xs),
             horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.Bottom,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             items.forEach { item ->
                 if (item.isCenter) {
@@ -102,27 +113,29 @@ private fun DfCenterNavItem(
     onClick: () -> Unit,
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1.05f else 1f,
+        targetValue = if (selected) 1.04f else 1f,
         animationSpec = DfAnimation.springSnappy(),
         label = "centerNavScale",
     )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.offset(y = (-12).dp),
+        modifier = Modifier
+            .widthIn(min = 56.dp, max = 72.dp)
+            .offset(y = (-8).dp),
     ) {
         Box(
             modifier = Modifier
                 .scale(scale)
-                .size(56.dp)
+                .size(52.dp)
                 .shadow(
-                    elevation = if (selected) DfElevation.floating else DfElevation.raised,
+                    elevation = if (selected) AppElevations.floating else AppElevations.raised,
                     shape = CircleShape,
-                    ambientColor = DfColors.Purple.copy(alpha = 0.3f),
+                    ambientColor = AppColors.Purple.copy(alpha = 0.25f),
                 )
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(
-                        listOf(DfColors.PurpleGradientStart, DfColors.PurpleGradientEnd),
+                        listOf(AppColors.PurpleGradientStart, AppColors.PurpleGradientEnd),
                     ),
                 )
                 .clickable(
@@ -136,15 +149,20 @@ private fun DfCenterNavItem(
                 imageVector = item.icon,
                 contentDescription = item.label,
                 tint = Color.White,
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(24.dp),
             )
         }
         Text(
             text = item.label,
-            style = MaterialTheme.typography.labelSmall,
+            style = AppTypography.bottomNav,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) DfColors.Purple else DfColors.TextMuted,
-            modifier = Modifier.padding(top = 4.dp),
+            color = if (selected) AppColors.NavActive else AppColors.NavInactive,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .padding(top = AppSpacing.xxs)
+                .fillMaxWidth(),
         )
     }
 }
@@ -155,17 +173,19 @@ private fun DfSideNavItem(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val tint = if (selected) DfColors.Purple else DfColors.TextMuted
+    val tint = if (selected) AppColors.NavActive else AppColors.NavInactive
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(DfShapes.Chip)
+            .widthIn(min = 52.dp, max = 72.dp)
+            .defaultMinSize(minHeight = 48.dp)
+            .clip(AppShapes.Chip)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true),
                 onClick = onClick,
             )
-            .padding(horizontal = DfSpacing.xs, vertical = DfSpacing.xxs),
+            .padding(horizontal = AppSpacing.xxs, vertical = AppSpacing.xxs),
     ) {
         Box {
             Icon(
@@ -181,24 +201,30 @@ private fun DfSideNavItem(
                         .offset(x = 6.dp, y = (-4).dp)
                         .size(16.dp)
                         .clip(CircleShape)
-                        .background(DfColors.Rose),
+                        .background(AppColors.Rose),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = if (count > 9) "9+" else count.toString(),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = AppTypography.labelSmall,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
                     )
                 }
             }
         }
         Text(
             text = item.label,
-            style = MaterialTheme.typography.labelSmall,
+            style = AppTypography.bottomNav,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             color = tint,
-            modifier = Modifier.padding(top = 2.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .padding(top = AppSpacing.xxs)
+                .fillMaxWidth(),
         )
     }
 }
@@ -207,10 +233,10 @@ private fun DfSideNavItem(
 fun DfAnimatedCounter(
     target: Int,
     modifier: Modifier = Modifier,
-    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineMedium,
-    color: Color = DfColors.TextPrimary,
+    style: androidx.compose.ui.text.TextStyle = AppTypography.statNumber,
+    color: Color = AppColors.TextPrimary,
 ) {
-    val animated by androidx.compose.animation.core.animateIntAsState(
+    val animated by animateIntAsState(
         targetValue = target,
         animationSpec = DfAnimation.springSnappy(),
         label = "counter",
@@ -220,6 +246,8 @@ fun DfAnimatedCounter(
         style = style,
         color = color,
         fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
         modifier = modifier,
     )
 }
@@ -229,28 +257,28 @@ fun DfAnimatedCounter(
 fun DfPremiumCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    containerColor: Color = DfColors.Surface,
+    containerColor: Color = AppColors.Surface,
     content: @Composable () -> Unit,
 ) {
     val cardModifier = modifier
         .fillMaxWidth()
-        .shadow(DfElevation.card, DfShapes.Card, ambientColor = DfColors.Shadow)
+        .shadow(AppElevations.card, AppShapes.Card, ambientColor = AppColors.Shadow)
     if (onClick != null) {
         Surface(
             onClick = onClick,
             modifier = cardModifier,
-            shape = DfShapes.Card,
+            shape = AppShapes.Card,
             color = containerColor,
         ) {
-            Box(Modifier.padding(DfSpacing.cardPadding)) { content() }
+            Box(Modifier.padding(AppSpacing.cardPadding)) { content() }
         }
     } else {
         Surface(
             modifier = cardModifier,
-            shape = DfShapes.Card,
+            shape = AppShapes.Card,
             color = containerColor,
         ) {
-            Box(Modifier.padding(DfSpacing.cardPadding)) { content() }
+            Box(Modifier.padding(AppSpacing.cardPadding)) { content() }
         }
     }
 }
@@ -269,26 +297,29 @@ fun DfSectionTitle(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(DfSpacing.xs),
+            modifier = Modifier.weight(1f, fill = false),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = DfColors.TextPrimary,
+                style = AppTypography.sectionTitle,
+                color = AppColors.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             badge?.let {
                 Surface(
-                    shape = DfShapes.Chip,
-                    color = DfColors.PurpleContainer,
+                    shape = AppShapes.Chip,
+                    color = AppColors.PurpleContainer,
                 ) {
                     Text(
                         text = it,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = DfColors.PurpleDark,
+                        modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = 2.dp),
+                        style = AppTypography.labelSmall,
+                        color = AppColors.PurpleDark,
                         fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
                     )
                 }
             }
@@ -296,10 +327,14 @@ fun DfSectionTitle(
         if (actionLabel != null && onAction != null) {
             Text(
                 text = actionLabel,
-                style = MaterialTheme.typography.labelLarge,
-                color = DfColors.Purple,
+                style = AppTypography.bodyDescription,
+                color = AppColors.Purple,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable(onClick = onAction),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .padding(start = AppSpacing.sm)
+                    .clickable(onClick = onAction),
             )
         }
     }
@@ -321,16 +356,36 @@ fun DfShimmerBox(
     )
     val brush = Brush.linearGradient(
         colors = listOf(
-            DfColors.SurfaceVariant,
-            DfColors.OutlineSubtle,
-            DfColors.SurfaceVariant,
+            AppColors.SurfaceVariant,
+            AppColors.OutlineSubtle,
+            AppColors.SurfaceVariant,
         ),
         start = Offset(offset - 300f, 0f),
         end = Offset(offset, 0f),
     )
     Box(
         modifier = modifier
-            .clip(DfShapes.CardSmall)
+            .clip(AppShapes.CardSmall)
             .background(brush),
     )
+}
+
+@Preview(showBackground = true, widthDp = 360, name = "BottomNav 360")
+@Preview(showBackground = true, widthDp = 390, name = "BottomNav 390")
+@Preview(showBackground = true, widthDp = 412, name = "BottomNav 412")
+@Composable
+private fun DfBottomNavigationPreview() {
+    DivarFilingTheme {
+        DfBottomNavigation(
+            items = listOf(
+                DfNavItem("filing", "فایلینگ", DfIcons.Folder),
+                DfNavItem("crm", "CRM", DfIcons.Users),
+                DfNavItem("home", "میزکار", DfIcons.Home, isCenter = true),
+                DfNavItem("today", "امروز", DfIcons.Handshake),
+                DfNavItem("settings", "تنظیمات", DfIcons.Settings),
+            ),
+            selectedRoute = "home",
+            onItemClick = {},
+        )
+    }
 }

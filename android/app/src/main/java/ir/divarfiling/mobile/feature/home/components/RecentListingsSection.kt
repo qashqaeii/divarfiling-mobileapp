@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,17 +21,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.DfShapes
-import ir.divarfiling.mobile.core.design.DfSpacing
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppElevations
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfSectionTitle
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.RecentFileItem
+
+private val JalaliDatePattern = Regex("""^1[34]\d{2}/\d{2}/\d{2}$""")
+
+private fun formatJalaliDate(createdAt: String?): String? {
+    val value = createdAt?.trim().orEmpty()
+    if (value.isBlank()) return null
+    return if (JalaliDatePattern.matches(value)) value else null
+}
 
 @Composable
 fun RecentListingsSection(
@@ -41,22 +52,25 @@ fun RecentListingsSection(
     onFileClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val cardWidth = (screenWidth * 0.52f).coerceIn(168.dp, 220.dp)
+
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(DfSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         DfSectionTitle(
             title = "آخرین فایل‌ها",
-            modifier = Modifier.padding(horizontal = DfSpacing.screenHorizontal),
+            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
         )
 
         if (isLoading) {
             LazyRow(
-                contentPadding = PaddingValues(horizontal = DfSpacing.screenHorizontal),
-                horizontalArrangement = Arrangement.spacedBy(DfSpacing.sm),
+                contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 items(3) {
-                    DfShimmerBox(modifier = Modifier.width(200.dp).height(140.dp))
+                    DfShimmerBox(modifier = Modifier.width(cardWidth).height(156.dp))
                 }
             }
             return
@@ -65,19 +79,25 @@ fun RecentListingsSection(
         if (files.isEmpty()) {
             Text(
                 text = "هنوز فایلی استخراج نشده",
-                style = MaterialTheme.typography.bodyMedium,
-                color = DfColors.TextSecondary,
-                modifier = Modifier.padding(horizontal = DfSpacing.screenHorizontal),
+                style = AppTypography.bodyDescription,
+                color = AppColors.TextSecondary,
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             return
         }
 
         LazyRow(
-            contentPadding = PaddingValues(horizontal = DfSpacing.screenHorizontal),
-            horizontalArrangement = Arrangement.spacedBy(DfSpacing.sm),
+            contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
             items(files, key = { it.id }) { file ->
-                RecentFileCard(file = file, onClick = { onFileClick(file.id) })
+                RecentFileCard(
+                    file = file,
+                    cardWidth = cardWidth,
+                    onClick = { onFileClick(file.id) },
+                )
             }
         }
     }
@@ -87,6 +107,7 @@ fun RecentListingsSection(
 @Composable
 private fun RecentFileCard(
     file: RecentFileItem,
+    cardWidth: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
 ) {
     val location = listOfNotNull(file.city, file.district).joinToString(" — ")
@@ -95,15 +116,16 @@ private fun RecentFileCard(
         file.transactionType?.contains("رهن", ignoreCase = true) == true -> "رهن"
         else -> "فروش"
     }
-    val badgeColor = if (badgeLabel == "اجاره") DfColors.Blue else DfColors.Purple
+    val badgeColor = if (badgeLabel == "اجاره") AppColors.Blue else AppColors.Purple
+    val displayDate = formatJalaliDate(file.createdAt)
 
     Surface(
         onClick = onClick,
         modifier = Modifier
-            .width(200.dp)
-            .height(148.dp),
-        shape = DfShapes.Card,
-        shadowElevation = 4.dp,
+            .width(cardWidth)
+            .height(156.dp),
+        shape = AppShapes.ListingCard,
+        shadowElevation = AppElevations.listingCard,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (!file.thumbnailUrl.isNullOrBlank()) {
@@ -119,7 +141,7 @@ private fun RecentFileCard(
                         .fillMaxSize()
                         .background(
                             Brush.linearGradient(
-                                listOf(DfColors.PurpleLight, DfColors.BlueLight),
+                                listOf(AppColors.PurpleLight, AppColors.BlueLight),
                             ),
                         ),
                 )
@@ -130,8 +152,13 @@ private fun RecentFileCard(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)),
-                            startY = 60f,
+                            colors = listOf(
+                                AppColors.ImageOverlayStart,
+                                AppColors.ImageScrimLight,
+                                AppColors.ImageOverlayEnd,
+                            ),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY,
                         ),
                     ),
             )
@@ -139,41 +166,49 @@ private fun RecentFileCard(
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(DfSpacing.sm),
-                shape = DfShapes.Chip,
-                color = badgeColor.copy(alpha = 0.9f),
+                    .padding(AppSpacing.sm),
+                shape = AppShapes.Chip,
+                color = badgeColor.copy(alpha = 0.92f),
             ) {
                 Text(
                     text = badgeLabel,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
+                    style = AppTypography.labelSmall,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
                 )
             }
 
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(DfSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                    .fillMaxWidth()
+                    .padding(AppSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
             ) {
                 Text(
                     text = location.ifBlank { "فایل دیوار" },
-                    style = MaterialTheme.typography.titleSmall,
+                    style = AppTypography.cardTitle,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "${file.itemCount} آگهی",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.85f),
+                    style = AppTypography.bodyDescription,
+                    color = Color.White.copy(alpha = 0.9f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                file.createdAt?.let {
+                displayDate?.let { date ->
                     Text(
-                        text = it,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f),
+                        text = date,
+                        style = AppTypography.labelSmall,
+                        color = Color.White.copy(alpha = 0.8f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -181,7 +216,9 @@ private fun RecentFileCard(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 360)
+@Preview(showBackground = true, widthDp = 390)
+@Preview(showBackground = true, widthDp = 412)
 @Composable
 private fun RecentListingsSectionPreview() {
     DivarFilingTheme {
@@ -189,6 +226,7 @@ private fun RecentListingsSectionPreview() {
             files = listOf(
                 RecentFileItem("1", "تهران", "زعفرانیه", "فروش", 369, "1405/04/01"),
                 RecentFileItem("2", "تهران", "ونک", "اجاره", 120, "1405/03/28"),
+                RecentFileItem("3", "تهران", "پاسداران", "فروش", 85, "2025-06-20"),
             ),
             isLoading = false,
             onFileClick = {},

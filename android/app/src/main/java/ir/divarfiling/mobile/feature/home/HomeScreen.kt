@@ -5,21 +5,22 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.DfSpacing
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -51,53 +52,80 @@ fun HomeScreen(
         onRefresh = viewModel::refresh,
         modifier = Modifier
             .fillMaxSize()
-            .background(DfColors.Background),
+            .background(AppColors.Background)
+            .statusBarsPadding(),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(DfSpacing.sectionGap),
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = AppSpacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionGap),
         ) {
-            HomeHeader(
-                userName = state.userName,
-                notificationCount = state.notificationBadgeCount,
-                onSearchClick = onNavigateFiling,
-                onNotificationsClick = onNavigateToday,
-            )
+            item {
+                HomeHeader(
+                    userName = state.userName,
+                    notificationCount = state.notificationBadgeCount,
+                    onSearchClick = onNavigateFiling,
+                    onNotificationsClick = onNavigateToday,
+                )
+            }
 
-            state.error?.let { DfErrorBanner(message = it) }
+            state.error?.let { error ->
+                item {
+                    DfErrorBanner(
+                        message = error,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
 
-            AnimatedVisibility(
-                visible = !state.isLoading,
-                enter = fadeIn() + slideInVertically { it / 4 },
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(DfSpacing.sectionGap)) {
-                    StatsSection(stats = state.stats, isLoading = false)
-
+            if (state.isLoading) {
+                item { StatsSection(stats = state.stats, isLoading = true) }
+                item {
                     QuickExtractCard(
                         maxItems = state.maxExtractItems,
                         enabled = state.canExtract,
                         onStartClick = onNavigateExtract,
                     )
-
+                }
+                item { TodayTasksSection(tasks = emptyList(), isLoading = true, onViewAll = {}) }
+                item { RecentListingsSection(files = emptyList(), isLoading = true, onFileClick = {}) }
+            } else {
+                item {
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn() + slideInVertically { it / 4 },
+                    ) {
+                        StatsSection(stats = state.stats, isLoading = false)
+                    }
+                }
+                item {
+                    QuickExtractCard(
+                        maxItems = state.maxExtractItems,
+                        enabled = state.canExtract,
+                        onStartClick = onNavigateExtract,
+                    )
+                }
+                item {
                     TodayTasksSection(
                         tasks = state.todayTasks,
                         isLoading = false,
                         onViewAll = onNavigateToday,
                     )
-
+                }
+                item {
                     NotificationsSection(
                         notifications = state.notifications,
                         onViewAll = onNavigateToday,
                     )
-
+                }
+                item {
                     RecentListingsSection(
                         files = state.recentFiles,
                         isLoading = false,
                         onFileClick = onDatasetClick,
                     )
-
+                }
+                item {
                     QuickActionsRow(
                         actions = buildQuickActions(
                             onNavigateContacts = onNavigateContacts,
@@ -105,21 +133,7 @@ fun HomeScreen(
                             onNavigateCrm = onNavigateCrm,
                             onNavigateToday = onNavigateToday,
                         ),
-                        modifier = Modifier.padding(bottom = DfSpacing.xxl),
                     )
-                }
-            }
-
-            if (state.isLoading) {
-                Column(verticalArrangement = Arrangement.spacedBy(DfSpacing.sectionGap)) {
-                    StatsSection(stats = state.stats, isLoading = true)
-                    QuickExtractCard(
-                        maxItems = state.maxExtractItems,
-                        enabled = state.canExtract,
-                        onStartClick = onNavigateExtract,
-                    )
-                    TodayTasksSection(tasks = emptyList(), isLoading = true, onViewAll = {})
-                    RecentListingsSection(files = emptyList(), isLoading = true, onFileClick = {})
                 }
             }
         }
@@ -132,17 +146,83 @@ private fun buildQuickActions(
     onNavigateCrm: () -> Unit,
     onNavigateToday: () -> Unit,
 ): List<QuickAction> = listOf(
-    QuickAction("نقشه", DfIcons.MapPin, DfColors.Green, DfColors.GreenLight) { onNavigateFiling() },
-    QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer, onNavigateContacts),
-    QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight, onNavigateFiling),
-    QuickAction("مخاطب جدید", DfIcons.Plus, DfColors.Amber, DfColors.AmberLight, onNavigateContacts),
-    QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight, onNavigateToday),
+    QuickAction("نقشه", DfIcons.MapPin, AppColors.Green, AppColors.GreenLight) { onNavigateFiling() },
+    QuickAction("مخاطبین", DfIcons.Users, AppColors.Purple, AppColors.PurpleContainer, onNavigateContacts),
+    QuickAction("فایل‌ها", DfIcons.Folder, AppColors.Blue, AppColors.BlueLight, onNavigateFiling),
+    QuickAction("مخاطب جدید", DfIcons.Plus, AppColors.Amber, AppColors.AmberLight, onNavigateContacts),
+    QuickAction("یادآور جدید", DfIcons.Bell, AppColors.Pink, AppColors.PinkLight, onNavigateToday),
 )
 
-@Preview(showBackground = true, heightDp = 900)
+@Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")
+@Preview(showBackground = true, widthDp = 390, heightDp = 844, name = "Home 390×844")
+@Preview(showBackground = true, widthDp = 412, heightDp = 915, name = "Home 412×915")
 @Composable
 private fun HomeScreenPreview() {
     DivarFilingTheme {
-        // Preview without ViewModel — use static sections in component previews
+        HomeScreenContentPreview()
+    }
+}
+
+@Composable
+internal fun HomeScreenContentPreview() {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColors.Background)
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = AppSpacing.xxl),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionGap),
+    ) {
+        item {
+            HomeHeader(
+                userName = "حسین",
+                notificationCount = 3,
+                onSearchClick = {},
+                onNotificationsClick = {},
+            )
+        }
+        item {
+            StatsSection(
+                stats = DashboardStats(
+                    newFilesToday = 5,
+                    properties = 17,
+                    propertiesDelta = 1,
+                    deals = 20,
+                    dealsDelta = 2,
+                    contacts = 29,
+                    contactsDelta = 3,
+                ),
+                isLoading = false,
+            )
+        }
+        item {
+            TodayTasksSection(
+                tasks = listOf(
+                    HomeTaskItem("1", "09:00", "تماس با رضا احمدی", "خریدار — منطقه ونک", HomeTaskType.Call),
+                    HomeTaskItem("2", "11:30", "بازدید ملک در سعادت‌آباد", "فروش آپارتمان ۱۲۰ متر", HomeTaskType.Visit),
+                ),
+                isLoading = false,
+                onViewAll = {},
+            )
+        }
+        item {
+            NotificationsSection(
+                notifications = listOf(
+                    HomeNotificationItem("1", "۳ فایل جدید مناسب برای مشتری شما پیدا شد", "۲ دقیقه پیش", HomeNotificationType.NewMatch),
+                    HomeNotificationItem("2", "استخراج شماره ۲۴۵ با موفقیت انجام شد", "۱ ساعت پیش", HomeNotificationType.ExtractSuccess),
+                ),
+                onViewAll = {},
+            )
+        }
+        item {
+            RecentListingsSection(
+                files = listOf(
+                    RecentFileItem("1", "تهران", "زعفرانیه", "فروش", 369, "1405/04/01"),
+                    RecentFileItem("2", "تهران", "ونک", "اجاره", 120, "1405/03/28"),
+                ),
+                isLoading = false,
+                onFileClick = {},
+            )
+        }
     }
 }

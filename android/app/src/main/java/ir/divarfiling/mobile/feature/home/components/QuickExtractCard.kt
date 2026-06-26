@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,12 +19,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppElevations
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.DfShapes
-import ir.divarfiling.mobile.core.design.DfSpacing
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,9 +41,9 @@ fun QuickExtractCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = DfSpacing.screenHorizontal),
-        shape = DfShapes.Hero,
-        shadowElevation = 6.dp,
+            .padding(horizontal = AppSpacing.screenHorizontal),
+        shape = AppShapes.Hero,
+        shadowElevation = AppElevations.floating,
         onClick = { if (enabled) onStartClick() },
         enabled = enabled,
     ) {
@@ -50,22 +52,22 @@ fun QuickExtractCard(
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        listOf(DfColors.PurpleGradientStart, DfColors.PurpleGradientEnd),
+                        listOf(AppColors.PurpleGradientStart, AppColors.PurpleGradientEnd),
                     ),
                 )
-                .padding(DfSpacing.lg),
+                .padding(AppSpacing.cardPadding),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(DfSpacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -76,43 +78,54 @@ fun QuickExtractCard(
                         )
                         Text(
                             text = "استخراج سریع",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     Text(
                         text = "همین حالا از دیوار استخراج کن",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.9f),
+                        style = AppTypography.bodyDescription,
+                        color = Color.White.copy(alpha = 0.92f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = "حداکثر $maxItems آگهی در هر استخراج",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.75f),
+                        style = AppTypography.labelSmall,
+                        color = Color.White.copy(alpha = 0.78f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Surface(
                         onClick = onStartClick,
                         enabled = enabled,
-                        shape = DfShapes.ButtonPill,
+                        shape = AppShapes.ButtonPill,
                         color = Color.White,
-                        modifier = Modifier.padding(top = DfSpacing.sm),
+                        modifier = Modifier.padding(top = AppSpacing.xs),
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(
+                                horizontal = AppSpacing.md,
+                                vertical = AppSpacing.sm,
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = "شروع استخراج",
-                                style = MaterialTheme.typography.labelLarge,
+                                style = AppTypography.bodyDescription,
                                 fontWeight = FontWeight.SemiBold,
-                                color = DfColors.PurpleDark,
+                                color = AppColors.PurpleDark,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                             Icon(
                                 imageVector = DfIcons.ChevronLeft,
                                 contentDescription = null,
-                                tint = DfColors.PurpleDark,
+                                tint = AppColors.PurpleDark,
                                 modifier = Modifier.size(16.dp),
                             )
                         }
@@ -121,8 +134,8 @@ fun QuickExtractCard(
 
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
-                        .clip(DfShapes.CardSmall)
+                        .size(72.dp)
+                        .clip(AppShapes.CardSmall)
                         .background(Color.White.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -130,7 +143,7 @@ fun QuickExtractCard(
                         imageVector = DfIcons.Smartphone,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(36.dp),
                     )
                 }
             }
@@ -138,7 +151,9 @@ fun QuickExtractCard(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 360)
+@Preview(showBackground = true, widthDp = 390)
+@Preview(showBackground = true, widthDp = 412)
 @Composable
 private fun QuickExtractCardPreview() {
     DivarFilingTheme {

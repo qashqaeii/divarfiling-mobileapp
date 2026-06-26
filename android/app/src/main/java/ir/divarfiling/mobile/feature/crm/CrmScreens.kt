@@ -1,11 +1,16 @@
 package ir.divarfiling.mobile.feature.crm
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -26,22 +31,33 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfContactRow
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfFab
-import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfSearchField
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.design.components.DfStatChip
 import ir.divarfiling.mobile.core.design.components.DfTopBar
+import ir.divarfiling.mobile.core.network.ContactDto
+import ir.divarfiling.mobile.core.network.ReminderDto
 import ir.divarfiling.mobile.core.network.TodayItemDto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -176,49 +192,69 @@ fun TodayScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    horizontal = AppSpacing.screenHorizontal,
+                    vertical = AppSpacing.md,
+                ),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionGap),
             ) {
-                state.error?.let { DfErrorBanner(it) }
+                state.error?.let { error ->
+                    item {
+                        DfErrorBanner(error)
+                    }
+                }
 
                 state.data?.let { today ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DfStatChip(label = "امروز", value = "${today.stats?.total ?: 0}")
-                        DfStatChip(label = "انجام‌شده", value = "${today.stats?.done ?: 0}")
-                        DfStatChip(label = "معوق", value = "${today.overdue.size}")
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                            DfStatChip(label = "امروز", value = "${today.stats?.total ?: 0}")
+                            DfStatChip(label = "انجام‌شده", value = "${today.stats?.done ?: 0}")
+                            DfStatChip(label = "معوق", value = "${today.overdue.size}")
+                        }
                     }
-                    today.date?.let {
-                        Text("تاریخ: $it", color = DfColors.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    today.date?.let { date ->
+                        item {
+                            Text(
+                                text = "تاریخ: $date",
+                                style = AppTypography.bodyDescription,
+                                color = AppColors.TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
 
                     if (today.overdue.isNotEmpty()) {
-                        DfSectionHeader("معوق", today.overdue.size)
-                        today.overdue.forEach { item ->
+                        item { DfSectionHeader("معوق", today.overdue.size) }
+                        items(today.overdue, key = { "overdue-${it.reminder?.id ?: it.contact?.id}") { item ->
                             TodayTaskCard(item, isOverdue = true)
                         }
                     }
                     if (today.today.isNotEmpty()) {
-                        DfSectionHeader("امروز", today.today.size)
-                        today.today.forEach { item ->
+                        item { DfSectionHeader("امروز", today.today.size) }
+                        items(today.today, key = { "today-${it.reminder?.id ?: it.contact?.id}") { item ->
                             TodayTaskCard(item, isOverdue = false)
                         }
                     }
                     if (today.overdue.isEmpty() && today.today.isEmpty()) {
-                        DfEmptyState(
-                            title = "کاری برای امروز نیست",
-                            subtitle = "همه پیگیری‌ها انجام شده — عالی!",
-                        )
+                        item {
+                            DfEmptyState(
+                                title = "کاری برای امروز نیست",
+                                subtitle = "همه پیگیری‌ها انجام شده — عالی!",
+                            )
+                        }
                     }
                 }
 
                 if (state.data == null && !state.isLoading && state.error == null) {
-                    DfEmptyState(
-                        title = "داده‌ای نیست",
-                        subtitle = "با کشیدن صفحه به‌روزرسانی کنید",
-                    )
+                    item {
+                        DfEmptyState(
+                            title = "داده‌ای نیست",
+                            subtitle = "با کشیدن صفحه به‌روزرسانی کنید",
+                        )
+                    }
                 }
             }
         }
@@ -227,26 +263,94 @@ fun TodayScreen(
 
 @Composable
 private fun TodayTaskCard(item: TodayItemDto, isOverdue: Boolean) {
-    val title = item.contact?.fullName ?: item.reminder?.title ?: "—"
-    val subtitle = item.reminder?.dueAt ?: item.contact?.phone.orEmpty()
-    DfCard(
-        containerColor = if (isOverdue) DfColors.Rose.copy(alpha = 0.08f) else DfColors.Surface,
+    val contactName = item.contact?.fullName
+    val phone = item.contact?.phone
+    val reminderTitle = item.reminder?.title
+    val dueAt = item.reminder?.dueAt
+    val reminderType = item.type?.takeIf { it.isNotBlank() }
+
+    val title = contactName ?: reminderTitle ?: "—"
+    val subtitle = when {
+        !reminderTitle.isNullOrBlank() && contactName != null -> reminderTitle
+        !phone.isNullOrBlank() -> phone
+        else -> ""
+    }
+
+    DfPremiumCard(
+        containerColor = if (isOverdue) AppColors.OverdueBackground else AppColors.Surface,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = AppSpacing.listRowMinHeight),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
+            verticalAlignment = Alignment.Top,
         ) {
-            Icon(
-                if (isOverdue) Icons.Default.Warning else Icons.Default.CalendarToday,
-                contentDescription = null,
-                tint = if (isOverdue) DfColors.Rose else DfColors.Purple,
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Medium)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
+            ) {
+                Text(
+                    text = title,
+                    style = AppTypography.cardTitle,
+                    color = AppColors.TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (subtitle.isNotBlank()) {
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary)
+                    Text(
+                        text = subtitle,
+                        style = AppTypography.bodyDescription,
+                        color = AppColors.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    reminderType?.let { type ->
+                        DfBadge(
+                            text = type,
+                            color = AppColors.SurfaceVariant,
+                            textColor = AppColors.TextSecondary,
+                        )
+                    }
+                    dueAt?.let { due ->
+                        Text(
+                            text = due,
+                            style = AppTypography.labelSmall,
+                            color = AppColors.TextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (isOverdue) {
+                        DfBadge(
+                            text = "معوق",
+                            color = AppColors.RoseLight,
+                            textColor = AppColors.OverdueAccent,
+                        )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(AppShapes.IconContainer)
+                    .background(
+                        if (isOverdue) AppColors.RoseLight else AppColors.PurpleContainer,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isOverdue) Icons.Default.Warning else Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    tint = if (isOverdue) AppColors.OverdueAccent else AppColors.Purple,
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
     }
@@ -319,6 +423,53 @@ private fun CrmHubCard(
                 }
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = DfColors.TextMuted)
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Today 360×800")
+@Preview(showBackground = true, widthDp = 390, heightDp = 844, name = "Today 390×844")
+@Preview(showBackground = true, widthDp = 412, heightDp = 915, name = "Today 412×915")
+@Composable
+private fun TodayScreenPreview() {
+    DivarFilingTheme {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                horizontal = AppSpacing.screenHorizontal,
+                vertical = AppSpacing.md,
+            ),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionGap),
+        ) {
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    DfStatChip(label = "امروز", value = "5")
+                    DfStatChip(label = "انجام‌شده", value = "2")
+                    DfStatChip(label = "معوق", value = "1")
+                }
+            }
+            item { DfSectionHeader("معوق", 1) }
+            item {
+                TodayTaskCard(
+                    item = TodayItemDto(
+                        type = "تماس",
+                        contact = ContactDto(id = 1, fullName = "رضا احمدی", phone = "09121234567"),
+                        reminder = ReminderDto(id = 1, title = "پیگیری خرید", dueAt = "09:00"),
+                    ),
+                    isOverdue = true,
+                )
+            }
+            item { DfSectionHeader("امروز", 2) }
+            item {
+                TodayTaskCard(
+                    item = TodayItemDto(
+                        type = "بازدید",
+                        contact = ContactDto(id = 2, fullName = "مریم کریمی", phone = "09129876543"),
+                        reminder = ReminderDto(id = 2, title = "بازدید ملک", dueAt = "14:30"),
+                    ),
+                    isOverdue = false,
+                )
+            }
         }
     }
 }

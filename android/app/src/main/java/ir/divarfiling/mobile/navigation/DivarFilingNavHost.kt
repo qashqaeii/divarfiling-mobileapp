@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -76,7 +78,7 @@ fun DivarFilingNavHost(
                 DfNavItem(Routes.FILING, "فایلینگ", DfIcons.Folder),
                 DfNavItem(Routes.CRM, "CRM", DfIcons.Users),
                 DfNavItem(Routes.HOME, "میزکار", DfIcons.Home, isCenter = true),
-                DfNavItem(Routes.CRM_TODAY, "معاملات", DfIcons.Handshake),
+                DfNavItem(Routes.CRM_TODAY, "امروز", DfIcons.Handshake),
                 DfNavItem(Routes.SETTINGS, "تنظیمات", DfIcons.Settings),
             )
             val navBackStack by navController.currentBackStackEntryAsState()
@@ -85,6 +87,7 @@ fun DivarFilingNavHost(
                 currentRoute == Routes.CRM_TODAY
 
             Scaffold(
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 bottomBar = {
                     if (showBottomBar) {
                         DfBottomNavigation(

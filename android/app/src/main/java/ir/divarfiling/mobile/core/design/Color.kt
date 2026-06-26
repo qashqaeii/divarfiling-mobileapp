@@ -2,7 +2,7 @@ package ir.divarfiling.mobile.core.design
 
 import androidx.compose.ui.graphics.Color
 
-object DfColors {
+object AppColors {
     val Purple = Color(0xFF7C3AED)
     val PurpleDark = Color(0xFF6D28D9)
     val PurpleLight = Color(0xFFEDE9FE)
@@ -31,6 +31,17 @@ object DfColors {
     val TextSecondary = Color(0xFF475569)
     val TextMuted = Color(0xFF94A3B8)
 
-    val Shadow = Color(0x0A0F172A)
+    val Shadow = Color(0x140F172A)
     val GlassOverlay = Color(0xCCFFFFFF)
+
+    val ImageOverlayStart = Color.Transparent
+    val ImageOverlayEnd = Color(0x990F172A)
+    val ImageScrimLight = Color(0x33000000)
+
+    val NavActive = Purple
+    val NavInactive = TextMuted
+    val OverdueAccent = Rose
+    val OverdueBackground = Color(0xFFFFF1F2)
 }
+
+typealias DfColors = AppColors

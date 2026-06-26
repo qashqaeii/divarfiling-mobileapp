@@ -7,14 +7,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,15 +26,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppElevations
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfAnimation
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.DfShapes
-import ir.divarfiling.mobile.core.design.DfSpacing
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfAnimatedCounter
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
@@ -46,6 +50,10 @@ fun StatsSection(
     isLoading: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val cardWidth = ((screenWidth - AppSpacing.screenHorizontal * 2 - AppSpacing.sm * 3) / 2.15f)
+        .coerceIn(130.dp, 160.dp)
+
     val cards = listOf(
         StatCardData(
             value = stats.newFilesToday,
@@ -53,8 +61,8 @@ fun StatsSection(
             delta = stats.newFilesToday,
             deltaLabel = if (stats.newFilesToday > 0) "+${stats.newFilesToday} امروز" else "بدون فایل جدید",
             icon = DfIcons.File,
-            tint = DfColors.Blue,
-            background = DfColors.BlueLight,
+            tint = AppColors.Blue,
+            background = AppColors.BlueLight,
         ),
         StatCardData(
             value = stats.properties,
@@ -62,8 +70,8 @@ fun StatsSection(
             delta = stats.propertiesDelta,
             deltaLabel = if (stats.propertiesDelta > 0) "+${stats.propertiesDelta} امروز" else "کل آگهی‌ها",
             icon = DfIcons.Building,
-            tint = DfColors.Amber,
-            background = DfColors.AmberLight,
+            tint = AppColors.Amber,
+            background = AppColors.AmberLight,
         ),
         StatCardData(
             value = stats.deals,
@@ -71,8 +79,8 @@ fun StatsSection(
             delta = stats.dealsDelta,
             deltaLabel = if (stats.dealsDelta > 0) "+${stats.dealsDelta} امروز" else "کارهای امروز",
             icon = DfIcons.Handshake,
-            tint = DfColors.Green,
-            background = DfColors.GreenLight,
+            tint = AppColors.Green,
+            background = AppColors.GreenLight,
         ),
         StatCardData(
             value = stats.contacts,
@@ -80,21 +88,22 @@ fun StatsSection(
             delta = stats.contactsDelta,
             deltaLabel = if (stats.contactsDelta > 0) "+${stats.contactsDelta} امروز" else "کل مخاطبین",
             icon = DfIcons.Users,
-            tint = DfColors.Purple,
-            background = DfColors.PurpleContainer,
+            tint = AppColors.Purple,
+            background = AppColors.PurpleContainer,
         ),
     )
 
     if (isLoading) {
         LazyRow(
             modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = DfSpacing.screenHorizontal),
-            horizontalArrangement = Arrangement.spacedBy(DfSpacing.sm),
+            contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             items(4) {
                 DfShimmerBox(
                     modifier = Modifier
-                        .size(width = 140.dp, height = 120.dp),
+                        .width(cardWidth)
+                        .height(132.dp),
                 )
             }
         }
@@ -103,18 +112,18 @@ fun StatsSection(
 
     LazyRow(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = DfSpacing.screenHorizontal),
-        horizontalArrangement = Arrangement.spacedBy(DfSpacing.sm),
+        contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         items(cards, key = { it.label }) { card ->
-            StatCard(card)
+            StatCard(data = card, cardWidth = cardWidth)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StatCard(data: StatCardData) {
+private fun StatCard(data: StatCardData, cardWidth: androidx.compose.ui.unit.Dp) {
     val scale by animateFloatAsState(
         targetValue = 1f,
         animationSpec = DfAnimation.springGentle(),
@@ -123,10 +132,11 @@ private fun StatCard(data: StatCardData) {
     Surface(
         modifier = Modifier
             .scale(scale)
-            .size(width = 140.dp, height = 128.dp),
-        shape = DfShapes.StatCard,
-        color = DfColors.Surface,
-        shadowElevation = 2.dp,
+            .width(cardWidth)
+            .height(136.dp),
+        shape = AppShapes.StatCard,
+        color = AppColors.Surface,
+        shadowElevation = AppElevations.card,
         onClick = {},
     ) {
         Box(
@@ -134,13 +144,13 @@ private fun StatCard(data: StatCardData) {
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
-                        listOf(data.background, DfColors.Surface),
+                        listOf(data.background, AppColors.Surface),
                     ),
                 )
-                .padding(DfSpacing.sm),
+                .padding(AppSpacing.sm),
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(DfSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
                 Box(
                     modifier = Modifier
@@ -158,27 +168,30 @@ private fun StatCard(data: StatCardData) {
                 }
                 DfAnimatedCounter(
                     target = data.value,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = DfColors.TextPrimary,
+                    style = AppTypography.statNumber,
+                    color = AppColors.TextPrimary,
                 )
                 Text(
                     text = data.label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = DfColors.TextSecondary,
+                    style = AppTypography.bodyDescription,
+                    color = AppColors.TextSecondary,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = data.deltaLabel,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = AppTypography.labelSmall,
                     color = data.tint,
                     fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 360)
 @Composable
 private fun StatsSectionPreview() {
     DivarFilingTheme {

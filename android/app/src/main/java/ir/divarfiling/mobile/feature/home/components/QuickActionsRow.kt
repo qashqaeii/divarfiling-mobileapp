@@ -6,11 +6,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,12 +20,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppElevations
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.DfShapes
-import ir.divarfiling.mobile.core.design.DfSpacing
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 data class QuickAction(
@@ -43,8 +46,8 @@ fun QuickActionsRow(
 ) {
     LazyRow(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = DfSpacing.screenHorizontal),
-        horizontalArrangement = Arrangement.spacedBy(DfSpacing.md),
+        contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
     ) {
         items(actions, key = { it.label }) { action ->
             QuickActionItem(action)
@@ -57,14 +60,16 @@ fun QuickActionsRow(
 private fun QuickActionItem(action: QuickAction) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
+        modifier = Modifier
+            .widthIn(min = 56.dp, max = 72.dp)
+            .padding(vertical = AppSpacing.xxs),
     ) {
         Surface(
             onClick = action.onClick,
-            shape = DfShapes.CardSmall,
+            shape = AppShapes.IconContainer,
             color = action.background,
-            shadowElevation = 1.dp,
+            shadowElevation = AppElevations.subtle,
             modifier = Modifier.size(56.dp),
         ) {
             Icon(
@@ -72,28 +77,36 @@ private fun QuickActionItem(action: QuickAction) {
                 contentDescription = action.label,
                 tint = action.tint,
                 modifier = Modifier
-                    .padding(14.dp)
+                    .padding(AppSpacing.sm)
                     .size(28.dp),
             )
         }
         Text(
             text = action.label,
-            style = MaterialTheme.typography.labelSmall,
-            color = DfColors.TextSecondary,
+            style = AppTypography.bottomNav,
+            color = AppColors.TextSecondary,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Medium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 360)
+@Preview(showBackground = true, widthDp = 390)
+@Preview(showBackground = true, widthDp = 412)
 @Composable
 private fun QuickActionsRowPreview() {
     DivarFilingTheme {
         QuickActionsRow(
             actions = listOf(
-                QuickAction("نقشه", DfIcons.MapPin, DfColors.Green, DfColors.GreenLight) {},
-                QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer) {},
+                QuickAction("نقشه", DfIcons.MapPin, AppColors.Green, AppColors.GreenLight) {},
+                QuickAction("مخاطبین", DfIcons.Users, AppColors.Purple, AppColors.PurpleContainer) {},
+                QuickAction("فایل‌ها", DfIcons.Folder, AppColors.Blue, AppColors.BlueLight) {},
+                QuickAction("مخاطب جدید", DfIcons.Plus, AppColors.Amber, AppColors.AmberLight) {},
+                QuickAction("یادآور جدید", DfIcons.Bell, AppColors.Pink, AppColors.PinkLight) {},
             ),
         )
     }

@@ -5,12 +5,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,13 +19,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.DfShapes
-import ir.divarfiling.mobile.core.design.DfSpacing
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfSectionTitle
@@ -42,8 +45,8 @@ fun TodayTasksSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = DfSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(DfSpacing.sm),
+            .padding(horizontal = AppSpacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         DfSectionTitle(
             title = "کارهای امروز",
@@ -53,7 +56,7 @@ fun TodayTasksSection(
         )
 
         if (isLoading) {
-            DfShimmerBox(modifier = Modifier.fillMaxWidth().size(180.dp))
+            DfShimmerBox(modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 180.dp))
             return
         }
 
@@ -61,16 +64,18 @@ fun TodayTasksSection(
             if (tasks.isEmpty()) {
                 Text(
                     text = "کار برنامه‌ریزی‌شده‌ای برای امروز ندارید",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DfColors.TextSecondary,
+                    style = AppTypography.bodyDescription,
+                    color = AppColors.TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             } else {
                 tasks.forEachIndexed { index, task ->
                     TodayTaskRow(task)
                     if (index < tasks.lastIndex) {
                         HorizontalDivider(
-                            modifier = Modifier.padding(vertical = DfSpacing.xs),
-                            color = DfColors.OutlineSubtle,
+                            modifier = Modifier.padding(vertical = AppSpacing.xs),
+                            color = AppColors.OutlineSubtle,
                         )
                     }
                 }
@@ -78,13 +83,13 @@ fun TodayTasksSection(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = DfSpacing.xs),
+                            .padding(top = AppSpacing.xs),
                         horizontalArrangement = Arrangement.Center,
                     ) {
                         Icon(
                             imageVector = DfIcons.ChevronDown,
                             contentDescription = null,
-                            tint = DfColors.TextMuted,
+                            tint = AppColors.TextMuted,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -98,49 +103,69 @@ fun TodayTasksSection(
 private fun TodayTaskRow(task: HomeTaskItem) {
     val (icon, tint, bg) = taskTypeStyle(task.type)
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(DfSpacing.sm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = AppSpacing.listRowMinHeight),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = task.time,
-            style = MaterialTheme.typography.labelMedium,
-            color = DfColors.TextMuted,
-            modifier = Modifier.size(width = 40.dp, height = 20.dp),
-        )
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(DfShapes.Chip)
-                .background(bg),
-            contentAlignment = Alignment.Center,
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-        }
-        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = task.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = DfColors.TextPrimary,
+                style = AppTypography.cardTitle,
+                color = AppColors.TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = task.subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = DfColors.TextSecondary,
+                style = AppTypography.bodyDescription,
+                color = AppColors.TextSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        Text(
+            text = task.time,
+            style = AppTypography.timeLabel,
+            color = AppColors.TextMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(44.dp),
+        )
+
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(AppShapes.IconContainer)
+                .background(bg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(20.dp),
             )
         }
     }
 }
 
 private fun taskTypeStyle(type: HomeTaskType): Triple<ImageVector, Color, Color> = when (type) {
-    HomeTaskType.Call -> Triple(DfIcons.Phone, DfColors.Green, DfColors.GreenLight)
-    HomeTaskType.Visit -> Triple(DfIcons.Calendar, DfColors.Blue, DfColors.BlueLight)
-    HomeTaskType.FollowUp -> Triple(DfIcons.User, DfColors.Amber, DfColors.AmberLight)
-    HomeTaskType.Reminder -> Triple(DfIcons.Bell, DfColors.Purple, DfColors.PurpleContainer)
+    HomeTaskType.Call -> Triple(DfIcons.Phone, AppColors.Green, AppColors.GreenLight)
+    HomeTaskType.Visit -> Triple(DfIcons.Calendar, AppColors.Blue, AppColors.BlueLight)
+    HomeTaskType.FollowUp -> Triple(DfIcons.User, AppColors.Amber, AppColors.AmberLight)
+    HomeTaskType.Reminder -> Triple(DfIcons.Bell, AppColors.Purple, AppColors.PurpleContainer)
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 360)
+@Preview(showBackground = true, widthDp = 390)
+@Preview(showBackground = true, widthDp = 412)
 @Composable
 private fun TodayTasksSectionPreview() {
     DivarFilingTheme {
