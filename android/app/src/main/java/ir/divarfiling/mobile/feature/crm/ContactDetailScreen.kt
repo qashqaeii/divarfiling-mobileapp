@@ -79,6 +79,7 @@ fun ContactDetailScreen(
                     }
                 }
                 state.data != null -> {
+                    val contactInfo = state.data!!.contact
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -87,20 +88,20 @@ fun ContactDetailScreen(
                             DfPremiumCard {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(
-                                        contact!!.fullName,
+                                        contactInfo.fullName,
                                         style = AppTypography.sectionTitle,
                                         fontWeight = FontWeight.Bold,
                                     )
-                                    contact.phone?.let {
+                                    contactInfo.phone?.let {
                                         Text(it, style = AppTypography.bodyDescription, color = AppColors.TextSecondary)
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        contact.status?.let { DfBadge(it) }
-                                        contact.customerType?.let {
+                                        contactInfo.status?.let { DfBadge(it) }
+                                        contactInfo.customerType?.let {
                                             DfBadge(it, color = AppColors.PurpleContainer, textColor = AppColors.Purple)
                                         }
                                     }
-                                    contact.notes?.takeIf { it.isNotBlank() }?.let {
+                                    contactInfo.notes?.takeIf { it.isNotBlank() }?.let {
                                         Text(it, style = AppTypography.bodyDescription)
                                     }
                                 }
@@ -113,13 +114,13 @@ fun ContactDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 ActionChip("تماس", Icons.Default.Call) {
-                                    contact.phone?.let { phone ->
+                                    contactInfo.phone?.let { phone ->
                                         context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
                                         viewModel.logActivity("call", "تماس تلفنی")
                                     }
                                 }
                                 ActionChip("واتساپ", Icons.Default.Call) {
-                                    contact.phone?.let { phone ->
+                                    contactInfo.phone?.let { phone ->
                                         val wa = phone.removePrefix("0")
                                         context.startActivity(
                                             Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/98$wa")),

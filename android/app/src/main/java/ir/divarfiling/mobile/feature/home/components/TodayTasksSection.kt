@@ -171,8 +171,20 @@ private fun TodayTasksSectionPreview() {
     DivarFilingTheme {
         TodayTasksSection(
             tasks = listOf(
-                HomeTaskItem("1", "09:00", "تماس با رضا احمدی", "خریدار — منطقه ونک", HomeTaskType.Call),
-                HomeTaskItem("2", "11:30", "بازدید ملک در سعادت‌آباد", "فروش آپارتمان ۱۲۰ متر", HomeTaskType.Visit),
+                HomeTaskItem(
+                    id = "1",
+                    time = "09:00",
+                    title = "تماس با رضا احمدی",
+                    subtitle = "خریدار — منطقه ونک",
+                    type = HomeTaskType.Call,
+                ),
+                HomeTaskItem(
+                    id = "2",
+                    time = "11:30",
+                    title = "بازدید ملک در سعادت‌آباد",
+                    subtitle = "فروش آپارتمان ۱۲۰ متر",
+                    type = HomeTaskType.Visit,
+                ),
             ),
             isLoading = false,
             onViewAll = {},

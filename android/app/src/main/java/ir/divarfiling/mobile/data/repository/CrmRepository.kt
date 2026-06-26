@@ -206,7 +206,10 @@ class CrmRepository @Inject constructor(
             ApiResult.Success(Unit)
         } catch (e: Exception) {
             if (reminderId != null) {
-                enqueueSync("reminder", "complete", mapOf("reminder_id" to reminderId, "note" to note))
+                enqueueSync("reminder", "complete", mapOf(
+                    "reminder_id" to reminderId.toString(),
+                    "note" to note,
+                ))
             }
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
