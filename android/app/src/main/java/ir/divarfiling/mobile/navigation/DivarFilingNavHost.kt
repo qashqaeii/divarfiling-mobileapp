@@ -158,6 +158,7 @@ fun DivarFilingNavHost(
                             onViewDataset = { id ->
                                 navController.navigate(Routes.listings(id))
                             },
+                            onBack = { navController.popBackStack() },
                         )
                     }
                     composable(Routes.SETTINGS) {

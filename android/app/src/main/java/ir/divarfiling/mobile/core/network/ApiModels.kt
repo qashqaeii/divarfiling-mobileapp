@@ -174,6 +174,8 @@ data class ListingDto(
     val token: String,
     val title: String? = null,
     val price: Long? = null,
+    val deposit: Long? = null,
+    val rent: Long? = null,
     val area: Int? = null,
     val rooms: Int? = null,
     val district: String? = null,

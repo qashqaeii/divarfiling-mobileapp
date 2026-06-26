@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.core.license.ExtractLightLimits
 @Composable
 fun ExtractScreen(
     onViewDataset: (String) -> Unit,
+    onBack: () -> Unit = {},
     viewModel: ExtractViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -43,7 +44,7 @@ fun ExtractScreen(
     val tx = ExtractCategories.transactionTypes.firstOrNull { it.label == state.transactionType }
     val subcategories = tx?.subcategories.orEmpty()
 
-    Scaffold(topBar = { DfTopBar(title = "استخراج سبک", showLogo = true) }) { padding ->
+    Scaffold(topBar = { DfTopBar(title = "استخراج سبک", showLogo = true, onBack = onBack) }) { padding ->
         Column(
             Modifier
                 .fillMaxSize()

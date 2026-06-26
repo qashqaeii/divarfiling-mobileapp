@@ -85,36 +85,38 @@ fun ContactsScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                DfSearchField(
-                    value = state.query,
-                    onValueChange = viewModel::onQueryChange,
-                    placeholder = "جستجو نام یا تلفن…",
-                    onSearch = viewModel::search,
-                )
-
-                state.error?.let { DfErrorBanner(it) }
-
-                if (!state.isLoading && state.contacts.isEmpty() && state.error == null) {
-                    DfEmptyState(
-                        title = "مخاطبی ثبت نشده",
-                        subtitle = "با دکمه + یک سرنخ سریع اضافه کنید",
+                item {
+                    DfSearchField(
+                        value = state.query,
+                        onValueChange = viewModel::onQueryChange,
+                        placeholder = "جستجو نام یا تلفن…",
+                        onSearch = viewModel::search,
                     )
+                }
+                state.error?.let { error ->
+                    item { DfErrorBanner(error) }
+                }
+                if (!state.isLoading && state.contacts.isEmpty() && state.error == null) {
+                    item {
+                        DfEmptyState(
+                            title = "مخاطبی ثبت نشده",
+                            subtitle = "با دکمه + یک سرنخ سریع اضافه کنید",
+                        )
+                    }
                 } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items(state.contacts, key = { it.id }) { contact ->
-                            DfContactRow(
-                                name = contact.fullName,
-                                phone = contact.phone,
-                                status = contact.status,
-                                customerType = contact.customerType,
-                            )
-                        }
+                    items(state.contacts, key = { it.id }) { contact ->
+                        DfContactRow(
+                            name = contact.fullName,
+                            phone = contact.phone,
+                            status = contact.status,
+                            customerType = contact.customerType,
+                        )
                     }
                 }
             }
@@ -208,10 +210,25 @@ fun TodayScreen(
 
                 state.data?.let { today ->
                     item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                            DfStatChip(label = "امروز", value = "${today.stats?.total ?: 0}")
-                            DfStatChip(label = "انجام‌شده", value = "${today.stats?.done ?: 0}")
-                            DfStatChip(label = "معوق", value = "${today.overdue.size}")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            DfStatChip(
+                                label = "امروز",
+                                value = "${today.stats?.total ?: 0}",
+                                modifier = Modifier.weight(1f),
+                            )
+                            DfStatChip(
+                                label = "انجام‌شده",
+                                value = "${today.stats?.done ?: 0}",
+                                modifier = Modifier.weight(1f),
+                            )
+                            DfStatChip(
+                                label = "معوق",
+                                value = "${today.overdue.size}",
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                     today.date?.let { date ->
@@ -419,13 +436,26 @@ private fun CrmHubCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
+                modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(icon, contentDescription = null, tint = DfColors.Purple)
-                Column {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DfColors.TextSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = DfColors.TextMuted)

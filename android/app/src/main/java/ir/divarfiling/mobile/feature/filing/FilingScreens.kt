@@ -2,6 +2,8 @@ package ir.divarfiling.mobile.feature.filing
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,42 +55,50 @@ fun DatasetsScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            Column(
-                Modifier
+            LazyColumn(
+                modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    DfStatChip(label = "فایل‌ها", value = "${state.datasets.size}")
-                    val totalAds = state.datasets.sumOf { it.itemCount }
-                    DfStatChip(label = "کل آگهی", value = "$totalAds")
-                }
-
-                Text(
-                    "فایل‌های آپلودشده از ویندوز یا استخراج موبایل",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DfColors.TextSecondary,
-                )
-
-                state.error?.let { DfErrorBanner(it) }
-
-                if (!state.isLoading && state.datasets.isEmpty() && state.error == null) {
-                    DfEmptyState(
-                        title = "فایلی یافت نشد",
-                        subtitle = "از تب استخراج یک فایل جدید بسازید یا از ویندوز آپلود کنید",
-                    )
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxSize(),
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(state.datasets, key = { it.id }) { ds ->
-                            DatasetRow(ds, onClick = { onDatasetClick(ds.id) })
-                        }
+                        DfStatChip(
+                            label = "فایل‌ها",
+                            value = "${state.datasets.size}",
+                            modifier = Modifier.weight(1f),
+                        )
+                        val totalAds = state.datasets.sumOf { it.itemCount }
+                        DfStatChip(
+                            label = "کل آگهی",
+                            value = "$totalAds",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                item {
+                    Text(
+                        "فایل‌های آپلودشده از ویندوز یا استخراج موبایل",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DfColors.TextSecondary,
+                    )
+                }
+                state.error?.let { error ->
+                    item { DfErrorBanner(error) }
+                }
+                if (!state.isLoading && state.datasets.isEmpty() && state.error == null) {
+                    item {
+                        DfEmptyState(
+                            title = "فایلی یافت نشد",
+                            subtitle = "از تب استخراج یک فایل جدید بسازید یا از ویندوز آپلود کنید",
+                        )
+                    }
+                } else {
+                    items(state.datasets, key = { it.id }) { ds ->
+                        DatasetRow(ds, onClick = { onDatasetClick(ds.id) })
                     }
                 }
             }
@@ -104,8 +115,14 @@ private fun DatasetRow(ds: DatasetDto, onClick: () -> Unit) {
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 ds.fileFormat?.uppercase()?.let { DfBadge(text = it) }
                 ds.transactionType?.let { DfBadge(text = it, color = DfColors.Blue.copy(alpha = 0.1f), textColor = DfColors.Blue) }
                 ds.subcategory?.let { DfBadge(text = it, color = DfColors.SurfaceVariant, textColor = DfColors.TextSecondary) }
@@ -172,43 +189,42 @@ fun ListingsScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            Column(
-                Modifier
+            LazyColumn(
+                modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                DfSearchField(
-                    value = state.query,
-                    onValueChange = viewModel::onQueryChange,
-                    placeholder = "جستجو در عنوان…",
-                    onSearch = { viewModel.load(datasetId) },
-                )
-
-                state.error?.let { DfErrorBanner(it) }
-
-                if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
-                    DfEmptyState(
-                        title = "آگهی‌ای یافت نشد",
-                        subtitle = "فیلتر جستجو را تغییر دهید یا فایل دیگری انتخاب کنید",
+                item {
+                    DfSearchField(
+                        value = state.query,
+                        onValueChange = viewModel::onQueryChange,
+                        placeholder = "جستجو در عنوان…",
+                        onSearch = { viewModel.load(datasetId) },
                     )
+                }
+                state.error?.let { error ->
+                    item { DfErrorBanner(error) }
+                }
+                if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
+                    item {
+                        DfEmptyState(
+                            title = "آگهی‌ای یافت نشد",
+                            subtitle = "فیلتر جستجو را تغییر دهید یا فایل دیگری انتخاب کنید",
+                        )
+                    }
                 } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        items(state.listings, key = { it.token }) { listing ->
-                            ListingItem(
-                                listing = listing,
-                                onOpenDivar = listing.shareLink?.let { link ->
-                                    {
-                                        context.startActivity(
-                                            Intent(Intent.ACTION_VIEW, Uri.parse(link)),
-                                        )
-                                    }
-                                },
-                            )
-                        }
+                    items(state.listings, key = { it.token }) { listing ->
+                        ListingItem(
+                            listing = listing,
+                            onOpenDivar = listing.shareLink?.let { link ->
+                                {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(link)),
+                                    )
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -226,6 +242,8 @@ private fun ListingItem(
     DfListingRow(
         title = listing.title ?: "بدون عنوان",
         price = listing.price,
+        deposit = listing.deposit,
+        rent = listing.rent,
         area = listing.area,
         rooms = listing.rooms,
         district = listing.district,

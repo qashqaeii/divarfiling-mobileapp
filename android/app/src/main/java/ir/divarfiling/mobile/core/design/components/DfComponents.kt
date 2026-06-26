@@ -1,6 +1,8 @@
 package ir.divarfiling.mobile.core.design.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -184,10 +186,11 @@ fun DfDropdown(
             value = value,
             onValueChange = {},
             readOnly = true,
-            label = { Text(label) },
+            label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.menuAnchor().fillMaxWidth(),
             enabled = enabled,
+            singleLine = true,
             shape = DfShapes.Field,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = DfColors.Purple,
@@ -234,14 +237,27 @@ fun DfProgressBlock(
 }
 
 @Composable
-fun DfStatChip(label: String, value: String) {
+fun DfStatChip(label: String, value: String, modifier: Modifier = Modifier) {
     Card(
+        modifier = modifier,
         shape = DfShapes.Chip,
         colors = CardDefaults.cardColors(containerColor = DfColors.PurpleContainer),
     ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(value, fontWeight = FontWeight.Bold, color = DfColors.PurpleDark)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = DfColors.TextSecondary)
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(
+                value,
+                fontWeight = FontWeight.Bold,
+                color = DfColors.PurpleDark,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = DfColors.TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -314,6 +330,8 @@ fun DfBadge(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
             color = textColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -327,7 +345,7 @@ fun DfSectionHeader(title: String, count: Int? = null) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         count?.let {
             DfBadge(text = "$it مورد", color = DfColors.SurfaceVariant, textColor = DfColors.TextSecondary)
         }
@@ -349,6 +367,8 @@ fun DfErrorBanner(
             modifier = Modifier.padding(12.dp),
             color = DfColors.Rose,
             style = MaterialTheme.typography.bodyMedium,
+            maxLines = 4,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -389,15 +409,17 @@ fun DfFab(
 @Composable
 fun DfListingRow(
     title: String,
-    price: Long?,
-    area: Int?,
-    rooms: Int?,
-    district: String?,
-    advertiserType: String?,
+    price: Long? = null,
+    deposit: Long? = null,
+    rent: Long? = null,
+    area: Int? = null,
+    rooms: Int? = null,
+    district: String? = null,
+    advertiserType: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     DfCard(onClick = onClick) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 title,
                 style = MaterialTheme.typography.titleMedium,
@@ -405,7 +427,12 @@ fun DfListingRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 price?.let {
                     DfBadge(
                         text = FormatUtils.formatPriceShort(it),
@@ -413,8 +440,34 @@ fun DfListingRow(
                         textColor = DfColors.PurpleDark,
                     )
                 }
-                area?.let { DfBadge(text = FormatUtils.formatArea(it), color = DfColors.SurfaceVariant, textColor = DfColors.TextSecondary) }
-                rooms?.let { DfBadge(text = FormatUtils.formatRooms(it), color = DfColors.SurfaceVariant, textColor = DfColors.TextSecondary) }
+                deposit?.let {
+                    DfBadge(
+                        text = "ودیعه ${FormatUtils.formatPriceShort(it)}",
+                        color = DfColors.Blue.copy(alpha = 0.1f),
+                        textColor = DfColors.Blue,
+                    )
+                }
+                rent?.let {
+                    DfBadge(
+                        text = "اجاره ${FormatUtils.formatPriceShort(it)}",
+                        color = DfColors.Green.copy(alpha = 0.12f),
+                        textColor = DfColors.Green,
+                    )
+                }
+                area?.let {
+                    DfBadge(
+                        text = FormatUtils.formatArea(it),
+                        color = DfColors.SurfaceVariant,
+                        textColor = DfColors.TextSecondary,
+                    )
+                }
+                rooms?.let {
+                    DfBadge(
+                        text = FormatUtils.formatRooms(it),
+                        color = DfColors.SurfaceVariant,
+                        textColor = DfColors.TextSecondary,
+                    )
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -422,9 +475,17 @@ fun DfListingRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 district?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary)
-                }
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DfColors.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                } ?: Spacer(Modifier.weight(1f))
                 advertiserType?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(Modifier.width(8.dp))
                     DfBadge(
                         text = it,
                         color = if (it.contains("مشاور")) DfColors.Blue.copy(alpha = 0.12f) else DfColors.Green.copy(alpha = 0.12f),
@@ -464,9 +525,28 @@ fun DfContactRow(
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                phone?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary) }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                phone?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DfColors.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     status?.let { DfBadge(text = it, color = DfColors.PurpleContainer, textColor = DfColors.PurpleDark) }
                     customerType?.let { DfBadge(text = it, color = DfColors.SurfaceVariant, textColor = DfColors.TextSecondary) }
                 }
