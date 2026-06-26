@@ -17,8 +17,11 @@ import javax.inject.Inject
 
 data class DatasetsUiState(
     val datasets: List<DatasetDto> = emptyList(),
+    val page: Int = 1,
+    val hasMore: Boolean = false,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
+    val isLoadingMore: Boolean = false,
     val error: String? = null,
 )
 
@@ -29,35 +32,66 @@ class DatasetsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DatasetsUiState())
     val uiState: StateFlow<DatasetsUiState> = _uiState.asStateFlow()
 
-    init { load() }
+    init { load(reset = true) }
 
-    fun load() {
+    fun load(reset: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = it.datasets.isEmpty(), error = null) }
-            when (val result = filingRepository.getDatasets()) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(datasets = result.data, isLoading = false, isRefreshing = false)
+            val page = if (reset) 1 else _uiState.value.page
+            _uiState.update {
+                it.copy(
+                    isLoading = reset && it.datasets.isEmpty(),
+                    isLoadingMore = !reset,
+                    error = null,
+                )
+            }
+            when (val result = filingRepository.getDatasets(page = page)) {
+                is ApiResult.Success -> {
+                    val merged = if (reset) result.data.items else _uiState.value.datasets + result.data.items
+                    _uiState.update {
+                        it.copy(
+                            datasets = merged,
+                            page = page,
+                            hasMore = result.data.hasMore,
+                            isLoading = false,
+                            isRefreshing = false,
+                            isLoadingMore = false,
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
+                    it.copy(isLoading = false, isRefreshing = false, isLoadingMore = false, error = result.message)
                 }
             }
         }
     }
 
+    fun loadMore() {
+        if (!_uiState.value.hasMore || _uiState.value.isLoadingMore) return
+        _uiState.update { it.copy(page = it.page + 1) }
+        load(reset = false)
+    }
+
     fun refresh() {
-        _uiState.update { it.copy(isRefreshing = true) }
-        load()
+        _uiState.update { it.copy(isRefreshing = true, page = 1) }
+        load(reset = true)
     }
 }
 
 data class ListingsUiState(
     val listings: List<ListingDto> = emptyList(),
     val datasetName: String? = null,
+    val page: Int = 1,
+    val hasMore: Boolean = false,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
+    val isLoadingMore: Boolean = false,
     val error: String? = null,
     val query: String = "",
+    val priceMin: Long? = null,
+    val priceMax: Long? = null,
+    val areaMin: Int? = null,
+    val areaMax: Int? = null,
+    val rooms: Int? = null,
 )
 
 @HiltViewModel
@@ -78,7 +112,7 @@ class ListingsViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = filingRepository.getDatasets()) {
                 is ApiResult.Success -> {
-                    val name = result.data.firstOrNull { it.id == datasetId }?.name
+                    val name = result.data.items.firstOrNull { it.id == datasetId }?.name
                     _uiState.update { it.copy(datasetName = name) }
                 }
                 is ApiResult.Error -> Unit
@@ -86,29 +120,63 @@ class ListingsViewModel @Inject constructor(
         }
     }
 
-    fun load(datasetId: String) {
+    fun load(datasetId: String, reset: Boolean = true) {
         viewModelScope.launch {
+            val page = if (reset) 1 else _uiState.value.page
+            val state = _uiState.value
             _uiState.update {
                 it.copy(
-                    isLoading = it.listings.isEmpty() && !it.isRefreshing,
-                    isRefreshing = it.listings.isNotEmpty(),
+                    isLoading = reset && it.listings.isEmpty(),
+                    isLoadingMore = !reset,
+                    isRefreshing = reset && it.listings.isNotEmpty(),
                     error = null,
                 )
             }
-            when (val result = filingRepository.getListings(datasetId, _uiState.value.query)) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        listings = result.data,
-                        isLoading = false,
-                        isRefreshing = false,
-                    )
+            when (val result = filingRepository.getListings(
+                datasetId,
+                query = state.query,
+                page = page,
+                priceMin = state.priceMin,
+                priceMax = state.priceMax,
+                areaMin = state.areaMin,
+                areaMax = state.areaMax,
+                rooms = state.rooms,
+            )) {
+                is ApiResult.Success -> {
+                    val merged = if (reset) result.data.items else state.listings + result.data.items
+                    _uiState.update {
+                        it.copy(
+                            listings = merged,
+                            page = page,
+                            hasMore = result.data.hasMore,
+                            isLoading = false,
+                            isRefreshing = false,
+                            isLoadingMore = false,
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
+                    it.copy(isLoading = false, isRefreshing = false, isLoadingMore = false, error = result.message)
                 }
             }
         }
     }
 
+    fun loadMore(datasetId: String) {
+        if (!_uiState.value.hasMore || _uiState.value.isLoadingMore) return
+        _uiState.update { it.copy(page = it.page + 1) }
+        load(datasetId, reset = false)
+    }
+
+    fun refresh(datasetId: String) {
+        _uiState.update { it.copy(page = 1) }
+        load(datasetId, reset = true)
+    }
+
     fun onQueryChange(q: String) = _uiState.update { it.copy(query = q) }
+    fun applyFilters(priceMin: Long?, priceMax: Long?, areaMin: Int?, areaMax: Int?, rooms: Int?) {
+        _uiState.update {
+            it.copy(priceMin = priceMin, priceMax = priceMax, areaMin = areaMin, areaMax = areaMax, rooms = rooms, page = 1)
+        }
+    }
 }

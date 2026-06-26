@@ -5,6 +5,7 @@ import ir.divarfiling.mobile.core.license.ExtractLightLimits
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.ExtractionFiltersDto
 import ir.divarfiling.mobile.core.network.ExtractionItemDto
+import ir.divarfiling.mobile.core.network.ExtractionLimitsData
 import ir.divarfiling.mobile.core.network.ExtractionUploadData
 import ir.divarfiling.mobile.core.network.ExtractionUploadRequest
 import ir.divarfiling.mobile.core.network.MobileApi
@@ -13,8 +14,8 @@ import ir.divarfiling.mobile.core.network.toUserMessage
 import ir.divarfiling.mobile.feature.extract.divar.AdvertiserFilter
 import ir.divarfiling.mobile.feature.extract.divar.DivarLightClient
 import ir.divarfiling.mobile.feature.extract.divar.ExtractFilters
-import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.Json
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -49,6 +50,15 @@ class ExtractionRepository @Inject constructor(
         }
     }
 
+    suspend fun getLimits(): ExtractionLimitsData? {
+        return try {
+            val response = api.extractionLimits()
+            if (response.ok) response.requireData<ExtractionLimitsData>(json) else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     suspend fun runLightExtraction(
         filters: ExtractFilters,
         onProgress: (Int, Int) -> Unit,
@@ -59,8 +69,10 @@ class ExtractionRepository @Inject constructor(
             return ApiResult.Error(gate.message, "LICENSE_REQUIRED")
         }
 
+        val limits = getLimits()
+        val maxItems = limits?.maxItems ?: ExtractLightLimits.MAX_ITEMS
         val safeFilters = filters.copy(
-            maxItems = filters.maxItems.coerceIn(1, ExtractLightLimits.MAX_ITEMS),
+            maxItems = filters.maxItems.coerceIn(1, maxItems),
         )
         val startedAt = Instant.now().toString()
 

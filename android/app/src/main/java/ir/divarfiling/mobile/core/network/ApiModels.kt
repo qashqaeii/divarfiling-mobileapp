@@ -244,3 +244,196 @@ data class ExtractionLimitsData(
     @SerialName("extractions_today") val extractionsToday: Int = 0,
     @SerialName("extractions_daily_limit") val extractionsDailyLimit: Int = 5,
 )
+
+@Serializable
+data class DashboardData(
+    val stats: DashboardStatsDto = DashboardStatsDto(),
+    @SerialName("today_preview") val todayPreview: List<TodayItemDto> = emptyList(),
+    val notifications: List<NotificationDto> = emptyList(),
+    @SerialName("notifications_unread") val notificationsUnread: Int = 0,
+    @SerialName("latest_datasets") val latestDatasets: List<DatasetDto> = emptyList(),
+    val license: LicenseStatusData? = null,
+)
+
+@Serializable
+data class DashboardStatsDto(
+    val contacts: Int = 0,
+    @SerialName("contacts_new") val contactsNew: Int = 0,
+    @SerialName("contacts_in_progress") val contactsInProgress: Int = 0,
+    val deals: Int = 0,
+    val properties: Int = 0,
+    @SerialName("new_files_today") val newFilesToday: Int = 0,
+    @SerialName("today_tasks_total") val todayTasksTotal: Int = 0,
+    @SerialName("today_tasks_done") val todayTasksDone: Int = 0,
+    @SerialName("overdue_count") val overdueCount: Int = 0,
+    @SerialName("active_reminders") val activeReminders: Int = 0,
+    @SerialName("overdue_followups") val overdueFollowups: Int = 0,
+)
+
+@Serializable
+data class NotificationDto(
+    val id: Long,
+    val type: String? = null,
+    val title: String,
+    val body: String? = null,
+    @SerialName("deep_link") val deepLink: String? = null,
+    @SerialName("is_read") val isRead: Boolean = false,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class ContactDetailData(
+    val contact: ContactDto,
+    val activities: List<ActivityDto> = emptyList(),
+    val reminders: List<ReminderDto> = emptyList(),
+    @SerialName("linked_listings") val linkedListings: List<LinkedListingDto> = emptyList(),
+    val deals: List<DealDto> = emptyList(),
+    val properties: List<PropertyDto> = emptyList(),
+)
+
+@Serializable
+data class ActivityDto(
+    val id: Long,
+    @SerialName("activity_type") val activityType: String? = null,
+    @SerialName("activity_type_label") val activityTypeLabel: String? = null,
+    val title: String? = null,
+    val content: String? = null,
+    val token: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class LinkedListingDto(
+    val id: Long,
+    val token: String,
+    val title: String? = null,
+    val price: String? = null,
+    val area: String? = null,
+    val link: String? = null,
+    val role: String? = null,
+    @SerialName("deal_type") val dealType: String? = null,
+    val notes: String? = null,
+)
+
+@Serializable
+data class DealDto(
+    val id: Long,
+    val title: String,
+    val stage: String? = null,
+    val amount: Long? = null,
+    @SerialName("listing_token") val listingToken: String? = null,
+    @SerialName("property_id") val propertyId: Long? = null,
+)
+
+@Serializable
+data class PropertyDto(
+    val id: Long,
+    val title: String,
+    @SerialName("deal_mode") val dealMode: String? = null,
+    @SerialName("transaction_status") val transactionStatus: String? = null,
+    val city: String? = null,
+    val district: String? = null,
+    @SerialName("sale_price") val salePrice: Long? = null,
+    val rent: Long? = null,
+    val deposit: Long? = null,
+    val area: Double? = null,
+)
+
+@Serializable
+data class ListingDetailDto(
+    val token: String,
+    val title: String? = null,
+    val description: String? = null,
+    val price: Long? = null,
+    val deposit: Long? = null,
+    val rent: Long? = null,
+    val area: Int? = null,
+    val rooms: Int? = null,
+    val district: String? = null,
+    val city: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val images: List<String> = emptyList(),
+    @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
+    @SerialName("share_link") val shareLink: String? = null,
+    @SerialName("advertiser_type") val advertiserType: String? = null,
+    @SerialName("business_type") val businessType: String? = null,
+    @SerialName("year_built") val yearBuilt: String? = null,
+    val floor: String? = null,
+    @SerialName("total_floors") val totalFloors: String? = null,
+    @SerialName("price_per_sqm") val pricePerSqm: Int? = null,
+    @SerialName("scraped_at") val scrapedAt: String? = null,
+    @SerialName("dataset_id") val datasetId: String? = null,
+    @SerialName("is_expired") val isExpired: Boolean = false,
+)
+
+@Serializable
+data class ActivityCreateRequest(
+    @SerialName("activity_type") val activityType: String,
+    val content: String = "",
+    val title: String = "",
+    val token: String = "",
+)
+
+@Serializable
+data class NoteCreateRequest(
+    val content: String,
+    val title: String = "یادداشت",
+)
+
+@Serializable
+data class ReminderCreateRequest(
+    val title: String,
+    @SerialName("due_at") val dueAt: String,
+    val note: String = "",
+)
+
+@Serializable
+data class TodayActionRequest(
+    @SerialName("contact_id") val contactId: Long? = null,
+    @SerialName("reminder_id") val reminderId: Long? = null,
+    val action: String = "complete",
+    val days: Int = 1,
+    val note: String = "",
+)
+
+@Serializable
+data class LinkListingRequest(
+    val token: String,
+    val title: String = "",
+    val price: String = "",
+    val area: String = "",
+    val link: String = "",
+    val role: String = "پیشنهادی",
+)
+
+@Serializable
+data class ContactUpdateRequest(
+    @SerialName("full_name") val fullName: String? = null,
+    val phone: String? = null,
+    val status: String? = null,
+    @SerialName("customer_type") val customerType: String? = null,
+    val priority: String? = null,
+    val notes: String? = null,
+)
+
+@Serializable
+data class PaginatedResult<T>(
+    val items: List<T>,
+    val page: Int,
+    val total: Int,
+    val hasMore: Boolean,
+)
+
+@Serializable
+data class SyncPushRequest(
+    val operations: List<SyncOperation>,
+)
+
+@Serializable
+data class SyncOperation(
+    @SerialName("op_id") val opId: String,
+    val entity: String,
+    val action: String,
+    val payload: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+)

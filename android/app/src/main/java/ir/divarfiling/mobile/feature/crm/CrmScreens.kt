@@ -64,6 +64,7 @@ import ir.divarfiling.mobile.core.network.TodayItemDto
 @Composable
 fun ContactsScreen(
     onBack: () -> Unit = {},
+    onContactClick: (Long) -> Unit = {},
     viewModel: ContactsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -116,7 +117,18 @@ fun ContactsScreen(
                             phone = contact.phone,
                             status = contact.status,
                             customerType = contact.customerType,
+                            onClick = { onContactClick(contact.id) },
                         )
+                    }
+                    if (state.hasMore) {
+                        item {
+                            TextButton(
+                                onClick = viewModel::loadMore,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(if (state.isLoadingMore) "در حال بارگذاری…" else "بارگذاری بیشتر")
+                            }
+                        }
                     }
                 }
             }
@@ -182,9 +194,11 @@ private fun QuickLeadDialog(
 @Composable
 fun TodayScreen(
     onBack: () -> Unit = {},
+    onContactClick: (Long) -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(topBar = { DfTopBar(title = "کارهای امروز", onBack = onBack) }) { padding ->
         DfPullRefresh(
@@ -249,7 +263,45 @@ fun TodayScreen(
                             items = today.overdue,
                             key = { "overdue-${it.reminder?.id ?: it.contact?.id}" },
                         ) { item ->
-                            TodayTaskCard(item, isOverdue = true)
+                            TodayTaskCard(
+                                item = item,
+                                isOverdue = true,
+                                onCall = {
+                                    item.contact?.phone?.let { phone ->
+                                        context.startActivity(
+                                            android.content.Intent(
+                                                android.content.Intent.ACTION_DIAL,
+                                                android.net.Uri.parse("tel:$phone"),
+                                            ),
+                                        )
+                                    }
+                                    item.contact?.id?.let { viewModel.logCallActivity(it) }
+                                },
+                                onWhatsApp = {
+                                    item.contact?.phone?.let { phone ->
+                                        val wa = phone.removePrefix("0")
+                                        context.startActivity(
+                                            android.content.Intent(
+                                                android.content.Intent.ACTION_VIEW,
+                                                android.net.Uri.parse("https://wa.me/98$wa"),
+                                            ),
+                                        )
+                                    }
+                                },
+                                onViewContact = { item.contact?.id?.let(onContactClick) },
+                                onComplete = {
+                                    viewModel.completeTask(
+                                        contactId = item.contact?.id,
+                                        reminderId = item.reminder?.id,
+                                    )
+                                },
+                                onPostpone = {
+                                    viewModel.postponeTask(
+                                        contactId = item.contact?.id,
+                                        reminderId = item.reminder?.id,
+                                    )
+                                },
+                            )
                         }
                     }
                     if (today.today.isNotEmpty()) {
@@ -258,7 +310,45 @@ fun TodayScreen(
                             items = today.today,
                             key = { "today-${it.reminder?.id ?: it.contact?.id}" },
                         ) { item ->
-                            TodayTaskCard(item, isOverdue = false)
+                            TodayTaskCard(
+                                item = item,
+                                isOverdue = false,
+                                onCall = {
+                                    item.contact?.phone?.let { phone ->
+                                        context.startActivity(
+                                            android.content.Intent(
+                                                android.content.Intent.ACTION_DIAL,
+                                                android.net.Uri.parse("tel:$phone"),
+                                            ),
+                                        )
+                                    }
+                                    item.contact?.id?.let { viewModel.logCallActivity(it) }
+                                },
+                                onWhatsApp = {
+                                    item.contact?.phone?.let { phone ->
+                                        val wa = phone.removePrefix("0")
+                                        context.startActivity(
+                                            android.content.Intent(
+                                                android.content.Intent.ACTION_VIEW,
+                                                android.net.Uri.parse("https://wa.me/98$wa"),
+                                            ),
+                                        )
+                                    }
+                                },
+                                onViewContact = { item.contact?.id?.let(onContactClick) },
+                                onComplete = {
+                                    viewModel.completeTask(
+                                        contactId = item.contact?.id,
+                                        reminderId = item.reminder?.id,
+                                    )
+                                },
+                                onPostpone = {
+                                    viewModel.postponeTask(
+                                        contactId = item.contact?.id,
+                                        reminderId = item.reminder?.id,
+                                    )
+                                },
+                            )
                         }
                     }
                     if (today.overdue.isEmpty() && today.today.isEmpty()) {
@@ -285,7 +375,15 @@ fun TodayScreen(
 }
 
 @Composable
-private fun TodayTaskCard(item: TodayItemDto, isOverdue: Boolean) {
+private fun TodayTaskCard(
+    item: TodayItemDto,
+    isOverdue: Boolean,
+    onCall: () -> Unit = {},
+    onWhatsApp: () -> Unit = {},
+    onViewContact: () -> Unit = {},
+    onComplete: () -> Unit = {},
+    onPostpone: () -> Unit = {},
+) {
     val contactName = item.contact?.fullName
     val phone = item.contact?.phone
     val reminderTitle = item.reminder?.title
@@ -356,6 +454,18 @@ private fun TodayTaskCard(item: TodayItemDto, isOverdue: Boolean) {
                             textColor = AppColors.OverdueAccent,
                         )
                     }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = AppSpacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    TextButton(onClick = onCall) { Text("تماس", style = AppTypography.labelSmall) }
+                    TextButton(onClick = onWhatsApp) { Text("واتساپ", style = AppTypography.labelSmall) }
+                    TextButton(onClick = onViewContact) { Text("مخاطب", style = AppTypography.labelSmall) }
+                    TextButton(onClick = onComplete) { Text("انجام شد", style = AppTypography.labelSmall) }
+                    TextButton(onClick = onPostpone) { Text("تعویق", style = AppTypography.labelSmall) }
                 }
             }
 

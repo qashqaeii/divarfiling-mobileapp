@@ -39,6 +39,8 @@ enum class HomeTaskType {
 
 data class HomeTaskItem(
     val id: String,
+    val contactId: Long? = null,
+    val reminderId: Long? = null,
     val time: String,
     val title: String,
     val subtitle: String,
@@ -59,6 +61,7 @@ data class HomeNotificationItem(
     val title: String,
     val timeAgo: String,
     val type: HomeNotificationType,
+    val deepLink: String? = null,
 )
 
 data class RecentFileItem(

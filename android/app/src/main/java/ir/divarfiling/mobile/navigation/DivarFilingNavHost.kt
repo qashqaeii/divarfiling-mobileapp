@@ -24,11 +24,13 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfBottomNavigation
 import ir.divarfiling.mobile.core.design.components.DfNavItem
 import ir.divarfiling.mobile.feature.auth.LoginScreen
+import ir.divarfiling.mobile.feature.crm.ContactDetailScreen
 import ir.divarfiling.mobile.feature.crm.ContactsScreen
 import ir.divarfiling.mobile.feature.crm.CrmHubScreen
 import ir.divarfiling.mobile.feature.crm.TodayScreen
 import ir.divarfiling.mobile.feature.extract.ExtractScreen
 import ir.divarfiling.mobile.feature.filing.DatasetsScreen
+import ir.divarfiling.mobile.feature.filing.ListingDetailScreen
 import ir.divarfiling.mobile.feature.filing.ListingsScreen
 import ir.divarfiling.mobile.feature.home.HomeScreen
 import ir.divarfiling.mobile.feature.settings.SettingsScreen
@@ -40,19 +42,24 @@ object Routes {
     const val HOME = "home"
     const val CRM = "crm"
     const val CRM_CONTACTS = "crm/contacts"
+    const val CRM_CONTACT_DETAIL = "crm/contacts/{contactId}"
     const val CRM_TODAY = "crm/today"
     const val FILING = "filing"
     const val FILING_LISTINGS = "filing/{datasetId}"
+    const val FILING_LISTING_DETAIL = "filing/listing/{token}"
     const val EXTRACT = "extract"
     const val SETTINGS = "settings"
 
     fun listings(datasetId: String) = "filing/$datasetId"
+    fun contactDetail(contactId: Long) = "crm/contacts/$contactId"
+    fun listingDetail(token: String) = "filing/listing/$token"
 
     val mainTabs = setOf(HOME, CRM, FILING, SETTINGS)
 }
 
 @Composable
 fun DivarFilingNavHost(
+    startDeepLink: DeepLinkTarget? = null,
     sessionViewModel: SessionViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
@@ -74,6 +81,18 @@ fun DivarFilingNavHost(
             }
         }
         true -> {
+            LaunchedEffect(startDeepLink) {
+                when (val link = startDeepLink) {
+                    is DeepLinkTarget.Filing -> navController.navigate(Routes.FILING)
+                    is DeepLinkTarget.FilingDataset -> navController.navigate(Routes.listings(link.datasetId))
+                    is DeepLinkTarget.ListingDetail -> navController.navigate(Routes.listingDetail(link.token))
+                    is DeepLinkTarget.Crm -> navController.navigate(Routes.CRM)
+                    is DeepLinkTarget.ContactDetail -> navController.navigate(Routes.contactDetail(link.contactId))
+                    is DeepLinkTarget.Today -> navController.navigate(Routes.CRM_TODAY)
+                    is DeepLinkTarget.Extract -> navController.navigate(Routes.EXTRACT)
+                    null -> Unit
+                }
+            }
             val bottomItems = listOf(
                 DfNavItem(Routes.FILING, "فایلینگ", DfIcons.Folder),
                 DfNavItem(Routes.CRM, "CRM", DfIcons.Users),
@@ -133,10 +152,22 @@ fun DivarFilingNavHost(
                         )
                     }
                     composable(Routes.CRM_CONTACTS) {
-                        ContactsScreen(onBack = { navController.popBackStack() })
+                        ContactsScreen(
+                            onBack = { navController.popBackStack() },
+                            onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                        )
+                    }
+                    composable(
+                        route = Routes.CRM_CONTACT_DETAIL,
+                        arguments = listOf(navArgument("contactId") { type = NavType.LongType }),
+                    ) {
+                        ContactDetailScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.CRM_TODAY) {
-                        TodayScreen(onBack = { navController.popBackStack() })
+                        TodayScreen(
+                            onBack = { navController.popBackStack() },
+                            onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                        )
                     }
                     composable(Routes.FILING) {
                         DatasetsScreen(
@@ -151,7 +182,14 @@ fun DivarFilingNavHost(
                         ListingsScreen(
                             datasetId = id,
                             onBack = { navController.popBackStack() },
+                            onListingClick = { token -> navController.navigate(Routes.listingDetail(token)) },
                         )
+                    }
+                    composable(
+                        route = Routes.FILING_LISTING_DETAIL,
+                        arguments = listOf(navArgument("token") { type = NavType.StringType }),
+                    ) {
+                        ListingDetailScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.EXTRACT) {
                         ExtractScreen(

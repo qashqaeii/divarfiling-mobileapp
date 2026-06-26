@@ -167,6 +167,7 @@ private fun datasetSourceLabel(source: String): String = when {
 fun ListingsScreen(
     datasetId: String,
     onBack: () -> Unit = {},
+    onListingClick: (String) -> Unit = {},
     viewModel: ListingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -184,7 +185,7 @@ fun ListingsScreen(
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
-            onRefresh = { viewModel.load(datasetId) },
+            onRefresh = { viewModel.refresh(datasetId) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -200,7 +201,7 @@ fun ListingsScreen(
                         value = state.query,
                         onValueChange = viewModel::onQueryChange,
                         placeholder = "جستجو در عنوان…",
-                        onSearch = { viewModel.load(datasetId) },
+                        onSearch = { viewModel.load(datasetId, reset = true) },
                     )
                 }
                 state.error?.let { error ->
@@ -217,6 +218,7 @@ fun ListingsScreen(
                     items(state.listings, key = { it.token }) { listing ->
                         ListingItem(
                             listing = listing,
+                            onClick = { onListingClick(listing.token) },
                             onOpenDivar = listing.shareLink?.let { link ->
                                 {
                                     context.startActivity(
@@ -225,6 +227,16 @@ fun ListingsScreen(
                                 }
                             },
                         )
+                    }
+                    if (state.hasMore) {
+                        item {
+                            androidx.compose.material3.TextButton(
+                                onClick = { viewModel.loadMore(datasetId) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(if (state.isLoadingMore) "در حال بارگذاری…" else "بارگذاری بیشتر")
+                            }
+                        }
                     }
                 }
             }
@@ -235,7 +247,8 @@ fun ListingsScreen(
 @Composable
 private fun ListingItem(
     listing: ListingDto,
-    onOpenDivar: (() -> Unit)?,
+    onClick: (() -> Unit)? = null,
+    onOpenDivar: (() -> Unit)? = null,
 ) {
     val advertiser = listing.advertiserType
         ?: listing.businessType?.takeIf { it.isNotBlank() }
@@ -248,6 +261,6 @@ private fun ListingItem(
         rooms = listing.rooms,
         district = listing.district,
         advertiserType = advertiser,
-        onClick = onOpenDivar,
+        onClick = onClick ?: onOpenDivar,
     )
 }

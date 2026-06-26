@@ -17,8 +17,11 @@ import javax.inject.Inject
 data class ContactsUiState(
     val contacts: List<ContactDto> = emptyList(),
     val query: String = "",
+    val page: Int = 1,
+    val hasMore: Boolean = false,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
+    val isLoadingMore: Boolean = false,
     val isSubmitting: Boolean = false,
     val error: String? = null,
     val showQuickLead: Boolean = false,
@@ -33,37 +36,57 @@ class ContactsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ContactsUiState())
     val uiState: StateFlow<ContactsUiState> = _uiState.asStateFlow()
 
-    init { load() }
+    init { load(reset = true) }
 
-    fun load() {
+    fun load(reset: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = it.contacts.isEmpty() && !it.isRefreshing, error = null) }
-            when (val result = crmRepository.getContacts(_uiState.value.query)) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(contacts = result.data, isLoading = false, isRefreshing = false)
+            val page = if (reset) 1 else _uiState.value.page
+            _uiState.update {
+                it.copy(
+                    isLoading = reset && it.contacts.isEmpty(),
+                    isLoadingMore = !reset,
+                    error = null,
+                )
+            }
+            when (val result = crmRepository.getContacts(_uiState.value.query, page = page)) {
+                is ApiResult.Success -> {
+                    val merged = if (reset) result.data.items else _uiState.value.contacts + result.data.items
+                    _uiState.update {
+                        it.copy(
+                            contacts = merged,
+                            page = page,
+                            hasMore = result.data.hasMore,
+                            isLoading = false,
+                            isRefreshing = false,
+                            isLoadingMore = false,
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
+                    it.copy(isLoading = false, isRefreshing = false, isLoadingMore = false, error = result.message)
                 }
             }
         }
     }
 
+    fun loadMore() {
+        if (_uiState.value.isLoadingMore || !_uiState.value.hasMore) return
+        _uiState.update { it.copy(page = it.page + 1) }
+        load(reset = false)
+    }
+
     fun refresh() {
-        _uiState.update { it.copy(isRefreshing = true) }
-        load()
+        _uiState.update { it.copy(isRefreshing = true, page = 1) }
+        load(reset = true)
     }
 
-    fun onQueryChange(q: String) {
-        _uiState.update { it.copy(query = q) }
+    fun onQueryChange(q: String) = _uiState.update { it.copy(query = q) }
+    fun search() {
+        _uiState.update { it.copy(page = 1) }
+        load(reset = true)
     }
 
-    fun search() = load()
-
-    fun toggleQuickLead(show: Boolean) {
-        _uiState.update { it.copy(showQuickLead = show) }
-    }
-
+    fun toggleQuickLead(show: Boolean) = _uiState.update { it.copy(showQuickLead = show) }
     fun onLeadNameChange(v: String) = _uiState.update { it.copy(leadName = v) }
     fun onLeadPhoneChange(v: String) = _uiState.update { it.copy(leadPhone = v) }
 
@@ -78,14 +101,9 @@ class ContactsViewModel @Inject constructor(
             when (val result = crmRepository.quickLead(state.leadName, state.leadPhone)) {
                 is ApiResult.Success -> {
                     _uiState.update {
-                        it.copy(
-                            showQuickLead = false,
-                            leadName = "",
-                            leadPhone = "",
-                            isSubmitting = false,
-                        )
+                        it.copy(showQuickLead = false, leadName = "", leadPhone = "", isSubmitting = false)
                     }
-                    load()
+                    refresh()
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmitting = false, error = result.message)
@@ -99,7 +117,9 @@ data class TodayUiState(
     val data: TodayData? = null,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
+    val isActionRunning: Boolean = false,
     val error: String? = null,
+    val successMessage: String? = null,
 )
 
 @HiltViewModel
@@ -114,10 +134,7 @@ class TodayViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _uiState.update {
-                it.copy(
-                    isLoading = it.data == null && !it.isRefreshing,
-                    error = null,
-                )
+                it.copy(isLoading = it.data == null && !it.isRefreshing, error = null)
             }
             when (val result = crmRepository.getToday()) {
                 is ApiResult.Success -> _uiState.update {
@@ -133,5 +150,41 @@ class TodayViewModel @Inject constructor(
     fun refresh() {
         _uiState.update { it.copy(isRefreshing = true) }
         load()
+    }
+
+    fun completeTask(contactId: Long?, reminderId: Long?, note: String = "") {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isActionRunning = true) }
+            when (crmRepository.completeTodayTask(contactId, reminderId, note)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isActionRunning = false, successMessage = "انجام شد") }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isActionRunning = false, error = it.error)
+                }
+            }
+        }
+    }
+
+    fun postponeTask(contactId: Long?, reminderId: Long?, days: Int = 1) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isActionRunning = true) }
+            when (crmRepository.postponeTodayTask(contactId, reminderId, days)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isActionRunning = false, successMessage = "تعویق شد") }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isActionRunning = false, error = it.error)
+                }
+            }
+        }
+    }
+
+    fun logCallActivity(contactId: Long) {
+        viewModelScope.launch {
+            crmRepository.createActivity(contactId, "call", "تماس از صفحه امروز")
+        }
     }
 }

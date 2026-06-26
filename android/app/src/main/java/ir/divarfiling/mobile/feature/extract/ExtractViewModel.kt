@@ -88,6 +88,11 @@ class ExtractViewModel @Inject constructor(
             }
         }
         viewModelScope.launch { loadPlaces() }
+        viewModelScope.launch {
+            extractionRepository.getLimits()?.maxItems?.let { max ->
+                _uiState.update { it.copy(maxItems = it.maxItems.coerceAtMost(max)) }
+            }
+        }
         refreshGate()
     }
 
