@@ -212,8 +212,13 @@ fun TodayScreen(
                             subtitle = "همه پیگیری‌ها انجام شده — عالی!",
                         )
                     }
-                } ?: if (!state.isLoading && state.error == null) {
-                    DfEmptyState(title = "داده‌ای نیست", subtitle = "با کشیدن صفحه به‌روزرسانی کنید")
+                }
+
+                if (state.data == null && !state.isLoading && state.error == null) {
+                    DfEmptyState(
+                        title = "داده‌ای نیست",
+                        subtitle = "با کشیدن صفحه به‌روزرسانی کنید",
+                    )
                 }
             }
         }
