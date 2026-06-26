@@ -335,9 +335,12 @@ fun DfSectionHeader(title: String, count: Int? = null) {
 }
 
 @Composable
-fun DfErrorBanner(message: String) {
+fun DfErrorBanner(
+    message: String,
+    modifier: Modifier = Modifier,
+) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = DfShapes.Chip,
         color = DfColors.Rose.copy(alpha = 0.12f),
     ) {
