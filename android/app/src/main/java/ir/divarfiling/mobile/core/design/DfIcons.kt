@@ -1,48 +1,50 @@
 package ir.divarfiling.mobile.core.design
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Apartment
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Handshake
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
-import compose.icons.lucideicons.Bell
-import compose.icons.lucideicons.Building2
-import compose.icons.lucideicons.Calendar
-import compose.icons.lucideicons.ChevronDown
-import compose.icons.lucideicons.ChevronLeft
-import compose.icons.lucideicons.Download
-import compose.icons.lucideicons.FileText
-import compose.icons.lucideicons.FolderOpen
-import compose.icons.lucideicons.Handshake
-import compose.icons.lucideicons.Home
-import compose.icons.lucideicons.MapPin
-import compose.icons.lucideicons.Phone
-import compose.icons.lucideicons.Plus
-import compose.icons.lucideicons.Search
-import compose.icons.lucideicons.Settings
-import compose.icons.lucideicons.Smartphone
-import compose.icons.lucideicons.Sparkles
-import compose.icons.lucideicons.Star
-import compose.icons.lucideicons.TrendingDown
-import compose.icons.lucideicons.User
-import compose.icons.lucideicons.Users
 
+/** Thin-stroke style icons via Material Extended — no external Maven dependency. */
 object DfIcons {
-    val Home: ImageVector = Home
-    val Search: ImageVector = Search
-    val Bell: ImageVector = Bell
-    val Folder: ImageVector = FolderOpen
-    val Users: ImageVector = Users
-    val Handshake: ImageVector = Handshake
-    val Building: ImageVector = Building2
-    val File: ImageVector = FileText
-    val Phone: ImageVector = Phone
-    val Calendar: ImageVector = Calendar
-    val User: ImageVector = User
-    val MapPin: ImageVector = MapPin
-    val Plus: ImageVector = Plus
-    val Settings: ImageVector = Settings
-    val Download: ImageVector = Download
-    val Star: ImageVector = Star
-    val TrendingDown: ImageVector = TrendingDown
-    val Sparkles: ImageVector = Sparkles
-    val Smartphone: ImageVector = Smartphone
-    val ChevronLeft: ImageVector = ChevronLeft
-    val ChevronDown: ImageVector = ChevronDown
+    val Home: ImageVector = Icons.Default.Home
+    val Search: ImageVector = Icons.Default.Search
+    val Bell: ImageVector = Icons.Default.Notifications
+    val Folder: ImageVector = Icons.Default.FolderOpen
+    val Users: ImageVector = Icons.Default.People
+    val Handshake: ImageVector = Icons.Default.Handshake
+    val Building: ImageVector = Icons.Default.Apartment
+    val File: ImageVector = Icons.Default.Description
+    val Phone: ImageVector = Icons.Default.Phone
+    val Calendar: ImageVector = Icons.Default.CalendarToday
+    val User: ImageVector = Icons.Default.Person
+    val MapPin: ImageVector = Icons.Default.LocationOn
+    val Plus: ImageVector = Icons.Default.Add
+    val Settings: ImageVector = Icons.Default.Settings
+    val Download: ImageVector = Icons.Default.Download
+    val Star: ImageVector = Icons.Default.Star
+    val TrendingDown: ImageVector = Icons.AutoMirrored.Filled.TrendingDown
+    val Sparkles: ImageVector = Icons.Default.AutoAwesome
+    val Smartphone: ImageVector = Icons.Default.Smartphone
+    val ChevronLeft: ImageVector = Icons.Default.KeyboardArrowLeft
+    val ChevronDown: ImageVector = Icons.Default.KeyboardArrowDown
 }

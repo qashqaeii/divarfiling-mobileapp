@@ -1,16 +1,13 @@
 package ir.divarfiling.mobile.feature.extract.divar
 
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-
 object OutputNameHint {
 
+    /** نام فایل بدون تاریخ — فقط اسلاگ منطقه/شهر (هم‌تراز با نام‌گذاری میزکار). */
     fun build(filters: ExtractFilters): String {
         val areaSlug = filters.districtSlugs.firstOrNull()?.takeIf { it.isNotBlank() }
             ?: filters.citySlug?.takeIf { it.isNotBlank() }
             ?: makeSlug(filters.districtNames.firstOrNull() ?: filters.cityName)
-        val ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-        return "${areaSlug}_$ts"
+        return areaSlug
     }
 
     private fun makeSlug(text: String): String {

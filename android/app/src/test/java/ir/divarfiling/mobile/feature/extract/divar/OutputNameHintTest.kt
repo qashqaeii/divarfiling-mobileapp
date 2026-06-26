@@ -15,7 +15,7 @@ class OutputNameHintTest {
             districtSlugs = listOf("ostad-moein"),
         )
         val hint = OutputNameHint.build(filters)
-        assertTrue(hint.startsWith("ostad-moein_"))
+        assertEquals("ostad-moein", hint)
     }
 
     @Test

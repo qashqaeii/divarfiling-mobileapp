@@ -82,7 +82,12 @@ class HomeViewModel @Inject constructor(
             val todayIso = LocalDate.now().toString()
             val newFilesToday = datasets.count { it.createdAt?.startsWith(todayIso) == true }
             val totalListings = datasets.sumOf { it.itemCount }
-            val todayTasks = mapTodayTasks(todayData?.today.orEmpty() + todayData?.overdue.orEmpty())
+            val todayTasks = mapTodayTasks(
+                (todayData?.today.orEmpty() + todayData?.overdue.orEmpty())
+                    .distinctBy { item ->
+                        item.reminder?.id ?: item.contact?.id ?: item.type
+                    },
+            )
             val notifications = buildNotifications(
                 license = _uiState.value.license,
                 datasets = datasets,
