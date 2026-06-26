@@ -53,7 +53,7 @@ class DivarLightClient @Inject constructor(
         "accept" to "application/json-filled",
         "origin" to "https://divar.ir",
         "referer" to "https://divar.ir/",
-        "user-agent" to MOBILE_USER_AGENT,
+        "user-agent" to DESKTOP_USER_AGENT,
         "x-render-type" to "CSR",
     )
 
@@ -170,12 +170,8 @@ class DivarLightClient @Inject constructor(
     private fun fetchDetailEnriched(token: String): JsonElement? {
         val detail = fetchDetail(token) ?: return null
         val detailObj = detail.jsonObject.toMutableMap()
-        val businessType = detailObj["webengage"]?.jsonObject
-            ?.get("business_type")?.jsonPrimitive?.content?.lowercase().orEmpty()
-        if (businessType == "premium-panel" || businessType == "premium_panel") {
-            fetchBusinessLazyWidgets(token)?.let { widgets ->
-                detailObj["business_lazy_widget_list"] = widgets
-            }
+        fetchBusinessLazyWidgets(detail, token)?.let { widgets ->
+            detailObj["business_lazy_widget_list"] = widgets
         }
         return JsonObject(detailObj)
     }
@@ -194,26 +190,68 @@ class DivarLightClient @Inject constructor(
         return json.parseToJsonElement(body)
     }
 
-    private fun fetchBusinessLazyWidgets(token: String): JsonElement? {
-        val lazyBody = buildJsonObject {
-            put("request_data", buildJsonObject {
-                put("@type", "type.googleapis.com/premium_user.BusinessLazyRequest")
-                put("token", token)
-            })
-        }.toString().toRequestBody("application/json".toMediaType())
+    private fun fetchBusinessLazyWidgets(detail: JsonElement, token: String): JsonElement? {
+        val (path, body) = findBusinessLazyRequest(detail, token) ?: return null
+        val url = if (path.startsWith("http")) path else "${BuildConfig.DIVAR_API_HOST}$path"
 
         val response = executeWithRetry {
             val request = Request.Builder()
-                .url("${BuildConfig.DIVAR_API_HOST}/v8/premium-user/post-page/business-data/$token/lazy")
-                .post(lazyBody)
+                .url(url)
+                .post(body.toRequestBody("application/json".toMediaType()))
                 .apply { listHeaders.forEach { (k, v) -> header(k, v) } }
                 .build()
             client.newCall(request).execute()
         } ?: return null
         if (!response.isSuccessful) return null
-        val body = response.body?.string() ?: return null
-        val root = json.parseToJsonElement(body).jsonObject
+        val responseBody = response.body?.string() ?: return null
+        val root = json.parseToJsonElement(responseBody).jsonObject
         return root["widget_list"]
+    }
+
+    private fun findBusinessLazyRequest(detail: JsonElement, token: String): Pair<String, String>? {
+        val detailObj = detail.jsonObject
+        val sections = detailObj["sections"]?.jsonArray ?: return fallbackBusinessLazyRequest(detailObj, token)
+
+        for (section in sections) {
+            val sec = section.jsonObject
+            if (sec["section_name"]?.jsonPrimitive?.content != "BUSINESS_SECTION") continue
+            val widgets = sec["widgets"]?.jsonArray ?: continue
+            for (widget in widgets) {
+                val w = widget.jsonObject
+                if (w["widget_type"]?.jsonPrimitive?.content != "LAZY_SECTION") continue
+                val data = w["data"]?.jsonObject ?: continue
+                val path = data["rest_request_path"]?.jsonPrimitive?.content?.trim().orEmpty()
+                if (path.isBlank()) continue
+                val reqData = data["request_data"]?.jsonObject
+                val body = if (reqData != null) {
+                    buildJsonObject { put("request_data", reqData) }
+                } else {
+                    defaultBusinessLazyBody(tokenFromDetail(detailObj, token))
+                }
+                return path to json.encodeToString(JsonObject.serializer(), body)
+            }
+        }
+        return fallbackBusinessLazyRequest(detailObj, token)
+    }
+
+    private fun fallbackBusinessLazyRequest(detailObj: JsonObject, token: String): Pair<String, String>? {
+        val businessType = detailObj["webengage"]?.jsonObject
+            ?.get("business_type")?.jsonPrimitive?.content?.lowercase().orEmpty()
+        if (businessType != "premium-panel" && businessType != "premium_panel") return null
+        val path = "/v8/premium-user/post-page/business-data/$token/lazy"
+        val body = defaultBusinessLazyBody(tokenFromDetail(detailObj, token))
+        return path to json.encodeToString(JsonObject.serializer(), body)
+    }
+
+    private fun tokenFromDetail(detailObj: JsonObject, fallback: String): String =
+        detailObj["webengage"]?.jsonObject?.get("token")?.jsonPrimitive?.content?.trim()
+            ?.takeIf { it.isNotEmpty() } ?: fallback
+
+    private fun defaultBusinessLazyBody(token: String): JsonObject = buildJsonObject {
+        put("request_data", buildJsonObject {
+            put("@type", "type.googleapis.com/premium_panel.GetPostBusinessLazyWidgetsRequest.RequestData")
+            put("post_token", token)
+        })
     }
 
     private fun buildSearchPayload(
@@ -340,6 +378,9 @@ class DivarLightClient @Inject constructor(
         private const val MOBILE_USER_AGENT =
             "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 " +
                 "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+        private const val DESKTOP_USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         private const val MAX_LIST_PAGES = 60
         private const val MAX_RETRIES = 3
         private const val RETRY_BACKOFF_MS = 400L

@@ -18,10 +18,14 @@ data class ExtractAdvancedFilters(
 data class ExtractFilters(
     val cityId: String = "1",
     val cityName: String = "تهران",
+    val provinceName: String? = null,
     val districtIds: List<String> = emptyList(),
     val districtNames: List<String> = emptyList(),
     val category: String = "apartment-rent",
+    val categoryLabel: String? = null,
+    val transactionTypeLabel: String? = null,
     val sort: String = "sort_date",
     val maxItems: Int = 50,
+    val outputNameHint: String? = null,
     val advanced: ExtractAdvancedFilters = ExtractAdvancedFilters(),
 )

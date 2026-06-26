@@ -207,6 +207,12 @@ data class ExtractionFiltersDto(
     @SerialName("year_max") val yearMax: Int? = null,
     val rooms: List<String> = emptyList(),
     @SerialName("advertiser_filter") val advertiserFilter: String = "all",
+    @SerialName("district_names") val districtNames: List<String> = emptyList(),
+    @SerialName("province_name") val provinceName: String? = null,
+    @SerialName("category_label") val categoryLabel: String? = null,
+    @SerialName("transaction_type_label") val transactionTypeLabel: String? = null,
+    @SerialName("output_name_hint") val outputNameHint: String? = null,
+    @SerialName("source_client") val sourceClient: String = "android_light",
 )
 
 @Serializable

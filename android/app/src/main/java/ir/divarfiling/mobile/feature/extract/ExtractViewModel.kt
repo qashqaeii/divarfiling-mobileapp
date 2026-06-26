@@ -13,6 +13,7 @@ import ir.divarfiling.mobile.data.repository.ExtractGateResult
 import ir.divarfiling.mobile.data.repository.ExtractionRepository
 import ir.divarfiling.mobile.feature.extract.divar.ExtractAdvancedFilters
 import ir.divarfiling.mobile.feature.extract.divar.ExtractFilters
+import ir.divarfiling.mobile.feature.extract.divar.OutputNameHint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -198,14 +199,22 @@ class ExtractViewModel @Inject constructor(
                 it.copy(isRunning = true, error = null, message = null, progressCurrent = 0, progressTotal = 0)
             }
             val districtIds = state.districtId.takeIf { it.isNotBlank() }?.let { listOf(it) }.orEmpty()
+            val districtNames = state.districtId.takeIf { it.isNotBlank() }?.let { id ->
+                state.districts.firstOrNull { it.id == id }?.name?.let { listOf(it) }
+            }.orEmpty()
             val rooms = state.rooms.split(',', '،').map { it.trim() }.filter { it.isNotEmpty() }
             val filters = ExtractFilters(
                 cityId = state.cityId,
                 cityName = state.cityName,
+                provinceName = state.provinceName.takeIf { it.isNotBlank() },
                 districtIds = districtIds,
+                districtNames = districtNames,
                 category = slug,
+                categoryLabel = state.subcategoryLabel,
+                transactionTypeLabel = state.transactionType,
                 sort = state.sort,
                 maxItems = state.maxItems,
+                outputNameHint = null,
                 advanced = ExtractAdvancedFilters(
                     priceMin = state.priceMin.toLongOrNull(),
                     priceMax = state.priceMax.toLongOrNull(),
@@ -220,7 +229,7 @@ class ExtractViewModel @Inject constructor(
                     rooms = rooms,
                     advertiserFilter = state.advertiserFilter,
                 ),
-            )
+            ).let { base -> base.copy(outputNameHint = OutputNameHint.build(base)) }
             when (
                 val result = extractionRepository.runLightExtraction(
                     filters = filters,

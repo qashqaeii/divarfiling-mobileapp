@@ -9,6 +9,7 @@ import ir.divarfiling.mobile.core.network.ExtractionUploadData
 import ir.divarfiling.mobile.core.network.ExtractionUploadRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.requireData
+import ir.divarfiling.mobile.feature.extract.divar.AdvertiserFilter
 import ir.divarfiling.mobile.feature.extract.divar.DivarLightClient
 import ir.divarfiling.mobile.feature.extract.divar.ExtractFilters
 import kotlinx.serialization.json.Json
@@ -71,6 +72,16 @@ class ExtractionRepository @Inject constructor(
             return ApiResult.Error("آگهی‌ای یافت نشد")
         }
 
+        val advertiserFilter = safeFilters.advanced.advertiserFilter
+        val filteredItems = if (advertiserFilter == "all") {
+            items
+        } else {
+            items.filter { AdvertiserFilter.matches(it.raw, advertiserFilter) }
+        }
+        if (filteredItems.isEmpty()) {
+            return ApiResult.Error("پس از اعمال فیلتر آگهی‌دهنده، آگهی‌ای باقی نماند")
+        }
+
         val finishedAt = Instant.now().toString()
         return try {
             val response = api.uploadExtraction(
@@ -79,7 +90,12 @@ class ExtractionRepository @Inject constructor(
                         cityId = safeFilters.cityId,
                         cityName = safeFilters.cityName,
                         districtIds = safeFilters.districtIds,
+                        districtNames = safeFilters.districtNames,
+                        provinceName = safeFilters.provinceName,
                         category = safeFilters.category,
+                        categoryLabel = safeFilters.categoryLabel,
+                        transactionTypeLabel = safeFilters.transactionTypeLabel,
+                        outputNameHint = safeFilters.outputNameHint,
                         sort = safeFilters.sort,
                         maxItems = safeFilters.maxItems,
                         priceMin = safeFilters.advanced.priceMin,
@@ -97,7 +113,7 @@ class ExtractionRepository @Inject constructor(
                     ),
                     startedAt = startedAt,
                     finishedAt = finishedAt,
-                    items = items.map { ExtractionItemDto(it.token, it.raw) },
+                    items = filteredItems.map { ExtractionItemDto(it.token, it.raw) },
                 ),
             )
             if (!response.ok) {
