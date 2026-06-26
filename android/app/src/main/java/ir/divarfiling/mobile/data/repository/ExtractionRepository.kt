@@ -9,6 +9,7 @@ import ir.divarfiling.mobile.core.network.ExtractionUploadData
 import ir.divarfiling.mobile.core.network.ExtractionUploadRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.requireData
+import ir.divarfiling.mobile.core.network.toUserMessage
 import ir.divarfiling.mobile.feature.extract.divar.AdvertiserFilter
 import ir.divarfiling.mobile.feature.extract.divar.DivarLightClient
 import ir.divarfiling.mobile.feature.extract.divar.ExtractFilters
@@ -29,6 +30,7 @@ class ExtractionRepository @Inject constructor(
     private val divarClient: DivarLightClient,
     private val sessionStore: SessionStore,
     private val licenseRepository: LicenseRepository,
+    private val authRepository: AuthRepository,
     private val json: Json,
 ) {
     suspend fun checkExtractGate(): ExtractGateResult {
@@ -83,6 +85,10 @@ class ExtractionRepository @Inject constructor(
         }
 
         val finishedAt = Instant.now().toString()
+        when (val tokenResult = authRepository.refreshAccessToken()) {
+            is ApiResult.Error -> return tokenResult
+            is ApiResult.Success -> Unit
+        }
         return try {
             val response = api.uploadExtraction(
                 ExtractionUploadRequest(
@@ -123,7 +129,7 @@ class ExtractionRepository @Inject constructor(
                 ApiResult.Success(data)
             }
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه در آپلود")
+            ApiResult.Error(e.toUserMessage("خطای شبکه در آپلود"))
         }
     }
 

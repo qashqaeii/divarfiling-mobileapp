@@ -42,6 +42,7 @@ class SessionStore @Inject constructor(
         val FEATURE_CRM = booleanPreferencesKey("feature_crm")
         val FEATURE_FILING = booleanPreferencesKey("feature_filing")
         val USER_ID = longPreferencesKey("user_id")
+        val ACCESS_EXPIRES_AT = longPreferencesKey("access_expires_at")
     }
 
     val currentUser: Flow<UserDto?> = dataStore.data.map { prefs ->
@@ -83,6 +84,7 @@ class SessionStore @Inject constructor(
         dataStore.edit { prefs ->
             prefs[Keys.ACCESS] = access
             prefs[Keys.REFRESH] = refresh
+            prefs[Keys.ACCESS_EXPIRES_AT] = System.currentTimeMillis() + DEFAULT_ACCESS_TTL_MS
             prefs[Keys.DEVICE_ID] = deviceId
             prefs[Keys.USER_JSON] = json.encodeToString(user)
             prefs[Keys.USER_ID] = user.id
@@ -97,6 +99,17 @@ class SessionStore @Inject constructor(
                 prefs[Keys.REFRESH] = refresh
             }
         }
+    }
+
+    suspend fun saveAccessExpiresAt(expiresAtEpochMs: Long) {
+        dataStore.edit { prefs ->
+            prefs[Keys.ACCESS_EXPIRES_AT] = expiresAtEpochMs
+        }
+    }
+
+    suspend fun isAccessTokenExpiringSoon(withinMs: Long = 120_000L): Boolean {
+        val expiresAt = dataStore.data.first()[Keys.ACCESS_EXPIRES_AT] ?: return false
+        return System.currentTimeMillis() + withinMs >= expiresAt
     }
 
     suspend fun saveLicense(license: LicenseDto?) {
@@ -121,6 +134,10 @@ class SessionStore @Inject constructor(
 
     suspend fun clear() {
         dataStore.edit { it.clear() }
+    }
+
+    companion object {
+        private const val DEFAULT_ACCESS_TTL_MS = 15L * 60L * 1000L
     }
 
     private fun applyLicense(prefs: androidx.datastore.preferences.core.MutablePreferences, license: LicenseDto?) {

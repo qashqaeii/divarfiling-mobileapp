@@ -8,6 +8,7 @@ import ir.divarfiling.mobile.core.network.LicenseStatusData
 import ir.divarfiling.mobile.core.network.LoginData
 import ir.divarfiling.mobile.core.network.LoginRequest
 import ir.divarfiling.mobile.core.network.MobileApi
+import ir.divarfiling.mobile.core.network.RefreshData
 import ir.divarfiling.mobile.core.network.RefreshRequest
 import ir.divarfiling.mobile.core.network.UserDto
 import ir.divarfiling.mobile.core.network.parseData
@@ -47,6 +48,9 @@ class AuthRepository @Inject constructor(
                 user = data.user,
                 deviceId = deviceId,
             )
+            data.expiresIn?.let { seconds ->
+                sessionStore.saveAccessExpiresAt(System.currentTimeMillis() + seconds * 1000L)
+            }
             registerDevice(deviceId)
             licenseRepository.refreshLicense()
             ApiResult.Success(data.user)
@@ -82,6 +86,37 @@ class AuthRepository @Inject constructor(
         } catch (_: Exception) {
         } finally {
             sessionStore.clear()
+        }
+    }
+
+    suspend fun ensureFreshAccessToken(): ApiResult<Unit> {
+        if (!sessionStore.isAccessTokenExpiringSoon()) {
+            return ApiResult.Success(Unit)
+        }
+        return refreshAccessToken()
+    }
+
+    suspend fun refreshAccessToken(): ApiResult<Unit> {
+        val refresh = sessionStore.getRefreshToken()
+        if (refresh.isNullOrBlank()) {
+            return ApiResult.Error("نشست شما منقضی شده است. دوباره وارد شوید.", "AUTH_EXPIRED")
+        }
+        return try {
+            val response = api.refresh(RefreshRequest(refresh))
+            if (!response.ok) {
+                sessionStore.clear()
+                return ApiResult.Error(
+                    response.error ?: "نشست شما منقضی شده است. دوباره وارد شوید.",
+                    response.code ?: "AUTH_EXPIRED",
+                )
+            }
+            val data = response.requireData<RefreshData>(json)
+            sessionStore.updateTokens(data.access, data.refresh)
+            val ttlMs = (data.expiresIn ?: 900L) * 1000L
+            sessionStore.saveAccessExpiresAt(System.currentTimeMillis() + ttlMs)
+            ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه در تمدید نشست")
         }
     }
 }

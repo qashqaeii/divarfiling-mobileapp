@@ -52,6 +52,7 @@ data class RefreshRequest(val refresh: String)
 data class RefreshData(
     val access: String,
     val refresh: String? = null,
+    @SerialName("expires_in") val expiresIn: Long? = null,
 )
 
 @Serializable

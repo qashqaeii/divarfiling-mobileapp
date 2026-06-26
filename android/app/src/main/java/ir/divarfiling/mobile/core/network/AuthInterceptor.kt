@@ -15,13 +15,15 @@ class AuthInterceptor @Inject constructor(
         val request = chain.request()
         val token = runBlocking { sessionStore.getAccessToken() }
         val deviceId = runBlocking { sessionStore.getDeviceId() }
+        val path = request.url.encodedPath
+        val skipAuth = path.endsWith("/auth/login") || path.endsWith("/auth/refresh")
 
         val builder = request.newBuilder()
             .header("Accept", "application/json")
             .header("X-Platform", "android")
             .header("X-App-Version", "1.0.0")
 
-        if (!token.isNullOrBlank()) {
+        if (!skipAuth && !token.isNullOrBlank()) {
             builder.header("Authorization", "Bearer $token")
         }
         if (!deviceId.isNullOrBlank()) {
