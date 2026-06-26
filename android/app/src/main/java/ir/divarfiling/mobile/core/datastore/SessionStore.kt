@@ -44,6 +44,16 @@ class SessionStore @Inject constructor(
         val USER_ID = longPreferencesKey("user_id")
     }
 
+    val currentUser: Flow<UserDto?> = dataStore.data.map { prefs ->
+        prefs[Keys.USER_JSON]?.let { raw ->
+            runCatching { json.decodeFromString<UserDto>(raw) }.getOrNull()
+        }
+    }
+
+    suspend fun getUser(): UserDto? = dataStore.data.first()[Keys.USER_JSON]?.let { raw ->
+        runCatching { json.decodeFromString<UserDto>(raw) }.getOrNull()
+    }
+
     val isLoggedIn: Flow<Boolean> = dataStore.data.map { prefs ->
         !prefs[Keys.ACCESS].isNullOrBlank()
     }

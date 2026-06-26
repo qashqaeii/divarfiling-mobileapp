@@ -1,21 +1,13 @@
 package ir.divarfiling.mobile.navigation
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,7 +18,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfBottomNavigation
+import ir.divarfiling.mobile.core.design.components.DfNavItem
 import ir.divarfiling.mobile.feature.auth.LoginScreen
 import ir.divarfiling.mobile.feature.crm.ContactsScreen
 import ir.divarfiling.mobile.feature.crm.CrmHubScreen
@@ -37,10 +31,6 @@ import ir.divarfiling.mobile.feature.filing.ListingsScreen
 import ir.divarfiling.mobile.feature.home.HomeScreen
 import ir.divarfiling.mobile.feature.settings.SettingsScreen
 import kotlinx.coroutines.flow.first
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 
 object Routes {
     const val LOGIN = "login"
@@ -55,6 +45,8 @@ object Routes {
     const val SETTINGS = "settings"
 
     fun listings(datasetId: String) = "filing/$datasetId"
+
+    val mainTabs = setOf(HOME, CRM, FILING, SETTINGS)
 }
 
 @Composable
@@ -81,43 +73,37 @@ fun DivarFilingNavHost(
         }
         true -> {
             val bottomItems = listOf(
-                BottomItem(Routes.HOME, "خانه", Icons.Default.Home),
-                BottomItem(Routes.CRM, "CRM", Icons.Default.People),
-                BottomItem(Routes.FILING, "فایلینگ", Icons.Default.Folder),
-                BottomItem(Routes.EXTRACT, "استخراج", Icons.Default.CloudDownload),
-                BottomItem(Routes.SETTINGS, "بیشتر", Icons.Default.AccountCircle),
+                DfNavItem(Routes.FILING, "فایلینگ", DfIcons.Folder),
+                DfNavItem(Routes.CRM, "CRM", DfIcons.Users),
+                DfNavItem(Routes.HOME, "میزکار", DfIcons.Home, isCenter = true),
+                DfNavItem(Routes.CRM_TODAY, "معاملات", DfIcons.Handshake),
+                DfNavItem(Routes.SETTINGS, "تنظیمات", DfIcons.Settings),
             )
             val navBackStack by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStack?.destination?.route
-
-            val showBottomBar = currentRoute in bottomItems.map { it.route }
+            val showBottomBar = currentRoute in Routes.mainTabs ||
+                currentRoute == Routes.CRM_TODAY
 
             Scaffold(
                 bottomBar = {
                     if (showBottomBar) {
-                        NavigationBar(containerColor = DfColors.Surface) {
-                            bottomItems.forEach { item ->
-                                NavigationBarItem(
-                                    selected = currentRoute == item.route,
-                                    onClick = {
-                                        navController.navigate(item.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Icon(item.icon, contentDescription = item.label) },
-                                    label = { Text(item.label) },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = DfColors.Purple,
-                                        selectedTextColor = DfColors.Purple,
-                                        indicatorColor = DfColors.PurpleContainer,
-                                    ),
-                                )
-                            }
-                        }
+                        DfBottomNavigation(
+                            items = bottomItems,
+                            selectedRoute = when (currentRoute) {
+                                Routes.CRM_CONTACTS -> Routes.CRM
+                                Routes.FILING_LISTINGS -> Routes.FILING
+                                else -> currentRoute ?: Routes.HOME
+                            },
+                            onItemClick = { route ->
+                                navController.navigate(route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                        )
                     }
                 },
             ) { padding ->
@@ -132,6 +118,9 @@ fun DivarFilingNavHost(
                             onNavigateContacts = { navController.navigate(Routes.CRM_CONTACTS) },
                             onNavigateFiling = { navController.navigate(Routes.FILING) },
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
+                            onNavigateCrm = { navController.navigate(Routes.CRM) },
+                            onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onDatasetClick = { id -> navController.navigate(Routes.listings(id)) },
                         )
                     }
                     composable(Routes.CRM) {
@@ -178,9 +167,3 @@ fun DivarFilingNavHost(
         }
     }
 }
-
-private data class BottomItem(
-    val route: String,
-    val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-)

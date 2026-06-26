@@ -44,6 +44,7 @@ fun DivarFilingTheme(
     ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,
+            typography = DfTypography,
             content = content,
         )
     }

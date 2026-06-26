@@ -1,128 +1,148 @@
 package ir.divarfiling.mobile.feature.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Today
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.components.DfCard
-import ir.divarfiling.mobile.core.design.components.DfTopBar
-import ir.divarfiling.mobile.core.license.LicenseState
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfSpacing
+import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.feature.home.components.HomeHeader
+import ir.divarfiling.mobile.feature.home.components.NotificationsSection
+import ir.divarfiling.mobile.feature.home.components.QuickAction
+import ir.divarfiling.mobile.feature.home.components.QuickActionsRow
+import ir.divarfiling.mobile.feature.home.components.QuickExtractCard
+import ir.divarfiling.mobile.feature.home.components.RecentListingsSection
+import ir.divarfiling.mobile.feature.home.components.StatsSection
+import ir.divarfiling.mobile.feature.home.components.TodayTasksSection
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToday: () -> Unit,
     onNavigateContacts: () -> Unit,
     onNavigateFiling: () -> Unit = {},
     onNavigateExtract: () -> Unit = {},
+    onNavigateCrm: () -> Unit = {},
+    onNavigateSettings: () -> Unit = {},
+    onDatasetClick: (String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val license by viewModel.licenseState.collectAsStateWithLifecycle(
-        initialValue = LicenseState(),
-    )
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = { DfTopBar(title = "میزکار", showLogo = true) },
-    ) { padding ->
+    DfPullRefresh(
+        isRefreshing = state.isRefreshing,
+        onRefresh = viewModel::refresh,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DfColors.Background),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(DfSpacing.sectionGap),
         ) {
-            DfCard(containerColor = DfColors.PurpleContainer) {
-                Text("وضعیت حساب", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(license.licenseLabel, color = DfColors.TextSecondary)
-                if (license.canUseLightExtract) {
-                    Text("استخراج سبک فعال — حداکثر ۱۰۰ آگهی", color = DfColors.PurpleDark)
+            HomeHeader(
+                userName = state.userName,
+                notificationCount = state.notificationBadgeCount,
+                onSearchClick = onNavigateFiling,
+                onNotificationsClick = onNavigateToday,
+            )
+
+            state.error?.let { DfErrorBanner(message = it) }
+
+            AnimatedVisibility(
+                visible = !state.isLoading,
+                enter = fadeIn() + slideInVertically { it / 4 },
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(DfSpacing.sectionGap)) {
+                    StatsSection(stats = state.stats, isLoading = false)
+
+                    QuickExtractCard(
+                        maxItems = state.maxExtractItems,
+                        enabled = state.canExtract,
+                        onStartClick = onNavigateExtract,
+                    )
+
+                    TodayTasksSection(
+                        tasks = state.todayTasks,
+                        isLoading = false,
+                        onViewAll = onNavigateToday,
+                    )
+
+                    NotificationsSection(
+                        notifications = state.notifications,
+                        onViewAll = onNavigateToday,
+                    )
+
+                    RecentListingsSection(
+                        files = state.recentFiles,
+                        isLoading = false,
+                        onFileClick = onDatasetClick,
+                    )
+
+                    QuickActionsRow(
+                        actions = buildQuickActions(
+                            onNavigateContacts = onNavigateContacts,
+                            onNavigateFiling = onNavigateFiling,
+                            onNavigateCrm = onNavigateCrm,
+                            onNavigateToday = onNavigateToday,
+                        ),
+                        modifier = Modifier.padding(bottom = DfSpacing.xxl),
+                    )
                 }
             }
 
-            Text(
-                "دسترسی سریع",
-                style = MaterialTheme.typography.titleSmall,
-                color = DfColors.TextMuted,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-
-            HomeShortcutCard(
-                title = "کارهای امروز",
-                subtitle = "پیگیری‌ها و یادآورهای امروز",
-                icon = Icons.Default.Today,
-                onClick = onNavigateToday,
-            )
-            HomeShortcutCard(
-                title = "مخاطبین CRM",
-                subtitle = "مدیریت مشتریان و سرنخ‌ها",
-                icon = Icons.Default.People,
-                onClick = onNavigateContacts,
-            )
-            HomeShortcutCard(
-                title = "فایلینگ دیوار",
-                subtitle = "مشاهده فایل‌های استخراج‌شده",
-                icon = Icons.Default.Folder,
-                onClick = onNavigateFiling,
-            )
-            HomeShortcutCard(
-                title = "استخراج سبک",
-                subtitle = "جمع‌آوری آگهی و آپلود به میزکار",
-                icon = Icons.Default.CloudDownload,
-                onClick = onNavigateExtract,
-            )
+            if (state.isLoading) {
+                Column(verticalArrangement = Arrangement.spacedBy(DfSpacing.sectionGap)) {
+                    StatsSection(stats = state.stats, isLoading = true)
+                    QuickExtractCard(
+                        maxItems = state.maxExtractItems,
+                        enabled = state.canExtract,
+                        onStartClick = onNavigateExtract,
+                    )
+                    TodayTasksSection(tasks = emptyList(), isLoading = true, onViewAll = {})
+                    RecentListingsSection(files = emptyList(), isLoading = true, onFileClick = {})
+                }
+            }
         }
     }
 }
 
+private fun buildQuickActions(
+    onNavigateContacts: () -> Unit,
+    onNavigateFiling: () -> Unit,
+    onNavigateCrm: () -> Unit,
+    onNavigateToday: () -> Unit,
+): List<QuickAction> = listOf(
+    QuickAction("نقشه", DfIcons.MapPin, DfColors.Green, DfColors.GreenLight) { onNavigateFiling() },
+    QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer, onNavigateContacts),
+    QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight, onNavigateFiling),
+    QuickAction("مخاطب جدید", DfIcons.Plus, DfColors.Amber, DfColors.AmberLight, onNavigateContacts),
+    QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight, onNavigateToday),
+)
+
+@Preview(showBackground = true, heightDp = 900)
 @Composable
-private fun HomeShortcutCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-) {
-    DfCard(onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(icon, contentDescription = null, tint = DfColors.Purple)
-                Column {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary)
-                }
-            }
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = DfColors.TextMuted,
-            )
-        }
+private fun HomeScreenPreview() {
+    DivarFilingTheme {
+        // Preview without ViewModel — use static sections in component previews
     }
 }
