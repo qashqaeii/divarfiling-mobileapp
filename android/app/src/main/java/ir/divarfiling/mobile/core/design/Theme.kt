@@ -9,24 +9,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 
-private val GreenPrimary = Color(0xFF2E7D32)
-private val GreenDark = Color(0xFF1B5E20)
-private val OrangeAccent = Color(0xFFFF8F00)
-
 private val LightColors = lightColorScheme(
-    primary = GreenPrimary,
+    primary = DfColors.Purple,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFC8E6C9),
-    secondary = OrangeAccent,
-    background = Color(0xFFF5F5F5),
-    surface = Color.White,
+    primaryContainer = DfColors.PurpleContainer,
+    onPrimaryContainer = DfColors.PurpleDark,
+    secondary = DfColors.Blue,
+    tertiary = DfColors.Green,
+    background = DfColors.Background,
+    surface = DfColors.Surface,
+    surfaceVariant = DfColors.SurfaceVariant,
+    onSurface = DfColors.TextPrimary,
+    onSurfaceVariant = DfColors.TextSecondary,
+    outline = DfColors.Outline,
+    error = DfColors.Rose,
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF81C784),
-    onPrimary = Color.Black,
-    primaryContainer = GreenDark,
-    secondary = OrangeAccent,
+    primary = Color(0xFFA78BFA),
+    onPrimary = Color(0xFF1E1B4B),
+    primaryContainer = Color(0xFF4C1D95),
+    secondary = Color(0xFF60A5FA),
+    background = Color(0xFF0F172A),
+    surface = Color(0xFF1E293B),
 )
 
 @Composable

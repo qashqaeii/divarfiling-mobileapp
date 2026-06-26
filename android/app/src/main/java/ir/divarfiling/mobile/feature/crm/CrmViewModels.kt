@@ -18,6 +18,8 @@ data class ContactsUiState(
     val contacts: List<ContactDto> = emptyList(),
     val query: String = "",
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val isSubmitting: Boolean = false,
     val error: String? = null,
     val showQuickLead: Boolean = false,
     val leadName: String = "",
@@ -35,16 +37,21 @@ class ContactsViewModel @Inject constructor(
 
     fun load() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = it.contacts.isEmpty() && !it.isRefreshing, error = null) }
             when (val result = crmRepository.getContacts(_uiState.value.query)) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(contacts = result.data, isLoading = false)
+                    it.copy(contacts = result.data, isLoading = false, isRefreshing = false)
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, error = result.message)
+                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
                 }
             }
         }
+    }
+
+    fun refresh() {
+        _uiState.update { it.copy(isRefreshing = true) }
+        load()
     }
 
     fun onQueryChange(q: String) {
@@ -62,15 +69,27 @@ class ContactsViewModel @Inject constructor(
 
     fun submitQuickLead() {
         val state = _uiState.value
+        if (state.leadName.isBlank() || state.leadPhone.isBlank()) {
+            _uiState.update { it.copy(error = "نام و تلفن الزامی است") }
+            return
+        }
         viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
             when (val result = crmRepository.quickLead(state.leadName, state.leadPhone)) {
                 is ApiResult.Success -> {
                     _uiState.update {
-                        it.copy(showQuickLead = false, leadName = "", leadPhone = "")
+                        it.copy(
+                            showQuickLead = false,
+                            leadName = "",
+                            leadPhone = "",
+                            isSubmitting = false,
+                        )
                     }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
             }
         }
     }
@@ -79,6 +98,7 @@ class ContactsViewModel @Inject constructor(
 data class TodayUiState(
     val data: TodayData? = null,
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val error: String? = null,
 )
 
@@ -93,15 +113,25 @@ class TodayViewModel @Inject constructor(
 
     fun load() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update {
+                it.copy(
+                    isLoading = it.data == null && !it.isRefreshing,
+                    error = null,
+                )
+            }
             when (val result = crmRepository.getToday()) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(data = result.data, isLoading = false)
+                    it.copy(data = result.data, isLoading = false, isRefreshing = false)
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, error = result.message)
+                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
                 }
             }
         }
+    }
+
+    fun refresh() {
+        _uiState.update { it.copy(isRefreshing = true) }
+        load()
     }
 }

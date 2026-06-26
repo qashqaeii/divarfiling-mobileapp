@@ -19,6 +19,7 @@ private data class PlaceNode(
 data class PlaceOption(
     val id: String,
     val name: String,
+    val slug: String = "",
 )
 
 @Singleton
@@ -52,7 +53,7 @@ class PlacesRepository @Inject constructor(
         cities.forEach { city ->
             val pid = city.parent ?: return@forEach
             citiesByProvince.getOrPut(pid) { mutableListOf() }
-                .add(PlaceOption(city.id.toString(), city.name))
+                .add(PlaceOption(city.id.toString(), city.name, city.slug.orEmpty()))
         }
         citiesByProvince.values.forEach { list -> list.sortBy { it.name } }
 
@@ -60,7 +61,7 @@ class PlacesRepository @Inject constructor(
         nodes.filter { it.type == "4" }.forEach { district ->
             val cid = district.parent ?: return@forEach
             districtsByCity.getOrPut(cid) { mutableListOf() }
-                .add(PlaceOption(district.id.toString(), district.name))
+                .add(PlaceOption(district.id.toString(), district.name, district.slug.orEmpty()))
         }
         districtsByCity.values.forEach { list -> list.sortBy { it.name } }
 

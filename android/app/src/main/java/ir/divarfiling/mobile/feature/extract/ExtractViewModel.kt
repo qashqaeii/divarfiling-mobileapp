@@ -199,9 +199,11 @@ class ExtractViewModel @Inject constructor(
                 it.copy(isRunning = true, error = null, message = null, progressCurrent = 0, progressTotal = 0)
             }
             val districtIds = state.districtId.takeIf { it.isNotBlank() }?.let { listOf(it) }.orEmpty()
-            val districtNames = state.districtId.takeIf { it.isNotBlank() }?.let { id ->
-                state.districts.firstOrNull { it.id == id }?.name?.let { listOf(it) }
-            }.orEmpty()
+            val selectedDistrict = state.districtId.takeIf { it.isNotBlank() }
+                ?.let { id -> state.districts.firstOrNull { it.id == id } }
+            val districtNames = selectedDistrict?.name?.let { listOf(it) }.orEmpty()
+            val districtSlugs = selectedDistrict?.slug?.takeIf { it.isNotBlank() }?.let { listOf(it) }.orEmpty()
+            val citySlug = state.cities.firstOrNull { it.id == state.cityId }?.slug?.takeIf { it.isNotBlank() }
             val rooms = state.rooms.split(',', '،').map { it.trim() }.filter { it.isNotEmpty() }
             val filters = ExtractFilters(
                 cityId = state.cityId,
@@ -209,6 +211,8 @@ class ExtractViewModel @Inject constructor(
                 provinceName = state.provinceName.takeIf { it.isNotBlank() },
                 districtIds = districtIds,
                 districtNames = districtNames,
+                districtSlugs = districtSlugs,
+                citySlug = citySlug,
                 category = slug,
                 categoryLabel = state.subcategoryLabel,
                 transactionTypeLabel = state.transactionType,

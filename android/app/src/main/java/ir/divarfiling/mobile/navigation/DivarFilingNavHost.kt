@@ -8,8 +8,10 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +26,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.feature.auth.LoginScreen
 import ir.divarfiling.mobile.feature.crm.ContactsScreen
 import ir.divarfiling.mobile.feature.crm.CrmHubScreen
@@ -92,7 +95,7 @@ fun DivarFilingNavHost(
             Scaffold(
                 bottomBar = {
                     if (showBottomBar) {
-                        NavigationBar {
+                        NavigationBar(containerColor = DfColors.Surface) {
                             bottomItems.forEach { item ->
                                 NavigationBarItem(
                                     selected = currentRoute == item.route,
@@ -107,6 +110,11 @@ fun DivarFilingNavHost(
                                     },
                                     icon = { Icon(item.icon, contentDescription = item.label) },
                                     label = { Text(item.label) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = DfColors.Purple,
+                                        selectedTextColor = DfColors.Purple,
+                                        indicatorColor = DfColors.PurpleContainer,
+                                    ),
                                 )
                             }
                         }
@@ -122,6 +130,8 @@ fun DivarFilingNavHost(
                         HomeScreen(
                             onNavigateToday = { navController.navigate(Routes.CRM_TODAY) },
                             onNavigateContacts = { navController.navigate(Routes.CRM_CONTACTS) },
+                            onNavigateFiling = { navController.navigate(Routes.FILING) },
+                            onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                         )
                     }
                     composable(Routes.CRM) {
@@ -130,8 +140,12 @@ fun DivarFilingNavHost(
                             onToday = { navController.navigate(Routes.CRM_TODAY) },
                         )
                     }
-                    composable(Routes.CRM_CONTACTS) { ContactsScreen() }
-                    composable(Routes.CRM_TODAY) { TodayScreen() }
+                    composable(Routes.CRM_CONTACTS) {
+                        ContactsScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.CRM_TODAY) {
+                        TodayScreen(onBack = { navController.popBackStack() })
+                    }
                     composable(Routes.FILING) {
                         DatasetsScreen(
                             onDatasetClick = { id -> navController.navigate(Routes.listings(id)) },
@@ -142,7 +156,10 @@ fun DivarFilingNavHost(
                         arguments = listOf(navArgument("datasetId") { type = NavType.StringType }),
                     ) { entry ->
                         val id = entry.arguments?.getString("datasetId") ?: return@composable
-                        ListingsScreen(datasetId = id)
+                        ListingsScreen(
+                            datasetId = id,
+                            onBack = { navController.popBackStack() },
+                        )
                     }
                     composable(Routes.EXTRACT) {
                         ExtractScreen(

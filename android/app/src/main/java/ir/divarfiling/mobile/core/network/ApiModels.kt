@@ -160,10 +160,13 @@ data class DatasetDto(
     val name: String,
     val source: String? = null,
     @SerialName("transaction_type") val transactionType: String? = null,
+    @SerialName("subcategory") val subcategory: String? = null,
     val city: String? = null,
     val district: String? = null,
     @SerialName("item_count") val itemCount: Int = 0,
     @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("original_filename") val originalFilename: String? = null,
+    @SerialName("file_format") val fileFormat: String? = null,
 )
 
 @Serializable
@@ -177,6 +180,9 @@ data class ListingDto(
     val latitude: Double? = null,
     val longitude: Double? = null,
     @SerialName("share_link") val shareLink: String? = null,
+    @SerialName("advertiser_type") val advertiserType: String? = null,
+    @SerialName("business_type") val businessType: String? = null,
+    @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
 )
 
 @Serializable

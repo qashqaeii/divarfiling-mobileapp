@@ -6,9 +6,9 @@ import java.time.format.DateTimeFormatter
 object OutputNameHint {
 
     fun build(filters: ExtractFilters): String {
-        val areaSlug = makeSlug(
-            filters.districtNames.firstOrNull() ?: filters.cityName,
-        )
+        val areaSlug = filters.districtSlugs.firstOrNull()?.takeIf { it.isNotBlank() }
+            ?: filters.citySlug?.takeIf { it.isNotBlank() }
+            ?: makeSlug(filters.districtNames.firstOrNull() ?: filters.cityName)
         val ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
         return "${areaSlug}_$ts"
     }

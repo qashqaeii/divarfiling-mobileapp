@@ -464,8 +464,15 @@ Content-Type: application/json
 {
   "filters": {
     "city_id": "1",
+    "city_name": "تهران",
     "district_ids": ["123"],
+    "district_names": ["استاد معین"],
     "category": "apartment-rent",
+    "category_label": "آپارتمان",
+    "transaction_type_label": "فروش مسکونی",
+    "output_name_hint": "ostad-moein_20260626_115900",
+    "advertiser_filter": "all",
+    "source_client": "android_light",
     "sort": "sort_date",
     "max_items": 50
   },

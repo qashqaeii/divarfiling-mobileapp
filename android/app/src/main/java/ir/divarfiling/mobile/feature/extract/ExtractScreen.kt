@@ -10,30 +10,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfProgressBlock
+import ir.divarfiling.mobile.core.design.components.DfTopBar
 import ir.divarfiling.mobile.core.license.ExtractLightLimits
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,7 +43,7 @@ fun ExtractScreen(
     val tx = ExtractCategories.transactionTypes.firstOrNull { it.label == state.transactionType }
     val subcategories = tx?.subcategories.orEmpty()
 
-    Scaffold(topBar = { TopAppBar(title = { Text("استخراج سبک") }) }) { padding ->
+    Scaffold(topBar = { DfTopBar(title = "استخراج سبک", showLogo = true) }) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -59,28 +54,28 @@ fun ExtractScreen(
         ) {
             LicenseCard(canExtract, state)
 
-            ExtractDropdown(
+            DfDropdown(
                 label = "نوع معامله",
                 value = state.transactionType,
                 options = ExtractCategories.transactionTypes.map { it.label },
                 enabled = canExtract && !state.isRunning,
                 onSelect = viewModel::onTransactionTypeChange,
             )
-            ExtractDropdown(
+            DfDropdown(
                 label = "زیردسته",
                 value = state.subcategoryLabel,
                 options = subcategories.map { it.label },
                 enabled = canExtract && !state.isRunning,
                 onSelect = viewModel::onSubcategoryChange,
             )
-            ExtractDropdown(
+            DfDropdown(
                 label = "استان",
                 value = state.provinceName,
                 options = state.provinces,
                 enabled = canExtract && !state.isRunning,
                 onSelect = viewModel::onProvinceChange,
             )
-            ExtractDropdown(
+            DfDropdown(
                 label = "شهر",
                 value = state.cityName,
                 options = state.cities.map { it.name },
@@ -90,7 +85,7 @@ fun ExtractScreen(
                 },
             )
             if (state.districts.isNotEmpty()) {
-                ExtractDropdown(
+                DfDropdown(
                     label = "منطقه (اختیاری)",
                     value = state.districts.firstOrNull { it.id == state.districtId }?.name ?: "همه مناطق",
                     options = listOf("همه مناطق") + state.districts.map { it.name },
@@ -104,7 +99,7 @@ fun ExtractScreen(
                     },
                 )
             }
-            ExtractDropdown(
+            DfDropdown(
                 label = "مرتب‌سازی",
                 value = ExtractCategories.sortOptions.firstOrNull { it.first == state.sort }?.second ?: "",
                 options = ExtractCategories.sortOptions.map { it.second },
@@ -113,7 +108,7 @@ fun ExtractScreen(
                     ExtractCategories.sortOptions.firstOrNull { it.second == label }?.first?.let(viewModel::onSortChange)
                 },
             )
-            ExtractDropdown(
+            DfDropdown(
                 label = "نوع آگهی‌دهنده",
                 value = ExtractCategories.advertiserOptions.firstOrNull { it.first == state.advertiserFilter }?.second ?: "",
                 options = ExtractCategories.advertiserOptions.map { it.second },
@@ -142,35 +137,21 @@ fun ExtractScreen(
             }
 
             if (state.isRunning) {
-                if (state.progressTotal > 0) {
-                    LinearProgressIndicator(
-                        progress = { state.progressCurrent.toFloat() / state.progressTotal },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text("${state.progressCurrent} / ${state.progressTotal}")
-                } else {
-                    CircularProgressIndicator()
-                }
-                Button(onClick = viewModel::cancel, modifier = Modifier.fillMaxWidth()) {
-                    Text("لغو")
-                }
+                DfProgressBlock(state.progressCurrent, state.progressTotal)
+                DfPrimaryButton(text = "لغو", onClick = viewModel::cancel)
             } else {
-                Button(
+                DfPrimaryButton(
+                    text = "شروع استخراج و آپلود",
                     onClick = viewModel::startExtraction,
-                    modifier = Modifier.fillMaxWidth(),
                     enabled = canExtract,
-                ) {
-                    Text("شروع استخراج و آپلود")
-                }
+                )
             }
 
             state.message?.let {
-                Text(it, color = MaterialTheme.colorScheme.primary)
+                Text(it, color = DfColors.PurpleDark, fontWeight = FontWeight.Medium)
                 state.lastDatasetId?.let { id ->
                     Spacer(Modifier.height(8.dp))
-                    Button(onClick = { onViewDataset(id) }) {
-                        Text("مشاهده در فایلینگ")
-                    }
+                    DfPrimaryButton(text = "مشاهده در فایلینگ", onClick = { onViewDataset(id) })
                 }
             }
             state.error?.let {
@@ -182,27 +163,19 @@ fun ExtractScreen(
 
 @Composable
 private fun LicenseCard(canExtract: Boolean, state: ExtractUiState) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (canExtract) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.errorContainer
-            },
-        ),
+    DfCard(
+        containerColor = if (canExtract) DfColors.PurpleContainer else MaterialTheme.colorScheme.errorContainer,
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text("لایسنس", style = MaterialTheme.typography.titleMedium)
-            Text(state.license.licenseLabel)
-            if (canExtract) {
-                Text("حداکثر ${ExtractLightLimits.MAX_ITEMS} آگهی — منطق هم‌تراز با ویندوز")
-                Text("نتیجه مستقیم به Workspace آپلود می‌شود")
-            } else {
-                Text(
-                    state.gateMessage ?: "استخراج فقط با لایسنس فعال امکان‌پذیر است.",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
-            }
+        Text("لایسنس", style = MaterialTheme.typography.titleMedium)
+        Text(state.license.licenseLabel)
+        if (canExtract) {
+            Text("حداکثر ${ExtractLightLimits.MAX_ITEMS} آگهی — هم‌تراز با ویندوز")
+            Text("خروجی با نام و فرمت استاندارد در میزکار ذخیره می‌شود")
+        } else {
+            Text(
+                state.gateMessage ?: "استخراج فقط با لایسنس فعال امکان‌پذیر است.",
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
         }
     }
 }
@@ -315,45 +288,5 @@ private fun AdvancedFilters(
             enabled = canExtract && !state.isRunning,
             singleLine = true,
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ExtractDropdown(
-    label: String,
-    value: String,
-    options: List<String>,
-    enabled: Boolean,
-    onSelect: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { if (enabled) expanded = !expanded },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(),
-            enabled = enabled,
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onSelect(option)
-                        expanded = false
-                    },
-                )
-            }
-        }
     }
 }

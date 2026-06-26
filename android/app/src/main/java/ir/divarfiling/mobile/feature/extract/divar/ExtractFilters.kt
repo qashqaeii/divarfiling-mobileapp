@@ -21,6 +21,8 @@ data class ExtractFilters(
     val provinceName: String? = null,
     val districtIds: List<String> = emptyList(),
     val districtNames: List<String> = emptyList(),
+    val districtSlugs: List<String> = emptyList(),
+    val citySlug: String? = null,
     val category: String = "apartment-rent",
     val categoryLabel: String? = null,
     val transactionTypeLabel: String? = null,
