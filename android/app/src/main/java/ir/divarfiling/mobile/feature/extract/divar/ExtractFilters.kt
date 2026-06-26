@@ -11,7 +11,8 @@ data class ExtractAdvancedFilters(
     val areaMax: Int? = null,
     val yearMin: Int? = null,
     val yearMax: Int? = null,
-    val rooms: String = "",
+    val rooms: List<String> = emptyList(),
+    val advertiserFilter: String = "all",
 )
 
 data class ExtractFilters(
@@ -23,6 +24,4 @@ data class ExtractFilters(
     val sort: String = "sort_date",
     val maxItems: Int = 50,
     val advanced: ExtractAdvancedFilters = ExtractAdvancedFilters(),
-    /** all | personal — فیلتر پس از استخراج در سرور */
-    val advertiserFilter: String = "all",
 )

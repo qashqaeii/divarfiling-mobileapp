@@ -25,7 +25,7 @@ class CrmRepository @Inject constructor(
 ) {
     suspend fun getContacts(query: String? = null): ApiResult<List<ContactDto>> {
         return try {
-            val response = api.getContacts(q = query?.ifBlank { null })
+            val response = api.getContacts(query = query?.ifBlank { null })
             if (!response.ok) {
                 val cached = contactCache.getAll().map { it.toDto() }
                 if (cached.isNotEmpty()) return ApiResult.Success(cached)
