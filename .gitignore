@@ -1,0 +1,27 @@
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/.cxx/
+android/.externalNativeBuild/
+android/captures/
+android/*.apk
+android/*.ap_
+android/*.aab
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Secrets
+*.jks
+*.keystore
+google-services.json
+**/secrets.properties
