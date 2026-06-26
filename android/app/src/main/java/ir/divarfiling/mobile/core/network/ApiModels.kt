@@ -65,6 +65,11 @@ data class DeviceRegisterRequest(
 )
 
 @Serializable
+data class DeviceFcmPatchRequest(
+    @SerialName("fcm_token") val fcmToken: String,
+)
+
+@Serializable
 data class DeviceRegisterData(
     @SerialName("device_id") val deviceId: String,
   val license: LicenseDto? = null,

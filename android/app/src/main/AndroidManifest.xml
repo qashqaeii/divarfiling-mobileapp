@@ -32,5 +32,13 @@
                 <data android:scheme="divarfiling" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".core.fcm.DivarFilingMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

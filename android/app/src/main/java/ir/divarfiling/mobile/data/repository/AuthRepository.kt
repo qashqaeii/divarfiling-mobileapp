@@ -14,6 +14,8 @@ import ir.divarfiling.mobile.core.network.UserDto
 import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
 import ir.divarfiling.mobile.core.util.DeviceIdProvider
+import ir.divarfiling.mobile.core.fcm.FcmRegistrar
+import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,6 +31,8 @@ class AuthRepository @Inject constructor(
     private val sessionStore: SessionStore,
     private val deviceIdProvider: DeviceIdProvider,
     private val licenseRepository: LicenseRepository,
+    private val fcmTokenProvider: FcmTokenProvider,
+    private val fcmRegistrar: FcmRegistrar,
     private val json: Json,
 ) {
     val isLoggedIn = sessionStore.isLoggedIn
@@ -61,14 +65,19 @@ class AuthRepository @Inject constructor(
 
     private suspend fun registerDevice(deviceId: String): LicenseDto? {
         return try {
+            val fcmToken = fcmTokenProvider.fetchToken().orEmpty()
             val response = api.registerDevice(
                 DeviceRegisterRequest(
                     deviceId = deviceId,
                     deviceModel = android.os.Build.MODEL,
                     osVersion = android.os.Build.VERSION.RELEASE,
                     appVersion = BuildConfig.VERSION_NAME,
+                    fcmToken = fcmToken,
                 ),
             )
+            if (fcmToken.isNotBlank()) {
+                fcmRegistrar.uploadToken(fcmToken)
+            }
             val license = response.parseData<DeviceRegisterData>(json)?.license
             sessionStore.saveLicense(license)
             license

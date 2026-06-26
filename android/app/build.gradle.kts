@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -15,8 +16,8 @@ android {
         applicationId = "ir.divarfiling.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 25
-        versionName = "2.3.0"
+        versionCode = 26
+        versionName = "2.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -116,6 +117,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.coil.compose)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

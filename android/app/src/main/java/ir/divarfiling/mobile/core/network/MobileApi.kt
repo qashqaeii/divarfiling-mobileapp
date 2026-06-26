@@ -20,6 +20,9 @@ interface MobileApi {
     @POST("devices/register")
     suspend fun registerDevice(@Body body: DeviceRegisterRequest): ApiEnvelope
 
+    @PATCH("devices/me")
+    suspend fun updateDeviceFcm(@Body body: DeviceFcmPatchRequest): ApiEnvelope
+
     @GET("license/status")
     suspend fun licenseStatus(): ApiEnvelope
 
