@@ -36,7 +36,7 @@ cd android
 
 خروجی: `app/build/outputs/apk/debug/app-debug.apk`
 
-نیازمند: JDK 17، Android SDK (API 34)
+نیازمند: JDK 17، Android SDK (API 35)
 
 ## Build APK with GitHub Actions
 
