@@ -228,13 +228,19 @@ fun TodayScreen(
 
                     if (today.overdue.isNotEmpty()) {
                         item { DfSectionHeader("معوق", today.overdue.size) }
-                        items(today.overdue, key = { "overdue-${it.reminder?.id ?: it.contact?.id}") { item ->
+                        items(
+                            items = today.overdue,
+                            key = { "overdue-${it.reminder?.id ?: it.contact?.id}" },
+                        ) { item ->
                             TodayTaskCard(item, isOverdue = true)
                         }
                     }
                     if (today.today.isNotEmpty()) {
                         item { DfSectionHeader("امروز", today.today.size) }
-                        items(today.today, key = { "today-${it.reminder?.id ?: it.contact?.id}") { item ->
+                        items(
+                            items = today.today,
+                            key = { "today-${it.reminder?.id ?: it.contact?.id}" },
+                        ) { item ->
                             TodayTaskCard(item, isOverdue = false)
                         }
                     }
