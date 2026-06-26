@@ -75,6 +75,21 @@ private fun NotificationRow(item: HomeNotificationItem) {
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
         verticalAlignment = Alignment.Top,
     ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(AppShapes.IconContainer)
+                .background(bg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
@@ -92,21 +107,6 @@ private fun NotificationRow(item: HomeNotificationItem) {
                 color = AppColors.TextMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(AppShapes.IconContainer)
-                .background(bg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(20.dp),
             )
         }
     }

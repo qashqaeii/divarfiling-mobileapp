@@ -116,7 +116,13 @@ fun DfCard(
             colors = CardDefaults.cardColors(containerColor = containerColor),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
-            Box(Modifier.padding(16.dp)) { content() }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            ) {
+                content()
+            }
         }
     } else {
         Card(
@@ -125,7 +131,13 @@ fun DfCard(
             colors = CardDefaults.cardColors(containerColor = containerColor),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
-            Box(Modifier.padding(16.dp)) { content() }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            ) {
+                content()
+            }
         }
     }
 }

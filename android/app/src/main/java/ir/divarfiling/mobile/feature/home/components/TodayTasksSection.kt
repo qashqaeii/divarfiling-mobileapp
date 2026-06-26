@@ -107,8 +107,23 @@ private fun TodayTaskRow(task: HomeTaskItem) {
             .fillMaxWidth()
             .defaultMinSize(minHeight = AppSpacing.listRowMinHeight),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(AppShapes.IconContainer)
+                .background(bg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
@@ -138,21 +153,6 @@ private fun TodayTaskRow(task: HomeTaskItem) {
             textAlign = TextAlign.Center,
             modifier = Modifier.width(44.dp),
         )
-
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(AppShapes.IconContainer)
-                .background(bg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(20.dp),
-            )
-        }
     }
 }
 

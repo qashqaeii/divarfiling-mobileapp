@@ -16,7 +16,7 @@ object AppSpacing {
     val sectionGap = 24.dp
     val cardPadding = 16.dp
     val cardGap = 12.dp
-    val titleSubtitleGap = 5.dp
+    val titleSubtitleGap = 6.dp
     val iconTextGap = 12.dp
     val listRowMinHeight = 64.dp
     val bottomNavHeight = 64.dp

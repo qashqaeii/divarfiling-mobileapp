@@ -270,7 +270,14 @@ fun DfPremiumCard(
             shape = AppShapes.Card,
             color = containerColor,
         ) {
-            Box(Modifier.padding(AppSpacing.cardPadding)) { content() }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppSpacing.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
+                content()
+            }
         }
     } else {
         Surface(
@@ -278,7 +285,14 @@ fun DfPremiumCard(
             shape = AppShapes.Card,
             color = containerColor,
         ) {
-            Box(Modifier.padding(AppSpacing.cardPadding)) { content() }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppSpacing.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
+                content()
+            }
         }
     }
 }
