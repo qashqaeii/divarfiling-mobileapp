@@ -96,7 +96,7 @@ class SyncRepository @Inject constructor(
         }
         data.reminders?.let { batch ->
             if (batch.upserted.isNotEmpty()) {
-                reminderCache.upsertAll(batch.upserted.map { it.toEntity() })
+                reminderCache.upsertAll(batch.upserted.mapNotNull { it.toEntity() })
             }
         }
     }
@@ -164,13 +164,16 @@ class SyncRepository @Inject constructor(
         updatedAt = updatedAt,
     )
 
-    private fun ReminderDto.toEntity() = CachedReminderEntity(
-        id = id,
-        title = title,
-        contactId = contactId,
-        dueAt = dueAt,
-        done = done,
-    )
+    private fun ReminderDto.toEntity(): CachedReminderEntity? {
+        val reminderId = id ?: return null
+        return CachedReminderEntity(
+            id = reminderId,
+            title = title,
+            contactId = contactId,
+            dueAt = dueAt,
+            done = done,
+        )
+    }
 
     private fun SyncQueueEntity.toSyncOperation(json: Json): SyncOperation {
         val payloadElement = json.parseToJsonElement(payloadJson)

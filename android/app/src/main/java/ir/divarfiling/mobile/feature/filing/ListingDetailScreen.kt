@@ -364,7 +364,7 @@ private fun ListingDetailContent(
                 Text(
                     ListingMessageFormatter.fromDetail(listing),
                     modifier = Modifier.padding(14.dp),
-                    style = AppTypography.bodySmall,
+                    style = AppTypography.bodyDescription,
                     color = DfColors.PurpleDark,
                 )
             }

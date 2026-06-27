@@ -181,7 +181,7 @@ fun ContactDetailScreen(
                         item {
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 item {
-                                    ContactActionChip("تماس", Icons.Default.Call) {
+                                    ContactActionChip(label = "تماس", icon = Icons.Default.Call) {
                                         contactInfo.phone?.let { phone ->
                                             context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
                                             viewModel.logActivity("تماس", "تماس تلفنی")
@@ -204,7 +204,7 @@ fun ContactDetailScreen(
                                     }
                                 }
                                 item {
-                                    ContactActionChip("پیامک", Icons.Default.Message) {
+                                    ContactActionChip(label = "پیامک", icon = Icons.Default.Message) {
                                         contactInfo.phone?.let { phone ->
                                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("smsto:$phone")))
                                             viewModel.logActivity("پیامک", "ارسال پیامک")
@@ -212,27 +212,27 @@ fun ContactDetailScreen(
                                     }
                                 }
                                 item {
-                                    ContactActionChip("ارسال فایل", Icons.Default.Share) {
+                                    ContactActionChip(label = "ارسال فایل", icon = Icons.Default.Share) {
                                         viewModel.toggleSendFilingSheet(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip("مدرک", Icons.Default.AttachFile) {
+                                    ContactActionChip(label = "مدرک", icon = Icons.Default.AttachFile) {
                                         documentPicker.launch("*/*")
                                     }
                                 }
                                 item {
-                                    ContactActionChip("یادداشت", Icons.Default.NoteAdd) {
+                                    ContactActionChip(label = "یادداشت", icon = Icons.Default.NoteAdd) {
                                         viewModel.toggleNoteDialog(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip("یادآور", Icons.Default.Notifications) {
+                                    ContactActionChip(label = "یادآور", icon = Icons.Default.Notifications) {
                                         viewModel.toggleReminderDialog(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip("فعالیت", Icons.Default.History) {
+                                    ContactActionChip(label = "فعالیت", icon = Icons.Default.History) {
                                         viewModel.toggleActivitySheet(true)
                                     }
                                 }
@@ -489,29 +489,26 @@ private fun ContactProfileCard(
 @Composable
 private fun ContactActionChip(
     label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    tint: Color = DfColors.Purple,
-) {
-    ContactActionChipContent(label, onClick, tint) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
-    }
-}
-
-@Composable
-private fun ContactActionChip(
-    label: String,
-    iconRes: Int,
+    icon: ImageVector? = null,
+    iconRes: Int? = null,
     tint: Color = DfColors.Purple,
     onClick: () -> Unit,
 ) {
     ContactActionChipContent(label, onClick, tint) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(18.dp),
-        )
+        when {
+            iconRes != null -> Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(18.dp),
+            )
+            icon != null -> Icon(
+                icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(18.dp),
+            )
+        }
     }
 }
 
