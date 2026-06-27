@@ -118,7 +118,6 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.coil.compose)
     implementation(libs.osmdroid.android)
-    implementation(libs.osmdroid.bonuspack)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
