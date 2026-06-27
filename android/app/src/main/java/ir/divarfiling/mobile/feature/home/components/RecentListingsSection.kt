@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.home.components
 
+import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import ir.divarfiling.mobile.core.design.DfColors
 
 import androidx.compose.foundation.background
@@ -125,9 +126,10 @@ private fun RecentFileCard(
         shadowElevation = AppElevations.subtle,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (!file.thumbnailUrl.isNullOrBlank()) {
+            val thumb = ImageUrlFormatter.normalize(file.thumbnailUrl)
+            if (thumb != null) {
                 AsyncImage(
-                    model = file.thumbnailUrl,
+                    model = thumb,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,

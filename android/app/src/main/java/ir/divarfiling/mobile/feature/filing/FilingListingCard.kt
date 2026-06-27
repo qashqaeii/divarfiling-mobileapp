@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
@@ -40,7 +41,7 @@ fun FilingListingCard(
     datasetLabel: String? = null,
     modifier: Modifier = Modifier,
 ) {
-    val thumb = listing.thumbnailUrl?.takeIf { it.isNotBlank() }
+    val thumb = ImageUrlFormatter.normalize(listing.thumbnailUrl)
     val advertiser = listing.advertiserType
         ?: listing.businessType?.takeIf { it.isNotBlank() }
 

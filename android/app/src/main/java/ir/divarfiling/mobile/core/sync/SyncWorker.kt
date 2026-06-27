@@ -12,6 +12,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import ir.divarfiling.mobile.core.sync.WorkerSessionEntryPoint
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.SyncRepository
 import java.util.concurrent.TimeUnit
@@ -26,6 +27,13 @@ class SyncWorker(
             applicationContext,
             SyncWorkerEntryPoint::class.java,
         )
+        val sessionEntry = EntryPointAccessors.fromApplication(
+            applicationContext,
+            WorkerSessionEntryPoint::class.java,
+        )
+        if (!sessionEntry.sessionStore().hasValidSession()) {
+            return Result.success()
+        }
         return when (entryPoint.syncRepository().syncAll()) {
             is ApiResult.Success -> Result.success()
             is ApiResult.Error -> Result.retry()

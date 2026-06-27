@@ -84,6 +84,7 @@ class SessionStore @Inject constructor(
     }
 
     suspend fun getAccessToken(): String? = dataStore.data.first()[Keys.ACCESS]
+    suspend fun hasValidSession(): Boolean = !getAccessToken().isNullOrBlank()
     suspend fun getRefreshToken(): String? = dataStore.data.first()[Keys.REFRESH]
     suspend fun getDeviceId(): String? = dataStore.data.first()[Keys.DEVICE_ID]
 

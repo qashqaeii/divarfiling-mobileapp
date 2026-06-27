@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.filing
 
 import ir.divarfiling.mobile.R
+import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
@@ -198,7 +199,11 @@ private fun ListingDetailContent(
     onOpenDivar: (() -> Unit)?,
     onShare: () -> Unit,
 ) {
-    val hero = listing.images.firstOrNull() ?: listing.thumbnailUrl
+    val hero = ImageUrlFormatter.firstOf(
+        listing.images.firstOrNull(),
+        listing.thumbnailUrl,
+    )
+    val galleryImages = listing.images.mapNotNull { ImageUrlFormatter.normalize(it) }
 
     LazyColumn(
         contentPadding = PaddingValues(bottom = 24.dp),
@@ -231,13 +236,13 @@ private fun ListingDetailContent(
             }
         }
 
-        if (listing.images.size > 1) {
+        if (galleryImages.size > 1) {
             item {
                 LazyRow(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(listing.images) { url ->
+                    items(galleryImages) { url ->
                         AsyncImage(
                             model = url,
                             contentDescription = null,

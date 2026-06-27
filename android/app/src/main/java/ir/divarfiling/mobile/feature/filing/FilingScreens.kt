@@ -43,6 +43,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
+import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfBadge
@@ -161,7 +162,7 @@ private fun DatasetRow(ds: DatasetDto, onClick: () -> Unit) {
                     .background(DfColors.SurfaceVariant),
                 contentAlignment = androidx.compose.ui.Alignment.Center,
             ) {
-                val thumb = ds.thumbnailUrl?.takeIf { it.isNotBlank() }
+                val thumb = ImageUrlFormatter.normalize(ds.thumbnailUrl)
                 if (thumb != null) {
                     AsyncImage(
                         model = thumb,

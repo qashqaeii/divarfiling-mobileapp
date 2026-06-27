@@ -16,6 +16,7 @@ import ir.divarfiling.mobile.core.network.requireData
 import ir.divarfiling.mobile.core.util.DeviceIdProvider
 import ir.divarfiling.mobile.core.fcm.FcmRegistrar
 import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
+import ir.divarfiling.mobile.core.sync.BackgroundWorkManager
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,6 +35,7 @@ class AuthRepository @Inject constructor(
     private val fcmTokenProvider: FcmTokenProvider,
     private val fcmRegistrar: FcmRegistrar,
     private val json: Json,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
 ) {
     val isLoggedIn = sessionStore.isLoggedIn
     val licenseState = sessionStore.licenseState
@@ -57,6 +59,7 @@ class AuthRepository @Inject constructor(
             }
             registerDevice(deviceId)
             licenseRepository.refreshLicense()
+            BackgroundWorkManager.register(appContext)
             ApiResult.Success(data.user)
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
@@ -95,6 +98,7 @@ class AuthRepository @Inject constructor(
         } catch (_: Exception) {
         } finally {
             sessionStore.clear()
+            BackgroundWorkManager.cancel(appContext)
         }
     }
 
