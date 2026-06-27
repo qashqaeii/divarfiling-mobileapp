@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.network.DatasetInsightsDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.FilingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,23 +13,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.roundToInt
 
 data class DatasetInsightsUiState(
     val datasetId: String = "",
-    val datasetName: String? = null,
-    val listings: List<ListingDto> = emptyList(),
+    val insights: DatasetInsightsDto? = null,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
-    val avgPrice: Long? = null,
-    val minPrice: Long? = null,
-    val maxPrice: Long? = null,
-    val avgArea: Int? = null,
-    val mapPoints: Int = 0,
-    val centerLat: Double? = null,
-    val centerLng: Double? = null,
-    val roomDistribution: Map<Int, Int> = emptyMap(),
+    val selectedLevel: Int = 0,
+    val selectedL2Tab: Int = 0,
 )
 
 @HiltViewModel
@@ -51,65 +43,40 @@ class DatasetInsightsViewModel @Inject constructor(
         load()
     }
 
-    fun load() {
+    fun selectLevel(level: Int) {
+        _uiState.update { it.copy(selectedLevel = level, selectedL2Tab = 0) }
+    }
+
+    fun selectL2Tab(index: Int) {
+        _uiState.update { it.copy(selectedL2Tab = index) }
+    }
+
+    private fun load() {
         viewModelScope.launch {
             _uiState.update {
-                it.copy(isLoading = it.listings.isEmpty(), error = null)
+                it.copy(isLoading = it.insights == null, error = null)
             }
-            val all = mutableListOf<ListingDto>()
-            var page = 1
-            var hasMore = true
-            var name: String? = _uiState.value.datasetName
-            while (hasMore && page <= 5) {
-                when (val result = repository.getListings(datasetId, page = page, pageSize = 100)) {
-                    is ApiResult.Success -> {
-                        if (page == 1 && result.data.items.isNotEmpty()) {
-                            name = result.data.items.first().datasetName ?: name
-                        }
-                        all += result.data.items
-                        hasMore = result.data.hasMore
-                        page++
+            when (val result = repository.getDatasetInsights(datasetId)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            insights = result.data,
+                            isLoading = false,
+                            isRefreshing = false,
+                            error = null,
+                        )
                     }
-                    is ApiResult.Error -> {
-                        _uiState.update {
-                            it.copy(isLoading = false, isRefreshing = false, error = result.message)
-                        }
-                        return@launch
+                }
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            error = result.message,
+                        )
                     }
                 }
             }
-            _uiState.update {
-                it.copy(
-                    listings = all,
-                    datasetName = name,
-                    isLoading = false,
-                    isRefreshing = false,
-                    error = null,
-                ).withStats()
-            }
         }
-    }
-
-    private fun DatasetInsightsUiState.withStats(): DatasetInsightsUiState {
-        val prices = listings.mapNotNull { it.price }.filter { it > 0 }
-        val areas = listings.mapNotNull { it.area }.filter { it > 0 }
-        val coords = listings.mapNotNull { l ->
-            val lat = l.latitude
-            val lng = l.longitude
-            if (lat != null && lng != null) lat to lng else null
-        }
-        val rooms = listings.mapNotNull { it.rooms }
-            .groupingBy { it }
-            .eachCount()
-        return copy(
-            avgPrice = prices.takeIf { it.isNotEmpty() }?.average()?.roundToInt()?.toLong(),
-            minPrice = prices.minOrNull(),
-            maxPrice = prices.maxOrNull(),
-            avgArea = areas.takeIf { it.isNotEmpty() }?.average()?.roundToInt(),
-            mapPoints = coords.size,
-            centerLat = coords.takeIf { it.isNotEmpty() }?.map { it.first }?.average(),
-            centerLng = coords.takeIf { it.isNotEmpty() }?.map { it.second }?.average(),
-            roomDistribution = rooms,
-        )
     }
 }

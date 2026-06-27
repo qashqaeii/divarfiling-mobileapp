@@ -16,8 +16,8 @@ android {
         applicationId = "ir.divarfiling.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 27
-        versionName = "2.3.2"
+        versionCode = 28
+        versionName = "2.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -117,6 +117,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.coil.compose)
+    implementation(libs.osmdroid.android)
+    implementation(libs.osmdroid.bonuspack)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)

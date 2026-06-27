@@ -36,6 +36,7 @@ import ir.divarfiling.mobile.feature.crm.TodayScreen
 import ir.divarfiling.mobile.feature.extract.ExtractScreen
 import ir.divarfiling.mobile.feature.extract.schedule.ExtractSchedulesScreen
 import ir.divarfiling.mobile.feature.filing.DatasetInsightsScreen
+import ir.divarfiling.mobile.feature.filing.DatasetMapScreen
 import ir.divarfiling.mobile.feature.filing.DatasetsScreen
 import ir.divarfiling.mobile.feature.filing.FilingSearchScreen
 import ir.divarfiling.mobile.feature.filing.ListingDetailScreen
@@ -57,6 +58,7 @@ object Routes {
     const val FILING_SEARCH = "filing/search?query={query}"
     const val FILING_LISTINGS = "filing/{datasetId}"
     const val FILING_INSIGHTS = "filing/{datasetId}/insights"
+    const val FILING_MAP = "filing/{datasetId}/map"
     const val FILING_LISTING_DETAIL = "filing/listing/{token}"
     const val EXTRACT = "extract"
     const val EXTRACT_SCHEDULES = "extract/schedules"
@@ -69,6 +71,7 @@ object Routes {
 
     fun listings(datasetId: String) = "filing/$datasetId"
     fun datasetInsights(datasetId: String) = "filing/$datasetId/insights"
+    fun datasetMap(datasetId: String) = "filing/$datasetId/map"
     fun filingSearch(query: String = "") = "filing/search?query=${Uri.encode(query)}"
     fun contactDetail(contactId: Long) = "crm/contacts/$contactId"
     fun dealDetail(dealId: Long) = "crm/deals/$dealId"
@@ -258,7 +261,19 @@ fun DivarFilingNavHost(
                         route = Routes.FILING_INSIGHTS,
                         arguments = listOf(navArgument("datasetId") { type = NavType.StringType }),
                     ) {
-                        DatasetInsightsScreen(onBack = { navController.popBackStack() })
+                        DatasetInsightsScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenMap = { datasetId -> navController.navigate(Routes.datasetMap(datasetId)) },
+                        )
+                    }
+                    composable(
+                        route = Routes.FILING_MAP,
+                        arguments = listOf(navArgument("datasetId") { type = NavType.StringType }),
+                    ) {
+                        DatasetMapScreen(
+                            onBack = { navController.popBackStack() },
+                            onListingClick = { token -> navController.navigate(Routes.listingDetail(token)) },
+                        )
                     }
                     composable(
                         route = Routes.FILING_LISTING_DETAIL,

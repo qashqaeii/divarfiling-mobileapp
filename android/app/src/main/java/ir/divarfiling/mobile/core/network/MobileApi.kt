@@ -208,6 +208,12 @@ interface MobileApi {
         @Query("rooms") rooms: Int? = null,
     ): ApiEnvelope
 
+    @GET("filing/datasets/{id}/insights")
+    suspend fun getDatasetInsights(@Path("id") datasetId: String): ApiEnvelope
+
+    @GET("filing/datasets/{id}/map")
+    suspend fun getDatasetMap(@Path("id") datasetId: String): ApiEnvelope
+
     @GET("filing/listings/{token}")
     suspend fun getListingDetail(@Path("token") token: String): ApiEnvelope
 
