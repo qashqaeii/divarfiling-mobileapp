@@ -4,13 +4,10 @@ import ir.divarfiling.mobile.core.design.DfColors
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -45,33 +42,42 @@ fun QuickActionsRow(
     actions: List<QuickAction>,
     modifier: Modifier = Modifier,
 ) {
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = AppSpacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
     ) {
-        items(actions, key = { it.label }) { action ->
-            QuickActionItem(action)
+        actions.chunked(3).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+            ) {
+                row.forEach { action ->
+                    QuickActionItem(action, modifier = Modifier.weight(1f))
+                }
+                repeat(3 - row.size) {
+                    androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                }
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickActionItem(action: QuickAction) {
+private fun QuickActionItem(action: QuickAction, modifier: Modifier = Modifier) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
-        modifier = Modifier
-            .widthIn(min = 56.dp, max = 72.dp)
-            .padding(vertical = AppSpacing.xxs),
+        modifier = modifier.padding(vertical = AppSpacing.xxs),
     ) {
         Surface(
             onClick = action.onClick,
             shape = AppShapes.IconContainer,
             color = action.background,
             shadowElevation = AppElevations.subtle,
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(52.dp),
         ) {
             Icon(
                 imageVector = action.icon,
@@ -79,7 +85,7 @@ private fun QuickActionItem(action: QuickAction) {
                 tint = action.tint,
                 modifier = Modifier
                     .padding(AppSpacing.sm)
-                    .size(28.dp),
+                    .size(26.dp),
             )
         }
         Text(
@@ -96,18 +102,16 @@ private fun QuickActionItem(action: QuickAction) {
 }
 
 @Preview(showBackground = true, widthDp = 360)
-@Preview(showBackground = true, widthDp = 390)
-@Preview(showBackground = true, widthDp = 412)
 @Composable
 private fun QuickActionsRowPreview() {
     DivarFilingTheme {
         QuickActionsRow(
             actions = listOf(
-                QuickAction("نقشه", DfIcons.MapPin, DfColors.Green, DfColors.GreenLight) {},
+                QuickAction("تحلیل", DfIcons.TrendingDown, DfColors.Green, DfColors.GreenLight) {},
                 QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer) {},
                 QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight) {},
                 QuickAction("مخاطب جدید", DfIcons.Plus, DfColors.Amber, DfColors.AmberLight) {},
-                QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight) {},
+                QuickAction("یادآور", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight) {},
             ),
         )
     }

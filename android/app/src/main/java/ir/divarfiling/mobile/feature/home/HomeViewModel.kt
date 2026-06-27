@@ -119,7 +119,7 @@ class HomeViewModel @Inject constructor(
                             ),
                             todayTasks = mapTodayTasks(data.todayPreview).take(5),
                             notifications = data.notifications.map { it.toHomeNotification() }.take(6),
-                            recentFiles = data.latestDatasets.take(8).map { ds ->
+                            recentFiles = data.latestDatasets.take(4).map { ds ->
                                 RecentFileItem(
                                     id = ds.id,
                                     city = ds.city,
@@ -127,6 +127,7 @@ class HomeViewModel @Inject constructor(
                                     transactionType = ds.transactionType,
                                     itemCount = ds.itemCount,
                                     createdAt = ds.createdAt?.take(10),
+                                    thumbnailUrl = ds.thumbnailUrl,
                                 )
                             },
                             notificationBadgeCount = data.notificationsUnread,

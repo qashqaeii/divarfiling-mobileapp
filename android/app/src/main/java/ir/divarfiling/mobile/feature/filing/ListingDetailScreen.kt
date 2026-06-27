@@ -338,6 +338,25 @@ private fun ListingDetailContent(
             }
         }
 
+        if (listing.latitude != null && listing.longitude != null) {
+            item {
+                val context = LocalContext.current
+                Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    DfActionButton(
+                        text = "موقعیت روی نقشه",
+                        onClick = {
+                            val uri = Uri.parse("geo:${listing.latitude},${listing.longitude}")
+                            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                        },
+                        icon = DfIcons.MapPin,
+                        containerColor = DfColors.GreenLight,
+                        contentColor = DfColors.Green,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+
         item {
             DfPremiumCard(modifier = Modifier.padding(16.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -374,15 +393,24 @@ private fun ListingDetailContent(
 
 @Composable
 private fun SpecGrid(listing: ListingDetailDto) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SpecRow("متراژ", listing.area?.let { FormatUtils.formatArea(it) })
-        SpecRow("اتاق", listing.rooms?.let { FormatUtils.formatRooms(it) })
-        SpecRow("سال ساخت", listing.yearBuilt)
-        SpecRow("طبقه", listing.floor)
-        SpecRow("کل طبقات", listing.totalFloors)
-        SpecRow("قیمت هر متر", listing.pricePerSqm?.let { FormatUtils.formatPriceToman(it.toLong()) })
-        SpecRow("نوع آگهی‌دهنده", listing.advertiserType)
-        SpecRow("دسته", listing.businessType)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SpecRow("📐 متراژ", listing.area?.let { FormatUtils.formatArea(it) })
+        SpecRow("🛏 اتاق", listing.rooms?.let { FormatUtils.formatRooms(it) })
+        SpecRow("🏗 سال ساخت", listing.yearBuilt)
+        SpecRow("🏢 طبقه", listing.floor)
+        SpecRow("🏗 کل طبقات", listing.totalFloors)
+        SpecRow("💰 قیمت کل", listing.price?.takeIf { it > 0 }?.let { FormatUtils.formatPriceToman(it) })
+        SpecRow("🔑 ودیعه", listing.deposit?.takeIf { it > 0 }?.let { FormatUtils.formatPriceShort(it) })
+        SpecRow("📅 اجاره", listing.rent?.takeIf { it > 0 }?.let { FormatUtils.formatPriceShort(it) })
+        SpecRow("📊 قیمت هر متر", listing.pricePerSqm?.let { FormatUtils.formatPriceToman(it.toLong()) })
+        SpecRow("👤 نوع آگهی‌دهنده", listing.advertiserType)
+        SpecRow("🏷 دسته", listing.businessType)
+        if (listing.isExpired) {
+            SpecRow("⚠️ وضعیت", "منقضی شده")
+        }
+        listing.scrapedAt?.takeIf { it.isNotBlank() }?.let {
+            SpecRow("🕐 بروزرسانی", it.take(10))
+        }
     }
 }
 

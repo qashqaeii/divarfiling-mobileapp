@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -37,6 +38,7 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfStatChip
 import ir.divarfiling.mobile.core.design.components.DfTopBar
 import ir.divarfiling.mobile.core.network.ExtractionRunDto
 import ir.divarfiling.mobile.core.network.ExtractionScheduleDto
@@ -78,7 +80,7 @@ fun ExtractSchedulesScreen(
                 state.isLoading -> DfCardListSkeleton(count = 4, itemHeight = 140.dp)
                 state.schedules.isEmpty() -> DfEmptyState(
                     title = "زمان‌بندی فعالی ندارید",
-                    subtitle = "از صفحه استخراج، فیلترها را ذخیره کنید تا هر چند ساعت یک‌بار خودکار اجرا شود",
+                    subtitle = "از صفحه استخراج فایل، فیلترها را ذخیره کنید تا به‌صورت خودکار اجرا شود",
                 )
                 else -> {
                     LazyColumn(
@@ -86,11 +88,37 @@ fun ExtractSchedulesScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         item {
-                            Text(
-                                "استخراج روی همین دستگاه اجرا می‌شود. برای اجرای به‌موقع، اعلان‌ها را فعال نگه دارید.",
-                                style = AppTypography.bodyDescription,
-                                color = DfColors.TextMuted,
-                            )
+                            DfPremiumCard {
+                                Column(
+                                    modifier = Modifier.padding(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(Icons.Default.Schedule, contentDescription = null, tint = DfColors.Purple)
+                                        Text("خلاصه زمان‌بندی‌ها", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        DfStatChip(
+                                            label = "فعال",
+                                            value = "${state.schedules.count { it.isEnabled }}",
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        DfStatChip(
+                                            label = "کل",
+                                            value = "${state.schedules.size}",
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                    Text(
+                                        "استخراج روی همین دستگاه اجرا می‌شود. اعلان‌ها را فعال نگه دارید.",
+                                        style = AppTypography.bodyDescription,
+                                        color = DfColors.TextMuted,
+                                    )
+                                }
+                            }
                         }
                         items(state.schedules, key = { it.id }) { schedule ->
                             ScheduleCard(
@@ -131,10 +159,13 @@ private fun ScheduleCard(
                 Column(Modifier.weight(1f)) {
                     Text(schedule.title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
                     Text(
-                        "هر ${formatInterval(schedule.intervalHours)} ساعت — حداکثر ${schedule.maxItems} آگهی",
+                        "هر ${formatInterval(schedule.intervalHours)} ساعت · ${schedule.maxItems} آگهی",
                         style = AppTypography.bodyDescription,
                         color = DfColors.TextSecondary,
                     )
+                    schedule.filters.cityName?.takeIf { it.isNotBlank() }?.let { city ->
+                        Text("📍 $city", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                    }
                 }
                 Switch(checked = schedule.isEnabled, onCheckedChange = { onToggle() })
             }
@@ -143,12 +174,13 @@ private fun ScheduleCard(
                 if (schedule.consecutiveFailures > 0) {
                     DfBadge("${schedule.consecutiveFailures} خطا", color = DfColors.RoseLight, textColor = DfColors.Rose)
                 }
+                DfBadge("${schedule.runCount} اجرا", color = DfColors.SurfaceVariant, textColor = DfColors.TextSecondary)
             }
             schedule.nextRunAt?.takeIf { schedule.isEnabled }?.let {
-                Text("اجرای بعدی: ${formatDateTime(it)}", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                Text("⏭ اجرای بعدی: ${formatDateTime(it)}", style = AppTypography.labelSmall, color = DfColors.Purple)
             }
             schedule.lastRunAt?.let {
-                Text("آخرین اجرا: ${formatDateTime(it)}", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                Text("🕐 آخرین اجرا: ${formatDateTime(it)}", style = AppTypography.labelSmall, color = DfColors.TextMuted)
             }
             schedule.lastError?.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = AppTypography.labelSmall, color = DfColors.Rose)

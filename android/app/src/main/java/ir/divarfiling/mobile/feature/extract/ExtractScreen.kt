@@ -26,10 +26,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.core.design.components.DfCountSlider
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
-import ir.divarfiling.mobile.core.design.components.DfProgressBlock
 import ir.divarfiling.mobile.core.design.components.DfTopBar
 import ir.divarfiling.mobile.core.license.ExtractLightLimits
+import ir.divarfiling.mobile.feature.extract.ExtractProgressPanel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +46,7 @@ fun ExtractScreen(
     val tx = ExtractCategories.transactionTypes.firstOrNull { it.label == state.transactionType }
     val subcategories = tx?.subcategories.orEmpty()
 
-    Scaffold(topBar = { DfTopBar(title = "استخراج سبک", showLogo = true, onBack = onBack) }) { padding ->
+    Scaffold(topBar = { DfTopBar(title = "استخراج فایل", showLogo = true, onBack = onBack) }) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -150,13 +151,11 @@ fun ExtractScreen(
                 },
             )
 
-            OutlinedTextField(
-                value = state.maxItems.toString(),
-                onValueChange = { viewModel.onMaxItemsChange(it.toIntOrNull() ?: 50) },
-                label = { Text("تعداد (حداکثر ۱۰۰)") },
-                modifier = Modifier.fillMaxWidth(),
+            DfCountSlider(
+                value = state.maxItems,
+                onValueChange = viewModel::onMaxItemsChange,
                 enabled = canExtract && !state.isRunning,
-                singleLine = true,
+                label = "تعداد آگهی (۰ تا ۱۰۰)",
             )
 
             TextButton(onClick = viewModel::toggleAdvanced, enabled = canExtract && !state.isRunning) {
@@ -168,13 +167,13 @@ fun ExtractScreen(
             }
 
             if (state.isRunning) {
-                DfProgressBlock(state.progressCurrent, state.progressTotal)
-                DfPrimaryButton(text = "لغو", onClick = viewModel::cancel)
+                ExtractProgressPanel(state.progressCurrent, state.progressTotal)
+                DfPrimaryButton(text = "لغو استخراج", onClick = viewModel::cancel)
             } else {
                 DfPrimaryButton(
                     text = "شروع استخراج و آپلود",
                     onClick = viewModel::startExtraction,
-                    enabled = canExtract && state.canExtractNow,
+                    enabled = canExtract && state.canExtractNow && state.maxItems > 0,
                 )
             }
 

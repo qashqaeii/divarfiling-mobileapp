@@ -17,6 +17,7 @@ import javax.inject.Inject
 data class ContactsUiState(
     val contacts: List<ContactDto> = emptyList(),
     val query: String = "",
+    val statusFilter: String? = null,
     val page: Int = 1,
     val hasMore: Boolean = false,
     val isLoading: Boolean = false,
@@ -81,6 +82,7 @@ class ContactsViewModel @Inject constructor(
     }
 
     fun onQueryChange(q: String) = _uiState.update { it.copy(query = q) }
+    fun onStatusFilterChange(status: String?) = _uiState.update { it.copy(statusFilter = status) }
     fun search() {
         _uiState.update { it.copy(page = 1) }
         load(reset = true)

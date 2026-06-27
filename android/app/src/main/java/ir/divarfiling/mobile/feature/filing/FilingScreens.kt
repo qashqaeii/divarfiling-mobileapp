@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,7 +36,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
@@ -141,48 +150,73 @@ fun DatasetsScreen(
 @Composable
 private fun DatasetRow(ds: DatasetDto, onClick: () -> Unit) {
     DfCard(onClick = onClick) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                ds.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(DfColors.SurfaceVariant),
+                contentAlignment = androidx.compose.ui.Alignment.Center,
             ) {
-                ds.fileFormat?.uppercase()?.let { DfBadge(text = it) }
-                ds.transactionType?.let { DfBadge(text = it, color = DfColors.Blue.copy(alpha = 0.1f), textColor = DfColors.Blue) }
-                ds.subcategory?.let { DfBadge(text = it, color = DfColors.SurfaceVariant, textColor = DfColors.TextSecondary) }
-            }
-            val location = listOfNotNull(ds.city, ds.district).joinToString("، ")
-            if (location.isNotBlank()) {
-                Text(location, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    "${ds.itemCount} آگهی",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = DfColors.PurpleDark,
-                    fontWeight = FontWeight.Medium,
-                )
-                ds.source?.let {
-                    Text(
-                        datasetSourceLabel(it),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = DfColors.TextMuted,
+                val thumb = ds.thumbnailUrl?.takeIf { it.isNotBlank() }
+                if (thumb != null) {
+                    AsyncImage(
+                        model = thumb,
+                        contentDescription = null,
+                        modifier = Modifier.size(72.dp),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    androidx.compose.material3.Icon(
+                        DfIcons.Building,
+                        contentDescription = null,
+                        tint = DfColors.TextMuted,
+                        modifier = Modifier.size(28.dp),
                     )
                 }
             }
-            ds.originalFilename?.let {
-                Text(it, style = MaterialTheme.typography.labelSmall, color = DfColors.TextMuted)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    ds.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ds.fileFormat?.uppercase()?.let { DfBadge(text = it) }
+                    ds.transactionType?.let {
+                        DfBadge(text = it, color = DfColors.Blue.copy(alpha = 0.1f), textColor = DfColors.Blue)
+                    }
+                }
+                val location = listOfNotNull(ds.city, ds.district).joinToString("، ")
+                if (location.isNotBlank()) {
+                    Text(location, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        "${ds.itemCount} آگهی",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = DfColors.PurpleDark,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    ds.source?.let {
+                        Text(
+                            datasetSourceLabel(it),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = DfColors.TextMuted,
+                        )
+                    }
+                }
             }
         }
     }
@@ -200,6 +234,7 @@ fun ListingsScreen(
     datasetId: String,
     onBack: () -> Unit = {},
     onListingClick: (String) -> Unit = {},
+    onInsightsClick: (String) -> Unit = {},
     viewModel: ListingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -231,6 +266,9 @@ fun ListingsScreen(
                 title = state.datasetName ?: "آگهی‌ها",
                 onBack = onBack,
                 actions = {
+                    IconButton(onClick = { onInsightsClick(datasetId) }) {
+                        Icon(Icons.Default.Analytics, contentDescription = "تحلیل و نقشه")
+                    }
                     BadgedBox(
                         badge = {
                             if (filterCount > 0) {

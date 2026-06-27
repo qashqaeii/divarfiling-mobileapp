@@ -39,7 +39,7 @@ class DfNotificationHelper @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(ir.divarfiling.mobile.R.drawable.ic_stat_divarfiling)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

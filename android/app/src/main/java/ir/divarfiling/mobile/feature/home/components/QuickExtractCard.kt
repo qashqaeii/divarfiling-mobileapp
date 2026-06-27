@@ -78,7 +78,7 @@ fun QuickExtractCard(
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
-                            text = "استخراج سریع",
+                            text = "استخراج فایل",
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,

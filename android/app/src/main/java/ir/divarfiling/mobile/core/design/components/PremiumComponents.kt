@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -119,14 +120,15 @@ private fun DfCenterNavItem(
     )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .widthIn(min = 56.dp, max = 72.dp)
-            .offset(y = (-8).dp),
+            .defaultMinSize(minHeight = 56.dp),
     ) {
         Box(
             modifier = Modifier
                 .scale(scale)
-                .size(52.dp)
+                .size(46.dp)
                 .shadow(
                     elevation = if (selected) AppElevations.floating else AppElevations.raised,
                     shape = CircleShape,

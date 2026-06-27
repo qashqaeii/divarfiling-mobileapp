@@ -168,7 +168,7 @@ private fun buildQuickActions(
     onNavigateCrm: () -> Unit,
     onNavigateToday: () -> Unit,
 ): List<QuickAction> = listOf(
-    QuickAction("نقشه", DfIcons.MapPin, DfColors.Green, DfColors.GreenLight) { onNavigateFiling() },
+    QuickAction("تحلیل", DfIcons.TrendingDown, DfColors.Green, DfColors.GreenLight) { onNavigateFiling() },
     QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer, onNavigateContacts),
     QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight, onNavigateFiling),
     QuickAction("مخاطب جدید", DfIcons.Plus, DfColors.Amber, DfColors.AmberLight, onNavigateContacts),

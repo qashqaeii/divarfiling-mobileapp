@@ -220,6 +220,7 @@ class DealDetailViewModel @Inject constructor(
 data class PropertiesUiState(
     val properties: List<PropertyDto> = emptyList(),
     val query: String = "",
+    val transactionStatus: String? = null,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val hasMore: Boolean = false,
@@ -244,7 +245,10 @@ class PropertiesViewModel @Inject constructor(
             _uiState.update {
                 it.copy(isLoading = !refreshing && it.properties.isEmpty(), isRefreshing = refreshing)
             }
-            when (val result = repository.getProperties(query = _uiState.value.query)) {
+            when (val result = repository.getProperties(
+                query = _uiState.value.query,
+                transactionStatus = _uiState.value.transactionStatus,
+            )) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(properties = result.data.items, hasMore = result.data.hasMore, isLoading = false, isRefreshing = false)
                 }
@@ -257,6 +261,7 @@ class PropertiesViewModel @Inject constructor(
 
     fun refresh() = load(refreshing = true)
     fun onQueryChange(v: String) = _uiState.update { it.copy(query = v) }
+    fun onTransactionStatusChange(status: String?) = _uiState.update { it.copy(transactionStatus = status) }
     fun search() = load()
     fun toggleCreate(show: Boolean) = _uiState.update { it.copy(showCreateDialog = show) }
     fun onCreateTitleChange(v: String) = _uiState.update { it.copy(createTitle = v) }

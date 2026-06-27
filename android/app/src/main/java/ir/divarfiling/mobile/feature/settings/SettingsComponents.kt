@@ -197,7 +197,7 @@ private fun FeatureChips(license: LicenseState) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FeatureChip("CRM", license.valid && license.crmEnabled)
         FeatureChip("فایلینگ", license.valid && license.filingEnabled)
-        FeatureChip("استخراج سبک", license.canUseLightExtract)
+        FeatureChip("استخراج فایل", license.canUseLightExtract)
         FeatureChip("Push", license.valid)
     }
 }

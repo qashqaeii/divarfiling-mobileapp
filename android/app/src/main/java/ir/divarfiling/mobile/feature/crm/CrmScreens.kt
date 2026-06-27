@@ -52,7 +52,8 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfContactListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
-import ir.divarfiling.mobile.core.design.components.DfFab
+import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
+import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfSearchField
@@ -71,6 +72,9 @@ fun ContactsScreen(
     viewModel: ContactsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val displayed = state.contacts.filter { contact ->
+        state.statusFilter == null || contact.status == state.statusFilter
+    }
 
     Scaffold(
         topBar = { DfTopBar(title = "مخاطبین CRM", onBack = onBack) },
@@ -103,12 +107,24 @@ fun ContactsScreen(
                         onSearch = viewModel::search,
                     )
                 }
+                item {
+                    DfFilterChipRow(
+                        options = listOf(
+                            DfFilterOption(null, "همه"),
+                            DfFilterOption("جدید", "جدید"),
+                            DfFilterOption("در حال پیگیری", "در پیگیری"),
+                            DfFilterOption("بسته شده", "بسته"),
+                        ),
+                        selected = state.statusFilter,
+                        onSelect = { viewModel.onStatusFilterChange(it); viewModel.search() },
+                    )
+                }
                 state.error?.let { error ->
                     item { DfErrorBanner(error) }
                 }
                 if (state.isLoading && state.contacts.isEmpty()) {
                     item { DfContactListSkeleton() }
-                } else if (!state.isLoading && state.contacts.isEmpty() && state.error == null) {
+                } else if (!state.isLoading && displayed.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
                             title = "مخاطبی ثبت نشده",
@@ -118,7 +134,7 @@ fun ContactsScreen(
                         )
                     }
                 } else {
-                    items(state.contacts, key = { it.id }) { contact ->
+                    items(displayed, key = { it.id }) { contact ->
                         DfContactRow(
                             name = contact.fullName,
                             phone = contact.phone,

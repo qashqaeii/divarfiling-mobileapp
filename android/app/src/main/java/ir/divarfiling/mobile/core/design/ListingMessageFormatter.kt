@@ -5,7 +5,7 @@ import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingDto
 
 /**
- * پیام حرفه‌ای و مینیمال برای ارسال به مشتری — بدون لینک دیوار.
+ * پیام حرفه‌ای برای ارسال به مشتری — بدون لینک دیوار و بدون برندینگ.
  */
 object ListingMessageFormatter {
 
@@ -20,7 +20,11 @@ object ListingMessageFormatter {
         city = listing.city,
         yearBuilt = null,
         floor = null,
+        totalFloors = null,
+        pricePerSqm = null,
         advertiserType = listing.advertiserType,
+        businessType = listing.businessType,
+        description = null,
         note = note,
     )
 
@@ -35,7 +39,11 @@ object ListingMessageFormatter {
         city = listing.city,
         yearBuilt = listing.yearBuilt,
         floor = listing.floor,
+        totalFloors = listing.totalFloors,
+        pricePerSqm = listing.pricePerSqm,
         advertiserType = listing.advertiserType,
+        businessType = listing.businessType,
+        description = listing.description,
         note = note,
     )
 
@@ -53,7 +61,11 @@ object ListingMessageFormatter {
             city = null,
             yearBuilt = null,
             floor = null,
+            totalFloors = null,
+            pricePerSqm = null,
             advertiserType = null,
+            businessType = null,
+            description = null,
             note = note.ifBlank { listing.notes.orEmpty() },
         )
     }
@@ -69,23 +81,45 @@ object ListingMessageFormatter {
         city: String?,
         yearBuilt: String?,
         floor: String?,
+        totalFloors: String?,
+        pricePerSqm: Int?,
         advertiserType: String?,
+        businessType: String?,
+        description: String?,
         note: String,
     ): String {
         val lines = mutableListOf<String>()
-        lines += "🏠 ${title?.trim().orEmpty().ifBlank { "فایل پیشنهادی" }}"
+        val headline = title?.trim().orEmpty().ifBlank { "فایل پیشنهادی" }
+        lines += "🏠 $headline"
+
         val location = listOfNotNull(district?.trim(), city?.trim()).filter { it.isNotBlank() }.joinToString("، ")
         if (location.isNotBlank()) lines += "📍 $location"
-        price?.takeIf { it > 0 }?.let { lines += "💰 ${FormatUtils.formatPriceToman(it)}" }
+
+        price?.takeIf { it > 0 }?.let { lines += "💰 قیمت کل: ${FormatUtils.formatPriceToman(it)}" }
         deposit?.takeIf { it > 0 }?.let { lines += "🔑 ودیعه: ${FormatUtils.formatPriceShort(it)}" }
-        rent?.takeIf { it > 0 }?.let { lines += "📅 اجاره: ${FormatUtils.formatPriceShort(it)}" }
-        area?.let { lines += "📐 ${FormatUtils.formatArea(it)}" }
-        rooms?.let { lines += "🛏 ${FormatUtils.formatRooms(it)}" }
-        yearBuilt?.takeIf { it.isNotBlank() }?.let { lines += "🏗 ساخت: $it" }
-        floor?.takeIf { it.isNotBlank() }?.let { lines += "🏢 طبقه: $it" }
+        rent?.takeIf { it > 0 }?.let { lines += "📅 اجاره ماهانه: ${FormatUtils.formatPriceShort(it)}" }
+
+        val specs = mutableListOf<String>()
+        area?.let { specs += FormatUtils.formatArea(it) }
+        rooms?.let { specs += FormatUtils.formatRooms(it) }
+        yearBuilt?.takeIf { it.isNotBlank() }?.let { specs += "ساخت $it" }
+        floor?.takeIf { it.isNotBlank() }?.let { specs += "طبقه $it" }
+        totalFloors?.takeIf { it.isNotBlank() }?.let { specs += "از $it طبقه" }
+        if (specs.isNotEmpty()) lines += "📐 ${specs.joinToString(" · ")}"
+
+        pricePerSqm?.takeIf { it > 0 }?.let {
+            lines += "📊 هر متر: ${FormatUtils.formatPriceToman(it.toLong())}"
+        }
         advertiserType?.takeIf { it.isNotBlank() }?.let { lines += "👤 $it" }
+        businessType?.takeIf { it.isNotBlank() }?.let { lines += "🏷 $it" }
+
+        description?.trim()?.takeIf { it.isNotBlank() }?.let { desc ->
+            val short = if (desc.length > 120) desc.take(117) + "…" else desc
+            lines += "\n💬 $short"
+        }
         note.trim().takeIf { it.isNotBlank() }?.let { lines += "\n📝 $it" }
-        lines += "\n— پیشنهاد مشاور شما | Divar Filing"
+
+        lines += "\n— پیشنهاد ویژه مشاور شما"
         return lines.joinToString("\n")
     }
 }

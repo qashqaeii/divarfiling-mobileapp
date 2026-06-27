@@ -45,6 +45,8 @@ import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
+import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfFab
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -310,6 +312,18 @@ fun PropertiesScreen(
                         onValueChange = viewModel::onQueryChange,
                         placeholder = "جستجوی ملک…",
                         onSearch = viewModel::search,
+                    )
+                }
+                item {
+                    DfFilterChipRow(
+                        options = listOf(
+                            DfFilterOption(null, "همه"),
+                            DfFilterOption("فعال", "فعال"),
+                            DfFilterOption("در مذاکره", "مذاکره"),
+                            DfFilterOption("فروخته شده", "فروخته"),
+                        ),
+                        selected = state.transactionStatus,
+                        onSelect = { viewModel.onTransactionStatusChange(it); viewModel.search() },
                     )
                 }
                 state.error?.let { item { DfErrorBanner(it) } }

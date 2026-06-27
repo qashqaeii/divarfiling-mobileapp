@@ -81,20 +81,19 @@ fun RecentListingsSection(
         if (files.isEmpty()) {
             DfEmptyState(
                 title = "هنوز فایلی ندارید",
-                subtitle = "از تب استخراج یا ویندوز یک dataset بسازید",
+                subtitle = "از استخراج فایل یا ویندوز یک dataset بسازید",
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
             return
         }
 
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+        Column(
+            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
-            items(files, key = { it.id }) { file ->
+            files.take(4).forEach { file ->
                 RecentFileCard(
                     file = file,
-                    cardWidth = cardWidth,
                     onClick = { onFileClick(file.id) },
                 )
             }
@@ -106,7 +105,6 @@ fun RecentListingsSection(
 @Composable
 private fun RecentFileCard(
     file: RecentFileItem,
-    cardWidth: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
 ) {
     val location = listOfNotNull(file.city, file.district).joinToString(" — ")
@@ -121,10 +119,10 @@ private fun RecentFileCard(
     Surface(
         onClick = onClick,
         modifier = Modifier
-            .width(cardWidth)
-            .height(156.dp),
+            .fillMaxWidth()
+            .height(88.dp),
         shape = AppShapes.ListingCard,
-        shadowElevation = AppElevations.listingCard,
+        shadowElevation = AppElevations.subtle,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (!file.thumbnailUrl.isNullOrBlank()) {

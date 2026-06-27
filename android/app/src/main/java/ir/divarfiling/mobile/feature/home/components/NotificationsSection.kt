@@ -122,7 +122,7 @@ private fun notificationStyle(type: HomeNotificationType): Triple<ImageVector, C
     HomeNotificationType.PriceDrop -> Triple(DfIcons.TrendingDown, DfColors.Amber, DfColors.AmberLight)
     HomeNotificationType.License -> Triple(DfIcons.Sparkles, DfColors.Purple, DfColors.PurpleContainer)
     HomeNotificationType.FollowUp -> Triple(DfIcons.Phone, DfColors.Rose, DfColors.RoseLight)
-    HomeNotificationType.General -> Triple(DfIcons.Bell, DfColors.TextSecondary, DfColors.SurfaceVariant)
+    HomeNotificationType.General -> Triple(DfIcons.Home, DfColors.Purple, DfColors.PurpleContainer)
 }
 
 @Preview(showBackground = true, widthDp = 360)

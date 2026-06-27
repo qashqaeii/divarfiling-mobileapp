@@ -192,6 +192,7 @@ data class DatasetDto(
     val city: String? = null,
     val district: String? = null,
     @SerialName("item_count") val itemCount: Int = 0,
+    @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("original_filename") val originalFilename: String? = null,
     @SerialName("file_format") val fileFormat: String? = null,

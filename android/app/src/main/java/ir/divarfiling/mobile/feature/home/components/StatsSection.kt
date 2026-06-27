@@ -8,13 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,7 +26,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -51,16 +48,12 @@ fun StatsSection(
     isLoading: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val cardWidth = ((screenWidth - AppSpacing.screenHorizontal * 2 - AppSpacing.sm * 3) / 2.15f)
-        .coerceIn(130.dp, 160.dp)
-
     val cards = listOf(
         StatCardData(
             value = stats.newFilesToday,
-            label = "فایل‌های جدید امروز",
+            label = "فایل جدید",
             delta = stats.newFilesToday,
-            deltaLabel = if (stats.newFilesToday > 0) "+${stats.newFilesToday} امروز" else "بدون فایل جدید",
+            deltaLabel = if (stats.newFilesToday > 0) "+${stats.newFilesToday}" else "امروز",
             icon = DfIcons.File,
             tint = DfColors.Blue,
             background = DfColors.BlueLight,
@@ -69,7 +62,7 @@ fun StatsSection(
             value = stats.properties,
             label = "املاک",
             delta = stats.propertiesDelta,
-            deltaLabel = if (stats.propertiesDelta > 0) "+${stats.propertiesDelta} امروز" else "کل آگهی‌ها",
+            deltaLabel = "${stats.propertiesDelta}",
             icon = DfIcons.Building,
             tint = DfColors.Amber,
             background = DfColors.AmberLight,
@@ -78,7 +71,7 @@ fun StatsSection(
             value = stats.deals,
             label = "معاملات",
             delta = stats.dealsDelta,
-            deltaLabel = if (stats.dealsDelta > 0) "+${stats.dealsDelta} امروز" else "کارهای امروز",
+            deltaLabel = "${stats.dealsDelta}",
             icon = DfIcons.Handshake,
             tint = DfColors.Green,
             background = DfColors.GreenLight,
@@ -87,103 +80,90 @@ fun StatsSection(
             value = stats.contacts,
             label = "مخاطبین",
             delta = stats.contactsDelta,
-            deltaLabel = if (stats.contactsDelta > 0) "+${stats.contactsDelta} امروز" else "کل مخاطبین",
+            deltaLabel = if (stats.contactsDelta > 0) "+${stats.contactsDelta}" else "کل",
             icon = DfIcons.Users,
             tint = DfColors.Purple,
             background = DfColors.PurpleContainer,
         ),
     )
 
-    if (isLoading) {
-        LazyRow(
-            modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-        ) {
-            items(4) {
-                DfShimmerBox(
-                    modifier = Modifier
-                        .width(cardWidth)
-                        .height(132.dp),
-                )
-            }
-        }
-        return
-    }
-
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = AppSpacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        items(cards, key = { it.label }) { card ->
-            StatCard(data = card, cardWidth = cardWidth)
+        if (isLoading) {
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                repeat(2) {
+                    DfShimmerBox(modifier = Modifier.weight(1f).height(96.dp))
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                repeat(2) {
+                    DfShimmerBox(modifier = Modifier.weight(1f).height(96.dp))
+                }
+            }
+            return
+        }
+
+        cards.chunked(2).forEach { rowCards ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                rowCards.forEach { card ->
+                    StatCard(data = card, modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StatCard(data: StatCardData, cardWidth: androidx.compose.ui.unit.Dp) {
+private fun StatCard(data: StatCardData, modifier: Modifier = Modifier) {
     val scale by animateFloatAsState(
         targetValue = 1f,
         animationSpec = DfAnimation.springGentle(),
         label = "statScale",
     )
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .scale(scale)
-            .width(cardWidth)
-            .height(136.dp),
+            .height(96.dp),
         shape = AppShapes.StatCard,
         color = DfColors.Surface,
-        shadowElevation = AppElevations.card,
+        shadowElevation = AppElevations.subtle,
         onClick = {},
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(data.background, DfColors.Surface),
-                    ),
-                )
-                .padding(AppSpacing.sm),
+                .background(Brush.horizontalGradient(listOf(data.background.copy(alpha = 0.5f), DfColors.Surface)))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(data.tint.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(data.tint.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = data.icon,
-                        contentDescription = null,
-                        tint = data.tint,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+                Icon(data.icon, contentDescription = null, tint = data.tint, modifier = Modifier.size(18.dp))
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 DfAnimatedCounter(
                     target = data.value,
-                    style = AppTypography.statNumber,
+                    style = AppTypography.statNumber.copy(fontSize = AppTypography.statNumber.fontSize * 0.85f),
                     color = DfColors.TextPrimary,
                 )
                 Text(
-                    text = data.label,
-                    style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = data.deltaLabel,
+                    data.label,
                     style = AppTypography.labelSmall,
-                    color = data.tint,
-                    fontWeight = FontWeight.Medium,
+                    color = DfColors.TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
