@@ -9,6 +9,7 @@ import ir.divarfiling.mobile.core.network.ContactDetailData
 import ir.divarfiling.mobile.core.network.ContactUpdateRequest
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest
+import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.network.SendListingRequest
 import ir.divarfiling.mobile.data.repository.ApiResult
@@ -320,7 +321,7 @@ class ContactDetailViewModel @Inject constructor(
         val note = _uiState.value.sendListingNote.trim()
         val priceText = listing.price?.toString().orEmpty()
         val areaText = listing.area?.toString().orEmpty()
-        val shareMessage = buildShareMessage(listing.title, listing.shareLink, note)
+        val shareMessage = ListingMessageFormatter.fromListing(listing, note)
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
             when (val result = crmRepository.sendListing(

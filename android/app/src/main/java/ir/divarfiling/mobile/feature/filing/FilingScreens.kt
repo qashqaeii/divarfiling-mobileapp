@@ -42,7 +42,6 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
-import ir.divarfiling.mobile.core.design.components.DfListingRow
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfSearchField
 import ir.divarfiling.mobile.core.design.components.DfStatChip
@@ -288,7 +287,7 @@ fun ListingsScreen(
                     item { DfErrorBanner(error) }
                 }
                 if (state.isLoading && state.listings.isEmpty()) {
-                    item { DfCardListSkeleton(count = 6, itemHeight = 88.dp) }
+                    item { DfCardListSkeleton(count = 6, itemHeight = 120.dp) }
                 } else if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
@@ -298,10 +297,10 @@ fun ListingsScreen(
                     }
                 } else {
                     items(state.listings, key = { it.token }) { listing ->
-                        ListingItem(
+                        FilingListingCard(
                             listing = listing,
                             onClick = { onListingClick(listing.token) },
-                            onOpenDivar = listing.shareLink?.let { link ->
+                            onOpenDivar = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
                                 {
                                     context.startActivity(
                                         Intent(Intent.ACTION_VIEW, Uri.parse(link)),
@@ -445,14 +444,11 @@ private fun SearchListingItem(
     listing: ListingDto,
     onClick: () -> Unit,
 ) {
-    DfCard(onClick = onClick) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            listing.datasetName?.takeIf { it.isNotBlank() }?.let {
-                DfBadge(text = it, color = DfColors.PurpleContainer, textColor = DfColors.PurpleDark)
-            }
-            ListingItem(listing = listing, onClick = null)
-        }
-    }
+    FilingListingCard(
+        listing = listing,
+        onClick = onClick,
+        datasetLabel = listing.datasetName?.takeIf { it.isNotBlank() },
+    )
 }
 
 private fun formatFilterNumber(value: Long): String {
@@ -461,25 +457,4 @@ private fun formatFilterNumber(value: Long): String {
         value >= 1_000_000 -> "${value / 1_000_000} میلیون"
         else -> value.toString()
     }
-}
-
-@Composable
-private fun ListingItem(
-    listing: ListingDto,
-    onClick: (() -> Unit)? = null,
-    onOpenDivar: (() -> Unit)? = null,
-) {
-    val advertiser = listing.advertiserType
-        ?: listing.businessType?.takeIf { it.isNotBlank() }
-    DfListingRow(
-        title = listing.title ?: "بدون عنوان",
-        price = listing.price,
-        deposit = listing.deposit,
-        rent = listing.rent,
-        area = listing.area,
-        rooms = listing.rooms,
-        district = listing.district,
-        advertiserType = advertiser,
-        onClick = onClick ?: onOpenDivar,
-    )
 }

@@ -175,7 +175,7 @@ data class TodayStatsDto(
 
 @Serializable
 data class ReminderDto(
-    val id: Long,
+    val id: Long? = null,
     val title: String,
     @SerialName("contact_id") val contactId: Long? = null,
     @SerialName("due_at") val dueAt: String? = null,

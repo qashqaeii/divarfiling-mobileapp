@@ -85,12 +85,11 @@ fun HomeScreen(
                 }
             }
 
-            if (state.isSyncing || state.syncPendingCount > 0 || state.lastSyncLabel != null) {
+            if (state.isSyncing || state.syncPendingCount > 0) {
                 item {
                     SyncStatusBanner(
                         isSyncing = state.isSyncing,
                         pendingCount = state.syncPendingCount,
-                        lastSyncLabel = state.lastSyncLabel,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

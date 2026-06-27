@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.network.ListingDetailDto
+import ir.divarfiling.mobile.core.design.ListingMessageFormatter
+import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.network.SendListingRequest
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
@@ -88,11 +90,7 @@ class ListingDetailViewModel @Inject constructor(
         val listing = _uiState.value.listing ?: return
         val contactId = _uiState.value.pendingContactId ?: return
         val note = _uiState.value.sendNote.trim()
-        val shareMessage = listOfNotNull(
-            listing.title?.takeIf { it.isNotBlank() },
-            listing.shareLink?.takeIf { it.isNotBlank() },
-            note.takeIf { it.isNotBlank() },
-        ).joinToString("\n")
+        val shareMessage = ListingMessageFormatter.fromDetail(listing, note)
         viewModelScope.launch {
             _uiState.update { it.copy(isLinking = true) }
             when (val result = crmRepository.sendListing(

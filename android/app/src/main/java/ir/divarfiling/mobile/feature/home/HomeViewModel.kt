@@ -58,11 +58,7 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(syncPendingCount = pending) }
             when (val result = syncRepository.syncAll()) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        isSyncing = false,
-                        syncPendingCount = 0,
-                        lastSyncLabel = formatSyncLabel(result.data.serverTime),
-                    )
+                    it.copy(isSyncing = false, syncPendingCount = 0)
                 }
                 is ApiResult.Error -> {
                     val pendingAfter = syncRepository.getPendingCount()
@@ -80,11 +76,7 @@ class HomeViewModel @Inject constructor(
             crmRepository.flushSyncQueue()
             when (val result = syncRepository.syncAll()) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        isSyncing = false,
-                        syncPendingCount = 0,
-                        lastSyncLabel = formatSyncLabel(result.data.serverTime),
-                    )
+                    it.copy(isSyncing = false, syncPendingCount = 0)
                 }
                 is ApiResult.Error -> {
                     val pendingAfter = syncRepository.getPendingCount()
@@ -94,16 +86,6 @@ class HomeViewModel @Inject constructor(
                 }
             }
             loadDashboard(refreshing = true)
-        }
-    }
-
-    private fun formatSyncLabel(serverTime: String?): String? {
-        if (serverTime.isNullOrBlank()) return null
-        return try {
-            val time = serverTime.substringAfter("T").take(5)
-            "آخرین sync: $time"
-        } catch (_: Exception) {
-            "همگام شد"
         }
     }
 

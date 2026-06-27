@@ -434,6 +434,54 @@ fun DfFab(
 }
 
 @Composable
+fun DfActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    iconRes: Int? = null,
+    containerColor: Color = DfColors.PurpleContainer,
+    contentColor: Color = DfColors.Purple,
+    filled: Boolean = false,
+) {
+    val bg = if (filled) contentColor else containerColor
+    val fg = if (filled) Color.White else contentColor
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = DfShapes.Chip,
+        color = bg,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            when {
+                iconRes != null -> Icon(
+                    painter = androidx.compose.ui.res.painterResource(iconRes),
+                    contentDescription = null,
+                    tint = fg,
+                    modifier = Modifier.size(18.dp),
+                )
+                icon != null -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = fg,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Text(
+                text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = fg,
+            )
+        }
+    }
+}
+
+@Composable
 fun DfListingRow(
     title: String,
     price: Long? = null,

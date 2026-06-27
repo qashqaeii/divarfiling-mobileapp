@@ -22,10 +22,9 @@ import ir.divarfiling.mobile.core.design.DfShapes
 fun SyncStatusBanner(
     isSyncing: Boolean,
     pendingCount: Int,
-    lastSyncLabel: String?,
     modifier: Modifier = Modifier,
 ) {
-    if (!isSyncing && pendingCount == 0 && lastSyncLabel.isNullOrBlank()) return
+    if (!isSyncing && pendingCount == 0) return
 
     val (bg, fg, message) = when {
         isSyncing -> Triple(
@@ -33,15 +32,10 @@ fun SyncStatusBanner(
             DfColors.Blue,
             "در حال همگام‌سازی…",
         )
-        pendingCount > 0 -> Triple(
+        else -> Triple(
             DfColors.AmberLight,
             DfColors.Amber,
             "$pendingCount عملیات در صف آفلاین",
-        )
-        else -> Triple(
-            DfColors.GreenLight,
-            DfColors.Green,
-            lastSyncLabel ?: "همگام شد",
         )
     }
 

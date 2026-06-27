@@ -19,7 +19,6 @@ data class HomeUiState(
     val maxExtractItems: Int = 100,
     val canExtract: Boolean = false,
     val syncPendingCount: Int = 0,
-    val lastSyncLabel: String? = null,
     val isSyncing: Boolean = false,
 )
 

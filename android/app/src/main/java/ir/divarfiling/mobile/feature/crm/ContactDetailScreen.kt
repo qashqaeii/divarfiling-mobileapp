@@ -1,12 +1,19 @@
 package ir.divarfiling.mobile.feature.crm
 
+import ir.divarfiling.mobile.R
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,11 +24,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.NoteAdd
@@ -50,10 +66,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
@@ -176,7 +189,11 @@ fun ContactDetailScreen(
                                     }
                                 }
                                 item {
-                                    ContactActionChip("واتساپ", Icons.Default.Message) {
+                                    ContactActionChip(
+                                        label = "واتساپ",
+                                        iconRes = R.drawable.ic_whatsapp,
+                                        tint = DfColors.Green,
+                                    ) {
                                         contactInfo.phone?.let { phone ->
                                             val wa = phone.removePrefix("0")
                                             context.startActivity(
@@ -225,12 +242,14 @@ fun ContactDetailScreen(
                         val reminders = detail.reminders
                         if (reminders.isNotEmpty()) {
                             item { DfSectionHeader("یادآورها", reminders.size) }
-                            items(reminders, key = { it.id }) { reminder ->
-                                ReminderCard(
-                                    reminder = reminder,
-                                    onComplete = { viewModel.completeReminder(reminder.id) },
-                                    onPostpone = { viewModel.postponeReminder(reminder.id) },
-                                )
+                            items(reminders, key = { it.id ?: it.hashCode().toLong() }) { reminder ->
+                                reminder.id?.let { id ->
+                                    ReminderCard(
+                                        reminder = reminder,
+                                        onComplete = { viewModel.completeReminder(id) },
+                                        onPostpone = { viewModel.postponeReminder(id) },
+                                    )
+                                }
                             }
                         }
 
@@ -270,17 +289,19 @@ fun ContactDetailScreen(
                             items(listings, key = { it.id }) { listing ->
                                 LinkedListingCard(
                                     listing = listing,
-                                    onShareWhatsApp = { link ->
+                                    onShareWhatsApp = {
                                         contactInfo.phone?.let { phone ->
                                             val wa = phone.removePrefix("0")
-                                            val text = Uri.encode("${listing.title ?: ""}\n$link")
+                                            val text = Uri.encode(
+                                                ListingMessageFormatter.fromLinked(listing),
+                                            )
                                             context.startActivity(
                                                 Intent(
                                                     Intent.ACTION_VIEW,
                                                     Uri.parse("https://wa.me/98$wa?text=$text"),
                                                 ),
                                             )
-                                            viewModel.logActivity("واتساپ", "ارسال آگهی: ${listing.title}")
+                                            viewModel.logActivity("واتساپ", "ارسال فایل: ${listing.title}")
                                         }
                                     },
                                 )
@@ -288,18 +309,8 @@ fun ContactDetailScreen(
                         }
 
                         val activities = detail.activities
-                        item { DfSectionHeader("تایم‌لاین فعالیت‌ها", activities.size) }
-                        if (activities.isEmpty()) {
-                            item {
-                                DfEmptyState(
-                                    title = "فعالیتی ثبت نشده",
-                                    subtitle = "با تماس، یادداشت یا ثبت فعالیت، تایم‌لاین را شروع کنید",
-                                )
-                            }
-                        } else {
-                            items(activities, key = { it.id }) { act ->
-                                ActivityTimelineItem(act)
-                            }
+                        item {
+                            CollapsibleTimelineSection(activities = activities)
                         }
                     }
                 }
@@ -478,16 +489,47 @@ private fun ContactProfileCard(
 @Composable
 private fun ContactActionChip(
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     onClick: () -> Unit,
+    tint: Color = DfColors.Purple,
+) {
+    ContactActionChipContent(label, onClick, tint) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+    }
+}
+
+@Composable
+private fun ContactActionChip(
+    label: String,
+    iconRes: Int,
+    tint: Color = DfColors.Purple,
+    onClick: () -> Unit,
+) {
+    ContactActionChipContent(label, onClick, tint) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+@Composable
+private fun ContactActionChipContent(
+    label: String,
+    onClick: () -> Unit,
+    tint: Color,
+    icon: @Composable () -> Unit,
 ) {
     DfPremiumCard(onClick = onClick) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, contentDescription = null, tint = DfColors.Purple)
-            Text(label, style = MaterialTheme.typography.labelMedium)
+            icon()
+            Text(label, style = MaterialTheme.typography.labelMedium, color = tint)
         }
     }
 }
@@ -554,7 +596,7 @@ private fun PropertyCard(property: PropertyDto, onClick: () -> Unit = {}) {
 @Composable
 private fun LinkedListingCard(
     listing: LinkedListingDto,
-    onShareWhatsApp: (String) -> Unit,
+    onShareWhatsApp: () -> Unit,
 ) {
     val context = LocalContext.current
     DfPremiumCard {
@@ -568,15 +610,73 @@ private fun LinkedListingCard(
                 Text(it, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onShareWhatsApp) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_whatsapp),
+                        contentDescription = null,
+                        tint = DfColors.Green,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text("واتساپ", color = DfColors.Green)
+                }
                 listing.link?.takeIf { it.isNotBlank() }?.let { link ->
-                    TextButton(onClick = { onShareWhatsApp(link) }) {
-                        Icon(Icons.Default.Share, contentDescription = null)
-                        Text("واتساپ")
-                    }
                     TextButton(onClick = {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                     }) {
                         Text("دیوار")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleTimelineSection(activities: List<ActivityDto>) {
+    var expanded by remember { mutableStateOf(false) }
+    DfPremiumCard {
+        Column(Modifier.padding(horizontal = 4.dp, vertical = 6.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("تایم‌لاین فعالیت‌ها", style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (activities.isEmpty()) "فعالیتی ثبت نشده"
+                        else "${activities.size} فعالیت ثبت‌شده",
+                        style = AppTypography.bodyDescription,
+                        color = DfColors.TextMuted,
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "بستن" else "باز کردن",
+                    tint = DfColors.Purple,
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (activities.isEmpty()) {
+                        DfEmptyState(
+                            title = "هنوز فعالیتی نیست",
+                            subtitle = "با تماس، یادداشت یا ثبت فعالیت، تایم‌لاین را شروع کنید",
+                        )
+                    } else {
+                        activities.forEach { activity ->
+                            ActivityTimelineItem(activity)
+                        }
                     }
                 }
             }

@@ -6,6 +6,7 @@ import ir.divarfiling.mobile.core.network.DashboardData
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
+import ir.divarfiling.mobile.core.network.toUserMessage
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,7 +41,7 @@ class DashboardRepository @Inject constructor(
                 json.decodeFromString(DashboardData.serializer(), it)
             }
             if (cached != null) ApiResult.Success(cached)
-            else ApiResult.Error(e.message ?: "خطای شبکه")
+            else ApiResult.Error(e.toUserMessage("خطا در اتصال به سرور"))
         }
     }
 }
