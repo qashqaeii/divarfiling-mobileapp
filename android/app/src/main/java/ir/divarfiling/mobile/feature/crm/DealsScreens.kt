@@ -67,9 +67,11 @@ fun DealsScreen(
     Scaffold(
         topBar = { DfTopBar(title = "معاملات", onBack = onBack) },
         floatingActionButton = {
-            DfFab(onClick = { viewModel.toggleCreate(true) }) {
-                Icon(Icons.Default.Add, contentDescription = null)
-            }
+            DfFab(
+                onClick = { viewModel.toggleCreate(true) },
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                contentDescription = "افزودن معامله",
+            )
         },
     ) { padding ->
         DfPullRefresh(
@@ -286,9 +288,11 @@ fun PropertiesScreen(
     Scaffold(
         topBar = { DfTopBar(title = "املاک CRM", onBack = onBack) },
         floatingActionButton = {
-            DfFab(onClick = { viewModel.toggleCreate(true) }) {
-                Icon(Icons.Default.Add, contentDescription = null)
-            }
+            DfFab(
+                onClick = { viewModel.toggleCreate(true) },
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                contentDescription = "افزودن ملک",
+            )
         },
     ) { padding ->
         DfPullRefresh(

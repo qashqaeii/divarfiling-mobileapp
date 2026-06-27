@@ -100,31 +100,35 @@ class DealsRepository @Inject constructor(
 
     private suspend fun paginatedList(
         call: suspend () -> ir.divarfiling.mobile.core.network.ApiEnvelope,
-    ): ApiResult<PaginatedResult<DealDto>> = try {
-        val response = call()
-        if (!response.ok) return ApiResult.Error(response.error ?: "خطا")
-        val list = response.data?.let {
-            json.decodeFromJsonElement(ListSerializer(DealDto.serializer()), it)
-        }.orEmpty()
-        val page = response.meta?.page ?: 1
-        val total = response.meta?.total ?: list.size
-        ApiResult.Success(PaginatedResult(list, page, total, page * list.size < total))
-    } catch (e: Exception) {
-        ApiResult.Error(e.message ?: "خطای شبکه")
+    ): ApiResult<PaginatedResult<DealDto>> {
+        return try {
+            val response = call()
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا")
+            val list = response.data?.let {
+                json.decodeFromJsonElement(ListSerializer(DealDto.serializer()), it)
+            }.orEmpty()
+            val page = response.meta?.page ?: 1
+            val total = response.meta?.total ?: list.size
+            ApiResult.Success(PaginatedResult(list, page, total, page * list.size < total))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
     }
 
     private suspend fun paginatedProperties(
         call: suspend () -> ir.divarfiling.mobile.core.network.ApiEnvelope,
-    ): ApiResult<PaginatedResult<PropertyDto>> = try {
-        val response = call()
-        if (!response.ok) return ApiResult.Error(response.error ?: "خطا")
-        val list = response.data?.let {
-            json.decodeFromJsonElement(ListSerializer(PropertyDto.serializer()), it)
-        }.orEmpty()
-        val page = response.meta?.page ?: 1
-        val total = response.meta?.total ?: list.size
-        ApiResult.Success(PaginatedResult(list, page, total, page * list.size < total))
-    } catch (e: Exception) {
-        ApiResult.Error(e.message ?: "خطای شبکه")
+    ): ApiResult<PaginatedResult<PropertyDto>> {
+        return try {
+            val response = call()
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا")
+            val list = response.data?.let {
+                json.decodeFromJsonElement(ListSerializer(PropertyDto.serializer()), it)
+            }.orEmpty()
+            val page = response.meta?.page ?: 1
+            val total = response.meta?.total ?: list.size
+            ApiResult.Success(PaginatedResult(list, page, total, page * list.size < total))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
     }
 }

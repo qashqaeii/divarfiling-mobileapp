@@ -291,7 +291,7 @@ data class ExtractionScheduleDto(
     val title: String,
     @SerialName("is_enabled") val isEnabled: Boolean = true,
     @SerialName("interval_hours") val intervalHours: Double = 6.0,
-    val filters: ExtractionFiltersDto = ExtractionFiltersDto(cityId = "1", category = "apartment-rent"),
+    val filters: ExtractionFiltersDto = ExtractionFiltersDto(cityId = "1", category = "apartment-rent", maxItems = 50),
     @SerialName("max_items") val maxItems: Int = 50,
     @SerialName("next_run_at") val nextRunAt: String? = null,
     @SerialName("last_run_at") val lastRunAt: String? = null,

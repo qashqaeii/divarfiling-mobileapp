@@ -357,7 +357,7 @@ class ContactDetailViewModel @Inject constructor(
     fun uploadDocument(uri: Uri) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (crmRepository.uploadDocument(contactId, uri)) {
+            when (val result = crmRepository.uploadDocument(contactId, uri)) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(isSubmitting = false, successMessage = "مدرک آپلود شد")
@@ -374,7 +374,7 @@ class ContactDetailViewModel @Inject constructor(
     fun deleteDocument(documentId: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (crmRepository.deleteDocument(contactId, documentId)) {
+            when (val result = crmRepository.deleteDocument(contactId, documentId)) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(isSubmitting = false, successMessage = "مدرک حذف شد")
