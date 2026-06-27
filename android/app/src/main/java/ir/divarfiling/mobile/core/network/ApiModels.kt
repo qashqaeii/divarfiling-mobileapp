@@ -723,7 +723,7 @@ data class InsightsMetaDto(
 data class ChartDatasetDto(
     val label: String? = null,
     val data: List<JsonElement> = emptyList(),
-    @SerialName("backgroundColor") val backgroundColor: String? = null,
+    @SerialName("backgroundColor") val backgroundColor: JsonElement? = null,
 )
 
 @Serializable

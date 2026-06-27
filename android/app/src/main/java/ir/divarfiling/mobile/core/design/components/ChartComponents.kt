@@ -25,8 +25,11 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.network.ChartDatasetDto
 import ir.divarfiling.mobile.core.network.ChartDto
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 
 private fun parseColor(raw: String?, fallback: Color): Color {
@@ -51,6 +54,25 @@ private fun parseColor(raw: String?, fallback: Color): Color {
     } catch (_: Exception) {
         fallback
     }
+}
+
+private fun parseColorElement(element: JsonElement?, fallback: Color): Color? {
+    val raw = element?.jsonPrimitive?.contentOrNull ?: return null
+    return parseColor(raw, fallback)
+}
+
+private fun ChartDatasetDto.resolvedColors(count: Int): List<Color> {
+    val bg = backgroundColor
+    if (bg is JsonArray) {
+        val parsed = bg.mapIndexed { index, item ->
+            parseColorElement(item, palette[index % palette.size]) ?: palette[index % palette.size]
+        }
+        if (parsed.isNotEmpty()) {
+            return List(count) { parsed[it % parsed.size] }
+        }
+    }
+    val single = parseColorElement(bg, DfColors.Purple) ?: DfColors.Purple
+    return List(count) { single }
 }
 
 @Composable
@@ -78,12 +100,7 @@ private fun DfBarChart(chart: ChartDto) {
     val dataset = chart.datasets.firstOrNull() ?: return
     val values = dataset.numericValues()
     val max = values.maxOrNull()?.coerceAtLeast(1f) ?: 1f
-    val colors = remember(chart) {
-        chart.datasets.mapIndexed { index, ds ->
-            parseColor(ds.backgroundColor, palette[index % palette.size])
-        }
-    }
-    val barColor = colors.firstOrNull() ?: DfColors.Purple
+    val barColors = remember(chart) { dataset.resolvedColors(values.size) }
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -94,6 +111,7 @@ private fun DfBarChart(chart: ChartDto) {
         val barWidth = (size.width - gap * (barCount + 1)) / barCount
         values.forEachIndexed { index, value ->
             val barHeight = (value / max) * size.height * 0.85f
+            val barColor = barColors.getOrElse(index) { DfColors.Purple }
             drawRoundRect(
                 color = barColor.copy(alpha = 0.85f),
                 topLeft = Offset(gap + index * (barWidth + gap), size.height - barHeight),
@@ -144,7 +162,7 @@ private fun DfDoughnutChart(chart: ChartDto) {
     val dataset = chart.datasets.firstOrNull() ?: return
     val values = dataset.numericValues()
     val total = values.sum().coerceAtLeast(1f)
-    val colors = listOf(DfColors.Green, DfColors.Amber, DfColors.Rose, DfColors.Blue, DfColors.Purple)
+    val segmentColors = remember(chart) { dataset.resolvedColors(values.size) }
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -156,7 +174,7 @@ private fun DfDoughnutChart(chart: ChartDto) {
         values.forEachIndexed { index, value ->
             val sweep = (value / total) * 360f
             drawArc(
-                color = colors[index % colors.size],
+                color = segmentColors.getOrElse(index) { palette[index % palette.size] },
                 startAngle = start,
                 sweepAngle = sweep,
                 useCenter = true,
