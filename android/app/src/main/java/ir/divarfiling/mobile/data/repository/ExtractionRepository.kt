@@ -63,6 +63,8 @@ class ExtractionRepository @Inject constructor(
         filters: ExtractFilters,
         onProgress: (Int, Int) -> Unit,
         isCancelled: () -> Boolean,
+        runId: Long? = null,
+        scheduleId: Long? = null,
     ): ApiResult<ExtractionUploadData> {
         val gate = checkExtractGate()
         if (gate is ExtractGateResult.Denied) {
@@ -70,6 +72,12 @@ class ExtractionRepository @Inject constructor(
         }
 
         val limits = getLimits()
+        if (runId == null && limits != null && !limits.canExtractNow) {
+            return ApiResult.Error(
+                "سقف استخراج روزانه (${limits.extractionsDailyLimit}) تکمیل شده است.",
+                "DAILY_LIMIT",
+            )
+        }
         val maxItems = limits?.maxItems ?: ExtractLightLimits.MAX_ITEMS
         val safeFilters = filters.copy(
             maxItems = filters.maxItems.coerceIn(1, maxItems),
@@ -132,6 +140,8 @@ class ExtractionRepository @Inject constructor(
                     startedAt = startedAt,
                     finishedAt = finishedAt,
                     items = filteredItems.map { ExtractionItemDto(it.token, it.raw) },
+                    runId = runId,
+                    scheduleId = scheduleId,
                 ),
             )
             if (!response.ok) {

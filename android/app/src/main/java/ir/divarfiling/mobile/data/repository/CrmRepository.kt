@@ -1,5 +1,8 @@
 package ir.divarfiling.mobile.data.repository
 
+import android.content.Context
+import android.net.Uri
+import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.core.database.CachedContactEntity
 import ir.divarfiling.mobile.core.database.ContactCacheDao
 import ir.divarfiling.mobile.core.database.SyncQueueDao
@@ -9,6 +12,7 @@ import ir.divarfiling.mobile.core.network.ActivityDto
 import ir.divarfiling.mobile.core.network.ContactDetailData
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.ContactUpdateRequest
+import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.NoteCreateRequest
@@ -16,6 +20,7 @@ import ir.divarfiling.mobile.core.network.PaginatedResult
 import ir.divarfiling.mobile.core.network.QuickLeadRequest
 import ir.divarfiling.mobile.core.network.ReminderCreateRequest
 import ir.divarfiling.mobile.core.network.ReminderDto
+import ir.divarfiling.mobile.core.network.SendListingRequest
 import ir.divarfiling.mobile.core.network.SyncOperation
 import ir.divarfiling.mobile.core.network.SyncPushRequest
 import ir.divarfiling.mobile.core.network.TodayActionRequest
@@ -24,12 +29,16 @@ import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CrmRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val api: MobileApi,
     private val contactCache: ContactCacheDao,
     private val syncQueue: SyncQueueDao,
@@ -161,13 +170,84 @@ class CrmRepository @Inject constructor(
         }
     }
 
-    suspend fun updateContact(contactId: Long, request: ContactUpdateRequest): ApiResult<ContactDto> {
+    suspend fun sendListing(contactId: Long, request: SendListingRequest): ApiResult<Unit> {
         return try {
-            val response = api.updateContact(contactId, request)
-            if (!response.ok) return ApiResult.Error(response.error ?: "ویرایش ناموفق")
+            val response = api.sendListing(contactId, request)
+            if (!response.ok) return ApiResult.Error(response.error ?: "ارسال فایل ناموفق")
+            ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun uploadDocument(
+        contactId: Long,
+        uri: Uri,
+        title: String = "",
+        docType: String = "",
+        note: String = "",
+    ): ApiResult<CustomerDocumentDto> {
+        return try {
+            val resolver = context.contentResolver
+            val mime = resolver.getType(uri) ?: "application/octet-stream"
+            val fileName = title.ifBlank {
+                resolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+                } ?: "document"
+            }
+            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: return ApiResult.Error("خواندن فایل ناموفق بود")
+            val requestFile = bytes.toRequestBody(mime.toMediaType())
+            val filePart = MultipartBody.Part.createFormData("file", fileName, requestFile)
+            val titleBody = fileName.toRequestBody("text/plain".toMediaType())
+            val docTypeBody = docType.toRequestBody("text/plain".toMediaType()).takeIf { docType.isNotBlank() }
+            val noteBody = note.toRequestBody("text/plain".toMediaType()).takeIf { note.isNotBlank() }
+            val response = api.uploadContactDocument(
+                contactId = contactId,
+                title = titleBody,
+                file = filePart,
+                docType = docTypeBody,
+                note = noteBody,
+            )
+            if (!response.ok) return ApiResult.Error(response.error ?: "آپلود مدرک ناموفق")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun deleteDocument(contactId: Long, documentId: Long): ApiResult<Unit> {
+        return try {
+            val response = api.deleteContactDocument(contactId, documentId)
+            if (!response.ok) return ApiResult.Error(response.error ?: "حذف مدرک ناموفق")
+            ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun updateContact(contactId: Long, request: ContactUpdateRequest): ApiResult<ContactDto> {
+        val payload = buildMap {
+            put("contact_id", contactId.toString())
+            request.fullName?.let { put("full_name", it) }
+            request.phone?.let { put("phone", it) }
+            request.status?.let { put("status", it) }
+            request.customerType?.let { put("customer_type", it) }
+            request.priority?.let { put("priority", it) }
+            request.notes?.let { put("notes", it) }
+            request.budget?.let { put("budget", it.toString()) }
+        }
+        return try {
+            val response = api.updateContact(contactId, request)
+            if (!response.ok) {
+                enqueueSync("contact", "update", payload)
+                return ApiResult.Error(response.error ?: "ویرایش ناموفق — در صف آفلاین")
+            }
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            enqueueSync("contact", "update", payload)
+            ApiResult.Error(e.message ?: "خطای شبکه — در صف آفلاین")
         }
     }
 

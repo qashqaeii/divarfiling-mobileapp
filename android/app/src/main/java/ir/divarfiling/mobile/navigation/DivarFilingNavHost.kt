@@ -20,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import android.net.Uri
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfBottomNavigation
 import ir.divarfiling.mobile.core.design.components.DfNavItem
@@ -27,12 +28,19 @@ import ir.divarfiling.mobile.feature.auth.LoginScreen
 import ir.divarfiling.mobile.feature.crm.ContactDetailScreen
 import ir.divarfiling.mobile.feature.crm.ContactsScreen
 import ir.divarfiling.mobile.feature.crm.CrmHubScreen
+import ir.divarfiling.mobile.feature.crm.DealDetailScreen
+import ir.divarfiling.mobile.feature.crm.DealsScreen
+import ir.divarfiling.mobile.feature.crm.PropertiesScreen
+import ir.divarfiling.mobile.feature.crm.PropertyDetailScreen
 import ir.divarfiling.mobile.feature.crm.TodayScreen
 import ir.divarfiling.mobile.feature.extract.ExtractScreen
+import ir.divarfiling.mobile.feature.extract.schedule.ExtractSchedulesScreen
 import ir.divarfiling.mobile.feature.filing.DatasetsScreen
+import ir.divarfiling.mobile.feature.filing.FilingSearchScreen
 import ir.divarfiling.mobile.feature.filing.ListingDetailScreen
 import ir.divarfiling.mobile.feature.filing.ListingsScreen
 import ir.divarfiling.mobile.feature.home.HomeScreen
+import ir.divarfiling.mobile.feature.notifications.NotificationsScreen
 import ir.divarfiling.mobile.feature.settings.SettingsScreen
 import kotlinx.coroutines.flow.first
 
@@ -45,13 +53,23 @@ object Routes {
     const val CRM_CONTACT_DETAIL = "crm/contacts/{contactId}"
     const val CRM_TODAY = "crm/today"
     const val FILING = "filing"
+    const val FILING_SEARCH = "filing/search?query={query}"
     const val FILING_LISTINGS = "filing/{datasetId}"
     const val FILING_LISTING_DETAIL = "filing/listing/{token}"
     const val EXTRACT = "extract"
+    const val EXTRACT_SCHEDULES = "extract/schedules"
     const val SETTINGS = "settings"
+    const val CRM_DEALS = "crm/deals"
+    const val CRM_DEAL_DETAIL = "crm/deals/{dealId}"
+    const val CRM_PROPERTIES = "crm/properties"
+    const val CRM_PROPERTY_DETAIL = "crm/properties/{propertyId}"
+    const val NOTIFICATIONS = "notifications"
 
     fun listings(datasetId: String) = "filing/$datasetId"
+    fun filingSearch(query: String = "") = "filing/search?query=${Uri.encode(query)}"
     fun contactDetail(contactId: Long) = "crm/contacts/$contactId"
+    fun dealDetail(dealId: Long) = "crm/deals/$dealId"
+    fun propertyDetail(propertyId: Long) = "crm/properties/$propertyId"
     fun listingDetail(token: String) = "filing/listing/$token"
 
     val mainTabs = setOf(HOME, CRM, FILING, SETTINGS)
@@ -59,7 +77,8 @@ object Routes {
 
 @Composable
 fun DivarFilingNavHost(
-    startDeepLink: DeepLinkTarget? = null,
+    deepLink: DeepLinkTarget? = null,
+    onDeepLinkHandled: () -> Unit = {},
     sessionViewModel: SessionViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
@@ -81,16 +100,10 @@ fun DivarFilingNavHost(
             }
         }
         true -> {
-            LaunchedEffect(startDeepLink) {
-                when (val link = startDeepLink) {
-                    is DeepLinkTarget.Filing -> navController.navigate(Routes.FILING)
-                    is DeepLinkTarget.FilingDataset -> navController.navigate(Routes.listings(link.datasetId))
-                    is DeepLinkTarget.ListingDetail -> navController.navigate(Routes.listingDetail(link.token))
-                    is DeepLinkTarget.Crm -> navController.navigate(Routes.CRM)
-                    is DeepLinkTarget.ContactDetail -> navController.navigate(Routes.contactDetail(link.contactId))
-                    is DeepLinkTarget.Today -> navController.navigate(Routes.CRM_TODAY)
-                    is DeepLinkTarget.Extract -> navController.navigate(Routes.EXTRACT)
-                    null -> Unit
+            LaunchedEffect(deepLink) {
+                deepLink?.let { target ->
+                    navController.navigateDeepLink(target)
+                    onDeepLinkHandled()
                 }
             }
             val bottomItems = listOf(
@@ -137,18 +150,22 @@ fun DivarFilingNavHost(
                     composable(Routes.HOME) {
                         HomeScreen(
                             onNavigateToday = { navController.navigate(Routes.CRM_TODAY) },
+                            onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateContacts = { navController.navigate(Routes.CRM_CONTACTS) },
                             onNavigateFiling = { navController.navigate(Routes.FILING) },
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                             onDatasetClick = { id -> navController.navigate(Routes.listings(id)) },
+                            onNotificationDeepLink = { target -> navController.navigateDeepLink(target) },
                         )
                     }
                     composable(Routes.CRM) {
                         CrmHubScreen(
                             onContacts = { navController.navigate(Routes.CRM_CONTACTS) },
                             onToday = { navController.navigate(Routes.CRM_TODAY) },
+                            onDeals = { navController.navigate(Routes.CRM_DEALS) },
+                            onProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                         )
                     }
                     composable(Routes.CRM_CONTACTS) {
@@ -161,7 +178,38 @@ fun DivarFilingNavHost(
                         route = Routes.CRM_CONTACT_DETAIL,
                         arguments = listOf(navArgument("contactId") { type = NavType.LongType }),
                     ) {
-                        ContactDetailScreen(onBack = { navController.popBackStack() })
+                        ContactDetailScreen(
+                            onBack = { navController.popBackStack() },
+                            onDealClick = { id -> navController.navigate(Routes.dealDetail(id)) },
+                            onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                        )
+                    }
+                    composable(Routes.CRM_DEALS) {
+                        DealsScreen(
+                            onBack = { navController.popBackStack() },
+                            onDealClick = { id -> navController.navigate(Routes.dealDetail(id)) },
+                        )
+                    }
+                    composable(
+                        route = Routes.CRM_DEAL_DETAIL,
+                        arguments = listOf(navArgument("dealId") { type = NavType.LongType }),
+                    ) {
+                        DealDetailScreen(
+                            onBack = { navController.popBackStack() },
+                            onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                        )
+                    }
+                    composable(Routes.CRM_PROPERTIES) {
+                        PropertiesScreen(
+                            onBack = { navController.popBackStack() },
+                            onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                        )
+                    }
+                    composable(
+                        route = Routes.CRM_PROPERTY_DETAIL,
+                        arguments = listOf(navArgument("propertyId") { type = NavType.LongType }),
+                    ) {
+                        PropertyDetailScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.CRM_TODAY) {
                         TodayScreen(
@@ -172,6 +220,23 @@ fun DivarFilingNavHost(
                     composable(Routes.FILING) {
                         DatasetsScreen(
                             onDatasetClick = { id -> navController.navigate(Routes.listings(id)) },
+                            onGlobalSearch = { query -> navController.navigate(Routes.filingSearch(query)) },
+                        )
+                    }
+                    composable(
+                        route = Routes.FILING_SEARCH,
+                        arguments = listOf(
+                            navArgument("query") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                        ),
+                    ) { entry ->
+                        val query = entry.arguments?.getString("query").orEmpty()
+                        FilingSearchScreen(
+                            initialQuery = query,
+                            onBack = { navController.popBackStack() },
+                            onListingClick = { token -> navController.navigate(Routes.listingDetail(token)) },
                         )
                     }
                     composable(
@@ -196,12 +261,22 @@ fun DivarFilingNavHost(
                             onViewDataset = { id ->
                                 navController.navigate(Routes.listings(id))
                             },
+                            onOpenSchedules = { navController.navigate(Routes.EXTRACT_SCHEDULES) },
                             onBack = { navController.popBackStack() },
                         )
+                    }
+                    composable(Routes.EXTRACT_SCHEDULES) {
+                        ExtractSchedulesScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.SETTINGS) {
                         SettingsScreen(
                             onLoggedOut = { isLoggedIn = false },
+                        )
+                    }
+                    composable(Routes.NOTIFICATIONS) {
+                        NotificationsScreen(
+                            onBack = { navController.popBackStack() },
+                            onDeepLink = { target -> navController.navigateDeepLink(target) },
                         )
                     }
                 }

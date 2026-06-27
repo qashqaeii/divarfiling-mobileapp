@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.home.components
 
+import ir.divarfiling.mobile.core.design.DfColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,12 +25,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfSectionTitle
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
@@ -62,12 +64,11 @@ fun TodayTasksSection(
 
         DfPremiumCard {
             if (tasks.isEmpty()) {
-                Text(
-                    text = "کار برنامه‌ریزی‌شده‌ای برای امروز ندارید",
-                    style = AppTypography.bodyDescription,
-                    color = AppColors.TextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                DfEmptyState(
+                    title = "کار امروز ندارید",
+                    subtitle = "یادآورها و پیگیری‌های سررسید اینجا نمایش داده می‌شوند",
+                    actionLabel = "مشاهده همه",
+                    onAction = onViewAll,
                 )
             } else {
                 tasks.forEachIndexed { index, task ->
@@ -75,7 +76,7 @@ fun TodayTasksSection(
                     if (index < tasks.lastIndex) {
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = AppSpacing.xs),
-                            color = AppColors.OutlineSubtle,
+                            color = DfColors.OutlineSubtle,
                         )
                     }
                 }
@@ -89,7 +90,7 @@ fun TodayTasksSection(
                         Icon(
                             imageVector = DfIcons.ChevronDown,
                             contentDescription = null,
-                            tint = AppColors.TextMuted,
+                            tint = DfColors.TextMuted,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -131,14 +132,14 @@ private fun TodayTaskRow(task: HomeTaskItem) {
             Text(
                 text = task.title,
                 style = AppTypography.cardTitle,
-                color = AppColors.TextPrimary,
+                color = DfColors.TextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = task.subtitle,
                 style = AppTypography.bodyDescription,
-                color = AppColors.TextSecondary,
+                color = DfColors.TextSecondary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -147,7 +148,7 @@ private fun TodayTaskRow(task: HomeTaskItem) {
         Text(
             text = task.time,
             style = AppTypography.timeLabel,
-            color = AppColors.TextMuted,
+            color = DfColors.TextMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -157,10 +158,10 @@ private fun TodayTaskRow(task: HomeTaskItem) {
 }
 
 private fun taskTypeStyle(type: HomeTaskType): Triple<ImageVector, Color, Color> = when (type) {
-    HomeTaskType.Call -> Triple(DfIcons.Phone, AppColors.Green, AppColors.GreenLight)
-    HomeTaskType.Visit -> Triple(DfIcons.Calendar, AppColors.Blue, AppColors.BlueLight)
-    HomeTaskType.FollowUp -> Triple(DfIcons.User, AppColors.Amber, AppColors.AmberLight)
-    HomeTaskType.Reminder -> Triple(DfIcons.Bell, AppColors.Purple, AppColors.PurpleContainer)
+    HomeTaskType.Call -> Triple(DfIcons.Phone, DfColors.Green, DfColors.GreenLight)
+    HomeTaskType.Visit -> Triple(DfIcons.Calendar, DfColors.Blue, DfColors.BlueLight)
+    HomeTaskType.FollowUp -> Triple(DfIcons.User, DfColors.Amber, DfColors.AmberLight)
+    HomeTaskType.Reminder -> Triple(DfIcons.Bell, DfColors.Purple, DfColors.PurpleContainer)
 }
 
 @Preview(showBackground = true, widthDp = 360)

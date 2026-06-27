@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.home
 
+import ir.divarfiling.mobile.core.design.DfColors
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -18,7 +20,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
@@ -31,18 +32,24 @@ import ir.divarfiling.mobile.feature.home.components.QuickActionsRow
 import ir.divarfiling.mobile.feature.home.components.QuickExtractCard
 import ir.divarfiling.mobile.feature.home.components.RecentListingsSection
 import ir.divarfiling.mobile.feature.home.components.StatsSection
+import ir.divarfiling.mobile.feature.home.components.SyncStatusBanner
 import ir.divarfiling.mobile.feature.home.components.TodayTasksSection
+import android.net.Uri
+import ir.divarfiling.mobile.navigation.DeepLinkParser
+import ir.divarfiling.mobile.navigation.DeepLinkTarget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToday: () -> Unit,
+    onNavigateNotifications: () -> Unit = onNavigateToday,
     onNavigateContacts: () -> Unit,
     onNavigateFiling: () -> Unit = {},
     onNavigateExtract: () -> Unit = {},
     onNavigateCrm: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
     onDatasetClick: (String) -> Unit = {},
+    onNotificationDeepLink: (DeepLinkTarget) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -52,7 +59,7 @@ fun HomeScreen(
         onRefresh = viewModel::refresh,
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.Background)
+            .background(DfColors.Background)
             .statusBarsPadding(),
     ) {
         LazyColumn(
@@ -65,7 +72,7 @@ fun HomeScreen(
                     userName = state.userName,
                     notificationCount = state.notificationBadgeCount,
                     onSearchClick = onNavigateFiling,
-                    onNotificationsClick = onNavigateToday,
+                    onNotificationsClick = onNavigateNotifications,
                 )
             }
 
@@ -73,6 +80,17 @@ fun HomeScreen(
                 item {
                     DfErrorBanner(
                         message = error,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+
+            if (state.isSyncing || state.syncPendingCount > 0 || state.lastSyncLabel != null) {
+                item {
+                    SyncStatusBanner(
+                        isSyncing = state.isSyncing,
+                        pendingCount = state.syncPendingCount,
+                        lastSyncLabel = state.lastSyncLabel,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
@@ -115,7 +133,12 @@ fun HomeScreen(
                 item {
                     NotificationsSection(
                         notifications = state.notifications,
-                        onViewAll = onNavigateToday,
+                        onViewAll = onNavigateNotifications,
+                        onNotificationClick = { item ->
+                            item.deepLink?.let { link ->
+                                DeepLinkParser.parse(Uri.parse(link))?.let(onNotificationDeepLink)
+                            } ?: onNavigateNotifications()
+                        },
                     )
                 }
                 item {
@@ -146,11 +169,11 @@ private fun buildQuickActions(
     onNavigateCrm: () -> Unit,
     onNavigateToday: () -> Unit,
 ): List<QuickAction> = listOf(
-    QuickAction("نقشه", DfIcons.MapPin, AppColors.Green, AppColors.GreenLight) { onNavigateFiling() },
-    QuickAction("مخاطبین", DfIcons.Users, AppColors.Purple, AppColors.PurpleContainer, onNavigateContacts),
-    QuickAction("فایل‌ها", DfIcons.Folder, AppColors.Blue, AppColors.BlueLight, onNavigateFiling),
-    QuickAction("مخاطب جدید", DfIcons.Plus, AppColors.Amber, AppColors.AmberLight, onNavigateContacts),
-    QuickAction("یادآور جدید", DfIcons.Bell, AppColors.Pink, AppColors.PinkLight, onNavigateToday),
+    QuickAction("نقشه", DfIcons.MapPin, DfColors.Green, DfColors.GreenLight) { onNavigateFiling() },
+    QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer, onNavigateContacts),
+    QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight, onNavigateFiling),
+    QuickAction("مخاطب جدید", DfIcons.Plus, DfColors.Amber, DfColors.AmberLight, onNavigateContacts),
+    QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight, onNavigateToday),
 )
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")
@@ -168,7 +191,7 @@ internal fun HomeScreenContentPreview() {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.Background)
+            .background(DfColors.Background)
             .statusBarsPadding(),
         contentPadding = PaddingValues(bottom = AppSpacing.xxl),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionGap),

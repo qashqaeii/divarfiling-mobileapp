@@ -38,11 +38,15 @@ class SessionStore @Inject constructor(
         val LICENSE_VALID = booleanPreferencesKey("license_valid")
         val LICENSE_PLAN = stringPreferencesKey("license_plan")
         val LICENSE_EXPIRES = stringPreferencesKey("license_expires")
+        val LICENSE_DAYS_REMAINING = longPreferencesKey("license_days_remaining")
+        val LICENSE_EXPIRING_SOON = booleanPreferencesKey("license_expiring_soon")
         val FEATURE_LIGHT_EXTRACT = booleanPreferencesKey("feature_light_extract")
         val FEATURE_CRM = booleanPreferencesKey("feature_crm")
         val FEATURE_FILING = booleanPreferencesKey("feature_filing")
         val USER_ID = longPreferencesKey("user_id")
         val ACCESS_EXPIRES_AT = longPreferencesKey("access_expires_at")
+        val NOTIFICATION_ONBOARDING_SEEN = booleanPreferencesKey("notification_onboarding_seen")
+        val LAST_SYNC_AT = stringPreferencesKey("last_sync_at")
     }
 
     val currentUser: Flow<UserDto?> = dataStore.data.map { prefs ->
@@ -55,6 +59,13 @@ class SessionStore @Inject constructor(
         runCatching { json.decodeFromString<UserDto>(raw) }.getOrNull()
     }
 
+    suspend fun updateUser(user: UserDto) {
+        dataStore.edit { prefs ->
+            prefs[Keys.USER_JSON] = json.encodeToString(user)
+            prefs[Keys.USER_ID] = user.id
+        }
+    }
+
     val isLoggedIn: Flow<Boolean> = dataStore.data.map { prefs ->
         !prefs[Keys.ACCESS].isNullOrBlank()
     }
@@ -64,6 +75,8 @@ class SessionStore @Inject constructor(
             valid = prefs[Keys.LICENSE_VALID] ?: false,
             plan = prefs[Keys.LICENSE_PLAN],
             expiresAt = prefs[Keys.LICENSE_EXPIRES],
+            daysRemaining = prefs[Keys.LICENSE_DAYS_REMAINING]?.toInt(),
+            expiringSoon = prefs[Keys.LICENSE_EXPIRING_SOON] == true,
             lightExtractEnabled = prefs[Keys.FEATURE_LIGHT_EXTRACT] ?: false,
             crmEnabled = prefs[Keys.FEATURE_CRM] ?: true,
             filingEnabled = prefs[Keys.FEATURE_FILING] ?: true,
@@ -121,11 +134,19 @@ class SessionStore @Inject constructor(
         plan: String?,
         expiresAt: String?,
         features: LicenseFeaturesDto?,
+        daysRemaining: Int? = null,
+        expiringSoon: Boolean = false,
     ) {
         dataStore.edit { prefs ->
             prefs[Keys.LICENSE_VALID] = valid
             prefs[Keys.LICENSE_PLAN] = plan ?: ""
             prefs[Keys.LICENSE_EXPIRES] = expiresAt ?: ""
+            if (daysRemaining != null) {
+                prefs[Keys.LICENSE_DAYS_REMAINING] = daysRemaining.toLong()
+            } else {
+                prefs.remove(Keys.LICENSE_DAYS_REMAINING)
+            }
+            prefs[Keys.LICENSE_EXPIRING_SOON] = expiringSoon
             prefs[Keys.FEATURE_LIGHT_EXTRACT] = features?.lightExtract == true && valid
             prefs[Keys.FEATURE_CRM] = features?.crmMobile != false
             prefs[Keys.FEATURE_FILING] = features?.filingView != false
@@ -134,6 +155,22 @@ class SessionStore @Inject constructor(
 
     suspend fun clear() {
         dataStore.edit { it.clear() }
+    }
+
+    suspend fun hasSeenNotificationOnboarding(): Boolean {
+        return dataStore.data.first()[Keys.NOTIFICATION_ONBOARDING_SEEN] == true
+    }
+
+    suspend fun setNotificationOnboardingSeen() {
+        dataStore.edit { prefs ->
+            prefs[Keys.NOTIFICATION_ONBOARDING_SEEN] = true
+        }
+    }
+
+    suspend fun getLastSyncAt(): String? = dataStore.data.first()[Keys.LAST_SYNC_AT]
+
+    suspend fun setLastSyncAt(iso: String) {
+        dataStore.edit { prefs -> prefs[Keys.LAST_SYNC_AT] = iso }
     }
 
     companion object {

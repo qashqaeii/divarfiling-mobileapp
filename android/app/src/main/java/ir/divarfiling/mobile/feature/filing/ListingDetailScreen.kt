@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.filing
 
+import ir.divarfiling.mobile.core.design.DfColors
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
@@ -14,11 +16,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -27,13 +35,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfTopBar
+import ir.divarfiling.mobile.feature.crm.ContactPickerSheet
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -41,13 +50,31 @@ import java.util.Locale
 @Composable
 fun ListingDetailScreen(
     onBack: () -> Unit,
-    onLinkToContact: (String, String, String) -> Unit = { _, _, _ -> },
     viewModel: ListingDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val listing = state.listing
     val formatter = NumberFormat.getNumberInstance(Locale("fa", "IR"))
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.pendingWhatsAppShare) {
+        val message = state.pendingWhatsAppShare ?: return@LaunchedEffect
+        val text = Uri.encode(message)
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/?text=$text")))
+        viewModel.clearPendingWhatsAppShare()
+    }
+
+    LaunchedEffect(state.successMessage, state.error) {
+        state.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessage()
+        }
+        state.error?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessage()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -56,6 +83,7 @@ fun ListingDetailScreen(
                 onBack = onBack,
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
@@ -65,7 +93,7 @@ fun ListingDetailScreen(
                 .padding(padding),
         ) {
             when {
-                state.isLoading -> DfEmptyState(title = "در حال بارگذاری…", subtitle = "")
+                state.isLoading -> DfDetailSkeleton()
                 state.error != null && listing == null -> {
                     Column(Modifier.padding(16.dp)) { DfErrorBanner(state.error!!) }
                 }
@@ -99,7 +127,7 @@ fun ListingDetailScreen(
                                         Text(
                                             "قیمت: ${formatter.format(it)} تومان",
                                             style = AppTypography.cardTitle,
-                                            color = AppColors.Purple,
+                                            color = DfColors.Purple,
                                         )
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -126,7 +154,7 @@ fun ListingDetailScreen(
                                     SpecRow("محله", listing.district)
                                     SpecRow("نوع آگهی‌دهنده", listing.advertiserType)
                                     listing.description?.takeIf { it.isNotBlank() }?.let {
-                                        Text(it, style = AppTypography.bodyDescription, color = AppColors.TextSecondary)
+                                        Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
                                     }
                                 }
                             }
@@ -134,6 +162,9 @@ fun ListingDetailScreen(
 
                         item {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { viewModel.toggleContactPicker(true) }) {
+                                    Text("ارسال به مخاطب")
+                                }
                                 listing.shareLink?.let { link ->
                                     TextButton(onClick = {
                                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
@@ -158,6 +189,38 @@ fun ListingDetailScreen(
             }
         }
     }
+
+    if (state.showContactPicker) {
+        ContactPickerSheet(
+            onDismiss = { viewModel.toggleContactPicker(false) },
+            onContactSelected = { contact -> viewModel.onContactSelectedForSend(contact.id) },
+        )
+    }
+
+    if (state.showSendDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissSendDialog,
+            title = { Text("ارسال فایل به مخاطب") },
+            text = {
+                OutlinedTextField(
+                    value = state.sendNote,
+                    onValueChange = viewModel::onSendNoteChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("یادداشت (اختیاری)") },
+                    minLines = 3,
+                    placeholder = { Text("پیام همراه فایل برای مخاطب") },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.sendToContact(false) }, enabled = !state.isLinking) {
+                    Text("ارسال")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissSendDialog) { Text("انصراف") }
+            },
+        )
+    }
 }
 
 @Composable
@@ -167,7 +230,7 @@ private fun SpecRow(label: String, value: String?) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(label, style = AppTypography.bodyDescription, color = AppColors.TextMuted)
+            Text(label, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
             Text(value, style = AppTypography.bodyDescription)
         }
     }

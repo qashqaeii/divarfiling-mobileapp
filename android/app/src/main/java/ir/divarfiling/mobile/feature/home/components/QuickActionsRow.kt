@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.home.components
 
+import ir.divarfiling.mobile.core.design.DfColors
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,7 +25,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
@@ -84,7 +85,7 @@ private fun QuickActionItem(action: QuickAction) {
         Text(
             text = action.label,
             style = AppTypography.bottomNav,
-            color = AppColors.TextSecondary,
+            color = DfColors.TextSecondary,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Medium,
             maxLines = 2,
@@ -102,11 +103,11 @@ private fun QuickActionsRowPreview() {
     DivarFilingTheme {
         QuickActionsRow(
             actions = listOf(
-                QuickAction("نقشه", DfIcons.MapPin, AppColors.Green, AppColors.GreenLight) {},
-                QuickAction("مخاطبین", DfIcons.Users, AppColors.Purple, AppColors.PurpleContainer) {},
-                QuickAction("فایل‌ها", DfIcons.Folder, AppColors.Blue, AppColors.BlueLight) {},
-                QuickAction("مخاطب جدید", DfIcons.Plus, AppColors.Amber, AppColors.AmberLight) {},
-                QuickAction("یادآور جدید", DfIcons.Bell, AppColors.Pink, AppColors.PinkLight) {},
+                QuickAction("نقشه", DfIcons.MapPin, DfColors.Green, DfColors.GreenLight) {},
+                QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer) {},
+                QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight) {},
+                QuickAction("مخاطب جدید", DfIcons.Plus, DfColors.Amber, DfColors.AmberLight) {},
+                QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight) {},
             ),
         )
     }

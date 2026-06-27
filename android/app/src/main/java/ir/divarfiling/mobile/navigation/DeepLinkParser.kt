@@ -20,7 +20,11 @@ object DeepLinkParser {
                 segments.firstOrNull() == "today" -> DeepLinkTarget.Today
                 else -> DeepLinkTarget.Crm
             }
-            "extract" -> DeepLinkTarget.Extract
+            "extract" -> when {
+                segments.firstOrNull() == "schedules" -> DeepLinkTarget.ExtractSchedules
+                else -> DeepLinkTarget.Extract
+            }
+            "settings" -> DeepLinkTarget.Settings
             else -> null
         }
     }
@@ -34,4 +38,6 @@ sealed class DeepLinkTarget {
     data class ContactDetail(val contactId: Long) : DeepLinkTarget()
     data object Today : DeepLinkTarget()
     data object Extract : DeepLinkTarget()
+    data object ExtractSchedules : DeepLinkTarget()
+    data object Settings : DeepLinkTarget()
 }

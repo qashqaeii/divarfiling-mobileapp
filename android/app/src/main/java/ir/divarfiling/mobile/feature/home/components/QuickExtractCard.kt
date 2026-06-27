@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.home.components
 
+import ir.divarfiling.mobile.core.design.DfColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
@@ -52,7 +53,7 @@ fun QuickExtractCard(
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        listOf(AppColors.PurpleGradientStart, AppColors.PurpleGradientEnd),
+                        listOf(DfColors.PurpleGradientStart, DfColors.PurpleGradientEnd),
                     ),
                 )
                 .padding(AppSpacing.cardPadding),
@@ -118,14 +119,14 @@ fun QuickExtractCard(
                                 text = "شروع استخراج",
                                 style = AppTypography.bodyDescription,
                                 fontWeight = FontWeight.SemiBold,
-                                color = AppColors.PurpleDark,
+                                color = DfColors.PurpleDark,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Icon(
                                 imageVector = DfIcons.ChevronLeft,
                                 contentDescription = null,
-                                tint = AppColors.PurpleDark,
+                                tint = DfColors.PurpleDark,
                                 modifier = Modifier.size(16.dp),
                             )
                         }

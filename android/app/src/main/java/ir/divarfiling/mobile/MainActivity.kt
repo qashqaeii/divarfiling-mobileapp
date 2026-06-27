@@ -1,36 +1,41 @@
 package ir.divarfiling.mobile
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import dagger.hilt.android.AndroidEntryPoint
+import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.feature.onboarding.NotificationPermissionGate
 import ir.divarfiling.mobile.navigation.DeepLinkParser
 import ir.divarfiling.mobile.navigation.DeepLinkTarget
 import ir.divarfiling.mobile.navigation.DivarFilingNavHost
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val notificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { /* optional */ }
+    @Inject lateinit var sessionStore: SessionStore
+
+    private var pendingDeepLink by mutableStateOf<DeepLinkTarget?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestNotificationPermissionIfNeeded()
         enableEdgeToEdge()
-        val deepLink = parseDeepLink(intent)
+        pendingDeepLink = parseDeepLink(intent)
         setContent {
             DivarFilingTheme {
-                DivarFilingNavHost(startDeepLink = deepLink)
+                NotificationPermissionGate(sessionStore = sessionStore) {
+                    DivarFilingNavHost(
+                        deepLink = pendingDeepLink,
+                        onDeepLinkHandled = { pendingDeepLink = null },
+                    )
+                }
             }
         }
     }
@@ -38,16 +43,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-    }
-
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        pendingDeepLink = parseDeepLink(intent)
     }
 
     private fun parseDeepLink(intent: Intent?): DeepLinkTarget? {

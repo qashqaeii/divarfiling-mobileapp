@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.home.components
 
+import ir.divarfiling.mobile.core.design.DfColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +25,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
@@ -53,14 +54,14 @@ fun HomeHeader(
                 Surface(
                     modifier = Modifier.size(48.dp),
                     shape = CircleShape,
-                    color = AppColors.PurpleContainer,
+                    color = DfColors.PurpleContainer,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = userName.firstOrNull()?.toString() ?: "؟",
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
-                            color = AppColors.PurpleDark,
+                            color = DfColors.PurpleDark,
                             maxLines = 1,
                         )
                     }
@@ -70,7 +71,7 @@ fun HomeHeader(
                         .align(Alignment.BottomEnd)
                         .size(12.dp)
                         .clip(CircleShape)
-                        .background(AppColors.Green),
+                        .background(DfColors.Green),
                 )
             }
             Column(
@@ -80,14 +81,14 @@ fun HomeHeader(
                 Text(
                     text = "سلام $userName 👋",
                     style = AppTypography.pageTitle,
-                    color = AppColors.TextPrimary,
+                    color = DfColors.TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "خوش اومدی به فایلینگ دیوار",
                     style = AppTypography.bodyDescription,
-                    color = AppColors.TextSecondary,
+                    color = DfColors.TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -99,7 +100,7 @@ fun HomeHeader(
                 Icon(
                     imageVector = DfIcons.Search,
                     contentDescription = "جستجو",
-                    tint = AppColors.TextSecondary,
+                    tint = DfColors.TextSecondary,
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -108,7 +109,7 @@ fun HomeHeader(
                     Icon(
                         imageVector = DfIcons.Bell,
                         contentDescription = "اعلان‌ها",
-                        tint = AppColors.TextSecondary,
+                        tint = DfColors.TextSecondary,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -118,7 +119,7 @@ fun HomeHeader(
                             .align(Alignment.TopEnd)
                             .padding(top = 6.dp, end = 6.dp),
                         shape = CircleShape,
-                        color = AppColors.Purple,
+                        color = DfColors.Purple,
                     ) {
                         Text(
                             text = if (notificationCount > 9) "9+" else notificationCount.toString(),

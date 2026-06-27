@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.core.license.ExtractLightLimits
 @Composable
 fun ExtractScreen(
     onViewDataset: (String) -> Unit,
+    onOpenSchedules: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: ExtractViewModel = hiltViewModel(),
 ) {
@@ -54,6 +55,35 @@ fun ExtractScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             LicenseCard(canExtract, state)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                TextButton(onClick = onOpenSchedules) { Text("زمان‌بندی‌ها") }
+                state.remainingToday?.let { remaining ->
+                    Text(
+                        "باقی‌مانده امروز: $remaining",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (state.canExtractNow) DfColors.Green else MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = state.scheduleIntervalHours.toString(),
+                onValueChange = viewModel::onScheduleIntervalChange,
+                label = { Text("فاصله زمان‌بندی (ساعت)") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = canExtract && !state.isRunning,
+                singleLine = true,
+            )
+            TextButton(
+                onClick = viewModel::createSchedule,
+                enabled = canExtract && !state.isRunning,
+            ) {
+                Text("ذخیره فیلترها به‌عنوان زمان‌بندی خودکار")
+            }
 
             DfDropdown(
                 label = "نوع معامله",
@@ -144,12 +174,16 @@ fun ExtractScreen(
                 DfPrimaryButton(
                     text = "شروع استخراج و آپلود",
                     onClick = viewModel::startExtraction,
-                    enabled = canExtract,
+                    enabled = canExtract && state.canExtractNow,
                 )
             }
 
             state.message?.let {
                 Text(it, color = DfColors.PurpleDark, fontWeight = FontWeight.Medium)
+                state.lastUploadStats?.let { stats ->
+                    Spacer(Modifier.height(8.dp))
+                    IngestStatsCard(stats)
+                }
                 state.lastDatasetId?.let { id ->
                     Spacer(Modifier.height(8.dp))
                     DfPrimaryButton(text = "مشاهده در فایلینگ", onClick = { onViewDataset(id) })
@@ -289,5 +323,39 @@ private fun AdvancedFilters(
             enabled = canExtract && !state.isRunning,
             singleLine = true,
         )
+    }
+}
+
+@Composable
+private fun IngestStatsCard(stats: ir.divarfiling.mobile.core.network.ExtractionUploadData) {
+    DfCard {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            stats.datasetName?.takeIf { it.isNotBlank() }?.let {
+                Text(it, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            IngestStatRow("پردازش‌شده", stats.ingestedCount)
+            IngestStatRow("جدید", stats.createdCount)
+            IngestStatRow("به‌روزرسانی", stats.updatedCount)
+            if (stats.duplicateCount > 0) {
+                IngestStatRow("تکراری/ردشده", stats.duplicateCount + stats.skippedCount)
+            } else if (stats.skippedCount > 0) {
+                IngestStatRow("ردشده", stats.skippedCount)
+            }
+            IngestStatRow("کل فایلینگ", stats.totalInDataset)
+            if (stats.datasetMerged) {
+                Text("با فایلینگ قبلی ادغام شد", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IngestStatRow(label: String, value: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(value.toString(), fontWeight = FontWeight.SemiBold)
     }
 }

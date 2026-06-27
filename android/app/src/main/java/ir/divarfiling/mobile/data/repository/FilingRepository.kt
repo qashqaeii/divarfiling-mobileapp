@@ -94,6 +94,42 @@ class FilingRepository @Inject constructor(
         }
     }
 
+    suspend fun searchListings(
+        query: String? = null,
+        datasetId: String? = null,
+        page: Int = 1,
+        pageSize: Int = 30,
+        priceMin: Long? = null,
+        priceMax: Long? = null,
+        areaMin: Int? = null,
+        areaMax: Int? = null,
+        rooms: Int? = null,
+    ): ApiResult<PaginatedResult<ListingDto>> {
+        return try {
+            val response = api.searchListings(
+                query = query?.ifBlank { null },
+                datasetId = datasetId,
+                page = page,
+                pageSize = pageSize,
+                priceMin = priceMin,
+                priceMax = priceMax,
+                areaMin = areaMin,
+                areaMax = areaMax,
+                rooms = rooms,
+            )
+            if (!response.ok) {
+                return ApiResult.Error(response.error ?: "خطا در جستجو")
+            }
+            val list = response.data?.let {
+                json.decodeFromJsonElement(ListSerializer(ListingDto.serializer()), it)
+            }.orEmpty()
+            val total = response.meta?.total ?: list.size
+            ApiResult.Success(PaginatedResult(list, page, total, page * pageSize < total))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
     private fun DatasetDto.toEntity() = CachedDatasetEntity(
         id = id,
         name = name,

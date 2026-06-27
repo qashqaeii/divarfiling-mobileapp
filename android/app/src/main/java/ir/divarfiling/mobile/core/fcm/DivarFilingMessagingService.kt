@@ -4,6 +4,7 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
 import ir.divarfiling.mobile.core.notifications.DfNotificationHelper
+import ir.divarfiling.mobile.feature.extract.schedule.ScheduleWorkManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,6 +23,11 @@ class DivarFilingMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
+        val action = message.data["action"]
+        if (action == "run_schedule") {
+            val scheduleId = message.data["schedule_id"]?.toLongOrNull()
+            ScheduleWorkManager.enqueueDueRuns(applicationContext, scheduleId)
+        }
         val title = message.notification?.title
             ?: message.data["title"]
             ?: "دیوار فایلینگ"

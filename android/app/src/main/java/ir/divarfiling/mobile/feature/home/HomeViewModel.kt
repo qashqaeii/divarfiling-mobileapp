@@ -10,6 +10,7 @@ import ir.divarfiling.mobile.core.network.TodayItemDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.DashboardRepository
+import ir.divarfiling.mobile.data.repository.SyncRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +26,7 @@ class HomeViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
     private val crmRepository: CrmRepository,
+    private val syncRepository: SyncRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -46,12 +48,62 @@ class HomeViewModel @Inject constructor(
             }
         }
         loadDashboard(refreshing = false)
+        syncInBackground()
+    }
+
+    private fun syncInBackground() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
+            val pending = syncRepository.getPendingCount()
+            _uiState.update { it.copy(syncPendingCount = pending) }
+            when (val result = syncRepository.syncAll()) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isSyncing = false,
+                        syncPendingCount = 0,
+                        lastSyncLabel = formatSyncLabel(result.data.serverTime),
+                    )
+                }
+                is ApiResult.Error -> {
+                    val pendingAfter = syncRepository.getPendingCount()
+                    _uiState.update {
+                        it.copy(isSyncing = false, syncPendingCount = pendingAfter)
+                    }
+                }
+            }
+        }
     }
 
     fun refresh() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
             crmRepository.flushSyncQueue()
+            when (val result = syncRepository.syncAll()) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isSyncing = false,
+                        syncPendingCount = 0,
+                        lastSyncLabel = formatSyncLabel(result.data.serverTime),
+                    )
+                }
+                is ApiResult.Error -> {
+                    val pendingAfter = syncRepository.getPendingCount()
+                    _uiState.update {
+                        it.copy(isSyncing = false, syncPendingCount = pendingAfter)
+                    }
+                }
+            }
             loadDashboard(refreshing = true)
+        }
+    }
+
+    private fun formatSyncLabel(serverTime: String?): String? {
+        if (serverTime.isNullOrBlank()) return null
+        return try {
+            val time = serverTime.substringAfter("T").take(5)
+            "آخرین sync: $time"
+        } catch (_: Exception) {
+            "همگام شد"
         }
     }
 
@@ -157,6 +209,7 @@ class HomeViewModel @Inject constructor(
             timeAgo = formatTimeAgo(createdAt),
             type = notifType,
             deepLink = deepLink,
+            body = body,
         )
     }
 

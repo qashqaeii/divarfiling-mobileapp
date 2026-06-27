@@ -7,10 +7,12 @@ import ir.divarfiling.mobile.core.license.ExtractLightLimits
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.places.PlaceOption
 import ir.divarfiling.mobile.core.places.PlacesRepository
+import ir.divarfiling.mobile.core.network.ExtractionUploadData
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.AuthRepository
 import ir.divarfiling.mobile.data.repository.ExtractGateResult
 import ir.divarfiling.mobile.data.repository.ExtractionRepository
+import ir.divarfiling.mobile.data.repository.ExtractionScheduleRepository
 import ir.divarfiling.mobile.feature.extract.divar.ExtractAdvancedFilters
 import ir.divarfiling.mobile.feature.extract.divar.ExtractFilters
 import ir.divarfiling.mobile.feature.extract.divar.OutputNameHint
@@ -54,6 +56,10 @@ data class ExtractUiState(
     val message: String? = null,
     val error: String? = null,
     val lastDatasetId: String? = null,
+    val lastUploadStats: ExtractionUploadData? = null,
+    val remainingToday: Int? = null,
+    val canExtractNow: Boolean = true,
+    val scheduleIntervalHours: Double = 6.0,
     val gateMessage: String? = null,
 ) {
     val categorySlug: String
@@ -66,6 +72,7 @@ data class ExtractUiState(
 @HiltViewModel
 class ExtractViewModel @Inject constructor(
     private val extractionRepository: ExtractionRepository,
+    private val scheduleRepository: ExtractionScheduleRepository,
     private val placesRepository: PlacesRepository,
     authRepository: AuthRepository,
 ) : ViewModel() {
@@ -89,8 +96,14 @@ class ExtractViewModel @Inject constructor(
         }
         viewModelScope.launch { loadPlaces() }
         viewModelScope.launch {
-            extractionRepository.getLimits()?.maxItems?.let { max ->
-                _uiState.update { it.copy(maxItems = it.maxItems.coerceAtMost(max)) }
+            extractionRepository.getLimits()?.let { limits ->
+                _uiState.update {
+                    it.copy(
+                        maxItems = it.maxItems.coerceAtMost(limits.maxItems),
+                        remainingToday = limits.remainingToday,
+                        canExtractNow = limits.canExtractNow,
+                    )
+                }
             }
         }
         refreshGate()
@@ -184,6 +197,68 @@ class ExtractViewModel @Inject constructor(
     fun onYearMaxChange(v: String) = _uiState.update { it.copy(yearMax = v) }
     fun onRoomsChange(v: String) = _uiState.update { it.copy(rooms = v) }
 
+    fun onScheduleIntervalChange(value: String) {
+        value.toDoubleOrNull()?.let { hours ->
+            _uiState.update { it.copy(scheduleIntervalHours = hours.coerceIn(0.5, 168.0)) }
+        }
+    }
+
+    fun createSchedule() {
+        val state = _uiState.value
+        if (!state.license.canUseLightExtract) return
+        viewModelScope.launch {
+            when (val result = scheduleRepository.createSchedule(
+                filters = buildFiltersFromState(state),
+                intervalHours = state.scheduleIntervalHours,
+            )) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(message = "زمان‌بندی «${result.data.title}» ذخیره شد")
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    private fun buildFiltersFromState(state: ExtractUiState): ExtractFilters {
+        val slug = state.categorySlug
+        val districtIds = state.districtId.takeIf { it.isNotBlank() }?.let { listOf(it) }.orEmpty()
+        val selectedDistrict = state.districtId.takeIf { it.isNotBlank() }
+            ?.let { id -> state.districts.firstOrNull { it.id == id } }
+        val districtNames = selectedDistrict?.name?.let { listOf(it) }.orEmpty()
+        val districtSlugs = selectedDistrict?.slug?.takeIf { it.isNotBlank() }?.let { listOf(it) }.orEmpty()
+        val citySlug = state.cities.firstOrNull { it.id == state.cityId }?.slug?.takeIf { it.isNotBlank() }
+        val rooms = state.rooms.split(',', '،').map { it.trim() }.filter { it.isNotEmpty() }
+        return ExtractFilters(
+            cityId = state.cityId,
+            cityName = state.cityName,
+            provinceName = state.provinceName.takeIf { it.isNotBlank() },
+            districtIds = districtIds,
+            districtNames = districtNames,
+            districtSlugs = districtSlugs,
+            citySlug = citySlug,
+            category = slug,
+            categoryLabel = state.subcategoryLabel,
+            transactionTypeLabel = state.transactionType,
+            sort = state.sort,
+            maxItems = state.maxItems,
+            outputNameHint = null,
+            advanced = ExtractAdvancedFilters(
+                priceMin = state.priceMin.toLongOrNull(),
+                priceMax = state.priceMax.toLongOrNull(),
+                depositMin = state.depositMin.toLongOrNull(),
+                depositMax = state.depositMax.toLongOrNull(),
+                rentMin = state.rentMin.toLongOrNull(),
+                rentMax = state.rentMax.toLongOrNull(),
+                areaMin = state.areaMin.toIntOrNull(),
+                areaMax = state.areaMax.toIntOrNull(),
+                yearMin = state.yearMin.toIntOrNull(),
+                yearMax = state.yearMax.toIntOrNull(),
+                rooms = rooms,
+                advertiserFilter = state.advertiserFilter,
+            ),
+        ).let { base -> base.copy(outputNameHint = OutputNameHint.build(base)) }
+    }
+
     fun startExtraction() {
         val state = _uiState.value
         if (!state.license.canUseLightExtract) {
@@ -203,42 +278,7 @@ class ExtractViewModel @Inject constructor(
             _uiState.update {
                 it.copy(isRunning = true, error = null, message = null, progressCurrent = 0, progressTotal = 0)
             }
-            val districtIds = state.districtId.takeIf { it.isNotBlank() }?.let { listOf(it) }.orEmpty()
-            val selectedDistrict = state.districtId.takeIf { it.isNotBlank() }
-                ?.let { id -> state.districts.firstOrNull { it.id == id } }
-            val districtNames = selectedDistrict?.name?.let { listOf(it) }.orEmpty()
-            val districtSlugs = selectedDistrict?.slug?.takeIf { it.isNotBlank() }?.let { listOf(it) }.orEmpty()
-            val citySlug = state.cities.firstOrNull { it.id == state.cityId }?.slug?.takeIf { it.isNotBlank() }
-            val rooms = state.rooms.split(',', '،').map { it.trim() }.filter { it.isNotEmpty() }
-            val filters = ExtractFilters(
-                cityId = state.cityId,
-                cityName = state.cityName,
-                provinceName = state.provinceName.takeIf { it.isNotBlank() },
-                districtIds = districtIds,
-                districtNames = districtNames,
-                districtSlugs = districtSlugs,
-                citySlug = citySlug,
-                category = slug,
-                categoryLabel = state.subcategoryLabel,
-                transactionTypeLabel = state.transactionType,
-                sort = state.sort,
-                maxItems = state.maxItems,
-                outputNameHint = null,
-                advanced = ExtractAdvancedFilters(
-                    priceMin = state.priceMin.toLongOrNull(),
-                    priceMax = state.priceMax.toLongOrNull(),
-                    depositMin = state.depositMin.toLongOrNull(),
-                    depositMax = state.depositMax.toLongOrNull(),
-                    rentMin = state.rentMin.toLongOrNull(),
-                    rentMax = state.rentMax.toLongOrNull(),
-                    areaMin = state.areaMin.toIntOrNull(),
-                    areaMax = state.areaMax.toIntOrNull(),
-                    yearMin = state.yearMin.toIntOrNull(),
-                    yearMax = state.yearMax.toIntOrNull(),
-                    rooms = rooms,
-                    advertiserFilter = state.advertiserFilter,
-                ),
-            ).let { base -> base.copy(outputNameHint = OutputNameHint.build(base)) }
+            val filters = buildFiltersFromState(state)
             when (
                 val result = extractionRepository.runLightExtraction(
                     filters = filters,
@@ -248,12 +288,17 @@ class ExtractViewModel @Inject constructor(
                     isCancelled = { cancelled },
                 )
             ) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        isRunning = false,
-                        message = "آپلود موفق — ${result.data.ingestedCount} آگهی در Workspace",
-                        lastDatasetId = result.data.datasetId,
-                    )
+                is ApiResult.Success -> {
+                    val stats = result.data
+                    val mergeNote = if (stats.datasetMerged) " (ادغام با فایلینگ موجود)" else ""
+                    _uiState.update {
+                        it.copy(
+                            isRunning = false,
+                            message = "آپلود موفق — ${stats.ingestedCount} آگهی پردازش شد$mergeNote",
+                            lastDatasetId = stats.datasetId,
+                            lastUploadStats = stats,
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isRunning = false, error = result.message)

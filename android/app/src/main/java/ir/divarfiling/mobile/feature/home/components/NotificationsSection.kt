@@ -1,6 +1,9 @@
 package ir.divarfiling.mobile.feature.home.components
 
+import ir.divarfiling.mobile.core.design.DfColors
+
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +24,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -36,6 +38,7 @@ import ir.divarfiling.mobile.feature.home.HomeNotificationType
 fun NotificationsSection(
     notifications: List<HomeNotificationItem>,
     onViewAll: () -> Unit,
+    onNotificationClick: (HomeNotificationItem) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     if (notifications.isEmpty()) return
@@ -53,11 +56,11 @@ fun NotificationsSection(
         )
         DfPremiumCard {
             notifications.forEachIndexed { index, item ->
-                NotificationRow(item)
+                NotificationRow(item, onClick = { onNotificationClick(item) })
                 if (index < notifications.lastIndex) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = AppSpacing.xs),
-                        color = AppColors.OutlineSubtle,
+                        color = DfColors.OutlineSubtle,
                     )
                 }
             }
@@ -66,11 +69,12 @@ fun NotificationsSection(
 }
 
 @Composable
-private fun NotificationRow(item: HomeNotificationItem) {
+private fun NotificationRow(item: HomeNotificationItem, onClick: () -> Unit) {
     val (icon, tint, bg) = notificationStyle(item.type)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .defaultMinSize(minHeight = AppSpacing.listRowMinHeight),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
         verticalAlignment = Alignment.Top,
@@ -97,14 +101,14 @@ private fun NotificationRow(item: HomeNotificationItem) {
             Text(
                 text = item.title,
                 style = AppTypography.cardTitle,
-                color = AppColors.TextPrimary,
+                color = DfColors.TextPrimary,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = item.timeAgo,
                 style = AppTypography.labelSmall,
-                color = AppColors.TextMuted,
+                color = DfColors.TextMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -113,12 +117,12 @@ private fun NotificationRow(item: HomeNotificationItem) {
 }
 
 private fun notificationStyle(type: HomeNotificationType): Triple<ImageVector, Color, Color> = when (type) {
-    HomeNotificationType.ExtractSuccess -> Triple(DfIcons.Download, AppColors.Blue, AppColors.BlueLight)
-    HomeNotificationType.NewMatch -> Triple(DfIcons.Star, AppColors.Green, AppColors.GreenLight)
-    HomeNotificationType.PriceDrop -> Triple(DfIcons.TrendingDown, AppColors.Amber, AppColors.AmberLight)
-    HomeNotificationType.License -> Triple(DfIcons.Sparkles, AppColors.Purple, AppColors.PurpleContainer)
-    HomeNotificationType.FollowUp -> Triple(DfIcons.Phone, AppColors.Rose, AppColors.RoseLight)
-    HomeNotificationType.General -> Triple(DfIcons.Bell, AppColors.TextSecondary, AppColors.SurfaceVariant)
+    HomeNotificationType.ExtractSuccess -> Triple(DfIcons.Download, DfColors.Blue, DfColors.BlueLight)
+    HomeNotificationType.NewMatch -> Triple(DfIcons.Star, DfColors.Green, DfColors.GreenLight)
+    HomeNotificationType.PriceDrop -> Triple(DfIcons.TrendingDown, DfColors.Amber, DfColors.AmberLight)
+    HomeNotificationType.License -> Triple(DfIcons.Sparkles, DfColors.Purple, DfColors.PurpleContainer)
+    HomeNotificationType.FollowUp -> Triple(DfIcons.Phone, DfColors.Rose, DfColors.RoseLight)
+    HomeNotificationType.General -> Triple(DfIcons.Bell, DfColors.TextSecondary, DfColors.SurfaceVariant)
 }
 
 @Preview(showBackground = true, widthDp = 360)

@@ -36,6 +36,39 @@ data class CachedDatasetEntity(
     val cachedAt: Long = System.currentTimeMillis(),
 )
 
+@Entity(tableName = "cached_deals")
+data class CachedDealEntity(
+    @PrimaryKey val id: Long,
+    val title: String,
+    val stage: String?,
+    val amount: Long?,
+    val customerId: Long?,
+    val updatedAt: String?,
+    val cachedAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(tableName = "cached_properties")
+data class CachedPropertyEntity(
+    @PrimaryKey val id: Long,
+    val title: String,
+    val city: String?,
+    val district: String?,
+    val transactionStatus: String?,
+    val salePrice: Long?,
+    val updatedAt: String?,
+    val cachedAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(tableName = "cached_reminders")
+data class CachedReminderEntity(
+    @PrimaryKey val id: Long,
+    val title: String,
+    val contactId: Long?,
+    val dueAt: String?,
+    val done: Boolean,
+    val cachedAt: Long = System.currentTimeMillis(),
+)
+
 @Entity(tableName = "cached_dashboard")
 data class CachedDashboardEntity(
     @PrimaryKey val id: Int = 1,
@@ -78,6 +111,42 @@ interface DatasetCacheDao {
 }
 
 @Dao
+interface DealCacheDao {
+    @Query("SELECT * FROM cached_deals ORDER BY updatedAt DESC")
+    suspend fun getAll(): List<CachedDealEntity>
+
+    @Upsert
+    suspend fun upsertAll(items: List<CachedDealEntity>)
+
+    @Query("DELETE FROM cached_deals WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
+}
+
+@Dao
+interface PropertyCacheDao {
+    @Query("SELECT * FROM cached_properties ORDER BY updatedAt DESC")
+    suspend fun getAll(): List<CachedPropertyEntity>
+
+    @Upsert
+    suspend fun upsertAll(items: List<CachedPropertyEntity>)
+
+    @Query("DELETE FROM cached_properties WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
+}
+
+@Dao
+interface ReminderCacheDao {
+    @Query("SELECT * FROM cached_reminders WHERE done = 0 ORDER BY dueAt")
+    suspend fun getActive(): List<CachedReminderEntity>
+
+    @Upsert
+    suspend fun upsertAll(items: List<CachedReminderEntity>)
+
+    @Query("DELETE FROM cached_reminders WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
+}
+
+@Dao
 interface DashboardCacheDao {
     @Query("SELECT * FROM cached_dashboard WHERE id = 1 LIMIT 1")
     suspend fun getLatest(): CachedDashboardEntity?
@@ -104,15 +173,21 @@ interface SyncQueueDao {
 @Database(
     entities = [
         CachedContactEntity::class,
+        CachedDealEntity::class,
+        CachedPropertyEntity::class,
+        CachedReminderEntity::class,
         CachedDatasetEntity::class,
         CachedDashboardEntity::class,
         SyncQueueEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class AppDatabase : androidx.room.RoomDatabase() {
     abstract fun contactCacheDao(): ContactCacheDao
+    abstract fun dealCacheDao(): DealCacheDao
+    abstract fun propertyCacheDao(): PropertyCacheDao
+    abstract fun reminderCacheDao(): ReminderCacheDao
     abstract fun datasetCacheDao(): DatasetCacheDao
     abstract fun dashboardCacheDao(): DashboardCacheDao
     abstract fun syncQueueDao(): SyncQueueDao
@@ -129,6 +204,15 @@ object DatabaseModule {
 
     @Provides
     fun provideContactCacheDao(db: AppDatabase): ContactCacheDao = db.contactCacheDao()
+
+    @Provides
+    fun provideDealCacheDao(db: AppDatabase): DealCacheDao = db.dealCacheDao()
+
+    @Provides
+    fun providePropertyCacheDao(db: AppDatabase): PropertyCacheDao = db.propertyCacheDao()
+
+    @Provides
+    fun provideReminderCacheDao(db: AppDatabase): ReminderCacheDao = db.reminderCacheDao()
 
     @Provides
     fun provideDatasetCacheDao(db: AppDatabase): DatasetCacheDao = db.datasetCacheDao()

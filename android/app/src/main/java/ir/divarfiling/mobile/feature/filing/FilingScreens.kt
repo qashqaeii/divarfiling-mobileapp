@@ -12,13 +12,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +38,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
+import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfListingRow
@@ -43,9 +54,11 @@ import ir.divarfiling.mobile.core.network.ListingDto
 @Composable
 fun DatasetsScreen(
     onDatasetClick: (String) -> Unit,
+    onGlobalSearch: (String) -> Unit = {},
     viewModel: DatasetsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var searchDraft by remember { mutableStateOf("") }
 
     Scaffold(topBar = { DfTopBar(title = "فایلینگ دیوار", showLogo = true) }) { padding ->
         DfPullRefresh(
@@ -61,6 +74,14 @@ fun DatasetsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                item {
+                    DfSearchField(
+                        value = searchDraft,
+                        onValueChange = { searchDraft = it },
+                        placeholder = "جستجوی سراسری در همه فایل‌ها…",
+                        onSearch = { onGlobalSearch(searchDraft.trim()) },
+                    )
+                }
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -89,7 +110,9 @@ fun DatasetsScreen(
                 state.error?.let { error ->
                     item { DfErrorBanner(error) }
                 }
-                if (!state.isLoading && state.datasets.isEmpty() && state.error == null) {
+                if (state.isLoading && state.datasets.isEmpty()) {
+                    item { DfDatasetCardSkeleton(count = 4) }
+                } else if (!state.isLoading && state.datasets.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
                             title = "فایلی یافت نشد",
@@ -99,6 +122,16 @@ fun DatasetsScreen(
                 } else {
                     items(state.datasets, key = { it.id }) { ds ->
                         DatasetRow(ds, onClick = { onDatasetClick(ds.id) })
+                    }
+                    if (state.hasMore) {
+                        item {
+                            TextButton(
+                                onClick = viewModel::loadMore,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(if (state.isLoadingMore) "در حال بارگذاری…" else "فایل‌های بیشتر")
+                            }
+                        }
                     }
                 }
             }
@@ -172,14 +205,45 @@ fun ListingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var showFilters by remember { mutableStateOf(false) }
+    val filterCount = activeListingFilterCount(
+        state.priceMin, state.priceMax, state.areaMin, state.areaMax, state.rooms,
+    )
 
     LaunchedEffect(datasetId) { viewModel.load(datasetId) }
+
+    ListingFiltersSheet(
+        visible = showFilters,
+        priceMin = state.priceMin,
+        priceMax = state.priceMax,
+        areaMin = state.areaMin,
+        areaMax = state.areaMax,
+        rooms = state.rooms,
+        onDismiss = { showFilters = false },
+        onApply = { pMin, pMax, aMin, aMax, r ->
+            viewModel.applyFilters(datasetId, pMin, pMax, aMin, aMax, r)
+        },
+        onClear = { viewModel.clearFilters(datasetId) },
+    )
 
     Scaffold(
         topBar = {
             DfTopBar(
                 title = state.datasetName ?: "آگهی‌ها",
                 onBack = onBack,
+                actions = {
+                    BadgedBox(
+                        badge = {
+                            if (filterCount > 0) {
+                                androidx.compose.material3.Badge { Text("$filterCount") }
+                            }
+                        },
+                    ) {
+                        IconButton(onClick = { showFilters = true }) {
+                            Icon(Icons.Default.Tune, contentDescription = "فیلتر")
+                        }
+                    }
+                },
             )
         },
     ) { padding ->
@@ -204,10 +268,28 @@ fun ListingsScreen(
                         onSearch = { viewModel.load(datasetId, reset = true) },
                     )
                 }
+                if (filterCount > 0) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            state.priceMin?.let { DfBadge(text = "از ${formatFilterNumber(it)}") }
+                            state.priceMax?.let { DfBadge(text = "تا ${formatFilterNumber(it)}") }
+                            state.areaMin?.let { DfBadge(text = "متراژ از $it") }
+                            state.areaMax?.let { DfBadge(text = "متراژ تا $it") }
+                            state.rooms?.let { DfBadge(text = "$it اتاق") }
+                        }
+                    }
+                }
                 state.error?.let { error ->
                     item { DfErrorBanner(error) }
                 }
-                if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
+                if (state.isLoading && state.listings.isEmpty()) {
+                    item { DfCardListSkeleton(count = 6, itemHeight = 88.dp) }
+                } else if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
                             title = "آگهی‌ای یافت نشد",
@@ -230,7 +312,7 @@ fun ListingsScreen(
                     }
                     if (state.hasMore) {
                         item {
-                            androidx.compose.material3.TextButton(
+                            TextButton(
                                 onClick = { viewModel.loadMore(datasetId) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
@@ -241,6 +323,143 @@ fun ListingsScreen(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilingSearchScreen(
+    initialQuery: String = "",
+    onBack: () -> Unit = {},
+    onListingClick: (String) -> Unit = {},
+    viewModel: FilingSearchViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showFilters by remember { mutableStateOf(false) }
+    val filterCount = activeListingFilterCount(
+        state.priceMin, state.priceMax, state.areaMin, state.areaMax, state.rooms,
+    )
+
+    LaunchedEffect(initialQuery) {
+        if (initialQuery.isNotBlank()) viewModel.setInitialQuery(initialQuery)
+    }
+
+    ListingFiltersSheet(
+        visible = showFilters,
+        priceMin = state.priceMin,
+        priceMax = state.priceMax,
+        areaMin = state.areaMin,
+        areaMax = state.areaMax,
+        rooms = state.rooms,
+        onDismiss = { showFilters = false },
+        onApply = viewModel::applyFilters,
+        onClear = viewModel::clearFilters,
+    )
+
+    Scaffold(
+        topBar = {
+            DfTopBar(
+                title = "جستجوی فایلینگ",
+                onBack = onBack,
+                actions = {
+                    BadgedBox(
+                        badge = {
+                            if (filterCount > 0) {
+                                androidx.compose.material3.Badge { Text("$filterCount") }
+                            }
+                        },
+                    ) {
+                        IconButton(onClick = { showFilters = true }) {
+                            Icon(Icons.Default.Tune, contentDescription = "فیلتر")
+                        }
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        DfPullRefresh(
+            isRefreshing = state.isRefreshing,
+            onRefresh = viewModel::refresh,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                item {
+                    DfSearchField(
+                        value = state.query,
+                        onValueChange = viewModel::onQueryChange,
+                        placeholder = "عنوان، محله یا شهر…",
+                        onSearch = { viewModel.search(reset = true) },
+                    )
+                }
+                state.error?.let { error ->
+                    item { DfErrorBanner(error) }
+                }
+                if (state.query.isBlank()) {
+                    item {
+                        DfEmptyState(
+                            title = "جستجو در همه فایل‌ها",
+                            subtitle = "عبارت مورد نظر را وارد کنید تا در تمام datasetها جستجو شود",
+                        )
+                    }
+                } else if (state.isLoading && state.listings.isEmpty()) {
+                    item { DfCardListSkeleton(count = 6, itemHeight = 88.dp) }
+                } else if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
+                    item {
+                        DfEmptyState(
+                            title = "نتیجه‌ای یافت نشد",
+                            subtitle = "عبارت یا فیلترها را تغییر دهید",
+                        )
+                    }
+                } else {
+                    items(state.listings, key = { it.token }) { listing ->
+                        SearchListingItem(
+                            listing = listing,
+                            onClick = { onListingClick(listing.token) },
+                        )
+                    }
+                    if (state.hasMore) {
+                        item {
+                            TextButton(
+                                onClick = viewModel::loadMore,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(if (state.isLoadingMore) "در حال بارگذاری…" else "بارگذاری بیشتر")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchListingItem(
+    listing: ListingDto,
+    onClick: () -> Unit,
+) {
+    DfCard(onClick = onClick) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            listing.datasetName?.takeIf { it.isNotBlank() }?.let {
+                DfBadge(text = it, color = DfColors.PurpleContainer, textColor = DfColors.PurpleDark)
+            }
+            ListingItem(listing = listing, onClick = null)
+        }
+    }
+}
+
+private fun formatFilterNumber(value: Long): String {
+    return when {
+        value >= 1_000_000_000 -> "${value / 1_000_000_000} میلیارد"
+        value >= 1_000_000 -> "${value / 1_000_000} میلیون"
+        else -> value.toString()
     }
 }
 

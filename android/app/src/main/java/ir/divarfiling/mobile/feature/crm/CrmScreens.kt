@@ -16,7 +16,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -38,7 +40,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -47,6 +48,8 @@ import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfContactRow
+import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
+import ir.divarfiling.mobile.core.design.components.DfContactListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfFab
@@ -103,11 +106,15 @@ fun ContactsScreen(
                 state.error?.let { error ->
                     item { DfErrorBanner(error) }
                 }
-                if (!state.isLoading && state.contacts.isEmpty() && state.error == null) {
+                if (state.isLoading && state.contacts.isEmpty()) {
+                    item { DfContactListSkeleton() }
+                } else if (!state.isLoading && state.contacts.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
                             title = "مخاطبی ثبت نشده",
-                            subtitle = "با دکمه + یک سرنخ سریع اضافه کنید",
+                            subtitle = "سرنخ جدید اضافه کنید یا از میزکار وارد شوید",
+                            actionLabel = "سرنخ سریع",
+                            onAction = { viewModel.toggleQuickLead(true) },
                         )
                     }
                 } else {
@@ -222,6 +229,10 @@ fun TodayScreen(
                     }
                 }
 
+                if (state.isLoading && state.data == null) {
+                    item { DfCardListSkeleton(count = 4, itemHeight = 100.dp) }
+                }
+
                 state.data?.let { today ->
                     item {
                         Row(
@@ -250,7 +261,7 @@ fun TodayScreen(
                             Text(
                                 text = "تاریخ: $date",
                                 style = AppTypography.bodyDescription,
-                                color = AppColors.TextSecondary,
+                                color = DfColors.TextSecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -398,7 +409,7 @@ private fun TodayTaskCard(
     }
 
     DfPremiumCard(
-        containerColor = if (isOverdue) AppColors.OverdueBackground else AppColors.Surface,
+        containerColor = if (isOverdue) DfColors.OverdueBackground else DfColors.Surface,
     ) {
         Row(
             modifier = Modifier
@@ -414,7 +425,7 @@ private fun TodayTaskCard(
                 Text(
                     text = title,
                     style = AppTypography.cardTitle,
-                    color = AppColors.TextPrimary,
+                    color = DfColors.TextPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -422,7 +433,7 @@ private fun TodayTaskCard(
                     Text(
                         text = subtitle,
                         style = AppTypography.bodyDescription,
-                        color = AppColors.TextSecondary,
+                        color = DfColors.TextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -434,15 +445,15 @@ private fun TodayTaskCard(
                     reminderType?.let { type ->
                         DfBadge(
                             text = type,
-                            color = AppColors.SurfaceVariant,
-                            textColor = AppColors.TextSecondary,
+                            color = DfColors.SurfaceVariant,
+                            textColor = DfColors.TextSecondary,
                         )
                     }
                     dueAt?.let { due ->
                         Text(
                             text = due,
                             style = AppTypography.labelSmall,
-                            color = AppColors.TextMuted,
+                            color = DfColors.TextMuted,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -450,8 +461,8 @@ private fun TodayTaskCard(
                     if (isOverdue) {
                         DfBadge(
                             text = "معوق",
-                            color = AppColors.RoseLight,
-                            textColor = AppColors.OverdueAccent,
+                            color = DfColors.RoseLight,
+                            textColor = DfColors.OverdueAccent,
                         )
                     }
                 }
@@ -474,14 +485,14 @@ private fun TodayTaskCard(
                     .size(40.dp)
                     .clip(AppShapes.IconContainer)
                     .background(
-                        if (isOverdue) AppColors.RoseLight else AppColors.PurpleContainer,
+                        if (isOverdue) DfColors.RoseLight else DfColors.PurpleContainer,
                     ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = if (isOverdue) Icons.Default.Warning else Icons.Default.CalendarToday,
                     contentDescription = null,
-                    tint = if (isOverdue) AppColors.OverdueAccent else AppColors.Purple,
+                    tint = if (isOverdue) DfColors.OverdueAccent else DfColors.Purple,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -493,6 +504,8 @@ private fun TodayTaskCard(
 fun CrmHubScreen(
     onContacts: () -> Unit,
     onToday: () -> Unit,
+    onDeals: () -> Unit = {},
+    onProperties: () -> Unit = {},
 ) {
     Scaffold(topBar = { DfTopBar(title = "مدیریت مشتری", showLogo = true) }) { padding ->
         Column(
@@ -520,14 +533,18 @@ fun CrmHubScreen(
                 icon = Icons.Default.CalendarToday,
                 onClick = onToday,
             )
-            DfCard(containerColor = DfColors.SurfaceVariant) {
-                Text("معاملات و املاک", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                Text(
-                    "به‌زودی — همگام با میزکار وب",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DfColors.TextMuted,
-                )
-            }
+            CrmHubCard(
+                title = "معاملات",
+                subtitle = "پایپ‌لاین فروش و اجاره",
+                icon = Icons.Default.Handshake,
+                onClick = onDeals,
+            )
+            CrmHubCard(
+                title = "املاک CRM",
+                subtitle = "ملک‌های شخصی و پرونده‌ها",
+                icon = Icons.Default.Apartment,
+                onClick = onProperties,
+            )
         }
     }
 }

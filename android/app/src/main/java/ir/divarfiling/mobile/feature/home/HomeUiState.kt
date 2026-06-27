@@ -18,6 +18,9 @@ data class HomeUiState(
     val notificationBadgeCount: Int = 0,
     val maxExtractItems: Int = 100,
     val canExtract: Boolean = false,
+    val syncPendingCount: Int = 0,
+    val lastSyncLabel: String? = null,
+    val isSyncing: Boolean = false,
 )
 
 data class DashboardStats(
@@ -62,6 +65,7 @@ data class HomeNotificationItem(
     val timeAgo: String,
     val type: HomeNotificationType,
     val deepLink: String? = null,
+    val body: String? = null,
 )
 
 data class RecentFileItem(

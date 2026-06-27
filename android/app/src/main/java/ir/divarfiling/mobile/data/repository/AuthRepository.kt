@@ -154,6 +154,8 @@ class LicenseRepository @Inject constructor(
                 plan = data.plan,
                 expiresAt = data.expiresAt,
                 features = data.features,
+                daysRemaining = data.daysRemaining,
+                expiringSoon = data.expiringSoon,
             )
             ApiResult.Success(Unit)
         } catch (e: Exception) {

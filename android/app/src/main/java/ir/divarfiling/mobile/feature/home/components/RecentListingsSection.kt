@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.home.components
 
+import ir.divarfiling.mobile.core.design.DfColors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,12 +29,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfSectionTitle
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.RecentFileItem
@@ -77,13 +79,10 @@ fun RecentListingsSection(
         }
 
         if (files.isEmpty()) {
-            Text(
-                text = "هنوز فایلی استخراج نشده",
-                style = AppTypography.bodyDescription,
-                color = AppColors.TextSecondary,
+            DfEmptyState(
+                title = "هنوز فایلی ندارید",
+                subtitle = "از تب استخراج یا ویندوز یک dataset بسازید",
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             return
         }
@@ -116,7 +115,7 @@ private fun RecentFileCard(
         file.transactionType?.contains("رهن", ignoreCase = true) == true -> "رهن"
         else -> "فروش"
     }
-    val badgeColor = if (badgeLabel == "اجاره") AppColors.Blue else AppColors.Purple
+    val badgeColor = if (badgeLabel == "اجاره") DfColors.Blue else DfColors.Purple
     val displayDate = formatJalaliDate(file.createdAt)
 
     Surface(
@@ -141,7 +140,7 @@ private fun RecentFileCard(
                         .fillMaxSize()
                         .background(
                             Brush.linearGradient(
-                                listOf(AppColors.PurpleLight, AppColors.BlueLight),
+                                listOf(DfColors.PurpleLight, DfColors.BlueLight),
                             ),
                         ),
                 )
@@ -153,9 +152,9 @@ private fun RecentFileCard(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                AppColors.ImageOverlayStart,
-                                AppColors.ImageScrimLight,
-                                AppColors.ImageOverlayEnd,
+                                DfColors.ImageOverlayStart,
+                                DfColors.ImageScrimLight,
+                                DfColors.ImageOverlayEnd,
                             ),
                             startY = 0f,
                             endY = Float.POSITIVE_INFINITY,

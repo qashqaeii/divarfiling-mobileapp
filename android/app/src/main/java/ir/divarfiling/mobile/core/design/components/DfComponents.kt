@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -307,6 +308,9 @@ fun DfEmptyState(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Default.Inbox,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -316,13 +320,24 @@ fun DfEmptyState(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
-            Icons.Default.Inbox,
+            icon,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
             tint = DfColors.TextMuted,
         )
         Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = DfColors.TextSecondary)
+        if (subtitle.isNotBlank()) {
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = DfColors.TextSecondary,
+            )
+        }
+        if (actionLabel != null && onAction != null) {
+            Button(onClick = onAction, modifier = Modifier.padding(top = 8.dp)) {
+                Text(actionLabel)
+            }
+        }
     }
 }
 

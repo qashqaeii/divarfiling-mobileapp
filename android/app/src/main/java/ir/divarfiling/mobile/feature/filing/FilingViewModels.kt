@@ -174,9 +174,129 @@ class ListingsViewModel @Inject constructor(
     }
 
     fun onQueryChange(q: String) = _uiState.update { it.copy(query = q) }
+
+    fun applyFilters(
+        datasetId: String,
+        priceMin: Long?,
+        priceMax: Long?,
+        areaMin: Int?,
+        areaMax: Int?,
+        rooms: Int?,
+    ) {
+        _uiState.update {
+            it.copy(
+                priceMin = priceMin,
+                priceMax = priceMax,
+                areaMin = areaMin,
+                areaMax = areaMax,
+                rooms = rooms,
+                page = 1,
+            )
+        }
+        load(datasetId, reset = true)
+    }
+
+    fun clearFilters(datasetId: String) {
+        applyFilters(datasetId, null, null, null, null, null)
+    }
+}
+
+data class FilingSearchUiState(
+    val listings: List<ListingDto> = emptyList(),
+    val page: Int = 1,
+    val hasMore: Boolean = false,
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val error: String? = null,
+    val query: String = "",
+    val priceMin: Long? = null,
+    val priceMax: Long? = null,
+    val areaMin: Int? = null,
+    val areaMax: Int? = null,
+    val rooms: Int? = null,
+)
+
+@HiltViewModel
+class FilingSearchViewModel @Inject constructor(
+    private val filingRepository: FilingRepository,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(FilingSearchUiState())
+    val uiState: StateFlow<FilingSearchUiState> = _uiState.asStateFlow()
+
+    fun onQueryChange(q: String) = _uiState.update { it.copy(query = q) }
+
+    fun search(reset: Boolean = true) {
+        viewModelScope.launch {
+            val state = _uiState.value
+            if (state.query.isBlank()) {
+                _uiState.update { it.copy(listings = emptyList(), hasMore = false, error = null) }
+                return@launch
+            }
+            val page = if (reset) 1 else state.page
+            _uiState.update {
+                it.copy(
+                    isLoading = reset && it.listings.isEmpty(),
+                    isLoadingMore = !reset,
+                    isRefreshing = reset && it.listings.isNotEmpty(),
+                    error = null,
+                )
+            }
+            when (val result = filingRepository.searchListings(
+                query = state.query,
+                page = page,
+                priceMin = state.priceMin,
+                priceMax = state.priceMax,
+                areaMin = state.areaMin,
+                areaMax = state.areaMax,
+                rooms = state.rooms,
+            )) {
+                is ApiResult.Success -> {
+                    val merged = if (reset) result.data.items else state.listings + result.data.items
+                    _uiState.update {
+                        it.copy(
+                            listings = merged,
+                            page = page,
+                            hasMore = result.data.hasMore,
+                            isLoading = false,
+                            isRefreshing = false,
+                            isLoadingMore = false,
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isLoading = false, isRefreshing = false, isLoadingMore = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun loadMore() {
+        if (!_uiState.value.hasMore || _uiState.value.isLoadingMore || _uiState.value.query.isBlank()) return
+        _uiState.update { it.copy(page = it.page + 1) }
+        search(reset = false)
+    }
+
+    fun refresh() {
+        _uiState.update { it.copy(page = 1) }
+        search(reset = true)
+    }
+
     fun applyFilters(priceMin: Long?, priceMax: Long?, areaMin: Int?, areaMax: Int?, rooms: Int?) {
         _uiState.update {
             it.copy(priceMin = priceMin, priceMax = priceMax, areaMin = areaMin, areaMax = areaMax, rooms = rooms, page = 1)
+        }
+        search(reset = true)
+    }
+
+    fun clearFilters() {
+        applyFilters(null, null, null, null, null)
+    }
+
+    fun setInitialQuery(query: String) {
+        if (query.isNotBlank() && _uiState.value.query.isBlank()) {
+            _uiState.update { it.copy(query = query) }
+            search(reset = true)
         }
     }
 }

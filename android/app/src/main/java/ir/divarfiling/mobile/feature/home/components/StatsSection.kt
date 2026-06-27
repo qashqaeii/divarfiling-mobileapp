@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.home.components
 
+import ir.divarfiling.mobile.core.design.DfColors
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
@@ -61,8 +62,8 @@ fun StatsSection(
             delta = stats.newFilesToday,
             deltaLabel = if (stats.newFilesToday > 0) "+${stats.newFilesToday} امروز" else "بدون فایل جدید",
             icon = DfIcons.File,
-            tint = AppColors.Blue,
-            background = AppColors.BlueLight,
+            tint = DfColors.Blue,
+            background = DfColors.BlueLight,
         ),
         StatCardData(
             value = stats.properties,
@@ -70,8 +71,8 @@ fun StatsSection(
             delta = stats.propertiesDelta,
             deltaLabel = if (stats.propertiesDelta > 0) "+${stats.propertiesDelta} امروز" else "کل آگهی‌ها",
             icon = DfIcons.Building,
-            tint = AppColors.Amber,
-            background = AppColors.AmberLight,
+            tint = DfColors.Amber,
+            background = DfColors.AmberLight,
         ),
         StatCardData(
             value = stats.deals,
@@ -79,8 +80,8 @@ fun StatsSection(
             delta = stats.dealsDelta,
             deltaLabel = if (stats.dealsDelta > 0) "+${stats.dealsDelta} امروز" else "کارهای امروز",
             icon = DfIcons.Handshake,
-            tint = AppColors.Green,
-            background = AppColors.GreenLight,
+            tint = DfColors.Green,
+            background = DfColors.GreenLight,
         ),
         StatCardData(
             value = stats.contacts,
@@ -88,8 +89,8 @@ fun StatsSection(
             delta = stats.contactsDelta,
             deltaLabel = if (stats.contactsDelta > 0) "+${stats.contactsDelta} امروز" else "کل مخاطبین",
             icon = DfIcons.Users,
-            tint = AppColors.Purple,
-            background = AppColors.PurpleContainer,
+            tint = DfColors.Purple,
+            background = DfColors.PurpleContainer,
         ),
     )
 
@@ -135,7 +136,7 @@ private fun StatCard(data: StatCardData, cardWidth: androidx.compose.ui.unit.Dp)
             .width(cardWidth)
             .height(136.dp),
         shape = AppShapes.StatCard,
-        color = AppColors.Surface,
+        color = DfColors.Surface,
         shadowElevation = AppElevations.card,
         onClick = {},
     ) {
@@ -144,7 +145,7 @@ private fun StatCard(data: StatCardData, cardWidth: androidx.compose.ui.unit.Dp)
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
-                        listOf(data.background, AppColors.Surface),
+                        listOf(data.background, DfColors.Surface),
                     ),
                 )
                 .padding(AppSpacing.sm),
@@ -169,12 +170,12 @@ private fun StatCard(data: StatCardData, cardWidth: androidx.compose.ui.unit.Dp)
                 DfAnimatedCounter(
                     target = data.value,
                     style = AppTypography.statNumber,
-                    color = AppColors.TextPrimary,
+                    color = DfColors.TextPrimary,
                 )
                 Text(
                     text = data.label,
                     style = AppTypography.bodyDescription,
-                    color = AppColors.TextSecondary,
+                    color = DfColors.TextSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
