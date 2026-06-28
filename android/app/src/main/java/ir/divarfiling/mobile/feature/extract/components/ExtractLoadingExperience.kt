@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Launch
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Save
@@ -45,7 +44,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.feature.extract.ExtractPhase
 import kotlinx.coroutines.delay
 
 @Composable

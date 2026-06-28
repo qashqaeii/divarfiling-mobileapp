@@ -95,7 +95,7 @@ fun PlaceSearchField(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun PlaceSuggestionRow(
     result: PlaceSearchResult,
