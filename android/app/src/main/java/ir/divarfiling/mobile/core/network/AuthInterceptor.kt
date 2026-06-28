@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.core.network
 
+import ir.divarfiling.mobile.BuildConfig
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
@@ -21,7 +22,7 @@ class AuthInterceptor @Inject constructor(
         val builder = request.newBuilder()
             .header("Accept", "application/json")
             .header("X-Platform", "android")
-            .header("X-App-Version", "1.0.0")
+            .header("X-App-Version", BuildConfig.VERSION_NAME)
 
         if (!skipAuth && !token.isNullOrBlank()) {
             builder.header("Authorization", "Bearer $token")

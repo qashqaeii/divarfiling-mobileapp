@@ -136,7 +136,6 @@ fun DatasetsScreen(
                         selectedFormat = formatFilter,
                         selectedCity = cityFilter,
                         selectedTransaction = transactionFilter,
-                        viewMode = viewMode,
                         onFormatChange = { formatFilter = it },
                         onCityChange = { cityFilter = it },
                         onTransactionChange = { transactionFilter = it },

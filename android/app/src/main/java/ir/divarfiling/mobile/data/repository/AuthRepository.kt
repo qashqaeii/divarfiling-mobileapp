@@ -16,6 +16,7 @@ import ir.divarfiling.mobile.core.network.requireData
 import ir.divarfiling.mobile.core.util.DeviceIdProvider
 import ir.divarfiling.mobile.core.fcm.FcmRegistrar
 import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
+import ir.divarfiling.mobile.core.security.LocalDataWiper
 import ir.divarfiling.mobile.core.sync.BackgroundWorkManager
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -34,6 +35,7 @@ class AuthRepository @Inject constructor(
     private val licenseRepository: LicenseRepository,
     private val fcmTokenProvider: FcmTokenProvider,
     private val fcmRegistrar: FcmRegistrar,
+    private val localDataWiper: LocalDataWiper,
     private val json: Json,
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
 ) {
@@ -48,6 +50,7 @@ class AuthRepository @Inject constructor(
             }
             val data = response.requireData<LoginData>(json)
             val deviceId = deviceIdProvider.getDeviceId()
+            localDataWiper.wipeUserData()
             sessionStore.saveSession(
                 access = data.access,
                 refresh = data.refresh,
@@ -97,6 +100,7 @@ class AuthRepository @Inject constructor(
             }
         } catch (_: Exception) {
         } finally {
+            localDataWiper.wipeUserData()
             sessionStore.clear()
             BackgroundWorkManager.cancel(appContext)
         }
@@ -150,6 +154,11 @@ class LicenseRepository @Inject constructor(
         return try {
             val response = api.licenseStatus()
             if (!response.ok) {
+                if (response.code == "LICENSE_REQUIRED" || response.code == "AUTH_EXPIRED") {
+                    sessionStore.invalidateLicense()
+                } else if (sessionStore.isLicenseStale()) {
+                    sessionStore.invalidateLicense()
+                }
                 return ApiResult.Error(response.error ?: "خطا در دریافت لایسنس", response.code)
             }
             val data = response.requireData<LicenseStatusData>(json)
@@ -163,6 +172,9 @@ class LicenseRepository @Inject constructor(
             )
             ApiResult.Success(Unit)
         } catch (e: Exception) {
+            if (sessionStore.isLicenseStale()) {
+                sessionStore.invalidateLicense()
+            }
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
     }

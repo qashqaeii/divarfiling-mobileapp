@@ -104,6 +104,14 @@ class HomeViewModel @Inject constructor(
                     val data = result.data
                     val stats = data.stats
                     val license = data.license
+                    license?.let {
+                        sessionStore.saveLicenseFromStatus(
+                            valid = it.valid,
+                            plan = it.plan,
+                            expiresAt = it.expiresAt,
+                            features = it.features,
+                        )
+                    }
                     val remainingTasks = (stats.todayTasksTotal - stats.todayTasksDone).coerceAtLeast(0)
                     val progressPercent = if (stats.todayTasksTotal > 0) {
                         (stats.todayTasksDone * 100 / stats.todayTasksTotal).coerceIn(0, 100)

@@ -260,7 +260,7 @@ class TodayViewModel @Inject constructor(
         val dueAt = Instant.ofEpochMilli(state.newTaskDueMillis).toString()
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingTask = true, error = null) }
-            when (crmRepository.createReminder(contactId, title, dueAt)) {
+            when (val result = crmRepository.createReminder(contactId, title, dueAt)) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(

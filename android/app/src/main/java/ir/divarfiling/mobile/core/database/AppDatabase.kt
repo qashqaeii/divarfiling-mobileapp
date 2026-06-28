@@ -118,6 +118,9 @@ interface DealCacheDao {
     @Upsert
     suspend fun upsertAll(items: List<CachedDealEntity>)
 
+    @Query("DELETE FROM cached_deals")
+    suspend fun clear()
+
     @Query("DELETE FROM cached_deals WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: List<Long>)
 }
@@ -129,6 +132,9 @@ interface PropertyCacheDao {
 
     @Upsert
     suspend fun upsertAll(items: List<CachedPropertyEntity>)
+
+    @Query("DELETE FROM cached_properties")
+    suspend fun clear()
 
     @Query("DELETE FROM cached_properties WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: List<Long>)
@@ -142,6 +148,9 @@ interface ReminderCacheDao {
     @Upsert
     suspend fun upsertAll(items: List<CachedReminderEntity>)
 
+    @Query("DELETE FROM cached_reminders")
+    suspend fun clear()
+
     @Query("DELETE FROM cached_reminders WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: List<Long>)
 }
@@ -153,6 +162,9 @@ interface DashboardCacheDao {
 
     @Upsert
     suspend fun upsert(entity: CachedDashboardEntity)
+
+    @Query("DELETE FROM cached_dashboard")
+    suspend fun clear()
 }
 
 @Dao
@@ -168,6 +180,9 @@ interface SyncQueueDao {
 
     @Query("UPDATE sync_queue SET retryCount = retryCount + 1 WHERE opId = :opId")
     suspend fun incrementRetry(opId: String)
+
+    @Query("DELETE FROM sync_queue")
+    suspend fun clear()
 }
 
 @Database(

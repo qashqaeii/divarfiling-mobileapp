@@ -1,4 +1,4 @@
-﻿package ir.divarfiling.mobile.feature.crm
+package ir.divarfiling.mobile.feature.crm
 
 import ir.divarfiling.mobile.R
 import ir.divarfiling.mobile.core.design.DateUtils
@@ -151,7 +151,7 @@ fun ContactDetailScreen(
                 state.error != null && state.data == null -> {
                     Column {
                         DfDetailPageHeader(
-                            title = "Ø¬Ø²Ø¦ÛŒØ§Øª Ù…Ø®Ø§Ø·Ø¨",
+                            title = "جزئیات مخاطب",
                             onBack = onBack,
                             titleIcon = DfIcons.User,
                         )
@@ -176,7 +176,7 @@ fun ContactDetailScreen(
                                 onBack = onBack,
                                 actions = {
                                     IconButton(onClick = { viewModel.toggleEditSheet(true) }) {
-                                        Icon(Icons.Default.Edit, contentDescription = "ÙˆÛŒØ±Ø§ÛŒØ´")
+                                        Icon(Icons.Default.Edit, contentDescription = "ویرایش")
                                     }
                                 },
                             )
@@ -201,16 +201,16 @@ fun ContactDetailScreen(
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             ) {
                                 item {
-                                    ContactActionChip(label = "ØªÙ…Ø§Ø³", icon = Icons.Default.Call) {
+                                    ContactActionChip(label = "تماس", icon = Icons.Default.Call) {
                                         contactInfo.phone?.let { phone ->
                                             context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
-                                            viewModel.logActivity("ØªÙ…Ø§Ø³", "ØªÙ…Ø§Ø³ ØªÙ„ÙÙ†ÛŒ")
+                                            viewModel.logActivity("تماس", "تماس تلفنی")
                                         }
                                     }
                                 }
                                 item {
                                     ContactActionChip(
-                                        label = "ÙˆØ§ØªØ³Ø§Ù¾",
+                                        label = "واتساپ",
                                         iconRes = R.drawable.ic_whatsapp,
                                         tint = DfColors.Green,
                                     ) {
@@ -219,40 +219,40 @@ fun ContactDetailScreen(
                                             context.startActivity(
                                                 Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/98$wa")),
                                             )
-                                            viewModel.logActivity("ÙˆØ§ØªØ³Ø§Ù¾", "Ù¾ÛŒØ§Ù… ÙˆØ§ØªØ³Ø§Ù¾")
+                                            viewModel.logActivity("واتساپ", "پیام واتساپ")
                                         }
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "Ù¾ÛŒØ§Ù…Ú©", icon = Icons.Default.Message) {
+                                    ContactActionChip(label = "پیامک", icon = Icons.Default.Message) {
                                         contactInfo.phone?.let { phone ->
                                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("smsto:$phone")))
-                                            viewModel.logActivity("Ù¾ÛŒØ§Ù…Ú©", "Ø§Ø±Ø³Ø§Ù„ Ù¾ÛŒØ§Ù…Ú©")
+                                            viewModel.logActivity("پیامک", "ارسال پیامک")
                                         }
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "Ø§Ø±Ø³Ø§Ù„ ÙØ§ÛŒÙ„", icon = Icons.Default.Share) {
+                                    ContactActionChip(label = "ارسال فایل", icon = Icons.Default.Share) {
                                         viewModel.toggleSendFilingSheet(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "Ù…Ø¯Ø±Ú©", icon = Icons.Default.AttachFile) {
+                                    ContactActionChip(label = "مدرک", icon = Icons.Default.AttachFile) {
                                         documentPicker.launch("*/*")
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "ÛŒØ§Ø¯Ø¯Ø§Ø´Øª", icon = Icons.Default.NoteAdd) {
+                                    ContactActionChip(label = "یادداشت", icon = Icons.Default.NoteAdd) {
                                         viewModel.toggleNoteDialog(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "ÛŒØ§Ø¯Ø¢ÙˆØ±", icon = Icons.Default.Notifications) {
+                                    ContactActionChip(label = "یادآور", icon = Icons.Default.Notifications) {
                                         viewModel.toggleReminderDialog(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "ÙØ¹Ø§Ù„ÛŒØª", icon = Icons.Default.History) {
+                                    ContactActionChip(label = "فعالیت", icon = Icons.Default.History) {
                                         viewModel.toggleActivitySheet(true)
                                     }
                                 }
@@ -261,7 +261,7 @@ fun ContactDetailScreen(
 
                         val reminders = detail.reminders
                         if (reminders.isNotEmpty()) {
-                            item { DfSectionHeader("ÛŒØ§Ø¯Ø¢ÙˆØ±Ù‡Ø§", reminders.size) }
+                            item { DfSectionHeader("یادآورها", reminders.size) }
                             items(reminders, key = { it.id ?: it.hashCode().toLong() }) { reminder ->
                                 reminder.id?.let { id ->
                                     ReminderCard(
@@ -275,7 +275,7 @@ fun ContactDetailScreen(
 
                         val deals = detail.deals
                         if (deals.isNotEmpty()) {
-                            item { DfSectionHeader("Ù…Ø¹Ø§Ù…Ù„Ø§Øª", deals.size) }
+                            item { DfSectionHeader("معاملات", deals.size) }
                             items(deals, key = { it.id }) { deal ->
                                 DealCard(deal, onClick = { onDealClick(deal.id) })
                             }
@@ -283,7 +283,7 @@ fun ContactDetailScreen(
 
                         val properties = detail.properties
                         if (properties.isNotEmpty()) {
-                            item { DfSectionHeader("Ø§Ù…Ù„Ø§Ú© Ù…Ø±ØªØ¨Ø·", properties.size) }
+                            item { DfSectionHeader("املاک مرتبط", properties.size) }
                             items(properties, key = { it.id }) { property ->
                                 PropertyListCard(
                                     property = property,
@@ -294,7 +294,7 @@ fun ContactDetailScreen(
 
                         val documents = detail.documents
                         if (documents.isNotEmpty()) {
-                            item { DfSectionHeader("Ù…Ø¯Ø§Ø±Ú© Ù…Ø®Ø§Ø·Ø¨", documents.size) }
+                            item { DfSectionHeader("مدارک مخاطب", documents.size) }
                             items(documents, key = { it.id }) { doc ->
                                 DocumentCard(
                                     document = doc,
@@ -308,7 +308,7 @@ fun ContactDetailScreen(
 
                         val listings = detail.linkedListings
                         if (listings.isNotEmpty()) {
-                            item { DfSectionHeader("Ø¢Ú¯Ù‡ÛŒâ€ŒÙ‡Ø§ÛŒ Ø§Ø±Ø³Ø§Ù„â€ŒØ´Ø¯Ù‡", listings.size) }
+                            item { DfSectionHeader("آگهی‌های ارسال‌شده", listings.size) }
                             items(listings, key = { it.id }) { listing ->
                                 LinkedListingCard(
                                     listing = listing,
@@ -324,7 +324,7 @@ fun ContactDetailScreen(
                                                     Uri.parse("https://wa.me/98$wa?text=$text"),
                                                 ),
                                             )
-                                            viewModel.logActivity("ÙˆØ§ØªØ³Ø§Ù¾", "Ø§Ø±Ø³Ø§Ù„ ÙØ§ÛŒÙ„: ${listing.title}")
+                                            viewModel.logActivity("واتساپ", "ارسال فایل: ${listing.title}")
                                         }
                                     },
                                 )
@@ -459,7 +459,7 @@ private fun ContactProfileCard(
             }
             budget?.let {
                 Text(
-                    "Ø¨ÙˆØ¯Ø¬Ù‡: ${FormatUtils.formatPriceToman(it)}",
+                    "بودجه: ${FormatUtils.formatPriceToman(it)}",
                     style = AppTypography.bodyDescription,
                     color = DfColors.TextSecondary,
                 )
@@ -467,7 +467,7 @@ private fun ContactProfileCard(
             notes?.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = AppTypography.bodyDescription)
             }
-            Text("ØªØºÛŒÛŒØ± Ø³Ø±ÛŒØ¹ ÙˆØ¶Ø¹ÛŒØª", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+            Text("تغییر سریع وضعیت", style = AppTypography.labelSmall, color = DfColors.TextMuted)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -550,8 +550,8 @@ private fun ReminderCard(
                 Text(formatDateTime(due), style = AppTypography.labelSmall, color = DfColors.TextMuted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onComplete) { Text("Ø§Ù†Ø¬Ø§Ù… Ø´Ø¯") }
-                TextButton(onClick = onPostpone) { Text("ØªØ¹ÙˆÛŒÙ‚ Û± Ø±ÙˆØ²") }
+                TextButton(onClick = onComplete) { Text("انجام شد") }
+                TextButton(onClick = onPostpone) { Text("تعویق ۱ روز") }
             }
         }
     }
@@ -598,13 +598,13 @@ private fun LinkedListingCard(
                         tint = DfColors.Green,
                         modifier = Modifier.size(18.dp),
                     )
-                    Text("ÙˆØ§ØªØ³Ø§Ù¾", color = DfColors.Green)
+                    Text("واتساپ", color = DfColors.Green)
                 }
                 listing.link?.takeIf { it.isNotBlank() }?.let { link ->
                     TextButton(onClick = {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                     }) {
-                        Text("Ø¯ÛŒÙˆØ§Ø±")
+                        Text("دیوار")
                     }
                 }
             }
@@ -626,17 +626,17 @@ private fun CollapsibleTimelineSection(activities: List<ActivityDto>) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("ØªØ§ÛŒÙ…â€ŒÙ„Ø§ÛŒÙ† ÙØ¹Ø§Ù„ÛŒØªâ€ŒÙ‡Ø§", style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold)
+                    Text("تایم‌لاین فعالیت‌ها", style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold)
                     Text(
-                        if (activities.isEmpty()) "ÙØ¹Ø§Ù„ÛŒØªÛŒ Ø«Ø¨Øª Ù†Ø´Ø¯Ù‡"
-                        else "${activities.size} ÙØ¹Ø§Ù„ÛŒØª Ø«Ø¨Øªâ€ŒØ´Ø¯Ù‡",
+                        if (activities.isEmpty()) "فعالیتی ثبت نشده"
+                        else "${activities.size} فعالیت ثبت‌شده",
                         style = AppTypography.bodyDescription,
                         color = DfColors.TextMuted,
                     )
                 }
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "Ø¨Ø³ØªÙ†" else "Ø¨Ø§Ø² Ú©Ø±Ø¯Ù†",
+                    contentDescription = if (expanded) "بستن" else "باز کردن",
                     tint = DfColors.Purple,
                 )
             }
@@ -651,8 +651,8 @@ private fun CollapsibleTimelineSection(activities: List<ActivityDto>) {
                 ) {
                     if (activities.isEmpty()) {
                         DfEmptyState(
-                            title = "Ù‡Ù†ÙˆØ² ÙØ¹Ø§Ù„ÛŒØªÛŒ Ù†ÛŒØ³Øª",
-                            subtitle = "Ø¨Ø§ ØªÙ…Ø§Ø³ØŒ ÛŒØ§Ø¯Ø¯Ø§Ø´Øª ÛŒØ§ Ø«Ø¨Øª ÙØ¹Ø§Ù„ÛŒØªØŒ ØªØ§ÛŒÙ…â€ŒÙ„Ø§ÛŒÙ† Ø±Ø§ Ø´Ø±ÙˆØ¹ Ú©Ù†ÛŒØ¯",
+                            title = "هنوز فعالیتی نیست",
+                            subtitle = "با تماس، یادداشت یا ثبت فعالیت، تایم‌لاین را شروع کنید",
                         )
                     } else {
                         activities.forEach { activity ->
@@ -680,9 +680,9 @@ private fun DocumentCard(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 document.fileUrl?.takeIf { it.isNotBlank() }?.let { url ->
-                    TextButton(onClick = { onOpen(url) }) { Text("Ù…Ø´Ø§Ù‡Ø¯Ù‡") }
+                    TextButton(onClick = { onOpen(url) }) { Text("مشاهده") }
                 }
-                TextButton(onClick = onDelete) { Text("Ø­Ø°Ù") }
+                TextButton(onClick = onDelete) { Text("حذف") }
             }
         }
     }
@@ -697,7 +697,7 @@ private fun ActivityTimelineItem(activity: ActivityDto) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    activity.title ?: activity.activityTypeLabel ?: activity.activityType ?: "ÙØ¹Ø§Ù„ÛŒØª",
+                    activity.title ?: activity.activityTypeLabel ?: activity.activityType ?: "فعالیت",
                     style = AppTypography.cardTitle,
                 )
                 activity.content?.takeIf { it.isNotBlank() }?.let {

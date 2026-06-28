@@ -58,6 +58,12 @@ object AppTypography {
         fontSize = 11.sp,
         lineHeight = 16.sp,
     )
+    val labelLarge = TextStyle(
+        fontFamily = VazirmatnFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+    )
     val timeLabel = TextStyle(
         fontFamily = VazirmatnFamily,
         fontWeight = FontWeight.Medium,
@@ -109,12 +115,7 @@ val DfTypography = Typography(
         fontSize = 12.sp,
         lineHeight = 18.sp,
     ),
-    labelLarge = TextStyle(
-        fontFamily = VazirmatnFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
-    ),
+    labelLarge = AppTypography.labelLarge,
     labelMedium = AppTypography.bottomNav,
     labelSmall = AppTypography.labelSmall,
 )

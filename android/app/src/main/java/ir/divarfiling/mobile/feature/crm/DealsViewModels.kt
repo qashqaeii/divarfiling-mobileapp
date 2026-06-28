@@ -437,7 +437,7 @@ class PropertiesViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingCreate = true, error = null) }
             when (
-                repository.createProperty(
+                val result = repository.createProperty(
                     PropertyCreateRequest(
                         title = title,
                         dealMode = state.createDealMode,
@@ -579,7 +579,7 @@ class PropertyDetailViewModel @Inject constructor(
     fun changeStatus(status: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (repository.updatePropertyStatus(propertyId, status)) {
+            when (val result = repository.updatePropertyStatus(propertyId, status)) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, successMessage = "وضعیت به‌روز شد") }
                     load()
@@ -597,7 +597,7 @@ class PropertyDetailViewModel @Inject constructor(
             val state = _uiState.value
             val isRent = state.editDealMode.contains("اجاره") || state.editDealMode.contains("رهن")
             when (
-                repository.updateProperty(
+                val result = repository.updateProperty(
                     propertyId,
                     PropertyUpdateRequest(
                         title = state.editTitle.trim(),
@@ -633,7 +633,7 @@ class PropertyDetailViewModel @Inject constructor(
     fun deleteProperty(onDeleted: () -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (repository.deleteProperty(propertyId)) {
+            when (val result = repository.deleteProperty(propertyId)) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, showDeleteDialog = false) }
                     onDeleted()
