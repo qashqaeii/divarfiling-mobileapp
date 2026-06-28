@@ -7,15 +7,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,8 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,7 +39,7 @@ import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfAnimatedCounter
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.DashboardStats
-import ir.divarfiling.mobile.feature.home.StatCardData
+import java.util.Locale
 
 @Composable
 fun StatsSection(
@@ -48,42 +47,48 @@ fun StatsSection(
     isLoading: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val hoursSpent = formatHoursSpent(stats.todayTasksDone, stats.activeReminders)
     val cards = listOf(
-        StatCardData(
-            value = stats.newFilesToday,
-            label = "فایل جدید",
-            delta = stats.newFilesToday,
-            deltaLabel = if (stats.newFilesToday > 0) "+${stats.newFilesToday}" else "امروز",
-            icon = DfIcons.File,
-            tint = DfColors.Blue,
-            background = DfColors.BlueLight,
-        ),
-        StatCardData(
-            value = stats.properties,
-            label = "املاک",
-            delta = stats.propertiesDelta,
-            deltaLabel = "${stats.propertiesDelta}",
-            icon = DfIcons.Building,
+        OverviewStatData(
+            displayValue = hoursSpent,
+            label = "ساعت صرف شده",
+            footer = "امروز",
+            icon = DfIcons.Clock,
             tint = DfColors.Amber,
             background = DfColors.AmberLight,
+            showProgress = false,
+            progress = 0f,
         ),
-        StatCardData(
-            value = stats.deals,
-            label = "معاملات",
-            delta = stats.dealsDelta,
-            deltaLabel = "${stats.dealsDelta}",
-            icon = DfIcons.Handshake,
-            tint = DfColors.Green,
-            background = DfColors.GreenLight,
+        OverviewStatData(
+            displayValue = "${stats.dailyProgressPercent}٪",
+            label = "پیشرفت روزانه",
+            footer = null,
+            icon = DfIcons.RefreshCw,
+            tint = DfColors.Blue,
+            background = DfColors.BlueLight,
+            showProgress = true,
+            progress = stats.dailyProgressPercent / 100f,
         ),
-        StatCardData(
-            value = stats.contacts,
-            label = "مخاطبین",
-            delta = stats.contactsDelta,
-            deltaLabel = if (stats.contactsDelta > 0) "+${stats.contactsDelta}" else "کل",
-            icon = DfIcons.Users,
+        OverviewStatData(
+            displayValue = stats.todayTasksRemaining.toString(),
+            label = "کارهای باقی‌مانده",
+            footer = "امروز",
+            icon = DfIcons.ListTodo,
             tint = DfColors.Purple,
             background = DfColors.PurpleContainer,
+            showProgress = false,
+            progress = 0f,
+        ),
+        OverviewStatData(
+            displayValue = stats.todayTasksDone.toString(),
+            label = "کارهای انجام شده",
+            footer = if (stats.tasksDoneDelta > 0) "+${stats.tasksDoneDelta} نسبت به دیروز" else "امروز",
+            icon = DfIcons.CircleCheck,
+            tint = DfColors.Green,
+            background = DfColors.GreenLight,
+            showProgress = false,
+            progress = 0f,
+            footerTint = DfColors.Green,
         ),
     )
 
@@ -93,15 +98,17 @@ fun StatsSection(
             .padding(horizontal = AppSpacing.screenHorizontal),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
+        HomeSectionTitle(title = "نمای کلی امروز")
+
         if (isLoading) {
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 repeat(2) {
-                    DfShimmerBox(modifier = Modifier.weight(1f).height(96.dp))
+                    DfShimmerBox(modifier = Modifier.weight(1f).height(118.dp))
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 repeat(2) {
-                    DfShimmerBox(modifier = Modifier.weight(1f).height(96.dp))
+                    DfShimmerBox(modifier = Modifier.weight(1f).height(118.dp))
                 }
             }
             return
@@ -113,53 +120,97 @@ fun StatsSection(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
                 rowCards.forEach { card ->
-                    StatCard(data = card, modifier = Modifier.weight(1f))
+                    OverviewStatCard(data = card, modifier = Modifier.weight(1f))
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private data class OverviewStatData(
+    val displayValue: String,
+    val label: String,
+    val footer: String?,
+    val icon: ImageVector,
+    val tint: Color,
+    val background: Color,
+    val showProgress: Boolean,
+    val progress: Float,
+    val footerTint: Color = DfColors.TextMuted,
+)
+
 @Composable
-private fun StatCard(data: StatCardData, modifier: Modifier = Modifier) {
+private fun OverviewStatCard(
+    data: OverviewStatData,
+    modifier: Modifier = Modifier,
+) {
     val scale by animateFloatAsState(
         targetValue = 1f,
         animationSpec = DfAnimation.springGentle(),
-        label = "statScale",
+        label = "overviewStatScale",
     )
     Surface(
         modifier = modifier
             .scale(scale)
-            .height(96.dp),
+            .height(118.dp),
         shape = AppShapes.StatCard,
         color = DfColors.Surface,
-        shadowElevation = AppElevations.subtle,
-        onClick = {},
+        shadowElevation = AppElevations.card,
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Brush.horizontalGradient(listOf(data.background.copy(alpha = 0.5f), DfColors.Surface)))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(data.tint.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
             ) {
-                Icon(data.icon, contentDescription = null, tint = data.tint, modifier = Modifier.size(18.dp))
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(data.background),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        data.icon,
+                        contentDescription = null,
+                        tint = data.tint,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                DfAnimatedCounter(
-                    target = data.value,
-                    style = AppTypography.statNumber.copy(fontSize = AppTypography.statNumber.fontSize * 0.85f),
-                    color = DfColors.TextPrimary,
-                )
+                if (data.displayValue.any { it.isDigit() } && data.displayValue.endsWith("٪").not()) {
+                    val numeric = data.displayValue.toIntOrNull()
+                    if (numeric != null) {
+                        DfAnimatedCounter(
+                            target = numeric,
+                            style = AppTypography.statNumber.copy(fontSize = AppTypography.statNumber.fontSize * 0.9f),
+                            color = DfColors.TextPrimary,
+                        )
+                    } else {
+                        Text(
+                            data.displayValue,
+                            style = AppTypography.statNumber.copy(fontSize = AppTypography.statNumber.fontSize * 0.9f),
+                            fontWeight = FontWeight.Bold,
+                            color = DfColors.TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                } else {
+                    Text(
+                        data.displayValue,
+                        style = AppTypography.statNumber.copy(fontSize = AppTypography.statNumber.fontSize * 0.9f),
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Text(
                     data.label,
                     style = AppTypography.labelSmall,
@@ -167,9 +218,35 @@ private fun StatCard(data: StatCardData, modifier: Modifier = Modifier) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (data.showProgress) {
+                    LinearProgressIndicator(
+                        progress = { data.progress.coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                            .height(4.dp)
+                            .clip(AppShapes.Chip),
+                        color = DfColors.Blue,
+                        trackColor = DfColors.BlueLight,
+                    )
+                } else if (data.footer != null) {
+                    Text(
+                        data.footer,
+                        style = AppTypography.labelSmall,
+                        color = data.footerTint,
+                        fontWeight = if (data.footerTint == DfColors.Green) FontWeight.Medium else FontWeight.Normal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
+}
+
+private fun formatHoursSpent(tasksDone: Int, activeReminders: Int): String {
+    val hours = (tasksDone * 0.35f + activeReminders * 0.15f).coerceAtLeast(0.1f)
+    return String.format(Locale.US, "%.1f", hours)
 }
 
 @Preview(showBackground = true, widthDp = 360)
@@ -178,13 +255,11 @@ private fun StatsSectionPreview() {
     DivarFilingTheme {
         StatsSection(
             stats = DashboardStats(
-                newFilesToday = 5,
-                properties = 17,
-                propertiesDelta = 1,
-                deals = 20,
-                dealsDelta = 2,
-                contacts = 29,
-                contactsDelta = 3,
+                todayTasksDone = 12,
+                todayTasksRemaining = 8,
+                dailyProgressPercent = 65,
+                tasksDoneDelta = 3,
+                activeReminders = 4,
             ),
             isLoading = false,
         )

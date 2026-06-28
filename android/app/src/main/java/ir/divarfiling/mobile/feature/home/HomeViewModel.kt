@@ -103,6 +103,12 @@ class HomeViewModel @Inject constructor(
                     val data = result.data
                     val stats = data.stats
                     val license = data.license
+                    val remainingTasks = (stats.todayTasksTotal - stats.todayTasksDone).coerceAtLeast(0)
+                    val progressPercent = if (stats.todayTasksTotal > 0) {
+                        (stats.todayTasksDone * 100 / stats.todayTasksTotal).coerceIn(0, 100)
+                    } else {
+                        0
+                    }
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
@@ -116,6 +122,12 @@ class HomeViewModel @Inject constructor(
                                 dealsDelta = stats.todayTasksTotal,
                                 contacts = stats.contacts,
                                 contactsDelta = stats.contactsNew,
+                                todayTasksTotal = stats.todayTasksTotal,
+                                todayTasksDone = stats.todayTasksDone,
+                                todayTasksRemaining = remainingTasks,
+                                dailyProgressPercent = progressPercent,
+                                tasksDoneDelta = stats.contactsNew,
+                                activeReminders = stats.activeReminders,
                             ),
                             todayTasks = mapTodayTasks(data.todayPreview).take(5),
                             notifications = data.notifications.map { it.toHomeNotification() }.take(6),

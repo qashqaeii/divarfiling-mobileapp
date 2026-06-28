@@ -2,11 +2,13 @@ package ir.divarfiling.mobile.feature.home.components
 
 import ir.divarfiling.mobile.core.design.DfColors
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,9 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,51 +56,46 @@ fun QuickExtractCard(
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        listOf(DfColors.PurpleGradientStart, DfColors.PurpleGradientEnd),
+                        colors = listOf(
+                            Color(0xFF5B21B6),
+                            Color(0xFF7C3AED),
+                            Color(0xFF8B5CF6),
+                        ),
+                        start = Offset.Zero,
+                        end = Offset(800f, 400f),
                     ),
-                )
-                .padding(AppSpacing.cardPadding),
+                ),
         ) {
+            HeroMeshPattern(modifier = Modifier.fillMaxSize())
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppSpacing.cardPadding),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = DfIcons.Sparkles,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.9f),
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            text = "استخراج فایل",
-                            style = AppTypography.cardTitle,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                     Text(
-                        text = "همین حالا از دیوار استخراج کن",
-                        style = AppTypography.bodyDescription,
-                        color = Color.White.copy(alpha = 0.92f),
+                        text = "استخراج خودکار از دیوار",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "حداکثر $maxItems آگهی در هر استخراج",
-                        style = AppTypography.labelSmall,
-                        color = Color.White.copy(alpha = 0.78f),
-                        maxLines = 1,
+                        text = if (enabled) {
+                            "ربات فعال است و آماده استخراج آگهی‌های جدید"
+                        } else {
+                            "برای استخراج، لایسنس فعال لازم است"
+                        },
+                        style = AppTypography.bodyDescription,
+                        color = Color.White.copy(alpha = 0.88f),
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Surface(
@@ -105,50 +103,73 @@ fun QuickExtractCard(
                         enabled = enabled,
                         shape = AppShapes.ButtonPill,
                         color = Color.White,
+                        shadowElevation = AppElevations.subtle,
                         modifier = Modifier.padding(top = AppSpacing.xs),
                     ) {
                         Row(
                             modifier = Modifier.padding(
                                 horizontal = AppSpacing.md,
-                                vertical = AppSpacing.sm,
+                                vertical = 10.dp,
                             ),
                             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            Icon(
+                                imageVector = DfIcons.Play,
+                                contentDescription = null,
+                                tint = DfColors.Purple,
+                                modifier = Modifier.size(14.dp),
+                            )
                             Text(
                                 text = "شروع استخراج",
                                 style = AppTypography.bodyDescription,
                                 fontWeight = FontWeight.SemiBold,
-                                color = DfColors.PurpleDark,
+                                color = DfColors.Purple,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            Icon(
-                                imageVector = DfIcons.ChevronLeft,
-                                contentDescription = null,
-                                tint = DfColors.PurpleDark,
-                                modifier = Modifier.size(16.dp),
-                            )
                         }
+                    }
+                    if (enabled && maxItems > 0) {
+                        Text(
+                            text = "حداکثر $maxItems آگهی در هر استخراج",
+                            style = AppTypography.labelSmall,
+                            color = Color.White.copy(alpha = 0.72f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(AppShapes.CardSmall)
-                        .background(Color.White.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = DfIcons.Smartphone,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(36.dp),
-                    )
-                }
+                HomeRobotIllustration(
+                    modifier = Modifier.padding(start = AppSpacing.xs),
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun HeroMeshPattern(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val waveColor = Color.White.copy(alpha = 0.06f)
+        val path = Path().apply {
+            moveTo(0f, size.height * 0.3f)
+            cubicTo(
+                size.width * 0.25f, size.height * 0.1f,
+                size.width * 0.55f, size.height * 0.5f,
+                size.width, size.height * 0.25f,
+            )
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+        drawPath(path, waveColor)
+        drawCircle(
+            color = Color.White.copy(alpha = 0.04f),
+            radius = size.width * 0.35f,
+            center = Offset(size.width * 0.85f, size.height * 0.15f),
+        )
     }
 }
 

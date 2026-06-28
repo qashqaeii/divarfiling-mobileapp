@@ -3,11 +3,14 @@ package ir.divarfiling.mobile.feature.home.components
 import ir.divarfiling.mobile.core.design.DfColors
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -42,51 +45,50 @@ fun QuickActionsRow(
     actions: List<QuickAction>,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
     ) {
-        actions.chunked(3).forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
-            ) {
-                row.forEach { action ->
-                    QuickActionItem(action, modifier = Modifier.weight(1f))
-                }
-                repeat(3 - row.size) {
-                    androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-                }
-            }
+        items(actions, key = { it.label }) { action ->
+            QuickActionItem(action)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickActionItem(action: QuickAction, modifier: Modifier = Modifier) {
+private fun QuickActionItem(action: QuickAction) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
-        modifier = modifier.padding(vertical = AppSpacing.xxs),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        modifier = Modifier
+            .width(72.dp)
+            .padding(vertical = AppSpacing.xxs),
     ) {
         Surface(
             onClick = action.onClick,
-            shape = AppShapes.IconContainer,
-            color = action.background,
-            shadowElevation = AppElevations.subtle,
-            modifier = Modifier.size(52.dp),
+            shape = AppShapes.CardSmall,
+            color = DfColors.Surface,
+            shadowElevation = AppElevations.card,
+            modifier = Modifier.size(64.dp),
         ) {
-            Icon(
-                imageVector = action.icon,
-                contentDescription = action.label,
-                tint = action.tint,
-                modifier = Modifier
-                    .padding(AppSpacing.sm)
-                    .size(26.dp),
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Surface(
+                    shape = AppShapes.IconContainer,
+                    color = action.background,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = action.icon,
+                            contentDescription = action.label,
+                            tint = action.tint,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
         }
         Text(
             text = action.label,
@@ -107,11 +109,11 @@ private fun QuickActionsRowPreview() {
     DivarFilingTheme {
         QuickActionsRow(
             actions = listOf(
-                QuickAction("تحلیل", DfIcons.TrendingDown, DfColors.Green, DfColors.GreenLight) {},
-                QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer) {},
+                QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight) {},
+                QuickAction("مخاطب جدید", DfIcons.UserPlus, DfColors.Amber, DfColors.AmberLight) {},
                 QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight) {},
-                QuickAction("مخاطب جدید", DfIcons.Plus, DfColors.Amber, DfColors.AmberLight) {},
-                QuickAction("یادآور", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight) {},
+                QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer) {},
+                QuickAction("تحلیل بازار", DfIcons.TrendingUp, DfColors.Green, DfColors.GreenLight) {},
             ),
         )
     }

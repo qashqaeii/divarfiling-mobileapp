@@ -27,8 +27,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
-import ir.divarfiling.mobile.core.design.components.DfExpandableSection
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.feature.home.components.HomeDashboardCard
 import ir.divarfiling.mobile.feature.home.components.HomeHeader
 import ir.divarfiling.mobile.feature.home.components.NotificationsSectionContent
 import ir.divarfiling.mobile.feature.home.components.QuickAction
@@ -58,7 +58,7 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var todayExpanded by remember { mutableStateOf(true) }
-    var notificationsExpanded by remember { mutableStateOf(false) }
+    var notificationsExpanded by remember { mutableStateOf(true) }
 
     DfPullRefresh(
         isRefreshing = state.isRefreshing,
@@ -77,8 +77,8 @@ fun HomeScreen(
                 HomeHeader(
                     userName = state.userName,
                     notificationCount = state.notificationBadgeCount,
-                    onSearchClick = onNavigateFiling,
                     onNotificationsClick = onNavigateNotifications,
+                    onMenuClick = onNavigateSettings,
                 )
             }
 
@@ -102,7 +102,13 @@ fun HomeScreen(
             }
 
             if (state.isLoading) {
-                item { StatsSection(stats = state.stats, isLoading = true) }
+                item {
+                    QuickExtractCard(
+                        maxItems = state.maxExtractItems,
+                        enabled = state.canExtract,
+                        onStartClick = onNavigateExtract,
+                    )
+                }
                 item {
                     QuickActionsRow(
                         actions = buildQuickActions(
@@ -113,6 +119,9 @@ fun HomeScreen(
                         ),
                     )
                 }
+                item { StatsSection(stats = state.stats, isLoading = true) }
+                item { RecentListingsSection(files = emptyList(), isLoading = true, onFileClick = {}) }
+            } else {
                 item {
                     QuickExtractCard(
                         maxItems = state.maxExtractItems,
@@ -120,8 +129,16 @@ fun HomeScreen(
                         onStartClick = onNavigateExtract,
                     )
                 }
-                item { RecentListingsSection(files = emptyList(), isLoading = true, onFileClick = {}) }
-            } else {
+                item {
+                    QuickActionsRow(
+                        actions = buildQuickActions(
+                            onNavigateContacts = onNavigateContacts,
+                            onNavigateFiling = onNavigateFiling,
+                            onNavigateCrm = onNavigateCrm,
+                            onNavigateToday = onNavigateToday,
+                        ),
+                    )
+                }
                 item {
                     AnimatedVisibility(
                         visible = true,
@@ -131,30 +148,13 @@ fun HomeScreen(
                     }
                 }
                 item {
-                    QuickActionsRow(
-                        actions = buildQuickActions(
-                            onNavigateContacts = onNavigateContacts,
-                            onNavigateFiling = onNavigateFiling,
-                            onNavigateCrm = onNavigateCrm,
-                            onNavigateToday = onNavigateToday,
-                        ),
-                    )
-                }
-                item {
-                    QuickExtractCard(
-                        maxItems = state.maxExtractItems,
-                        enabled = state.canExtract,
-                        onStartClick = onNavigateExtract,
-                    )
-                }
-                item {
-                    DfExpandableSection(
+                    HomeDashboardCard(
                         title = "کارهای امروز",
-                        badge = state.todayTasks.size.takeIf { it > 0 }?.toString(),
+                        icon = DfIcons.ListTodo,
                         expanded = todayExpanded,
                         onToggle = { todayExpanded = !todayExpanded },
-                        actionLabel = "مشاهده همه",
-                        onAction = onNavigateToday,
+                        footerLabel = "مشاهده همه کارها (${state.stats.todayTasksTotal.coerceAtLeast(state.todayTasks.size)})",
+                        onFooterClick = onNavigateToday,
                     ) {
                         TodayTasksSectionContent(
                             tasks = state.todayTasks,
@@ -164,13 +164,13 @@ fun HomeScreen(
                 }
                 if (state.notifications.isNotEmpty()) {
                     item {
-                        DfExpandableSection(
+                        HomeDashboardCard(
                             title = "اعلان‌ها",
-                            badge = state.notifications.size.toString(),
+                            icon = DfIcons.Bell,
                             expanded = notificationsExpanded,
                             onToggle = { notificationsExpanded = !notificationsExpanded },
-                            actionLabel = "مشاهده همه",
-                            onAction = onNavigateNotifications,
+                            footerLabel = "مشاهده همه اعلان‌ها (${state.notificationBadgeCount.coerceAtLeast(state.notifications.size)})",
+                            onFooterClick = onNavigateNotifications,
                         ) {
                             NotificationsSectionContent(
                                 notifications = state.notifications,
@@ -188,6 +188,7 @@ fun HomeScreen(
                         files = state.recentFiles,
                         isLoading = false,
                         onFileClick = onDatasetClick,
+                        onViewAll = onNavigateFiling,
                     )
                 }
             }
@@ -201,11 +202,11 @@ private fun buildQuickActions(
     onNavigateCrm: () -> Unit,
     onNavigateToday: () -> Unit,
 ): List<QuickAction> = listOf(
-    QuickAction("تحلیل", DfIcons.TrendingDown, DfColors.Green, DfColors.GreenLight) { onNavigateFiling() },
-    QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer, onNavigateContacts),
+    QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight, onNavigateToday),
+    QuickAction("مخاطب جدید", DfIcons.UserPlus, DfColors.Amber, DfColors.AmberLight, onNavigateContacts),
     QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight, onNavigateFiling),
-    QuickAction("مخاطب جدید", DfIcons.Plus, DfColors.Amber, DfColors.AmberLight, onNavigateContacts),
-    QuickAction("یادآور", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight, onNavigateToday),
+    QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer, onNavigateCrm),
+    QuickAction("تحلیل بازار", DfIcons.TrendingUp, DfColors.Green, DfColors.GreenLight, onNavigateFiling),
 )
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")
@@ -231,43 +232,58 @@ internal fun HomeScreenContentPreview() {
         item {
             HomeHeader(
                 userName = "حسین",
-                notificationCount = 3,
-                onSearchClick = {},
+                notificationCount = 9,
                 onNotificationsClick = {},
+                onMenuClick = {},
+            )
+        }
+        item {
+            QuickExtractCard(maxItems = 100, enabled = true, onStartClick = {})
+        }
+        item {
+            QuickActionsRow(
+                actions = buildQuickActions({}, {}, {}, {}),
             )
         }
         item {
             StatsSection(
                 stats = DashboardStats(
-                    newFilesToday = 5,
-                    properties = 17,
-                    propertiesDelta = 1,
-                    deals = 20,
-                    dealsDelta = 2,
-                    contacts = 29,
-                    contactsDelta = 3,
+                    todayTasksDone = 12,
+                    todayTasksRemaining = 8,
+                    dailyProgressPercent = 65,
+                    tasksDoneDelta = 3,
+                    activeReminders = 4,
                 ),
                 isLoading = false,
             )
         }
         item {
-            TodayTasksSectionContent(
-                tasks = listOf(
-                    HomeTaskItem(
-                        id = "1",
-                        time = "09:00",
-                        title = "تماس با رضا احمدی",
-                        subtitle = "خریدار — منطقه ونک",
-                        type = HomeTaskType.Call,
+            HomeDashboardCard(
+                title = "کارهای امروز",
+                icon = DfIcons.ListTodo,
+                expanded = true,
+                onToggle = {},
+                footerLabel = "مشاهده همه کارها (8)",
+                onFooterClick = {},
+            ) {
+                TodayTasksSectionContent(
+                    tasks = listOf(
+                        HomeTaskItem(
+                            id = "1",
+                            time = "09:00",
+                            title = "پیگیری مشتریان جدید",
+                            subtitle = "خریدار — منطقه ونک",
+                            type = HomeTaskType.Call,
+                        ),
                     ),
-                ),
-                onViewAll = {},
-            )
+                    onViewAll = {},
+                )
+            }
         }
         item {
             RecentListingsSection(
                 files = listOf(
-                    RecentFileItem("1", "تهران", "زعفرانیه", "فروش", 369, "1405/04/01"),
+                    RecentFileItem("1", "تهران", "جردن", "فروش", 528, "1404/03/20"),
                     RecentFileItem("2", "تهران", "ونک", "اجاره", 120, "1405/03/28"),
                 ),
                 isLoading = false,

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -19,8 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -31,8 +30,6 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
-import ir.divarfiling.mobile.core.design.components.DfPremiumCard
-import ir.divarfiling.mobile.core.design.components.DfSectionTitle
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.HomeTaskItem
 import ir.divarfiling.mobile.feature.home.HomeTaskType
@@ -44,27 +41,26 @@ fun TodayTasksSection(
     onViewAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-    ) {
-        DfSectionTitle(
-            title = "کارهای امروز",
-            badge = if (tasks.isNotEmpty()) tasks.size.toString() else null,
-            actionLabel = "مشاهده همه",
-            onAction = onViewAll,
+    if (isLoading) {
+        DfShimmerBox(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.screenHorizontal)
+                .defaultMinSize(minHeight = 180.dp),
         )
+        return
+    }
 
-        if (isLoading) {
-            DfShimmerBox(modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 180.dp))
-            return
-        }
-
-        DfPremiumCard {
-            TodayTasksSectionContent(tasks = tasks, onViewAll = onViewAll)
-        }
+    HomeDashboardCard(
+        title = "کارهای امروز",
+        icon = DfIcons.ListTodo,
+        expanded = true,
+        onToggle = {},
+        footerLabel = "مشاهده همه کارها (${tasks.size.coerceAtLeast(0)})",
+        onFooterClick = onViewAll,
+        modifier = modifier,
+    ) {
+        TodayTasksSectionContent(tasks = tasks, onViewAll = onViewAll)
     }
 }
 
@@ -95,48 +91,36 @@ fun TodayTasksSectionContent(
 
 @Composable
 private fun TodayTaskRow(task: HomeTaskItem) {
-    val (icon, tint, bg) = taskTypeStyle(task.type)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = AppSpacing.listRowMinHeight),
+            .defaultMinSize(minHeight = 52.dp),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(AppShapes.IconContainer)
-                .background(bg),
+                .size(22.dp)
+                .clip(AppShapes.Chip)
+                .background(DfColors.Green),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = icon,
+                imageVector = DfIcons.Check,
                 contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(20.dp),
+                tint = DfColors.Surface,
+                modifier = Modifier.size(14.dp),
             )
         }
 
-        Column(
+        Text(
+            text = task.title,
+            style = AppTypography.bodyDescription,
+            color = DfColors.TextPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
-        ) {
-            Text(
-                text = task.title,
-                style = AppTypography.cardTitle,
-                color = DfColors.TextPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = task.subtitle,
-                style = AppTypography.bodyDescription,
-                color = DfColors.TextSecondary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        )
 
         Text(
             text = task.time,
@@ -150,16 +134,7 @@ private fun TodayTaskRow(task: HomeTaskItem) {
     }
 }
 
-private fun taskTypeStyle(type: HomeTaskType): Triple<ImageVector, Color, Color> = when (type) {
-    HomeTaskType.Call -> Triple(DfIcons.Phone, DfColors.Green, DfColors.GreenLight)
-    HomeTaskType.Visit -> Triple(DfIcons.Calendar, DfColors.Blue, DfColors.BlueLight)
-    HomeTaskType.FollowUp -> Triple(DfIcons.User, DfColors.Amber, DfColors.AmberLight)
-    HomeTaskType.Reminder -> Triple(DfIcons.Bell, DfColors.Purple, DfColors.PurpleContainer)
-}
-
 @Preview(showBackground = true, widthDp = 360)
-@Preview(showBackground = true, widthDp = 390)
-@Preview(showBackground = true, widthDp = 412)
 @Composable
 private fun TodayTasksSectionPreview() {
     DivarFilingTheme {
@@ -168,7 +143,7 @@ private fun TodayTasksSectionPreview() {
                 HomeTaskItem(
                     id = "1",
                     time = "09:00",
-                    title = "تماس با رضا احمدی",
+                    title = "پیگیری مشتریان جدید",
                     subtitle = "خریدار — منطقه ونک",
                     type = HomeTaskType.Call,
                 ),

@@ -4,6 +4,7 @@ import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import ir.divarfiling.mobile.core.design.DfColors
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,9 +41,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfAsyncImage
-import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
-import ir.divarfiling.mobile.core.design.components.DfSectionTitle
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.RecentFileItem
 
@@ -56,22 +53,38 @@ private fun formatJalaliDate(createdAt: String?): String? {
     return if (JalaliDatePattern.matches(value)) value else null
 }
 
+private fun fileTitle(file: RecentFileItem): String {
+    val district = file.district?.trim().orEmpty()
+    val transaction = when {
+        file.transactionType?.contains("اجاره", ignoreCase = true) == true -> "اجاره"
+        file.transactionType?.contains("رهن", ignoreCase = true) == true -> "رهن"
+        else -> "فروش"
+    }
+    return when {
+        district.isNotBlank() -> "$district - $transaction"
+        file.city?.isNotBlank() == true -> "${file.city} - $transaction"
+        else -> "فایل دیوار"
+    }
+}
+
 @Composable
 fun RecentListingsSection(
     files: List<RecentFileItem>,
     isLoading: Boolean,
     onFileClick: (String) -> Unit,
+    onViewAll: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val cardWidth = (screenWidth * 0.72f).coerceIn(240.dp, 300.dp)
+    val cardWidth = (screenWidth * 0.58f).coerceIn(168.dp, 220.dp)
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        DfSectionTitle(
+        HomeSectionTitle(
             title = "آخرین فایل‌ها",
+            icon = DfIcons.Folder,
             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
         )
 
@@ -81,7 +94,7 @@ fun RecentListingsSection(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 items(3) {
-                    DfShimmerBox(modifier = Modifier.width(cardWidth).height(168.dp))
+                    DfShimmerBox(modifier = Modifier.width(cardWidth).height(196.dp))
                 }
             }
             return
@@ -108,6 +121,28 @@ fun RecentListingsSection(
                 )
             }
         }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onViewAll)
+                .padding(vertical = AppSpacing.xs),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "مشاهده همه فایل‌ها",
+                style = AppTypography.bodyDescription,
+                fontWeight = FontWeight.Medium,
+                color = DfColors.Purple,
+            )
+            Icon(
+                imageVector = DfIcons.ChevronLeft,
+                contentDescription = null,
+                tint = DfColors.Purple,
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }
 
@@ -118,20 +153,21 @@ private fun RecentFileCard(
     cardWidth: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
 ) {
-    val location = listOfNotNull(file.city, file.district).joinToString(" · ")
     val badgeLabel = when {
         file.transactionType?.contains("اجاره", ignoreCase = true) == true -> "اجاره"
         file.transactionType?.contains("رهن", ignoreCase = true) == true -> "رهن"
         else -> "فروش"
     }
-    val badgeColor = if (badgeLabel == "اجاره") DfColors.Blue else DfColors.Purple
+    val badgeColor = if (badgeLabel == "اجاره") DfColors.Blue else DfColors.Pink
+    val badgeIcon = if (badgeLabel == "اجاره") DfIcons.Building else DfIcons.Home
     val displayDate = formatJalaliDate(file.createdAt)
+    val estimatedSizeMb = ((file.itemCount * 0.48f).coerceAtLeast(8f)).toInt()
 
     Surface(
         onClick = onClick,
         modifier = Modifier
             .width(cardWidth)
-            .height(168.dp),
+            .height(196.dp),
         shape = AppShapes.ListingCard,
         shadowElevation = AppElevations.card,
         color = DfColors.Surface,
@@ -140,7 +176,7 @@ private fun RecentFileCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(96.dp),
+                    .height(108.dp),
             ) {
                 val thumb = ImageUrlFormatter.normalize(file.thumbnailUrl)
                 if (thumb != null) {
@@ -161,11 +197,20 @@ private fun RecentFileCard(
                     )
                 }
                 Box(modifier = Modifier.padding(8.dp)) {
-                    DfBadge(
-                        text = badgeLabel,
-                        color = badgeColor.copy(alpha = 0.9f),
-                        textColor = Color.White,
-                    )
+                    Surface(
+                        shape = AppShapes.IconContainer,
+                        color = badgeColor.copy(alpha = 0.92f),
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                badgeIcon,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -176,37 +221,41 @@ private fun RecentFileCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = location.ifBlank { "فایل دیوار" },
+                    text = fileTitle(file),
                     style = AppTypography.cardTitle,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                displayDate?.let {
+                    Text(
+                        it,
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(DfIcons.Folder, null, tint = DfColors.Purple, modifier = Modifier.size(14.dp))
-                        Text("${file.itemCount} آگهی", style = AppTypography.labelSmall, color = DfColors.TextSecondary)
-                    }
-                    displayDate?.let {
-                        Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-                    }
+                    Text(
+                        "${file.itemCount} آگهی",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextSecondary,
+                    )
+                    Text(
+                        "${estimatedSizeMb}MB",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                    )
+                    Icon(
+                        DfIcons.MoreVertical,
+                        contentDescription = null,
+                        tint = DfColors.TextMuted,
+                        modifier = Modifier.size(16.dp),
+                    )
                 }
-                LinearProgressIndicator(
-                    progress = { 1f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .clip(AppShapes.Chip),
-                    color = badgeColor,
-                    trackColor = DfColors.SurfaceVariant,
-                )
             }
         }
     }
@@ -218,7 +267,7 @@ private fun RecentListingsSectionPreview() {
     DivarFilingTheme {
         RecentListingsSection(
             files = listOf(
-                RecentFileItem("1", "تهران", "زعفرانیه", "فروش", 369, "1405/04/01"),
+                RecentFileItem("1", "تهران", "جردن", "فروش", 528, "1404/03/20"),
                 RecentFileItem("2", "تهران", "ونک", "اجاره", 120, "1405/03/28"),
             ),
             isLoading = false,

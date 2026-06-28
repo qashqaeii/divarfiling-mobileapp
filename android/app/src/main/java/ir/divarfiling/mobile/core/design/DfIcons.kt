@@ -1,50 +1,41 @@
 package ir.divarfiling.mobile.core.design
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Apartment
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Handshake
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Smartphone
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.composables.icons.lucide.Lucide
 
-/** Thin-stroke style icons via Material Extended — no external Maven dependency. */
+/** Lucide thin-stroke icons — centralized for the design system. */
 object DfIcons {
-    val Home: ImageVector = Icons.Default.Home
-    val Search: ImageVector = Icons.Default.Search
-    val Bell: ImageVector = Icons.Default.Notifications
-    val Folder: ImageVector = Icons.Default.FolderOpen
-    val Users: ImageVector = Icons.Default.People
-    val Handshake: ImageVector = Icons.Default.Handshake
-    val Building: ImageVector = Icons.Default.Apartment
-    val File: ImageVector = Icons.Default.Description
-    val Phone: ImageVector = Icons.Default.Phone
-    val Calendar: ImageVector = Icons.Default.CalendarToday
-    val User: ImageVector = Icons.Default.Person
-    val MapPin: ImageVector = Icons.Default.LocationOn
-    val Plus: ImageVector = Icons.Default.Add
-    val Settings: ImageVector = Icons.Default.Settings
-    val Download: ImageVector = Icons.Default.Download
-    val Star: ImageVector = Icons.Default.Star
-    val TrendingDown: ImageVector = Icons.AutoMirrored.Filled.TrendingDown
-    val Sparkles: ImageVector = Icons.Default.AutoAwesome
-    val Smartphone: ImageVector = Icons.Default.Smartphone
-    val ChevronLeft: ImageVector = Icons.Default.KeyboardArrowLeft
-    val ChevronDown: ImageVector = Icons.Default.KeyboardArrowDown
+    val Home: ImageVector = Lucide.House
+    val Search: ImageVector = Lucide.Search
+    val Bell: ImageVector = Lucide.Bell
+    val Folder: ImageVector = Lucide.FolderOpen
+    val Users: ImageVector = Lucide.Users
+    val Handshake: ImageVector = Lucide.Handshake
+    val Building: ImageVector = Lucide.Building2
+    val File: ImageVector = Lucide.FileText
+    val Phone: ImageVector = Lucide.Phone
+    val Calendar: ImageVector = Lucide.Calendar
+    val User: ImageVector = Lucide.User
+    val MapPin: ImageVector = Lucide.MapPin
+    val Plus: ImageVector = Lucide.Plus
+    val UserPlus: ImageVector = Lucide.UserPlus
+    val Settings: ImageVector = Lucide.Settings
+    val Download: ImageVector = Lucide.Download
+    val Star: ImageVector = Lucide.Star
+    val TrendingDown: ImageVector = Lucide.TrendingDown
+    val TrendingUp: ImageVector = Lucide.TrendingUp
+    val Sparkles: ImageVector = Lucide.Sparkles
+    val Smartphone: ImageVector = Lucide.Smartphone
+    val ChevronLeft: ImageVector = Lucide.ChevronLeft
+    val ChevronDown: ImageVector = Lucide.ChevronDown
+    val Menu: ImageVector = Lucide.Menu
+    val Play: ImageVector = Lucide.Play
+    val Clock: ImageVector = Lucide.Clock
+    val RefreshCw: ImageVector = Lucide.RefreshCw
+    val ListTodo: ImageVector = Lucide.ListTodo
+    val CircleCheck: ImageVector = Lucide.CircleCheck
+    val Check: ImageVector = Lucide.Check
+    val MoreVertical: ImageVector = Lucide.EllipsisVertical
+    val BarChart: ImageVector = Lucide.BarChart3
+    val Bot: ImageVector = Lucide.Bot
 }

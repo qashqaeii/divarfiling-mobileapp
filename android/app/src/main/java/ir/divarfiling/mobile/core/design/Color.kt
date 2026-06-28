@@ -21,7 +21,7 @@ object AppColors {
     val Pink = Color(0xFFEC4899)
     val PinkLight = Color(0xFFFDF2F8)
 
-    val Background = Color(0xFFF8FAFC)
+    val Background = Color(0xFFF8F9FE)
     val Surface = Color(0xFFFFFFFF)
     val SurfaceVariant = Color(0xFFF1F5F9)
     val Outline = Color(0xFFE2E8F0)
