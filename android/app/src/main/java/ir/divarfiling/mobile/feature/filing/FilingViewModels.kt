@@ -8,7 +8,8 @@ import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.data.repository.ApiResult
-import ir.divarfiling.mobile.data.repository.FilingRepository
+import ir.divarfiling.mobile.core.datastore.SessionStore
+import ir.divarfiling.mobile.data.repository.DashboardRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,16 +25,36 @@ data class DatasetsUiState(
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,
+    val userName: String = "",
+    val notificationBadgeCount: Int = 0,
 )
 
 @HiltViewModel
 class DatasetsViewModel @Inject constructor(
     private val filingRepository: FilingRepository,
+    private val sessionStore: SessionStore,
+    private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DatasetsUiState())
     val uiState: StateFlow<DatasetsUiState> = _uiState.asStateFlow()
 
-    init { load(reset = true) }
+    init {
+        viewModelScope.launch {
+            sessionStore.currentUser.collect { user ->
+                _uiState.update {
+                    it.copy(userName = user?.fullName?.substringBefore(" ") ?: "کاربر")
+                }
+            }
+        }
+        viewModelScope.launch {
+            when (val result = dashboardRepository.getDashboard()) {
+                is ApiResult.Success ->
+                    _uiState.update { it.copy(notificationBadgeCount = result.data.notificationsUnread) }
+                is ApiResult.Error -> Unit
+            }
+        }
+        load(reset = true)
+    }
 
     fun load(reset: Boolean = false) {
         viewModelScope.launch {

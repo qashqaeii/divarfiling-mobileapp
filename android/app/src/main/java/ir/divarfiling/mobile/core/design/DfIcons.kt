@@ -66,4 +66,13 @@ object DfIcons {
     val Bed: ImageVector = LucideIcons.Bed
     val Bath: ImageVector = LucideIcons.Bath
     val Car: ImageVector = LucideIcons.Car
+    val Database: ImageVector = LucideIcons.Database
+    val Layers: ImageVector = LucideIcons.Layers
+    val Bookmark: ImageVector = LucideIcons.Bookmark
+    val LayoutList: ImageVector = LucideIcons.LayoutList
+    val List: ImageVector = LucideIcons.List
+    val Upload: ImageVector = LucideIcons.Upload
+    val Scale: ImageVector = LucideIcons.Scale
+    val RotateCcw: ImageVector = LucideIcons.RotateCcw
+    val Map: ImageVector = LucideIcons.Map
 }

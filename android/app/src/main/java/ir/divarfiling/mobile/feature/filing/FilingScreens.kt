@@ -4,12 +4,16 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -17,9 +21,9 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,106 +35,223 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
-import ir.divarfiling.mobile.core.image.ImageUrlFormatter
+import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfSearchField
-import ir.divarfiling.mobile.core.design.components.DfStatChip
 import ir.divarfiling.mobile.core.design.components.DfTopBar
-import ir.divarfiling.mobile.core.network.DatasetDto
-import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.feature.filing.components.FilingCategoryTabsRow
+import ir.divarfiling.mobile.feature.filing.components.FilingDatasetFilters
+import ir.divarfiling.mobile.feature.filing.components.FilingDatasetGridCard
+import ir.divarfiling.mobile.feature.filing.components.FilingDatasetListRow
+import ir.divarfiling.mobile.feature.filing.components.FilingDatasetsSection
+import ir.divarfiling.mobile.feature.filing.components.FilingExtractFab
+import ir.divarfiling.mobile.feature.filing.components.FilingFilterBar
+import ir.divarfiling.mobile.feature.filing.components.FilingHubHeader
+import ir.divarfiling.mobile.feature.filing.components.FilingSearchToolbar
+import ir.divarfiling.mobile.feature.filing.components.FilingStatsRow
+import ir.divarfiling.mobile.feature.filing.components.FilingTutorialBanner
+import ir.divarfiling.mobile.feature.filing.components.FilingViewMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatasetsScreen(
     onDatasetClick: (String) -> Unit,
     onGlobalSearch: (String) -> Unit = {},
+    onNavigateExtract: () -> Unit = {},
+    onNavigateNotifications: () -> Unit = {},
+    onNavigateSettings: () -> Unit = {},
+    onDatasetMapClick: (String) -> Unit = {},
+    onDatasetInsightsClick: (String) -> Unit = {},
     viewModel: DatasetsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var searchDraft by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("all") }
+    var formatFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_FORMATS) }
+    var cityFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_CITIES) }
+    var transactionFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_TRANSACTIONS) }
+    var viewMode by remember { mutableStateOf(FilingViewMode.List) }
+    var showTutorial by remember { mutableStateOf(true) }
+    var favoriteIds by remember { mutableStateOf(setOf<String>()) }
 
-    Scaffold(topBar = { DfTopBar(title = "فایلینگ دیوار", showLogo = true) }) { padding ->
+    val filteredDatasets = remember(
+        state.datasets,
+        selectedCategory,
+        formatFilter,
+        cityFilter,
+        transactionFilter,
+        searchDraft,
+        favoriteIds,
+    ) {
+        FilingDatasetFilters.filterDatasets(
+            datasets = state.datasets,
+            categoryTabId = selectedCategory,
+            favoriteIds = favoriteIds,
+            formatFilter = formatFilter,
+            cityFilter = cityFilter,
+            transactionFilter = transactionFilter,
+            localQuery = searchDraft,
+        )
+    }
+
+    val totalAds = remember(state.datasets) { FilingDatasetFilters.totalAds(state.datasets) }
+
+    Scaffold(
+        containerColor = DfColors.Background,
+        floatingActionButton = {
+            FilingExtractFab(onClick = onNavigateExtract)
+        },
+    ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .background(DfColors.Background)
+                .statusBarsPadding(),
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfSearchField(
-                        value = searchDraft,
-                        onValueChange = { searchDraft = it },
-                        placeholder = "جستجوی سراسری در همه فایل‌ها…",
-                        onSearch = { onGlobalSearch(searchDraft.trim()) },
+                    FilingHubHeader(
+                        userName = state.userName,
+                        notificationCount = state.notificationBadgeCount,
+                        onNotificationsClick = onNavigateNotifications,
+                        onMenuClick = onNavigateSettings,
                     )
                 }
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        DfStatChip(
-                            label = "فایل‌ها",
-                            value = "${state.datasets.size}",
-                            modifier = Modifier.weight(1f),
-                        )
-                        val totalAds = state.datasets.sumOf { it.itemCount }
-                        DfStatChip(
-                            label = "کل آگهی",
-                            value = "$totalAds",
-                            modifier = Modifier.weight(1f),
+                    FilingSearchToolbar(
+                        query = searchDraft,
+                        onQueryChange = { searchDraft = it },
+                        onSearch = { onGlobalSearch(searchDraft.trim()) },
+                        onUploadClick = onNavigateExtract,
+                        onTutorialClick = { showTutorial = true },
+                        onToolsClick = onNavigateSettings,
+                        onCompareClick = {
+                            state.datasets.firstOrNull()?.let { onDatasetInsightsClick(it.id) }
+                        },
+                    )
+                }
+                item {
+                    FilingStatsRow(
+                        totalAds = totalAds,
+                        filesCount = state.datasets.size,
+                        estimatedSizeGb = FilingDatasetFilters.estimatedSizeGb(totalAds),
+                        datasetsThisMonth = FilingDatasetFilters.datasetsThisMonth(state.datasets),
+                    )
+                }
+                item {
+                    FilingCategoryTabsRow(
+                        selectedTabId = selectedCategory,
+                        onTabSelected = { selectedCategory = it },
+                    )
+                }
+                if (showTutorial) {
+                    item {
+                        FilingTutorialBanner(
+                            onDismiss = { showTutorial = false },
+                            onWatchClick = { showTutorial = false },
                         )
                     }
                 }
                 item {
-                    Text(
-                        "فایل‌های آپلودشده از ویندوز یا استخراج موبایل",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DfColors.TextSecondary,
+                    FilingFilterBar(
+                        formats = FilingDatasetFilters.uniqueFormats(state.datasets),
+                        cities = FilingDatasetFilters.uniqueCities(state.datasets),
+                        transactions = FilingDatasetFilters.uniqueTransactions(state.datasets),
+                        selectedFormat = formatFilter,
+                        selectedCity = cityFilter,
+                        selectedTransaction = transactionFilter,
+                        viewMode = viewMode,
+                        onFormatChange = { formatFilter = it },
+                        onCityChange = { cityFilter = it },
+                        onTransactionChange = { transactionFilter = it },
+                        onViewModeChange = { viewMode = it },
+                        onApplyFilters = { },
                     )
                 }
                 state.error?.let { error ->
-                    item { DfErrorBanner(error) }
+                    item { DfErrorBanner(error, modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) }
                 }
                 if (state.isLoading && state.datasets.isEmpty()) {
-                    item { DfDatasetCardSkeleton(count = 4) }
-                } else if (!state.isLoading && state.datasets.isEmpty() && state.error == null) {
+                    item { DfDatasetCardSkeleton(count = 4, modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) }
+                } else if (!state.isLoading && filteredDatasets.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
-                            title = "فایلی یافت نشد",
-                            subtitle = "از تب استخراج یک فایل جدید بسازید یا از ویندوز آپلود کنید",
+                            title = if (state.datasets.isEmpty()) "فایلی یافت نشد" else "نتیجه‌ای با این فیلتر نیست",
+                            subtitle = if (state.datasets.isEmpty()) {
+                                "از استخراج جدید یک فایل بسازید یا از ویندوز آپلود کنید"
+                            } else {
+                                "فیلترها یا جستجو را تغییر دهید"
+                            },
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 } else {
-                    items(state.datasets, key = { it.id }) { ds ->
-                        DatasetRow(ds, onClick = { onDatasetClick(ds.id) })
+                    item {
+                        FilingDatasetsSection(
+                            title = "همه فایل‌ها",
+                            count = filteredDatasets.size,
+                        ) {
+                            if (viewMode == FilingViewMode.Grid) {
+                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                                    filteredDatasets.chunked(2).forEach { rowItems ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                        ) {
+                                            rowItems.forEach { dataset ->
+                                                FilingDatasetGridCard(
+                                                    dataset = dataset,
+                                                    onClick = { onDatasetClick(dataset.id) },
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                            }
+                                            if (rowItems.size == 1) {
+                                                Box(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                                    filteredDatasets.forEachIndexed { index, dataset ->
+                                        FilingDatasetListRow(
+                                            dataset = dataset,
+                                            onClick = { onDatasetClick(dataset.id) },
+                                            onMapClick = { onDatasetMapClick(dataset.id) },
+                                            onInsightsClick = { onDatasetInsightsClick(dataset.id) },
+                                            onRefreshClick = viewModel::refresh,
+                                            isFavorite = favoriteIds.contains(dataset.id),
+                                            onToggleFavorite = {
+                                                favoriteIds = if (favoriteIds.contains(dataset.id)) {
+                                                    favoriteIds - dataset.id
+                                                } else {
+                                                    favoriteIds + dataset.id
+                                                }
+                                            },
+                                        )
+                                        if (index < filteredDatasets.lastIndex) {
+                                            HorizontalDivider(color = DfColors.OutlineSubtle)
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     if (state.hasMore) {
                         item {
@@ -138,7 +259,7 @@ fun DatasetsScreen(
                                 onClick = viewModel::loadMore,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text(if (state.isLoadingMore) "در حال بارگذاری…" else "فایل‌های بیشتر")
+                                Text(if (state.isLoadingMore) "در حال بارگذاری…" else "مشاهده بیشتر")
                             }
                         }
                     }
@@ -146,87 +267,6 @@ fun DatasetsScreen(
             }
         }
     }
-}
-
-@Composable
-private fun DatasetRow(ds: DatasetDto, onClick: () -> Unit) {
-    DfCard(onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DfColors.SurfaceVariant),
-                contentAlignment = androidx.compose.ui.Alignment.Center,
-            ) {
-                val thumb = ImageUrlFormatter.normalize(ds.thumbnailUrl)
-                if (thumb != null) {
-                    AsyncImage(
-                        model = thumb,
-                        contentDescription = null,
-                        modifier = Modifier.size(72.dp),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    androidx.compose.material3.Icon(
-                        DfIcons.Building,
-                        contentDescription = null,
-                        tint = DfColors.TextMuted,
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    ds.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    ds.fileFormat?.uppercase()?.let { DfBadge(text = it) }
-                    ds.transactionType?.let {
-                        DfBadge(text = it, color = DfColors.Blue.copy(alpha = 0.1f), textColor = DfColors.Blue)
-                    }
-                }
-                val location = listOfNotNull(ds.city, ds.district).joinToString("، ")
-                if (location.isNotBlank()) {
-                    Text(location, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary)
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        "${ds.itemCount} آگهی",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = DfColors.PurpleDark,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    ds.source?.let {
-                        Text(
-                            datasetSourceLabel(it),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = DfColors.TextMuted,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun datasetSourceLabel(source: String): String = when {
-    source.contains("mobile", ignoreCase = true) -> "موبایل"
-    source.contains("windows", ignoreCase = true) -> "ویندوز"
-    else -> source
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -227,6 +227,11 @@ fun DivarFilingNavHost(
                         DatasetsScreen(
                             onDatasetClick = { id -> navController.navigate(Routes.listings(id)) },
                             onGlobalSearch = { query -> navController.navigate(Routes.filingSearch(query)) },
+                            onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
+                            onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                            onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onDatasetMapClick = { id -> navController.navigate(Routes.datasetMap(id)) },
+                            onDatasetInsightsClick = { id -> navController.navigate(Routes.datasetInsights(id)) },
                         )
                     }
                     composable(
