@@ -288,6 +288,8 @@ fun DivarFilingNavHost(
                             },
                             onOpenSchedules = { navController.navigate(Routes.EXTRACT_SCHEDULES) },
                             onBack = { navController.popBackStack() },
+                            onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
+                            onMenuClick = { navController.navigate(Routes.SETTINGS) },
                         )
                     }
                     composable(Routes.EXTRACT_SCHEDULES) {

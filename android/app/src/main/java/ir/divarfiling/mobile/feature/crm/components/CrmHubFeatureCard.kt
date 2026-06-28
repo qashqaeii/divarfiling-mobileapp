@@ -16,7 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +45,6 @@ fun CrmHubFeatureCard(
     icon: ImageVector,
     tint: Color,
     background: Color,
-    cardBackground: Color,
     stats: List<CrmHubStatChip>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -56,10 +54,11 @@ fun CrmHubFeatureCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(152.dp)
-            .shadow(AppElevations.card, AppShapes.Hero, ambientColor = DfColors.Shadow),
+            .height(152.dp),
         shape = AppShapes.Hero,
-        color = cardBackground,
+        color = DfColors.Surface,
+        shadowElevation = AppElevations.card,
+        tonalElevation = AppElevations.none,
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -118,8 +117,8 @@ fun CrmHubFeatureCard(
                     if (stats.isNotEmpty()) {
                         Surface(
                             shape = AppShapes.ButtonPill,
-                            color = DfColors.Surface.copy(alpha = 0.88f),
-                            shadowElevation = 0.dp,
+                            color = background,
+                            shadowElevation = AppElevations.none,
                             modifier = Modifier.padding(top = AppSpacing.sm),
                         ) {
                             Row(
@@ -149,8 +148,8 @@ fun CrmHubFeatureCard(
                     .padding(AppSpacing.sm)
                     .size(32.dp),
                 shape = AppShapes.IconContainer,
-                color = DfColors.Surface.copy(alpha = 0.92f),
-                shadowElevation = AppElevations.subtle,
+                color = DfColors.SurfaceVariant,
+                shadowElevation = AppElevations.none,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -209,7 +208,6 @@ private fun CrmHubFeatureCardPreview() {
             icon = DfIcons.Users,
             tint = DfColors.Purple,
             background = DfColors.PurpleContainer,
-            cardBackground = DfColors.PurpleContainer.copy(alpha = 0.35f),
             stats = listOf(
                 CrmHubStatChip("مخاطبین", "248", DfIcons.Users),
                 CrmHubStatChip("سرنخ‌های جدید", "32", DfIcons.UserPlus),

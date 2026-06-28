@@ -578,7 +578,6 @@ fun CrmHubScreen(
                         icon = DfIcons.Users,
                         tint = DfColors.Purple,
                         background = DfColors.PurpleContainer,
-                        cardBackground = DfColors.PurpleContainer.copy(alpha = 0.38f),
                         stats = listOf(
                             CrmHubStatChip("مخاطبین", state.contactsCount.toString(), DfIcons.Users),
                             CrmHubStatChip("سرنخ‌های جدید", state.newLeadsCount.toString(), DfIcons.UserPlus),
@@ -600,7 +599,6 @@ fun CrmHubScreen(
                         icon = DfIcons.Calendar,
                         tint = DfColors.Blue,
                         background = DfColors.BlueLight,
-                        cardBackground = DfColors.BlueLight.copy(alpha = 0.55f),
                         stats = listOf(
                             CrmHubStatChip("کارهای امروز", state.todayTasksCount.toString(), DfIcons.ListTodo),
                             CrmHubStatChip("معوق", state.overdueCount.toString(), DfIcons.Clock),
@@ -622,7 +620,6 @@ fun CrmHubScreen(
                         icon = DfIcons.Handshake,
                         tint = DfColors.Green,
                         background = DfColors.GreenLight,
-                        cardBackground = DfColors.GreenLight.copy(alpha = 0.55f),
                         stats = listOf(
                             CrmHubStatChip("معاملات فعال", state.activeDealsCount.toString(), DfIcons.Handshake),
                             CrmHubStatChip("ارزش کل", dealsValueLabel, DfIcons.BarChart),
@@ -644,7 +641,6 @@ fun CrmHubScreen(
                         icon = DfIcons.Building,
                         tint = DfColors.Amber,
                         background = DfColors.AmberLight,
-                        cardBackground = DfColors.AmberLight.copy(alpha = 0.55f),
                         stats = listOf(
                             CrmHubStatChip("ملک‌های ثبت‌شده", state.propertiesCount.toString(), DfIcons.Building),
                             CrmHubStatChip("پرونده‌های باز", state.openCasesCount.toString(), DfIcons.Folder),
@@ -708,7 +704,6 @@ internal fun CrmHubScreenContentPreview() {
                 icon = DfIcons.Users,
                 tint = DfColors.Purple,
                 background = DfColors.PurpleContainer,
-                cardBackground = DfColors.PurpleContainer.copy(alpha = 0.38f),
                 stats = listOf(
                     CrmHubStatChip("مخاطبین", "248", DfIcons.Users),
                     CrmHubStatChip("سرنخ‌های جدید", "32", DfIcons.UserPlus),

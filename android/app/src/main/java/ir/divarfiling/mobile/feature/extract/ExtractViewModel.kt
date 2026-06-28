@@ -6,12 +6,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.license.ExtractLightLimits
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.datastore.ExtractPreferences
+import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.places.PlaceOption
 import ir.divarfiling.mobile.core.places.PlaceSearchResult
 import ir.divarfiling.mobile.core.places.PlacesRepository
 import ir.divarfiling.mobile.core.network.ExtractionUploadData
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.AuthRepository
+import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.ExtractGateResult
 import ir.divarfiling.mobile.data.repository.ExtractionRepository
 import ir.divarfiling.mobile.data.repository.ExtractionScheduleRepository
@@ -67,6 +69,9 @@ data class ExtractUiState(
     val gateMessage: String? = null,
     val placeQuery: String = "",
     val placeSuggestions: List<PlaceSearchResult> = emptyList(),
+    val userName: String = "",
+    val notificationBadgeCount: Int = 0,
+    val lastExtractionDurationMinutes: Double? = null,
 ) {
     val categorySlug: String
         get() = ExtractCategories.slugFor(transactionType, subcategoryLabel).orEmpty()
@@ -81,6 +86,8 @@ class ExtractViewModel @Inject constructor(
     private val scheduleRepository: ExtractionScheduleRepository,
     private val placesRepository: PlacesRepository,
     private val extractPreferences: ExtractPreferences,
+    private val sessionStore: SessionStore,
+    private val dashboardRepository: DashboardRepository,
     authRepository: AuthRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ExtractUiState())
@@ -88,8 +95,23 @@ class ExtractViewModel @Inject constructor(
 
     private var job: Job? = null
     @Volatile private var cancelled = false
+    private var extractionStartedAt: Long? = null
 
     init {
+        viewModelScope.launch {
+            sessionStore.currentUser.collect { user ->
+                _uiState.update {
+                    it.copy(userName = user?.fullName?.substringBefore(" ") ?: "کاربر")
+                }
+            }
+        }
+        viewModelScope.launch {
+            when (val result = dashboardRepository.getDashboard()) {
+                is ApiResult.Success ->
+                    _uiState.update { it.copy(notificationBadgeCount = result.data.notificationsUnread) }
+                is ApiResult.Error -> Unit
+            }
+        }
         viewModelScope.launch {
             authRepository.licenseState.collect { license ->
                 _uiState.update { state ->
@@ -318,6 +340,7 @@ class ExtractViewModel @Inject constructor(
         cancelled = false
         job?.cancel()
         job = viewModelScope.launch {
+            extractionStartedAt = System.currentTimeMillis()
             _uiState.update {
                 it.copy(isRunning = true, error = null, message = null, progressCurrent = 0, progressTotal = 0)
             }
@@ -334,12 +357,16 @@ class ExtractViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val stats = result.data
                     val mergeNote = if (stats.datasetMerged) " (ادغام با فایلینگ موجود)" else ""
+                    val durationMinutes = extractionStartedAt?.let { started ->
+                        (System.currentTimeMillis() - started).coerceAtLeast(0) / 60_000.0
+                    }
                     _uiState.update {
                         it.copy(
                             isRunning = false,
                             message = "آپلود موفق — ${stats.ingestedCount} آگهی پردازش شد$mergeNote",
                             lastDatasetId = stats.datasetId,
                             lastUploadStats = stats,
+                            lastExtractionDurationMinutes = durationMinutes,
                         )
                     }
                 }

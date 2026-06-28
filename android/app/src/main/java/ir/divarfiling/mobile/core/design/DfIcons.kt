@@ -41,4 +41,17 @@ object DfIcons {
     val Bot: ImageVector = LucideIcons.Bot
     val Filter: ImageVector = LucideIcons.Funnel
     val AlarmClock: ImageVector = LucideIcons.AlarmClock
+    val X: ImageVector = LucideIcons.X
+    val LocateFixed: ImageVector = LucideIcons.LocateFixed
+    val SlidersHorizontal: ImageVector = LucideIcons.SlidersHorizontal
+    val Tag: ImageVector = LucideIcons.Tag
+    val Ruler: ImageVector = LucideIcons.Ruler
+    val Zap: ImageVector = LucideIcons.Zap
+    val Timer: ImageVector = LucideIcons.Timer
+    val Cloud: ImageVector = LucideIcons.Cloud
+    val Moon: ImageVector = LucideIcons.Moon
+    val ArrowRight: ImageVector = LucideIcons.ArrowRight
+    val WandSparkles: ImageVector = LucideIcons.WandSparkles
+    val ClipboardList: ImageVector = LucideIcons.ClipboardList
+    val Rocket: ImageVector = LucideIcons.Rocket
 }

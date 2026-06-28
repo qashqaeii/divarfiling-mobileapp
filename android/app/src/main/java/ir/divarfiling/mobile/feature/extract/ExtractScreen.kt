@@ -1,46 +1,43 @@
 package ir.divarfiling.mobile.feature.extract
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.components.DfCountSlider
-import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
-import ir.divarfiling.mobile.core.design.components.DfSectionTitle
-import ir.divarfiling.mobile.core.design.components.DfTopBar
-import ir.divarfiling.mobile.feature.extract.components.ExtractDailyUsageCard
+import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.feature.extract.components.ExtractFiltersCard
+import ir.divarfiling.mobile.feature.extract.components.ExtractHeader
 import ir.divarfiling.mobile.feature.extract.components.ExtractLoadingExperience
-import ir.divarfiling.mobile.feature.extract.components.PlaceSearchField
-import ir.divarfiling.mobile.feature.extract.components.ScheduleIntervalBottomSheet
-import ir.divarfiling.mobile.feature.extract.components.ScheduleIntervalField
+import ir.divarfiling.mobile.feature.extract.components.ExtractLocationCard
+import ir.divarfiling.mobile.feature.extract.components.ExtractScheduleCard
+import ir.divarfiling.mobile.feature.extract.components.ExtractStartButton
+import ir.divarfiling.mobile.feature.extract.components.ExtractStatsCard
 import ir.divarfiling.mobile.feature.extract.components.extractPhaseFromProgress
-import ir.divarfiling.mobile.feature.extract.components.placeSelectionSummary
+import ir.divarfiling.mobile.feature.extract.components.formatAverageTimeLabel
+import ir.divarfiling.mobile.feature.extract.components.formatLastExtractionLabel
 import ir.divarfiling.mobile.feature.extract.components.rememberDebouncedQuery
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,201 +46,174 @@ fun ExtractScreen(
     onViewDataset: (String) -> Unit,
     onOpenSchedules: () -> Unit = {},
     onBack: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {},
     viewModel: ExtractViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val canExtract = state.license.canUseLightExtract && state.gateMessage == null
-    val scroll = rememberScrollState()
     val tx = ExtractCategories.transactionTypes.firstOrNull { it.label == state.transactionType }
     val subcategories = tx?.subcategories.orEmpty()
-    var showSchedulePicker by remember { mutableStateOf(false) }
+    val districtName = state.districts.firstOrNull { it.id == state.districtId }?.name
 
     rememberDebouncedQuery(state.placeQuery) { viewModel.onPlaceSearchDebounced(it) }
 
-    ScheduleIntervalBottomSheet(
-        visible = showSchedulePicker,
-        selectedHours = state.scheduleIntervalHours,
-        onSelect = viewModel::onScheduleIntervalSelect,
-        onDismiss = { showSchedulePicker = false },
-    )
-
-    Scaffold(
-        topBar = {
-            DfTopBar(title = "استخراج فایل", showLogo = true, onBack = onBack)
-        },
-    ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scroll)
-                .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+    DfPullRefresh(
+        isRefreshing = false,
+        onRefresh = viewModel::refreshGate,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DfColors.Background)
+            .statusBarsPadding(),
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
-            if (state.remainingToday != null && state.extractionsDailyLimit != null) {
-                ExtractDailyUsageCard(
-                    extractionsToday = state.extractionsToday ?: 0,
-                    remainingToday = state.remainingToday ?: 0,
-                    dailyLimit = state.extractionsDailyLimit ?: 0,
-                    canExtractNow = state.canExtractNow,
+            item {
+                ExtractHeader(
+                    userName = state.userName,
+                    notificationCount = state.notificationBadgeCount,
+                    onNotificationsClick = onNotificationsClick,
+                    onMenuClick = onMenuClick,
+                    onBack = onBack,
                 )
             }
 
-            DfPremiumCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DfSectionTitle(title = "زمان‌بندی خودکار")
-                    ScheduleIntervalField(
-                        selectedHours = state.scheduleIntervalHours,
-                        enabled = canExtract && !state.isRunning,
-                        onClick = { showSchedulePicker = true },
+            if (state.remainingToday != null && state.extractionsDailyLimit != null) {
+                item {
+                    ExtractStatsCard(
+                        extractionsToday = state.extractionsToday ?: 0,
+                        remainingToday = state.remainingToday ?: 0,
+                        dailyLimit = state.extractionsDailyLimit ?: 0,
+                        canExtractNow = state.canExtractNow,
+                        lastExtractionLabel = formatLastExtractionLabel(
+                            extractionsToday = state.extractionsToday ?: 0,
+                            hasRecentUpload = state.lastUploadStats != null,
+                        ),
+                        successfulCountLabel = state.lastUploadStats?.ingestedCount?.toString() ?: "—",
+                        averageTimeLabel = formatAverageTimeLabel(state.lastExtractionDurationMinutes),
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                }
+            }
+
+            item {
+                ExtractLocationCard(
+                    query = state.placeQuery,
+                    suggestions = state.placeSuggestions,
+                    provinceName = state.provinceName,
+                    cityName = state.cityName,
+                    districtName = districtName,
+                    provinces = state.provinces,
+                    cities = state.cities,
+                    districts = state.districts,
+                    districtId = state.districtId,
+                    enabled = canExtract && !state.isRunning,
+                    onQueryChange = viewModel::onPlaceQueryChange,
+                    onSuggestionSelect = viewModel::onPlaceSuggestionSelect,
+                    onProvinceChange = viewModel::onProvinceChange,
+                    onCityChange = viewModel::onCityChange,
+                    onDistrictChange = viewModel::onDistrictChange,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
+            item {
+                ExtractScheduleCard(
+                    selectedHours = state.scheduleIntervalHours,
+                    enabled = canExtract && !state.isRunning,
+                    onSelect = viewModel::onScheduleIntervalSelect,
+                    onOpenSchedules = onOpenSchedules,
+                    onCreateSchedule = viewModel::createSchedule,
+                    canCreateSchedule = canExtract && !state.isRunning,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
+            item {
+                ExtractFiltersCard(
+                    state = state,
+                    subcategories = subcategories,
+                    enabled = canExtract && !state.isRunning,
+                    onToggleAdvanced = viewModel::toggleAdvanced,
+                    onTransactionTypeChange = viewModel::onTransactionTypeChange,
+                    onSubcategoryChange = viewModel::onSubcategoryChange,
+                    onSortChange = viewModel::onSortChange,
+                    onAdvertiserFilterChange = viewModel::onAdvertiserFilterChange,
+                    onMaxItemsChange = viewModel::onMaxItemsChange,
+                    advancedFilters = {
+                        AdvancedFilters(state, canExtract, viewModel)
+                    },
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
+            if (state.isRunning) {
+                item {
+                    Column(
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     ) {
-                        TextButton(onClick = onOpenSchedules) { Text("مدیریت زمان‌بندی‌ها") }
-                        TextButton(
-                            onClick = viewModel::createSchedule,
-                            enabled = canExtract && !state.isRunning,
-                        ) {
-                            Text("ذخیره زمان‌بندی")
+                        ExtractLoadingExperience(
+                            phase = extractPhaseFromProgress(
+                                state.progressCurrent,
+                                state.progressTotal,
+                                state.isRunning,
+                            ),
+                            progressCurrent = state.progressCurrent,
+                            progressTotal = state.progressTotal,
+                        )
+                        DfPrimaryButton(text = "لغو استخراج", onClick = viewModel::cancel)
+                    }
+                }
+            } else {
+                item {
+                    ExtractStartButton(
+                        enabled = canExtract && state.canExtractNow && state.maxItems > 0,
+                        onClick = viewModel::startExtraction,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+
+            state.gateMessage?.let { gate ->
+                item {
+                    Text(
+                        gate,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+
+            state.message?.let {
+                item {
+                    Column(
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    ) {
+                        Text(it, color = DfColors.PurpleDark, fontWeight = FontWeight.Medium)
+                        state.lastUploadStats?.let { stats ->
+                            IngestStatsCard(stats)
+                        }
+                        state.lastDatasetId?.let { id ->
+                            DfPrimaryButton(text = "مشاهده در فایلینگ", onClick = { onViewDataset(id) })
                         }
                     }
                 }
             }
 
-            DfPremiumCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DfSectionTitle(title = "مکان")
-                    PlaceSearchField(
-                        query = state.placeQuery,
-                        suggestions = state.placeSuggestions,
-                        selectedSummary = placeSelectionSummary(
-                            state.provinceName,
-                            state.cityName,
-                            state.districts.firstOrNull { it.id == state.districtId }?.name,
-                        ).takeIf { state.provinceName.isNotBlank() },
-                        enabled = canExtract && !state.isRunning,
-                        onQueryChange = viewModel::onPlaceQueryChange,
-                        onSuggestionSelect = viewModel::onPlaceSuggestionSelect,
+            state.error?.let { error ->
+                item {
+                    Text(
+                        error,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
-                    DfDropdown(
-                        label = "استان",
-                        value = state.provinceName,
-                        options = state.provinces,
-                        enabled = canExtract && !state.isRunning,
-                        onSelect = viewModel::onProvinceChange,
-                    )
-                    DfDropdown(
-                        label = "شهر",
-                        value = state.cityName,
-                        options = state.cities.map { it.name },
-                        enabled = canExtract && !state.isRunning,
-                        onSelect = { name ->
-                            state.cities.firstOrNull { it.name == name }?.let(viewModel::onCityChange)
-                        },
-                    )
-                    if (state.districts.isNotEmpty()) {
-                        DfDropdown(
-                            label = "منطقه (اختیاری)",
-                            value = state.districts.firstOrNull { it.id == state.districtId }?.name ?: "همه مناطق",
-                            options = listOf("همه مناطق") + state.districts.map { it.name },
-                            enabled = canExtract && !state.isRunning,
-                            onSelect = { name ->
-                                if (name == "همه مناطق") {
-                                    viewModel.onDistrictChange("")
-                                } else {
-                                    state.districts.firstOrNull { it.name == name }?.id?.let(viewModel::onDistrictChange)
-                                }
-                            },
-                        )
-                    }
                 }
-            }
-
-            DfPremiumCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DfSectionTitle(title = "فیلترهای استخراج")
-                    DfDropdown(
-                        label = "نوع معامله",
-                        value = state.transactionType,
-                        options = ExtractCategories.transactionTypes.map { it.label },
-                        enabled = canExtract && !state.isRunning,
-                        onSelect = viewModel::onTransactionTypeChange,
-                    )
-                    DfDropdown(
-                        label = "زیردسته",
-                        value = state.subcategoryLabel,
-                        options = subcategories.map { it.label },
-                        enabled = canExtract && !state.isRunning,
-                        onSelect = viewModel::onSubcategoryChange,
-                    )
-                    DfDropdown(
-                        label = "مرتب‌سازی",
-                        value = ExtractCategories.sortOptions.firstOrNull { it.first == state.sort }?.second ?: "",
-                        options = ExtractCategories.sortOptions.map { it.second },
-                        enabled = canExtract && !state.isRunning,
-                        onSelect = { label ->
-                            ExtractCategories.sortOptions.firstOrNull { it.second == label }?.first?.let(viewModel::onSortChange)
-                        },
-                    )
-                    DfDropdown(
-                        label = "نوع آگهی‌دهنده",
-                        value = ExtractCategories.advertiserOptions.firstOrNull { it.first == state.advertiserFilter }?.second ?: "",
-                        options = ExtractCategories.advertiserOptions.map { it.second },
-                        enabled = canExtract && !state.isRunning,
-                        onSelect = { label ->
-                            ExtractCategories.advertiserOptions.firstOrNull { it.second == label }?.first
-                                ?.let(viewModel::onAdvertiserFilterChange)
-                        },
-                    )
-                    DfCountSlider(
-                        value = state.maxItems,
-                        onValueChange = viewModel::onMaxItemsChange,
-                        enabled = canExtract && !state.isRunning,
-                        label = "تعداد آگهی (۰ تا ۱۰۰)",
-                    )
-                    TextButton(onClick = viewModel::toggleAdvanced, enabled = canExtract && !state.isRunning) {
-                        Text(if (state.showAdvanced) "بستن فیلترهای پیشرفته" else "فیلترهای پیشرفته")
-                    }
-                    if (state.showAdvanced) {
-                        AdvancedFilters(state, canExtract, viewModel)
-                    }
-                }
-            }
-
-            if (state.isRunning) {
-                ExtractLoadingExperience(
-                    phase = extractPhaseFromProgress(state.progressCurrent, state.progressTotal, state.isRunning),
-                    progressCurrent = state.progressCurrent,
-                    progressTotal = state.progressTotal,
-                )
-                DfPrimaryButton(text = "لغو استخراج", onClick = viewModel::cancel)
-            } else {
-                DfPrimaryButton(
-                    text = "شروع استخراج و آپلود",
-                    onClick = viewModel::startExtraction,
-                    enabled = canExtract && state.canExtractNow && state.maxItems > 0,
-                )
-            }
-
-            state.gateMessage?.let { gate ->
-                Text(gate, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-            }
-
-            state.message?.let {
-                Text(it, color = DfColors.PurpleDark, fontWeight = FontWeight.Medium)
-                state.lastUploadStats?.let { stats ->
-                    Spacer(Modifier.height(8.dp))
-                    IngestStatsCard(stats)
-                }
-                state.lastDatasetId?.let { id ->
-                    Spacer(Modifier.height(8.dp))
-                    DfPrimaryButton(text = "مشاهده در فایلینگ", onClick = { onViewDataset(id) })
-                }
-            }
-            state.error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -391,5 +361,45 @@ private fun IngestStatRow(label: String, value: Int) {
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
         Text(value.toString(), fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 900)
+@Composable
+private fun ExtractScreenPreview() {
+    DivarFilingTheme {
+        ExtractScreenContentPreview()
+    }
+}
+
+@Composable
+internal fun ExtractScreenContentPreview() {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DfColors.Background),
+        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+    ) {
+        item {
+            ExtractHeader(
+                userName = "حسین",
+                notificationCount = 9,
+                onNotificationsClick = {},
+                onMenuClick = {},
+            )
+        }
+        item {
+            ExtractStatsCard(
+                extractionsToday = 2,
+                remainingToday = 40,
+                dailyLimit = 100,
+                canExtractNow = true,
+                lastExtractionLabel = "امروز، 08:30",
+                successfulCountLabel = "120",
+                averageTimeLabel = "2.4 دقیقه",
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+            )
+        }
     }
 }
