@@ -18,19 +18,30 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.components.DfCard
-import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfCountSlider
+import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSectionTitle
 import ir.divarfiling.mobile.core.design.components.DfTopBar
-import ir.divarfiling.mobile.core.license.ExtractLightLimits
-import ir.divarfiling.mobile.feature.extract.ExtractProgressPanel
+import ir.divarfiling.mobile.feature.extract.components.ExtractDailyUsageCard
+import ir.divarfiling.mobile.feature.extract.components.ExtractLoadingExperience
+import ir.divarfiling.mobile.feature.extract.components.PlaceSearchField
+import ir.divarfiling.mobile.feature.extract.components.ScheduleIntervalBottomSheet
+import ir.divarfiling.mobile.feature.extract.components.ScheduleIntervalField
+import ir.divarfiling.mobile.feature.extract.components.extractPhaseFromProgress
+import ir.divarfiling.mobile.feature.extract.components.placeSelectionSummary
+import ir.divarfiling.mobile.feature.extract.components.rememberDebouncedQuery
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,129 +56,168 @@ fun ExtractScreen(
     val scroll = rememberScrollState()
     val tx = ExtractCategories.transactionTypes.firstOrNull { it.label == state.transactionType }
     val subcategories = tx?.subcategories.orEmpty()
+    var showSchedulePicker by remember { mutableStateOf(false) }
 
-    Scaffold(topBar = { DfTopBar(title = "استخراج فایل", showLogo = true, onBack = onBack) }) { padding ->
+    rememberDebouncedQuery(state.placeQuery) { viewModel.onPlaceSearchDebounced(it) }
+
+    ScheduleIntervalBottomSheet(
+        visible = showSchedulePicker,
+        selectedHours = state.scheduleIntervalHours,
+        onSelect = viewModel::onScheduleIntervalSelect,
+        onDismiss = { showSchedulePicker = false },
+    )
+
+    Scaffold(
+        topBar = {
+            DfTopBar(title = "استخراج فایل", showLogo = true, onBack = onBack)
+        },
+    ) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(scroll)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
-            LicenseCard(canExtract, state)
+            if (state.remainingToday != null && state.extractionsDailyLimit != null) {
+                ExtractDailyUsageCard(
+                    extractionsToday = state.extractionsToday ?: 0,
+                    remainingToday = state.remainingToday ?: 0,
+                    dailyLimit = state.extractionsDailyLimit ?: 0,
+                    canExtractNow = state.canExtractNow,
+                )
+            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                TextButton(onClick = onOpenSchedules) { Text("زمان‌بندی‌ها") }
-                state.remainingToday?.let { remaining ->
-                    Text(
-                        "باقی‌مانده امروز: $remaining",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (state.canExtractNow) DfColors.Green else MaterialTheme.colorScheme.error,
+            DfPremiumCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    DfSectionTitle(title = "زمان‌بندی خودکار")
+                    ScheduleIntervalField(
+                        selectedHours = state.scheduleIntervalHours,
+                        enabled = canExtract && !state.isRunning,
+                        onClick = { showSchedulePicker = true },
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        TextButton(onClick = onOpenSchedules) { Text("مدیریت زمان‌بندی‌ها") }
+                        TextButton(
+                            onClick = viewModel::createSchedule,
+                            enabled = canExtract && !state.isRunning,
+                        ) {
+                            Text("ذخیره زمان‌بندی")
+                        }
+                    }
                 }
             }
 
-            OutlinedTextField(
-                value = state.scheduleIntervalHours.toString(),
-                onValueChange = viewModel::onScheduleIntervalChange,
-                label = { Text("فاصله زمان‌بندی (ساعت)") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = canExtract && !state.isRunning,
-                singleLine = true,
-            )
-            TextButton(
-                onClick = viewModel::createSchedule,
-                enabled = canExtract && !state.isRunning,
-            ) {
-                Text("ذخیره فیلترها به‌عنوان زمان‌بندی خودکار")
+            DfPremiumCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    DfSectionTitle(title = "مکان")
+                    PlaceSearchField(
+                        query = state.placeQuery,
+                        suggestions = state.placeSuggestions,
+                        selectedSummary = placeSelectionSummary(
+                            state.provinceName,
+                            state.cityName,
+                            state.districts.firstOrNull { it.id == state.districtId }?.name,
+                        ).takeIf { state.provinceName.isNotBlank() },
+                        enabled = canExtract && !state.isRunning,
+                        onQueryChange = viewModel::onPlaceQueryChange,
+                        onSuggestionSelect = viewModel::onPlaceSuggestionSelect,
+                    )
+                    DfDropdown(
+                        label = "استان",
+                        value = state.provinceName,
+                        options = state.provinces,
+                        enabled = canExtract && !state.isRunning,
+                        onSelect = viewModel::onProvinceChange,
+                    )
+                    DfDropdown(
+                        label = "شهر",
+                        value = state.cityName,
+                        options = state.cities.map { it.name },
+                        enabled = canExtract && !state.isRunning,
+                        onSelect = { name ->
+                            state.cities.firstOrNull { it.name == name }?.let(viewModel::onCityChange)
+                        },
+                    )
+                    if (state.districts.isNotEmpty()) {
+                        DfDropdown(
+                            label = "منطقه (اختیاری)",
+                            value = state.districts.firstOrNull { it.id == state.districtId }?.name ?: "همه مناطق",
+                            options = listOf("همه مناطق") + state.districts.map { it.name },
+                            enabled = canExtract && !state.isRunning,
+                            onSelect = { name ->
+                                if (name == "همه مناطق") {
+                                    viewModel.onDistrictChange("")
+                                } else {
+                                    state.districts.firstOrNull { it.name == name }?.id?.let(viewModel::onDistrictChange)
+                                }
+                            },
+                        )
+                    }
+                }
             }
 
-            DfDropdown(
-                label = "نوع معامله",
-                value = state.transactionType,
-                options = ExtractCategories.transactionTypes.map { it.label },
-                enabled = canExtract && !state.isRunning,
-                onSelect = viewModel::onTransactionTypeChange,
-            )
-            DfDropdown(
-                label = "زیردسته",
-                value = state.subcategoryLabel,
-                options = subcategories.map { it.label },
-                enabled = canExtract && !state.isRunning,
-                onSelect = viewModel::onSubcategoryChange,
-            )
-            DfDropdown(
-                label = "استان",
-                value = state.provinceName,
-                options = state.provinces,
-                enabled = canExtract && !state.isRunning,
-                onSelect = viewModel::onProvinceChange,
-            )
-            DfDropdown(
-                label = "شهر",
-                value = state.cityName,
-                options = state.cities.map { it.name },
-                enabled = canExtract && !state.isRunning,
-                onSelect = { name ->
-                    state.cities.firstOrNull { it.name == name }?.let(viewModel::onCityChange)
-                },
-            )
-            if (state.districts.isNotEmpty()) {
-                DfDropdown(
-                    label = "منطقه (اختیاری)",
-                    value = state.districts.firstOrNull { it.id == state.districtId }?.name ?: "همه مناطق",
-                    options = listOf("همه مناطق") + state.districts.map { it.name },
-                    enabled = canExtract && !state.isRunning,
-                    onSelect = { name ->
-                        if (name == "همه مناطق") {
-                            viewModel.onDistrictChange("")
-                        } else {
-                            state.districts.firstOrNull { it.name == name }?.id?.let(viewModel::onDistrictChange)
-                        }
-                    },
-                )
-            }
-            DfDropdown(
-                label = "مرتب‌سازی",
-                value = ExtractCategories.sortOptions.firstOrNull { it.first == state.sort }?.second ?: "",
-                options = ExtractCategories.sortOptions.map { it.second },
-                enabled = canExtract && !state.isRunning,
-                onSelect = { label ->
-                    ExtractCategories.sortOptions.firstOrNull { it.second == label }?.first?.let(viewModel::onSortChange)
-                },
-            )
-            DfDropdown(
-                label = "نوع آگهی‌دهنده",
-                value = ExtractCategories.advertiserOptions.firstOrNull { it.first == state.advertiserFilter }?.second ?: "",
-                options = ExtractCategories.advertiserOptions.map { it.second },
-                enabled = canExtract && !state.isRunning,
-                onSelect = { label ->
-                    ExtractCategories.advertiserOptions.firstOrNull { it.second == label }?.first
-                        ?.let(viewModel::onAdvertiserFilterChange)
-                },
-            )
-
-            DfCountSlider(
-                value = state.maxItems,
-                onValueChange = viewModel::onMaxItemsChange,
-                enabled = canExtract && !state.isRunning,
-                label = "تعداد آگهی (۰ تا ۱۰۰)",
-            )
-
-            TextButton(onClick = viewModel::toggleAdvanced, enabled = canExtract && !state.isRunning) {
-                Text(if (state.showAdvanced) "بستن فیلترهای پیشرفته" else "فیلترهای پیشرفته (قیمت، متراژ، …)")
-            }
-
-            if (state.showAdvanced) {
-                AdvancedFilters(state, canExtract, viewModel)
+            DfPremiumCard {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    DfSectionTitle(title = "فیلترهای استخراج")
+                    DfDropdown(
+                        label = "نوع معامله",
+                        value = state.transactionType,
+                        options = ExtractCategories.transactionTypes.map { it.label },
+                        enabled = canExtract && !state.isRunning,
+                        onSelect = viewModel::onTransactionTypeChange,
+                    )
+                    DfDropdown(
+                        label = "زیردسته",
+                        value = state.subcategoryLabel,
+                        options = subcategories.map { it.label },
+                        enabled = canExtract && !state.isRunning,
+                        onSelect = viewModel::onSubcategoryChange,
+                    )
+                    DfDropdown(
+                        label = "مرتب‌سازی",
+                        value = ExtractCategories.sortOptions.firstOrNull { it.first == state.sort }?.second ?: "",
+                        options = ExtractCategories.sortOptions.map { it.second },
+                        enabled = canExtract && !state.isRunning,
+                        onSelect = { label ->
+                            ExtractCategories.sortOptions.firstOrNull { it.second == label }?.first?.let(viewModel::onSortChange)
+                        },
+                    )
+                    DfDropdown(
+                        label = "نوع آگهی‌دهنده",
+                        value = ExtractCategories.advertiserOptions.firstOrNull { it.first == state.advertiserFilter }?.second ?: "",
+                        options = ExtractCategories.advertiserOptions.map { it.second },
+                        enabled = canExtract && !state.isRunning,
+                        onSelect = { label ->
+                            ExtractCategories.advertiserOptions.firstOrNull { it.second == label }?.first
+                                ?.let(viewModel::onAdvertiserFilterChange)
+                        },
+                    )
+                    DfCountSlider(
+                        value = state.maxItems,
+                        onValueChange = viewModel::onMaxItemsChange,
+                        enabled = canExtract && !state.isRunning,
+                        label = "تعداد آگهی (۰ تا ۱۰۰)",
+                    )
+                    TextButton(onClick = viewModel::toggleAdvanced, enabled = canExtract && !state.isRunning) {
+                        Text(if (state.showAdvanced) "بستن فیلترهای پیشرفته" else "فیلترهای پیشرفته")
+                    }
+                    if (state.showAdvanced) {
+                        AdvancedFilters(state, canExtract, viewModel)
+                    }
+                }
             }
 
             if (state.isRunning) {
-                ExtractProgressPanel(state.progressCurrent, state.progressTotal)
+                ExtractLoadingExperience(
+                    phase = extractPhaseFromProgress(state.progressCurrent, state.progressTotal, state.isRunning),
+                    progressCurrent = state.progressCurrent,
+                    progressTotal = state.progressTotal,
+                )
                 DfPrimaryButton(text = "لغو استخراج", onClick = viewModel::cancel)
             } else {
                 DfPrimaryButton(
@@ -175,6 +225,10 @@ fun ExtractScreen(
                     onClick = viewModel::startExtraction,
                     enabled = canExtract && state.canExtractNow && state.maxItems > 0,
                 )
+            }
+
+            state.gateMessage?.let { gate ->
+                Text(gate, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
 
             state.message?.let {
@@ -191,25 +245,6 @@ fun ExtractScreen(
             state.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
             }
-        }
-    }
-}
-
-@Composable
-private fun LicenseCard(canExtract: Boolean, state: ExtractUiState) {
-    DfCard(
-        containerColor = if (canExtract) DfColors.PurpleContainer else MaterialTheme.colorScheme.errorContainer,
-    ) {
-        Text("لایسنس", style = MaterialTheme.typography.titleMedium)
-        Text(state.license.licenseLabel)
-        if (canExtract) {
-            Text("حداکثر ${ExtractLightLimits.MAX_ITEMS} آگهی — هم‌تراز با ویندوز")
-            Text("خروجی با نام و فرمت استاندارد در میزکار ذخیره می‌شود")
-        } else {
-            Text(
-                state.gateMessage ?: "استخراج فقط با لایسنس فعال امکان‌پذیر است.",
-                color = MaterialTheme.colorScheme.onErrorContainer,
-            )
         }
     }
 }
@@ -327,7 +362,7 @@ private fun AdvancedFilters(
 
 @Composable
 private fun IngestStatsCard(stats: ir.divarfiling.mobile.core.network.ExtractionUploadData) {
-    DfCard {
+    DfPremiumCard {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             stats.datasetName?.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)

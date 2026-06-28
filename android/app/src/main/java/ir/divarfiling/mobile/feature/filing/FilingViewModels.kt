@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.FilingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -144,9 +145,10 @@ class ListingsViewModel @Inject constructor(
             )) {
                 is ApiResult.Success -> {
                     val merged = if (reset) result.data.items else state.listings + result.data.items
+                    val sorted = ListingAdvertiserUtils.sortPersonalFirst(merged)
                     _uiState.update {
                         it.copy(
-                            listings = merged,
+                            listings = sorted,
                             page = page,
                             hasMore = result.data.hasMore,
                             isLoading = false,
@@ -253,9 +255,10 @@ class FilingSearchViewModel @Inject constructor(
             )) {
                 is ApiResult.Success -> {
                     val merged = if (reset) result.data.items else state.listings + result.data.items
+                    val sorted = ListingAdvertiserUtils.sortPersonalFirst(merged)
                     _uiState.update {
                         it.copy(
-                            listings = merged,
+                            listings = sorted,
                             page = page,
                             hasMore = result.data.hasMore,
                             isLoading = false,

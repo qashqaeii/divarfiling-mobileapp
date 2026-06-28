@@ -55,15 +55,26 @@ fun NotificationsSection(
             onAction = onViewAll,
         )
         DfPremiumCard {
-            notifications.forEachIndexed { index, item ->
-                NotificationRow(item, onClick = { onNotificationClick(item) })
-                if (index < notifications.lastIndex) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = AppSpacing.xs),
-                        color = DfColors.OutlineSubtle,
-                    )
-                }
-            }
+            NotificationsSectionContent(
+                notifications = notifications,
+                onNotificationClick = onNotificationClick,
+            )
+        }
+    }
+}
+
+@Composable
+fun NotificationsSectionContent(
+    notifications: List<HomeNotificationItem>,
+    onNotificationClick: (HomeNotificationItem) -> Unit = {},
+) {
+    notifications.forEachIndexed { index, item ->
+        NotificationRow(item, onClick = { onNotificationClick(item) })
+        if (index < notifications.lastIndex) {
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = AppSpacing.xs),
+                color = DfColors.OutlineSubtle,
+            )
         }
     }
 }

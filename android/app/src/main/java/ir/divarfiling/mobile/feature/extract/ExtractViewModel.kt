@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.license.ExtractLightLimits
 import ir.divarfiling.mobile.core.license.LicenseState
+import ir.divarfiling.mobile.core.datastore.ExtractPreferences
 import ir.divarfiling.mobile.core.places.PlaceOption
+import ir.divarfiling.mobile.core.places.PlaceSearchResult
 import ir.divarfiling.mobile.core.places.PlacesRepository
 import ir.divarfiling.mobile.core.network.ExtractionUploadData
 import ir.divarfiling.mobile.data.repository.ApiResult
@@ -58,9 +60,13 @@ data class ExtractUiState(
     val lastDatasetId: String? = null,
     val lastUploadStats: ExtractionUploadData? = null,
     val remainingToday: Int? = null,
+    val extractionsToday: Int? = null,
+    val extractionsDailyLimit: Int? = null,
     val canExtractNow: Boolean = true,
     val scheduleIntervalHours: Double = 6.0,
     val gateMessage: String? = null,
+    val placeQuery: String = "",
+    val placeSuggestions: List<PlaceSearchResult> = emptyList(),
 ) {
     val categorySlug: String
         get() = ExtractCategories.slugFor(transactionType, subcategoryLabel).orEmpty()
@@ -74,6 +80,7 @@ class ExtractViewModel @Inject constructor(
     private val extractionRepository: ExtractionRepository,
     private val scheduleRepository: ExtractionScheduleRepository,
     private val placesRepository: PlacesRepository,
+    private val extractPreferences: ExtractPreferences,
     authRepository: AuthRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ExtractUiState())
@@ -96,11 +103,17 @@ class ExtractViewModel @Inject constructor(
         }
         viewModelScope.launch { loadPlaces() }
         viewModelScope.launch {
+            val savedInterval = extractPreferences.getScheduleIntervalHours()
+            _uiState.update { it.copy(scheduleIntervalHours = savedInterval) }
+        }
+        viewModelScope.launch {
             extractionRepository.getLimits()?.let { limits ->
                 _uiState.update {
                     it.copy(
                         maxItems = it.maxItems.coerceAtMost(limits.maxItems),
                         remainingToday = limits.remainingToday,
+                        extractionsToday = limits.extractionsToday,
+                        extractionsDailyLimit = limits.extractionsDailyLimit,
                         canExtractNow = limits.canExtractNow,
                     )
                 }
@@ -197,9 +210,39 @@ class ExtractViewModel @Inject constructor(
     fun onYearMaxChange(v: String) = _uiState.update { it.copy(yearMax = v) }
     fun onRoomsChange(v: String) = _uiState.update { it.copy(rooms = v) }
 
-    fun onScheduleIntervalChange(value: String) {
-        value.toDoubleOrNull()?.let { hours ->
-            _uiState.update { it.copy(scheduleIntervalHours = hours.coerceIn(0.5, 168.0)) }
+    fun onScheduleIntervalSelect(hours: Double) {
+        _uiState.update { it.copy(scheduleIntervalHours = hours) }
+        viewModelScope.launch { extractPreferences.setScheduleIntervalHours(hours) }
+    }
+
+    fun onPlaceQueryChange(query: String) {
+        _uiState.update { it.copy(placeQuery = query) }
+    }
+
+    fun onPlaceSearchDebounced(query: String) {
+        val suggestions = if (query.trim().length >= 2) {
+            placesRepository.searchPlaces(query)
+        } else {
+            emptyList()
+        }
+        _uiState.update { it.copy(placeSuggestions = suggestions) }
+    }
+
+    fun onPlaceSuggestionSelect(result: PlaceSearchResult) {
+        val resolved = placesRepository.resolvePlace(result.matchedText)
+            ?: return
+        val selection = placesRepository.applyResolved(resolved)
+        _uiState.update {
+            it.copy(
+                provinceName = selection.provinceName,
+                cityId = selection.cityId,
+                cityName = selection.cityName,
+                districtId = selection.districtId,
+                cities = selection.cities,
+                districts = selection.districts,
+                placeQuery = result.matchedText,
+                placeSuggestions = emptyList(),
+            )
         }
     }
 

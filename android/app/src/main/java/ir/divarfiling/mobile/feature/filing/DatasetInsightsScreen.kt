@@ -101,8 +101,8 @@ fun DatasetInsightsScreen(
                         )
 
                         LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             when (state.selectedLevel) {
                                 0 -> item { InsightsLevel1Content(insights) }

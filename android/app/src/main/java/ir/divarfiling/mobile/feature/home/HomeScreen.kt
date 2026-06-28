@@ -15,6 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -24,16 +27,17 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfExpandableSection
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.feature.home.components.HomeHeader
-import ir.divarfiling.mobile.feature.home.components.NotificationsSection
+import ir.divarfiling.mobile.feature.home.components.NotificationsSectionContent
 import ir.divarfiling.mobile.feature.home.components.QuickAction
 import ir.divarfiling.mobile.feature.home.components.QuickActionsRow
 import ir.divarfiling.mobile.feature.home.components.QuickExtractCard
 import ir.divarfiling.mobile.feature.home.components.RecentListingsSection
 import ir.divarfiling.mobile.feature.home.components.StatsSection
 import ir.divarfiling.mobile.feature.home.components.SyncStatusBanner
-import ir.divarfiling.mobile.feature.home.components.TodayTasksSection
+import ir.divarfiling.mobile.feature.home.components.TodayTasksSectionContent
 import android.net.Uri
 import ir.divarfiling.mobile.navigation.DeepLinkParser
 import ir.divarfiling.mobile.navigation.DeepLinkTarget
@@ -53,6 +57,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var todayExpanded by remember { mutableStateOf(true) }
+    var notificationsExpanded by remember { mutableStateOf(false) }
 
     DfPullRefresh(
         isRefreshing = state.isRefreshing,
@@ -98,13 +104,22 @@ fun HomeScreen(
             if (state.isLoading) {
                 item { StatsSection(stats = state.stats, isLoading = true) }
                 item {
+                    QuickActionsRow(
+                        actions = buildQuickActions(
+                            onNavigateContacts = onNavigateContacts,
+                            onNavigateFiling = onNavigateFiling,
+                            onNavigateCrm = onNavigateCrm,
+                            onNavigateToday = onNavigateToday,
+                        ),
+                    )
+                }
+                item {
                     QuickExtractCard(
                         maxItems = state.maxExtractItems,
                         enabled = state.canExtract,
                         onStartClick = onNavigateExtract,
                     )
                 }
-                item { TodayTasksSection(tasks = emptyList(), isLoading = true, onViewAll = {}) }
                 item { RecentListingsSection(files = emptyList(), isLoading = true, onFileClick = {}) }
             } else {
                 item {
@@ -116,38 +131,6 @@ fun HomeScreen(
                     }
                 }
                 item {
-                    QuickExtractCard(
-                        maxItems = state.maxExtractItems,
-                        enabled = state.canExtract,
-                        onStartClick = onNavigateExtract,
-                    )
-                }
-                item {
-                    TodayTasksSection(
-                        tasks = state.todayTasks,
-                        isLoading = false,
-                        onViewAll = onNavigateToday,
-                    )
-                }
-                item {
-                    NotificationsSection(
-                        notifications = state.notifications,
-                        onViewAll = onNavigateNotifications,
-                        onNotificationClick = { item ->
-                            item.deepLink?.let { link ->
-                                DeepLinkParser.parse(Uri.parse(link))?.let(onNotificationDeepLink)
-                            } ?: onNavigateNotifications()
-                        },
-                    )
-                }
-                item {
-                    RecentListingsSection(
-                        files = state.recentFiles,
-                        isLoading = false,
-                        onFileClick = onDatasetClick,
-                    )
-                }
-                item {
                     QuickActionsRow(
                         actions = buildQuickActions(
                             onNavigateContacts = onNavigateContacts,
@@ -155,6 +138,56 @@ fun HomeScreen(
                             onNavigateCrm = onNavigateCrm,
                             onNavigateToday = onNavigateToday,
                         ),
+                    )
+                }
+                item {
+                    QuickExtractCard(
+                        maxItems = state.maxExtractItems,
+                        enabled = state.canExtract,
+                        onStartClick = onNavigateExtract,
+                    )
+                }
+                item {
+                    DfExpandableSection(
+                        title = "کارهای امروز",
+                        badge = state.todayTasks.size.takeIf { it > 0 }?.toString(),
+                        expanded = todayExpanded,
+                        onToggle = { todayExpanded = !todayExpanded },
+                        actionLabel = "مشاهده همه",
+                        onAction = onNavigateToday,
+                    ) {
+                        TodayTasksSectionContent(
+                            tasks = state.todayTasks,
+                            onViewAll = onNavigateToday,
+                        )
+                    }
+                }
+                if (state.notifications.isNotEmpty()) {
+                    item {
+                        DfExpandableSection(
+                            title = "اعلان‌ها",
+                            badge = state.notifications.size.toString(),
+                            expanded = notificationsExpanded,
+                            onToggle = { notificationsExpanded = !notificationsExpanded },
+                            actionLabel = "مشاهده همه",
+                            onAction = onNavigateNotifications,
+                        ) {
+                            NotificationsSectionContent(
+                                notifications = state.notifications,
+                                onNotificationClick = { item ->
+                                    item.deepLink?.let { link ->
+                                        DeepLinkParser.parse(Uri.parse(link))?.let(onNotificationDeepLink)
+                                    } ?: onNavigateNotifications()
+                                },
+                            )
+                        }
+                    }
+                }
+                item {
+                    RecentListingsSection(
+                        files = state.recentFiles,
+                        isLoading = false,
+                        onFileClick = onDatasetClick,
                     )
                 }
             }
@@ -172,7 +205,7 @@ private fun buildQuickActions(
     QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer, onNavigateContacts),
     QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight, onNavigateFiling),
     QuickAction("مخاطب جدید", DfIcons.Plus, DfColors.Amber, DfColors.AmberLight, onNavigateContacts),
-    QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight, onNavigateToday),
+    QuickAction("یادآور", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight, onNavigateToday),
 )
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")
@@ -218,7 +251,7 @@ internal fun HomeScreenContentPreview() {
             )
         }
         item {
-            TodayTasksSection(
+            TodayTasksSectionContent(
                 tasks = listOf(
                     HomeTaskItem(
                         id = "1",
@@ -227,23 +260,6 @@ internal fun HomeScreenContentPreview() {
                         subtitle = "خریدار — منطقه ونک",
                         type = HomeTaskType.Call,
                     ),
-                    HomeTaskItem(
-                        id = "2",
-                        time = "11:30",
-                        title = "بازدید ملک در سعادت‌آباد",
-                        subtitle = "فروش آپارتمان ۱۲۰ متر",
-                        type = HomeTaskType.Visit,
-                    ),
-                ),
-                isLoading = false,
-                onViewAll = {},
-            )
-        }
-        item {
-            NotificationsSection(
-                notifications = listOf(
-                    HomeNotificationItem("1", "۳ فایل جدید مناسب برای مشتری شما پیدا شد", "۲ دقیقه پیش", HomeNotificationType.NewMatch),
-                    HomeNotificationItem("2", "استخراج شماره ۲۴۵ با موفقیت انجام شد", "۱ ساعت پیش", HomeNotificationType.ExtractSuccess),
                 ),
                 onViewAll = {},
             )

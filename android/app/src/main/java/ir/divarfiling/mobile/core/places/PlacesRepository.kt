@@ -22,6 +22,15 @@ data class PlaceOption(
     val slug: String = "",
 )
 
+data class PlaceSelection(
+    val provinceName: String,
+    val cityId: String,
+    val cityName: String,
+    val districtId: String,
+    val cities: List<PlaceOption>,
+    val districts: List<PlaceOption>,
+)
+
 @Singleton
 class PlacesRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -32,6 +41,7 @@ class PlacesRepository @Inject constructor(
     private val provinces = mutableListOf<PlaceOption>()
     private val citiesByProvince = mutableMapOf<Int, MutableList<PlaceOption>>()
     private val districtsByCity = mutableMapOf<Int, MutableList<PlaceOption>>()
+    private var searchIndex: PlaceSearchIndex? = null
 
     @Synchronized
     fun ensureLoaded() {
@@ -65,7 +75,34 @@ class PlacesRepository @Inject constructor(
         }
         districtsByCity.values.forEach { list -> list.sortBy { it.name } }
 
+        searchIndex = PlaceSearchIndex.fromNodes(
+            nodes.map { PlaceSearchNode(it.id, it.name, it.type.orEmpty(), it.parent) },
+        )
         loaded = true
+    }
+
+    fun searchPlaces(query: String, limit: Int = 12): List<PlaceSearchResult> {
+        ensureLoaded()
+        return PlaceSearch.search(query, searchIndex ?: return emptyList(), limit)
+    }
+
+    fun resolvePlace(query: String): PlaceResolved? {
+        ensureLoaded()
+        return PlaceSearch.resolve(query, searchIndex ?: return null)
+    }
+
+    fun applyResolved(resolved: PlaceResolved): PlaceSelection {
+        ensureLoaded()
+        val cities = citiesForProvince(resolved.provinceName)
+        val districts = districtsForCity(resolved.cityId)
+        return PlaceSelection(
+            provinceName = resolved.provinceName,
+            cityId = resolved.cityId,
+            cityName = resolved.cityName,
+            districtId = resolved.districtId,
+            cities = cities,
+            districts = districts,
+        )
     }
 
     fun provinceNames(): List<String> {

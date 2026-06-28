@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
@@ -40,7 +41,7 @@ fun InsightsLevel1Content(insights: DatasetInsightsDto, modifier: Modifier = Mod
     ?: "اعتماد متوسط"
   val confHint = InsightsJson.string(conf, "level_hint")
 
-  Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+  Column(modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
     InsightsJson.string(insights.header, "headline")?.let {
       DfGlassCard {
         Text(it, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
@@ -108,7 +109,7 @@ fun InsightsLevel2Content(
   modifier: Modifier = Modifier,
 ) {
   val tabs = insights.l2?.tabs.orEmpty()
-  Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+  Column(modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
   if (tabs.isEmpty()) {
     insights.charts.take(4).forEach { DfChartCard(it) }
     return@Column
@@ -190,7 +191,7 @@ fun InsightsLevel3Content(insights: DatasetInsightsDto, modifier: Modifier = Mod
     Text("تحلیل کارشناسی برای این فایل در دسترس نیست.", color = DfColors.TextMuted)
     return
   }
-  Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+  Column(modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
     val verdict = l3.verdict
     InsightsJson.string(verdict, "headline")?.let { headline ->
       DfGlassCard {
@@ -246,11 +247,25 @@ private fun InsightValueRow(label: String, value: String) {
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .padding(vertical = 4.dp),
-    horizontalArrangement = Arrangement.SpaceBetween,
+      .padding(vertical = 6.dp),
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
   ) {
-    Text(label, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
-    Text(value, style = AppTypography.bodyDescription, fontWeight = FontWeight.Medium)
+    Text(
+      label,
+      style = AppTypography.bodyDescription,
+      color = DfColors.TextMuted,
+      modifier = Modifier.weight(1f),
+      maxLines = 2,
+      overflow = TextOverflow.Ellipsis,
+    )
+    Text(
+      value,
+      style = AppTypography.bodyDescription,
+      fontWeight = FontWeight.Medium,
+      modifier = Modifier.weight(1f),
+      maxLines = 2,
+      overflow = TextOverflow.Ellipsis,
+    )
   }
 }
 

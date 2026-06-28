@@ -63,38 +63,31 @@ fun TodayTasksSection(
         }
 
         DfPremiumCard {
-            if (tasks.isEmpty()) {
-                DfEmptyState(
-                    title = "کار امروز ندارید",
-                    subtitle = "یادآورها و پیگیری‌های سررسید اینجا نمایش داده می‌شوند",
-                    actionLabel = "مشاهده همه",
-                    onAction = onViewAll,
+            TodayTasksSectionContent(tasks = tasks, onViewAll = onViewAll)
+        }
+    }
+}
+
+@Composable
+fun TodayTasksSectionContent(
+    tasks: List<HomeTaskItem>,
+    onViewAll: () -> Unit,
+) {
+    if (tasks.isEmpty()) {
+        DfEmptyState(
+            title = "کار امروز ندارید",
+            subtitle = "یادآورها و پیگیری‌های سررسید اینجا نمایش داده می‌شوند",
+            actionLabel = "مشاهده همه",
+            onAction = onViewAll,
+        )
+    } else {
+        tasks.forEachIndexed { index, task ->
+            TodayTaskRow(task)
+            if (index < tasks.lastIndex) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = AppSpacing.xs),
+                    color = DfColors.OutlineSubtle,
                 )
-            } else {
-                tasks.forEachIndexed { index, task ->
-                    TodayTaskRow(task)
-                    if (index < tasks.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = AppSpacing.xs),
-                            color = DfColors.OutlineSubtle,
-                        )
-                    }
-                }
-                if (tasks.size >= 3) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = AppSpacing.xs),
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(
-                            imageVector = DfIcons.ChevronDown,
-                            contentDescription = null,
-                            tint = DfColors.TextMuted,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
             }
         }
     }

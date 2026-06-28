@@ -125,4 +125,6 @@ class ListingDetailViewModel @Inject constructor(
     fun clearPendingWhatsAppShare() = _uiState.update { it.copy(pendingWhatsAppShare = null) }
 
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
+
+    fun showMessage(message: String) = _uiState.update { it.copy(successMessage = message) }
 }
