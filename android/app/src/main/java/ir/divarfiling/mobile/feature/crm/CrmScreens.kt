@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -107,7 +106,7 @@ fun ContactsScreen(
     var statusFilter by remember { mutableStateOf(ContactsFilters.ALL_STATUSES) }
     var typeFilter by remember { mutableStateOf(ContactsFilters.ALL_TYPES) }
     var viewMode by remember { mutableStateOf(ContactsViewMode.List) }
-    val selectedIds = remember { mutableStateSetOf<Long>() }
+    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
 
     val statusForFilter = remember(statusFilter) {
         if (statusFilter == ContactsFilters.ALL_STATUSES) null else statusFilter
@@ -261,8 +260,11 @@ fun ContactsScreen(
                                             contact = contact,
                                             selected = selectedIds.contains(contact.id),
                                             onSelectedChange = { checked ->
-                                                if (checked) selectedIds.add(contact.id)
-                                                else selectedIds.remove(contact.id)
+                                                selectedIds = if (checked) {
+                                                    selectedIds + contact.id
+                                                } else {
+                                                    selectedIds - contact.id
+                                                }
                                             },
                                             onClick = { onContactClick(contact.id) },
                                             onCallClick = {
