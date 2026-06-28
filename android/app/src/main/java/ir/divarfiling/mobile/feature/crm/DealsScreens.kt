@@ -126,6 +126,7 @@ fun DealsScreen(
                         notificationCount = state.notificationBadgeCount,
                         onNotificationsClick = onNavigateNotifications,
                         onMenuClick = onNavigateSettings,
+                        onBack = onBack,
                     )
                 }
                 item {

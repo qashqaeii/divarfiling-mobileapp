@@ -3,7 +3,6 @@ package ir.divarfiling.mobile.feature.filing.components
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
@@ -18,14 +17,12 @@ fun FilingHubHeader(
 ) {
     DfHubPageHeader(
         title = "فایلینگ دیوار",
-        subtitle = "مدیریت، فیلتر و تحلیل فایل‌های استخراج‌شده از دیوار",
+        subtitle = "مدیریت و فیلتر فایل‌های استخراج‌شده از دیوار",
         titleIcon = DfIcons.Folder,
         userName = userName,
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,
         onMenuClick = onMenuClick,
-        titleColor = DfColors.Purple,
-        showBrandLogo = true,
         menuIcon = DfIcons.Menu,
         modifier = modifier,
     )

@@ -2,7 +2,6 @@ package ir.divarfiling.mobile.core.design.components
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -11,16 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppElevations
@@ -40,67 +35,14 @@ fun DfDetailPageHeader(
     titleIcon: ImageVector? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(42.dp)) {
-            Icon(
-                imageVector = DfIcons.ChevronLeft,
-                contentDescription = "بازگشت",
-                tint = DfColors.TextSecondary,
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = AppSpacing.xs),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = title,
-                    style = AppTypography.pageTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                titleIcon?.let { icon ->
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = DfColors.Purple,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-            subtitle?.takeIf { it.isNotBlank() }?.let { text ->
-                Text(
-                    text = text,
-                    style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.size(42.dp),
-            content = actions,
-        )
-    }
+    DfStandardPageHeader(
+        title = title,
+        subtitle = subtitle.orEmpty(),
+        titleIcon = titleIcon,
+        onBack = onBack,
+        modifier = modifier,
+        toolbarContent = actions,
+    )
 }
 
 @Composable

@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,13 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,6 +40,57 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+
+/**
+ * هدر استاندارد RTL:
+ * - عنوان و زیرعنوان در سمت راست (Start)
+ * - آواتار، اعلان، منو و بازگشت در سمت چپ (End)
+ */
+@Composable
+fun DfStandardPageHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String = "",
+    titleIcon: ImageVector? = null,
+    titleColor: Color = DfColors.TextPrimary,
+    userName: String? = null,
+    notificationCount: Int = 0,
+    onNotificationsClick: (() -> Unit)? = null,
+    onMenuClick: (() -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
+    menuIcon: ImageVector = DfIcons.Menu,
+    showBrandLogo: Boolean = false,
+    toolbarContent: @Composable (RowScope.() -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DfHeaderTitleBlock(
+            title = title,
+            subtitle = subtitle,
+            titleIcon = titleIcon,
+            titleColor = titleColor,
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = AppSpacing.sm),
+        )
+
+        DfHeaderToolbar(
+            userName = userName,
+            notificationCount = notificationCount,
+            onNotificationsClick = onNotificationsClick,
+            onMenuClick = onMenuClick,
+            onBack = onBack,
+            menuIcon = menuIcon,
+            showBrandLogo = showBrandLogo,
+            toolbarContent = toolbarContent,
+        )
+    }
+}
 
 @Composable
 fun DfHubPageHeader(
@@ -54,105 +105,26 @@ fun DfHubPageHeader(
     onBack: (() -> Unit)? = null,
     titleColor: Color = DfColors.TextPrimary,
     showBrandLogo: Boolean = false,
-    menuIcon: ImageVector = DfIcons.SlidersHorizontal,
-    toolbarActionsEnd: Boolean = false,
-    hideTitleSection: Boolean = false,
-    titleAlignment: Alignment.Horizontal = Alignment.End,
+    menuIcon: ImageVector = DfIcons.Menu,
     bottomContent: @Composable (() -> Unit)? = null,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        if (toolbarActionsEnd) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (onBack != null) {
-                        DfHubBackButton(onClick = onBack)
-                    }
-                    userName?.let { DfHubUserAvatar(it) }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (onNotificationsClick != null) {
-                        DfHubHeaderIconButton(
-                            icon = DfIcons.Bell,
-                            contentDescription = "اعلان‌ها",
-                            onClick = onNotificationsClick,
-                            badgeCount = notificationCount,
-                        )
-                    }
-                    if (onMenuClick != null) {
-                        DfHubHeaderIconButton(
-                            icon = menuIcon,
-                            contentDescription = "منو",
-                            onClick = onMenuClick,
-                        )
-                    }
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (onBack != null) {
-                        DfHubBackButton(onClick = onBack)
-                    }
-                    userName?.let { DfHubUserAvatar(it) }
-                    if (onNotificationsClick != null) {
-                        DfHubHeaderIconButton(
-                            icon = DfIcons.Bell,
-                            contentDescription = "اعلان‌ها",
-                            onClick = onNotificationsClick,
-                            badgeCount = notificationCount,
-                        )
-                    }
-                    if (onMenuClick != null) {
-                        DfHubHeaderIconButton(
-                            icon = menuIcon,
-                            contentDescription = "منو",
-                            onClick = onMenuClick,
-                        )
-                    }
-                }
-
-                if (!hideTitleSection) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        DfHubTitleBlock(
-                            title = title,
-                            subtitle = subtitle,
-                            titleIcon = titleIcon,
-                            titleColor = titleColor,
-                            horizontalAlignment = titleAlignment,
-                        )
-                        if (showBrandLogo) {
-                            DfHubBrandLogo()
-                        }
-                    }
-                }
-            }
-        }
-
+        DfStandardPageHeader(
+            title = title,
+            subtitle = subtitle,
+            titleIcon = titleIcon,
+            titleColor = titleColor,
+            userName = userName,
+            notificationCount = notificationCount,
+            onNotificationsClick = onNotificationsClick,
+            onMenuClick = onMenuClick,
+            onBack = onBack,
+            menuIcon = menuIcon,
+            showBrandLogo = showBrandLogo,
+        )
         bottomContent?.invoke()
     }
 }
@@ -169,63 +141,17 @@ fun DfGreetingHeader(
     showBrandLogo: Boolean = false,
     menuIcon: ImageVector = DfIcons.Menu,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            DfHubUserAvatar(userName)
-            Column(
-                modifier = Modifier.weight(1f, fill = false),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
-            ) {
-                Text(
-                    text = title,
-                    style = AppTypography.pageTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = subtitle,
-                    style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-
-        if (showBrandLogo) {
-            DfHubBrandLogo(modifier = Modifier.size(44.dp), logoSize = 28.dp)
-        } else if (onNotificationsClick != null || onMenuClick != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                onNotificationsClick?.let {
-                    DfHubHeaderIconButton(
-                        icon = DfIcons.Bell,
-                        contentDescription = "اعلان‌ها",
-                        onClick = it,
-                        badgeCount = notificationCount,
-                    )
-                }
-                onMenuClick?.let {
-                    DfHubHeaderIconButton(
-                        icon = menuIcon,
-                        contentDescription = "منو",
-                        onClick = it,
-                    )
-                }
-            }
-        }
-    }
+    DfStandardPageHeader(
+        title = title,
+        subtitle = subtitle,
+        userName = userName,
+        notificationCount = notificationCount,
+        onNotificationsClick = onNotificationsClick,
+        onMenuClick = onMenuClick,
+        menuIcon = menuIcon,
+        showBrandLogo = showBrandLogo,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -241,72 +167,33 @@ fun DfActionPageHeader(
     trailingContentDescription: String,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        DfHubHeaderIconButton(
-            icon = leadingIcon,
-            contentDescription = leadingContentDescription,
-            onClick = onLeadingClick,
-        )
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = AppSpacing.xs),
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = title,
-                    style = AppTypography.pageTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-                Icon(
-                    imageVector = titleIcon,
-                    contentDescription = null,
-                    tint = DfColors.Purple,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
-            Text(
-                text = subtitle,
-                style = AppTypography.bodyDescription,
-                color = DfColors.TextSecondary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
+    DfStandardPageHeader(
+        title = title,
+        subtitle = subtitle,
+        titleIcon = titleIcon,
+        onBack = onTrailingClick,
+        modifier = modifier,
+        toolbarContent = {
+            DfHubHeaderIconButton(
+                icon = leadingIcon,
+                contentDescription = leadingContentDescription,
+                onClick = onLeadingClick,
             )
-        }
-        DfHubHeaderIconButton(
-            icon = trailingIcon,
-            contentDescription = trailingContentDescription,
-            onClick = onTrailingClick,
-        )
-    }
+        },
+    )
 }
 
 @Composable
-private fun DfHubTitleBlock(
+private fun DfHeaderTitleBlock(
     title: String,
     subtitle: String,
-    titleIcon: ImageVector,
+    titleIcon: ImageVector?,
     titleColor: Color,
-    horizontalAlignment: Alignment.Horizontal,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        horizontalAlignment = horizontalAlignment,
+        modifier = modifier,
+        horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
     ) {
         Row(
@@ -318,23 +205,66 @@ private fun DfHubTitleBlock(
                 style = AppTypography.pageTitle,
                 fontWeight = FontWeight.Bold,
                 color = titleColor,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Icon(
-                imageVector = titleIcon,
-                contentDescription = null,
-                tint = DfColors.Purple,
-                modifier = Modifier.size(22.dp),
+            titleIcon?.let { icon ->
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        if (subtitle.isNotBlank()) {
+            Text(
+                text = subtitle,
+                style = AppTypography.bodyDescription,
+                color = DfColors.TextSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
-        Text(
-            text = subtitle,
-            style = AppTypography.bodyDescription,
-            color = DfColors.TextSecondary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+    }
+}
+
+@Composable
+private fun DfHeaderToolbar(
+    userName: String?,
+    notificationCount: Int,
+    onNotificationsClick: (() -> Unit)?,
+    onMenuClick: (() -> Unit)?,
+    onBack: (() -> Unit)?,
+    menuIcon: ImageVector,
+    showBrandLogo: Boolean,
+    toolbarContent: @Composable (RowScope.() -> Unit)?,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        onBack?.let { DfHubBackButton(onClick = it) }
+        userName?.let { DfHubUserAvatar(it) }
+        onNotificationsClick?.let {
+            DfHubHeaderIconButton(
+                icon = DfIcons.Bell,
+                contentDescription = "اعلان‌ها",
+                onClick = it,
+                badgeCount = notificationCount,
+            )
+        }
+        toolbarContent?.invoke(this)
+        onMenuClick?.let {
+            DfHubHeaderIconButton(
+                icon = menuIcon,
+                contentDescription = "منو",
+                onClick = it,
+            )
+        }
+        if (showBrandLogo) {
+            DfHubBrandLogo(modifier = Modifier.size(44.dp), logoSize = 28.dp)
+        }
     }
 }
 
@@ -342,7 +272,7 @@ private fun DfHubTitleBlock(
 private fun DfHubUserAvatar(userName: String) {
     Box {
         Surface(
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(44.dp),
             shape = CircleShape,
             color = DfColors.PurpleContainer,
             shadowElevation = AppElevations.subtle,
@@ -360,7 +290,7 @@ private fun DfHubUserAvatar(userName: String) {
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .size(14.dp)
+                .size(12.dp)
                 .clip(CircleShape)
                 .background(Color.White)
                 .padding(2.dp),
@@ -377,8 +307,8 @@ private fun DfHubUserAvatar(userName: String) {
 
 @Composable
 private fun DfHubBrandLogo(
-    modifier: Modifier = Modifier.size(52.dp),
-    logoSize: androidx.compose.ui.unit.Dp = 34.dp,
+    modifier: Modifier = Modifier.size(44.dp),
+    logoSize: androidx.compose.ui.unit.Dp = 28.dp,
 ) {
     Surface(
         modifier = modifier,
@@ -399,11 +329,12 @@ private fun DfHubBrandLogo(
 
 @Composable
 private fun DfHubBackButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(42.dp)) {
+    IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "بازگشت",
             tint = DfColors.TextSecondary,
+            modifier = Modifier.size(22.dp),
         )
     }
 }
@@ -420,10 +351,10 @@ internal fun DfHubHeaderIconButton(
         Surface(
             onClick = onClick,
             shape = AppShapes.IconContainer,
-            color = DfColors.Surface.copy(alpha = 0.85f),
+            color = DfColors.Surface.copy(alpha = 0.92f),
             shadowElevation = AppElevations.subtle,
             border = BorderStroke(1.dp, DfColors.GlassBorder),
-            modifier = Modifier.size(42.dp),
+            modifier = Modifier.size(40.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
@@ -456,16 +387,27 @@ internal fun DfHubHeaderIconButton(
 
 @Preview(showBackground = true, widthDp = 360)
 @Composable
-private fun DfHubPageHeaderPreview() {
+private fun DfStandardPageHeaderPreview() {
     DivarFilingTheme {
-        DfHubPageHeader(
-            title = "تنظیمات",
-            subtitle = "پروفایل، اعلان‌ها و امنیت",
-            titleIcon = DfIcons.Settings,
-            userName = "حسین",
-            notificationCount = 3,
-            onNotificationsClick = {},
-            onMenuClick = {},
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)) {
+            DfGreetingHeader(
+                title = "سلام حسین 👋",
+                subtitle = "خوش آمدی به فایلینگ دیوار",
+                userName = "حسین",
+                notificationCount = 3,
+                onNotificationsClick = {},
+                onMenuClick = {},
+            )
+            DfHubPageHeader(
+                title = "فایلینگ دیوار",
+                subtitle = "مدیریت فایل‌های استخراج‌شده",
+                titleIcon = DfIcons.Folder,
+                userName = "حسین",
+                notificationCount = 9,
+                onNotificationsClick = {},
+                onMenuClick = {},
+                menuIcon = DfIcons.Menu,
+            )
+        }
     }
 }

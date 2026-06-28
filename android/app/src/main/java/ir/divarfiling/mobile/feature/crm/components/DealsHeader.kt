@@ -14,6 +14,7 @@ fun DealsHeader(
     onNotificationsClick: () -> Unit,
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     DfHubPageHeader(
         title = "معاملات",
@@ -23,6 +24,8 @@ fun DealsHeader(
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,
         onMenuClick = onMenuClick,
+        onBack = onBack,
+        menuIcon = DfIcons.Menu,
         modifier = modifier,
     )
 }

@@ -14,6 +14,7 @@ fun ContactsHeader(
     onNotificationsClick: () -> Unit,
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     DfHubPageHeader(
         title = "مخاطبین",
@@ -23,6 +24,8 @@ fun ContactsHeader(
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,
         onMenuClick = onMenuClick,
+        onBack = onBack,
+        menuIcon = DfIcons.Menu,
         modifier = modifier,
     )
 }

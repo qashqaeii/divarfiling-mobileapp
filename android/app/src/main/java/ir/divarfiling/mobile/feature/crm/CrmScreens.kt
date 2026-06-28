@@ -161,6 +161,7 @@ fun ContactsScreen(
                         notificationCount = state.notificationBadgeCount,
                         onNotificationsClick = onNavigateNotifications,
                         onMenuClick = onNavigateSettings,
+                        onBack = onBack,
                     )
                 }
                 item {
@@ -628,7 +629,8 @@ fun CrmHubScreen(
         isRefreshing = state.isRefreshing,
         onRefresh = viewModel::refresh,
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .statusBarsPadding(),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

@@ -24,6 +24,7 @@ fun ToolsHubHeader(
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,
         onMenuClick = onMenuClick,
+        menuIcon = DfIcons.Menu,
         onBack = onBack,
         modifier = modifier,
     )
