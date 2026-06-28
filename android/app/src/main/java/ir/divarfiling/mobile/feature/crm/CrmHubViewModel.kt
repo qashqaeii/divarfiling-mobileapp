@@ -69,7 +69,7 @@ class CrmHubViewModel @Inject constructor(
                         activeDealsCount = stats.deals,
                         dealsTotalValue = dealsTotal,
                         propertiesCount = stats.properties,
-                        openCasesCount = stats.contactsInProgress.coerceAtLeast(stats.overdueFollowups),
+                        openCasesCount = stats.contactsInProgress + stats.overdueFollowups,
                     )
                 }
             }
