@@ -39,4 +39,6 @@ object DfIcons {
     val MoreVertical: ImageVector = LucideIcons.EllipsisVertical
     val BarChart: ImageVector = LucideIcons.ChartColumn
     val Bot: ImageVector = LucideIcons.Bot
+    val Filter: ImageVector = LucideIcons.Filter
+    val AlarmClock: ImageVector = LucideIcons.AlarmClock
 }

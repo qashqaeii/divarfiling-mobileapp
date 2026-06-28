@@ -13,6 +13,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.FormatUtils
+import ir.divarfiling.mobile.feature.crm.components.CrmContactsIllustration
+import ir.divarfiling.mobile.feature.crm.components.CrmDealsIllustration
+import ir.divarfiling.mobile.feature.crm.components.CrmHubFeatureCard
+import ir.divarfiling.mobile.feature.crm.components.CrmHubFeatureCardSkeleton
+import ir.divarfiling.mobile.feature.crm.components.CrmHubHeader
+import ir.divarfiling.mobile.feature.crm.components.CrmHubStatChip
+import ir.divarfiling.mobile.feature.crm.components.CrmPropertiesIllustration
+import ir.divarfiling.mobile.feature.crm.components.CrmQuickAction
+import ir.divarfiling.mobile.feature.crm.components.CrmQuickActionsBar
+import ir.divarfiling.mobile.feature.crm.components.CrmTodayIllustration
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
@@ -523,86 +535,202 @@ fun CrmHubScreen(
     onToday: () -> Unit,
     onDeals: () -> Unit = {},
     onProperties: () -> Unit = {},
+    onQuickFilter: () -> Unit = onContacts,
+    onQuickNote: () -> Unit = onContacts,
+    onQuickReminder: () -> Unit = onToday,
+    onQuickContact: () -> Unit = onContacts,
+    viewModel: CrmHubViewModel = hiltViewModel(),
 ) {
-    Scaffold(topBar = { DfTopBar(title = "مدیریت مشتری", showLogo = true) }) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                "پیگیری مشتریان، یادآورها و سرنخ‌های جدید",
-                style = MaterialTheme.typography.bodyMedium,
-                color = DfColors.TextSecondary,
-            )
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val dealsValueLabel = if (state.dealsTotalValue > 0) {
+        FormatUtils.formatPriceShort(state.dealsTotalValue) + " تومان"
+    } else {
+        "—"
+    }
 
-            CrmHubCard(
-                title = "مخاطبین",
-                subtitle = "لیست کامل مشتریان و سرنخ‌ها",
-                icon = Icons.Default.People,
-                onClick = onContacts,
-            )
-            CrmHubCard(
-                title = "کارهای امروز",
-                subtitle = "پیگیری‌های امروز و معوق",
-                icon = Icons.Default.CalendarToday,
-                onClick = onToday,
-            )
-            CrmHubCard(
-                title = "معاملات",
-                subtitle = "پایپ‌لاین فروش و اجاره",
-                icon = Icons.Default.Handshake,
-                onClick = onDeals,
-            )
-            CrmHubCard(
-                title = "املاک CRM",
-                subtitle = "ملک‌های شخصی و پرونده‌ها",
-                icon = Icons.Default.Apartment,
-                onClick = onProperties,
-            )
+    DfPullRefresh(
+        isRefreshing = state.isRefreshing,
+        onRefresh = viewModel::refresh,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DfColors.Background),
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = AppSpacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+        ) {
+            item {
+                CrmHubHeader(userName = state.userName)
+            }
+
+            if (state.isLoading) {
+                items(4) {
+                    CrmHubFeatureCardSkeleton(
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            } else {
+                item {
+                    CrmHubFeatureCard(
+                        title = "مخاطبین",
+                        subtitle = "لیست کامل مشتریان و سرنخ‌های جدید",
+                        icon = DfIcons.Users,
+                        tint = DfColors.Purple,
+                        background = DfColors.PurpleContainer,
+                        cardBackground = DfColors.PurpleContainer.copy(alpha = 0.38f),
+                        stats = listOf(
+                            CrmHubStatChip("مخاطبین", state.contactsCount.toString(), DfIcons.Users),
+                            CrmHubStatChip("سرنخ‌های جدید", state.newLeadsCount.toString(), DfIcons.UserPlus),
+                        ),
+                        onClick = onContacts,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        illustration = {
+                            CrmContactsIllustration(
+                                tint = DfColors.Purple,
+                                background = DfColors.PurpleContainer,
+                            )
+                        },
+                    )
+                }
+                item {
+                    CrmHubFeatureCard(
+                        title = "کارهای امروز",
+                        subtitle = "پیگیری‌های امروز و معوق",
+                        icon = DfIcons.Calendar,
+                        tint = DfColors.Blue,
+                        background = DfColors.BlueLight,
+                        cardBackground = DfColors.BlueLight.copy(alpha = 0.55f),
+                        stats = listOf(
+                            CrmHubStatChip("کارهای امروز", state.todayTasksCount.toString(), DfIcons.ListTodo),
+                            CrmHubStatChip("معوق", state.overdueCount.toString(), DfIcons.Clock),
+                        ),
+                        onClick = onToday,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        illustration = {
+                            CrmTodayIllustration(
+                                tint = DfColors.Blue,
+                                background = DfColors.BlueLight,
+                            )
+                        },
+                    )
+                }
+                item {
+                    CrmHubFeatureCard(
+                        title = "معاملات",
+                        subtitle = "پایپ‌لاین فروش و اجاره",
+                        icon = DfIcons.Handshake,
+                        tint = DfColors.Green,
+                        background = DfColors.GreenLight,
+                        cardBackground = DfColors.GreenLight.copy(alpha = 0.55f),
+                        stats = listOf(
+                            CrmHubStatChip("معاملات فعال", state.activeDealsCount.toString(), DfIcons.Handshake),
+                            CrmHubStatChip("ارزش کل", dealsValueLabel, DfIcons.BarChart),
+                        ),
+                        onClick = onDeals,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        illustration = {
+                            CrmDealsIllustration(
+                                tint = DfColors.Green,
+                                background = DfColors.GreenLight,
+                            )
+                        },
+                    )
+                }
+                item {
+                    CrmHubFeatureCard(
+                        title = "املاک CRM",
+                        subtitle = "ملک‌های شخصی و پرونده‌ها",
+                        icon = DfIcons.Building,
+                        tint = DfColors.Amber,
+                        background = DfColors.AmberLight,
+                        cardBackground = DfColors.AmberLight.copy(alpha = 0.55f),
+                        stats = listOf(
+                            CrmHubStatChip("ملک‌های ثبت‌شده", state.propertiesCount.toString(), DfIcons.Building),
+                            CrmHubStatChip("پرونده‌های باز", state.openCasesCount.toString(), DfIcons.Folder),
+                        ),
+                        onClick = onProperties,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        illustration = {
+                            CrmPropertiesIllustration(
+                                tint = DfColors.Amber,
+                                background = DfColors.AmberLight,
+                            )
+                        },
+                    )
+                }
+            }
+
+            item {
+                CrmQuickActionsBar(
+                    actions = listOf(
+                        CrmQuickAction("فیلتر پیشرفته", "جستجوی دقیق", DfIcons.Filter, onQuickFilter),
+                        CrmQuickAction("یادداشت سریع", "ثبت یادداشت", DfIcons.File, onQuickNote),
+                        CrmQuickAction("یادآور جدید", "تنظیم یادآور", DfIcons.AlarmClock, onQuickReminder),
+                        CrmQuickAction("مخاطب جدید", "افزودن سریع", DfIcons.UserPlus, onQuickContact),
+                    ),
+                    modifier = Modifier
+                        .padding(horizontal = AppSpacing.screenHorizontal)
+                        .padding(top = AppSpacing.xs),
+                )
+            }
         }
     }
 }
 
+@Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "CRM Hub 360×800")
+@Preview(showBackground = true, widthDp = 390, heightDp = 844, name = "CRM Hub 390×844")
+@Preview(showBackground = true, widthDp = 412, heightDp = 915, name = "CRM Hub 412×915")
 @Composable
-private fun CrmHubCard(
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-) {
-    DfCard(onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(icon, contentDescription = null, tint = DfColors.Purple)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+private fun CrmHubScreenPreview() {
+    DivarFilingTheme {
+        CrmHubScreenContentPreview()
+    }
+}
+
+@Composable
+internal fun CrmHubScreenContentPreview() {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DfColors.Background),
+        contentPadding = PaddingValues(
+            horizontal = AppSpacing.screenHorizontal,
+            vertical = AppSpacing.md,
+        ),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+    ) {
+        item { CrmHubHeader(userName = "حسین") }
+        item {
+            CrmHubFeatureCard(
+                title = "مخاطبین",
+                subtitle = "لیست کامل مشتریان و سرنخ‌های جدید",
+                icon = DfIcons.Users,
+                tint = DfColors.Purple,
+                background = DfColors.PurpleContainer,
+                cardBackground = DfColors.PurpleContainer.copy(alpha = 0.38f),
+                stats = listOf(
+                    CrmHubStatChip("مخاطبین", "248", DfIcons.Users),
+                    CrmHubStatChip("سرنخ‌های جدید", "32", DfIcons.UserPlus),
+                ),
+                onClick = {},
+                illustration = {
+                    CrmContactsIllustration(
+                        tint = DfColors.Purple,
+                        background = DfColors.PurpleContainer,
                     )
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DfColors.TextSecondary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = DfColors.TextMuted)
+                },
+            )
+        }
+        item {
+            CrmQuickActionsBar(
+                actions = listOf(
+                    CrmQuickAction("فیلتر پیشرفته", "جستجوی دقیق", DfIcons.Filter) {},
+                    CrmQuickAction("یادآور جدید", "تنظیم یادآور", DfIcons.AlarmClock) {},
+                    CrmQuickAction("مخاطب جدید", "افزودن سریع", DfIcons.UserPlus) {},
+                    CrmQuickAction("یادداشت سریع", "ثبت یادداشت", DfIcons.File) {},
+                ),
+            )
         }
     }
 }
