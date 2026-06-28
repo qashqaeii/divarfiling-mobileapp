@@ -459,8 +459,10 @@ fun PropertiesScreen(
                 }
                 item {
                     DfFilterChipRow(
-                        options = listOf(DfFilterOption(null, "همه وضعیت‌ها")) +
-                            PropertyConstants.TX_STATUSES.map { DfFilterOption(it, it) },
+                        options = buildList {
+                            add(DfFilterOption<String?>(null, "همه وضعیت‌ها"))
+                            addAll(PropertyConstants.TX_STATUSES.map { DfFilterOption(it, it) })
+                        },
                         selected = state.transactionStatus,
                         onSelect = { viewModel.onTransactionStatusChange(it); viewModel.search() },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -468,8 +470,10 @@ fun PropertiesScreen(
                 }
                 item {
                     DfFilterChipRow(
-                        options = listOf(DfFilterOption(null, "همه معاملات")) +
-                            PropertyConstants.DEAL_MODES.map { DfFilterOption(it, it) },
+                        options = buildList {
+                            add(DfFilterOption<String?>(null, "همه معاملات"))
+                            addAll(PropertyConstants.DEAL_MODES.map { DfFilterOption(it, it) })
+                        },
                         selected = state.dealMode,
                         onSelect = { viewModel.onDealModeChange(it); viewModel.search() },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -477,8 +481,10 @@ fun PropertiesScreen(
                 }
                 item {
                     DfFilterChipRow(
-                        options = listOf(DfFilterOption(null, "همه انواع")) +
-                            PropertyConstants.PROPERTY_TYPES.map { DfFilterOption(it, it) },
+                        options = buildList {
+                            add(DfFilterOption<String?>(null, "همه انواع"))
+                            addAll(PropertyConstants.PROPERTY_TYPES.map { DfFilterOption(it, it) })
+                        },
                         selected = state.propertyType,
                         onSelect = { viewModel.onPropertyTypeChange(it); viewModel.search() },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),

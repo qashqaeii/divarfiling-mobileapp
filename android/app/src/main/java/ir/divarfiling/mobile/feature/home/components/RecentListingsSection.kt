@@ -46,8 +46,6 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.RecentFileItem
 
-import ir.divarfiling.mobile.core.design.DateUtils
-
 private fun fileTitle(file: RecentFileItem): String {
     val district = file.district?.trim().orEmpty()
     val transaction = when {
