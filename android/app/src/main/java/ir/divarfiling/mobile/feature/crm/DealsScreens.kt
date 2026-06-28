@@ -2,23 +2,31 @@ package ir.divarfiling.mobile.feature.crm
 
 import ir.divarfiling.mobile.core.design.DfColors
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
+import androidx.compose.ui.text.font.FontWeight
+import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfFab
+import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
+import ir.divarfiling.mobile.core.design.components.DfFilterOption
+import ir.divarfiling.mobile.core.design.components.DfSearchField
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -30,106 +38,204 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.FormatUtils
-import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfDropdown
-import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
+import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
-import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
-import ir.divarfiling.mobile.core.design.components.DfFilterOption
-import ir.divarfiling.mobile.core.design.components.DfFab
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
-import ir.divarfiling.mobile.core.design.components.DfSearchField
-import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.design.components.DfTopBar
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.PropertyDto
+import ir.divarfiling.mobile.feature.crm.components.DealGridCard
+import ir.divarfiling.mobile.feature.crm.components.DealListCard
+import ir.divarfiling.mobile.feature.crm.components.DealsActionBar
+import ir.divarfiling.mobile.feature.crm.components.DealsFilterBar
+import ir.divarfiling.mobile.feature.crm.components.DealsFilters
+import ir.divarfiling.mobile.feature.crm.components.DealsHeader
+import ir.divarfiling.mobile.feature.crm.components.DealsNewFab
+import ir.divarfiling.mobile.feature.crm.components.DealsPipelineBar
+import ir.divarfiling.mobile.feature.crm.components.DealsSortOrder
+import ir.divarfiling.mobile.feature.crm.components.DealsStatsRow
+import ir.divarfiling.mobile.feature.crm.components.DealsViewMode
+import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DealsScreen(
     onBack: () -> Unit = {},
     onDealClick: (Long) -> Unit = {},
+    onNavigateContacts: () -> Unit = {},
+    onNavigateNotifications: () -> Unit = {},
+    onNavigateSettings: () -> Unit = {},
     viewModel: DealsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var ownerFilter by remember { mutableStateOf(DealsFilters.ALL_OWNERS) }
+    var sortLabel by remember { mutableStateOf(DealsFilters.NEWEST) }
+    var viewMode by remember { mutableStateOf(DealsViewMode.List) }
+
+    val sortOrder = if (sortLabel == DealsFilters.OLDEST) DealsSortOrder.Oldest else DealsSortOrder.Newest
+    val displayedDeals = remember(state.deals, ownerFilter, sortOrder, state.query) {
+        DealsFilters.filterAndSortDeals(
+            deals = state.deals,
+            ownerFilter = ownerFilter,
+            sortOrder = sortOrder,
+            localQuery = state.query,
+        )
+    }
 
     Scaffold(
-        topBar = { DfTopBar(title = "معاملات", onBack = onBack) },
+        containerColor = DfColors.Background,
         floatingActionButton = {
-            DfFab(
-                onClick = { viewModel.toggleCreate(true) },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                contentDescription = "افزودن معامله",
-            )
+            DealsNewFab(onClick = { viewModel.toggleCreate(true) })
         },
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(DfColors.Background)
+                .statusBarsPadding(),
         ) {
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfSearchField(
-                        value = state.query,
-                        onValueChange = viewModel::onQueryChange,
-                        placeholder = "جستجوی معامله…",
-                        onSearch = viewModel::search,
+                    DealsHeader(
+                        userName = state.userName,
+                        notificationCount = state.notificationBadgeCount,
+                        onNotificationsClick = onNavigateNotifications,
+                        onMenuClick = onNavigateSettings,
                     )
                 }
                 item {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(state.stages.take(5)) { stage ->
-                            val selected = state.selectedStage == stage
-                            TextButton(onClick = { viewModel.selectStage(stage) }) {
-                                DfBadge(
-                                    stage,
-                                    color = if (selected) DfColors.PurpleContainer else DfColors.SurfaceVariant,
-                                    textColor = if (selected) DfColors.Purple else DfColors.TextSecondary,
-                                )
-                            }
-                        }
+                    DealsActionBar(
+                        onNewDeal = { viewModel.toggleCreate(true) },
+                        onContactsClick = onNavigateContacts,
+                        onSalesStagesClick = viewModel::clearStageFilter,
+                    )
+                }
+                if (state.deals.isNotEmpty() || state.pipelineColumns.isNotEmpty()) {
+                    item {
+                        DealsStatsRow(
+                            activeCount = DealsFilters.activeCount(state.deals),
+                            pipelineValueLabel = DealsFilters.formatCompactToman(
+                                DealsFilters.pipelineValue(state.deals, state.pipelineColumns),
+                            ),
+                            weightedForecastLabel = DealsFilters.formatCompactToman(
+                                DealsFilters.weightedForecast(state.deals),
+                            ),
+                            closedCommissionLabel = DealsFilters.formatCompactToman(
+                                DealsFilters.closedCommission(state.deals),
+                            ),
+                            closingRate = DealsFilters.closingRate(state.deals),
+                        )
                     }
                 }
                 if (state.pipelineColumns.isNotEmpty()) {
-                    item { DfSectionHeader("خلاصه پایپ‌لاین") }
                     item {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(state.pipelineColumns) { col ->
-                                DfPremiumCard {
-                                    Column(Modifier.padding(12.dp)) {
-                                        Text(col.stage, style = AppTypography.labelSmall)
-                                        Text("${col.count} معامله", style = AppTypography.cardTitle)
+                        DealsPipelineBar(
+                            columns = state.pipelineColumns,
+                            onStageClick = viewModel::selectStage,
+                        )
+                    }
+                }
+                item {
+                    DealsFilterBar(
+                        owners = DealsFilters.uniqueOwners(state.deals),
+                        selectedOwner = ownerFilter,
+                        selectedSort = sortLabel,
+                        viewMode = viewMode,
+                        onOwnerChange = { ownerFilter = it },
+                        onSortChange = { sortLabel = it },
+                        onResetFilters = {
+                            ownerFilter = DealsFilters.ALL_OWNERS
+                            sortLabel = DealsFilters.NEWEST
+                            viewModel.clearStageFilter()
+                        },
+                        onViewModeChange = { viewMode = it },
+                        query = state.query,
+                        onQueryChange = viewModel::onQueryChange,
+                        onSearch = viewModel::search,
+                    )
+                }
+                state.error?.let { error ->
+                    item {
+                        DfErrorBanner(
+                            error,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
+                }
+                if (state.isLoading && state.deals.isEmpty()) {
+                    item {
+                        DfCardListSkeleton(
+                            count = 5,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
+                } else if (displayedDeals.isEmpty() && state.error == null) {
+                    item {
+                        DfEmptyState(
+                            title = if (state.deals.isEmpty()) "معامله‌ای نیست" else "نتیجه‌ای با این فیلتر نیست",
+                            subtitle = if (state.deals.isEmpty()) {
+                                "با «معامله جدید» یک فرصت فروش بسازید"
+                            } else {
+                                "فیلترها یا جستجو را تغییر دهید"
+                            },
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
+                } else {
+                    item {
+                        ExtractSectionCard(
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                                if (viewMode == DealsViewMode.Grid) {
+                                    displayedDeals.chunked(2).forEach { rowItems ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                        ) {
+                                            rowItems.forEach { deal ->
+                                                DealGridCard(
+                                                    deal = deal,
+                                                    onClick = { onDealClick(deal.id) },
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                            }
+                                            if (rowItems.size == 1) {
+                                                Box(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    displayedDeals.forEach { deal ->
+                                        DealListCard(
+                                            deal = deal,
+                                            onClick = { onDealClick(deal.id) },
+                                        )
                                     }
                                 }
                             }
                         }
-                    }
-                }
-                state.error?.let { item { DfErrorBanner(it) } }
-                if (state.isLoading && state.deals.isEmpty()) {
-                    item { DfCardListSkeleton(count = 5) }
-                } else if (state.deals.isEmpty()) {
-                    item { DfEmptyState(title = "معامله‌ای نیست", subtitle = "با + معامله جدید بسازید") }
-                } else {
-                    items(state.deals, key = { it.id }) { deal ->
-                        DealRow(deal, onClick = { onDealClick(deal.id) })
                     }
                 }
             }
@@ -165,22 +271,6 @@ fun DealsScreen(
             confirmButton = { TextButton(onClick = viewModel::submitCreate) { Text("ثبت") } },
             dismissButton = { TextButton(onClick = { viewModel.toggleCreate(false) }) { Text("انصراف") } },
         )
-    }
-}
-
-@Composable
-private fun DealRow(deal: DealDto, onClick: () -> Unit) {
-    DfPremiumCard(onClick = onClick) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(deal.title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-            deal.stage?.let { DfBadge(it) }
-            deal.customerName?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
-            }
-            deal.amount?.let {
-                Text(FormatUtils.formatPriceToman(it), style = AppTypography.bodyDescription, color = DfColors.Purple)
-            }
-        }
     }
 }
 

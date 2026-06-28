@@ -11,7 +11,9 @@ import ir.divarfiling.mobile.core.network.DealUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyUpdateRequest
+import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.ApiResult
+import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.DealsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,16 +37,34 @@ data class DealsUiState(
     val createTitle: String = "",
     val createCustomerId: String = "",
     val createAmount: String = "",
+    val userName: String = "",
+    val notificationBadgeCount: Int = 0,
 )
 
 @HiltViewModel
 class DealsViewModel @Inject constructor(
     private val repository: DealsRepository,
+    private val sessionStore: SessionStore,
+    private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DealsUiState())
     val uiState: StateFlow<DealsUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            sessionStore.currentUser.collect { user ->
+                _uiState.update {
+                    it.copy(userName = user?.fullName?.substringBefore(" ") ?: "کاربر")
+                }
+            }
+        }
+        viewModelScope.launch {
+            when (val result = dashboardRepository.getDashboard()) {
+                is ApiResult.Success ->
+                    _uiState.update { it.copy(notificationBadgeCount = result.data.notificationsUnread) }
+                is ApiResult.Error -> Unit
+            }
+        }
         load()
     }
 
@@ -88,9 +108,16 @@ class DealsViewModel @Inject constructor(
 
     fun onQueryChange(v: String) = _uiState.update { it.copy(query = v) }
     fun search() = load()
-    fun selectStage(stage: String?) {
+    fun selectStage(stage: String) {
         _uiState.update { it.copy(selectedStage = if (it.selectedStage == stage) null else stage) }
         load()
+    }
+
+    fun clearStageFilter() {
+        if (_uiState.value.selectedStage != null) {
+            _uiState.update { it.copy(selectedStage = null) }
+            load()
+        }
     }
 
     fun toggleCreate(show: Boolean) = _uiState.update { it.copy(showCreateDialog = show) }

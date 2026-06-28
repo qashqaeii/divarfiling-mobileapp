@@ -197,6 +197,9 @@ fun DivarFilingNavHost(
                         DealsScreen(
                             onBack = { navController.popBackStack() },
                             onDealClick = { id -> navController.navigate(Routes.dealDetail(id)) },
+                            onNavigateContacts = { navController.navigate(Routes.CRM_CONTACTS) },
+                            onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                            onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                         )
                     }
                     composable(

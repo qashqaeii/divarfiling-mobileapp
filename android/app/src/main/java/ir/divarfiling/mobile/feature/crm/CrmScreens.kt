@@ -67,6 +67,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -384,19 +385,60 @@ fun TodayScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(TodayFilterTab.All) }
+    var showDoneSummary by remember { mutableStateOf(false) }
 
     val filterChips = state.data?.let { today ->
-        listOf(
-            TodayFilterChip(TodayFilterTab.All, "همه", TodayFilters.todayCount(today), DfIcons.LayoutGrid),
-            TodayFilterChip(TodayFilterTab.Overdue, "معوق", TodayFilters.overdueCount(today), DfIcons.Clock),
-            TodayFilterChip(TodayFilterTab.Done, "انجام‌شده", TodayFilters.doneCount(today), DfIcons.CircleCheck),
-            TodayFilterChip(TodayFilterTab.Reminders, "یادآورها", TodayFilters.remindersCount(today), DfIcons.Bell),
-        )
+        buildList {
+            add(
+                TodayFilterChip(
+                    TodayFilterTab.All,
+                    "همه",
+                    TodayFilters.todayCount(today),
+                    DfIcons.LayoutGrid,
+                ),
+            )
+            add(
+                TodayFilterChip(
+                    TodayFilterTab.Overdue,
+                    "معوق",
+                    TodayFilters.overdueCount(today),
+                    DfIcons.Clock,
+                ),
+            )
+            if (TodayFilters.canFilterByDone(today)) {
+                add(
+                    TodayFilterChip(
+                        TodayFilterTab.Done,
+                        "انجام‌شده",
+                        TodayFilters.doneCount(today),
+                        DfIcons.CircleCheck,
+                    ),
+                )
+            }
+            add(
+                TodayFilterChip(
+                    TodayFilterTab.Reminders,
+                    "یادآورها",
+                    TodayFilters.remindersCount(today),
+                    DfIcons.Bell,
+                ),
+            )
+        }
     } ?: emptyList()
 
     val displayedEntries = state.data?.let { today ->
         TodayFilters.filterEntries(today, selectedTab)
     } ?: emptyList()
+
+    LaunchedEffect(state.data, selectedTab) {
+        val today = state.data ?: return@LaunchedEffect
+        if (selectedTab == TodayFilterTab.Done && !TodayFilters.canFilterByDone(today)) {
+            if (TodayFilters.doneCount(today) > 0) {
+                showDoneSummary = true
+            }
+            selectedTab = TodayFilterTab.All
+        }
+    }
 
     Scaffold(
         containerColor = DfColors.Background,
@@ -421,7 +463,10 @@ fun TodayScreen(
                 item {
                     TodayHeader(
                         onBack = onBack,
-                        onFilterClick = { selectedTab = TodayFilterTab.All },
+                        onFilterClick = {
+                            showDoneSummary = false
+                            selectedTab = TodayFilterTab.All
+                        },
                     )
                 }
                 state.error?.let { error ->
@@ -447,9 +492,23 @@ fun TodayScreen(
                             todayCount = TodayFilters.todayCount(today),
                             doneCount = TodayFilters.doneCount(today),
                             overdueCount = TodayFilters.overdueCount(today),
-                            onTodayClick = { selectedTab = TodayFilterTab.All },
-                            onDoneClick = { selectedTab = TodayFilterTab.Done },
-                            onOverdueClick = { selectedTab = TodayFilterTab.Overdue },
+                            onTodayClick = {
+                                showDoneSummary = false
+                                selectedTab = TodayFilterTab.All
+                            },
+                            onDoneClick = {
+                                if (TodayFilters.canFilterByDone(today)) {
+                                    showDoneSummary = false
+                                    selectedTab = TodayFilterTab.Done
+                                } else if (TodayFilters.doneCount(today) > 0) {
+                                    showDoneSummary = true
+                                    selectedTab = TodayFilterTab.All
+                                }
+                            },
+                            onOverdueClick = {
+                                showDoneSummary = false
+                                selectedTab = TodayFilterTab.Overdue
+                            },
                         )
                     }
                     item {
@@ -463,22 +522,26 @@ fun TodayScreen(
                         TodayFilterTabsRow(
                             chips = filterChips,
                             selectedTab = selectedTab,
-                            onTabSelected = { selectedTab = it },
+                            onTabSelected = {
+                                showDoneSummary = false
+                                selectedTab = it
+                            },
                         )
                     }
-                    if (displayedEntries.isEmpty()) {
+                    if (showDoneSummary) {
+                        item {
+                            val doneCount = TodayFilters.doneCount(today)
+                            DfEmptyState(
+                                title = "$doneCount کار امروز انجام شده",
+                                subtitle = "کارهای تکمیل‌شده از صف امروز حذف می‌شوند و در این لیست نمایش داده نمی‌شوند.",
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                    } else if (displayedEntries.isEmpty()) {
                         item {
                             DfEmptyState(
-                                title = if (selectedTab == TodayFilterTab.Done) {
-                                    "کار انجام‌شده‌ای برای نمایش نیست"
-                                } else {
-                                    "کاری برای امروز نیست"
-                                },
-                                subtitle = if (selectedTab == TodayFilterTab.Done) {
-                                    "کارهای تکمیل‌شده در این لیست نمایش داده نمی‌شوند"
-                                } else {
-                                    "همه پیگیری‌ها انجام شده — عالی!"
-                                },
+                                title = "کاری برای امروز نیست",
+                                subtitle = "همه پیگیری‌ها انجام شده — عالی!",
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }

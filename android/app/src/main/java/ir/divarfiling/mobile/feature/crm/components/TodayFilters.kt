@@ -22,12 +22,21 @@ object TodayFilters {
         return overdue + current
     }
 
+    fun doneEntries(today: TodayData): List<TodayTaskEntry> {
+        if (today.done.isNotEmpty()) {
+            return today.done.map { TodayTaskEntry(it, isOverdue = false) }
+        }
+        return allEntries(today).filter { it.item.reminder?.done == true }
+    }
+
+    fun canFilterByDone(today: TodayData): Boolean = doneEntries(today).isNotEmpty()
+
     fun filterEntries(today: TodayData, tab: TodayFilterTab): List<TodayTaskEntry> {
         val all = allEntries(today)
         return when (tab) {
             TodayFilterTab.All -> all
             TodayFilterTab.Overdue -> all.filter { it.isOverdue }
-            TodayFilterTab.Done -> emptyList()
+            TodayFilterTab.Done -> doneEntries(today)
             TodayFilterTab.Reminders -> all.filter { it.item.reminder != null }
         }
     }
@@ -35,7 +44,7 @@ object TodayFilters {
     fun todayCount(today: TodayData): Int =
         today.stats?.total ?: (today.overdue.size + today.today.size)
 
-    fun doneCount(today: TodayData): Int = today.stats?.done ?: 0
+    fun doneCount(today: TodayData): Int = today.stats?.done ?: doneEntries(today).size
 
     fun overdueCount(today: TodayData): Int = today.overdue.size
 

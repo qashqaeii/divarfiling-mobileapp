@@ -157,6 +157,7 @@ data class TodayData(
     val date: String? = null,
     val overdue: List<TodayItemDto> = emptyList(),
     val today: List<TodayItemDto> = emptyList(),
+    val done: List<TodayItemDto> = emptyList(),
     val stats: TodayStatsDto? = null,
 )
 
