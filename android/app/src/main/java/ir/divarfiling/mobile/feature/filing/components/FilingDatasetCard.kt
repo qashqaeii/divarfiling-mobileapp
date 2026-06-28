@@ -79,7 +79,7 @@ fun FilingDatasetsSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FilingDatasetListRow(
+fun FilingDatasetCard(
     dataset: DatasetDto,
     onClick: () -> Unit,
     onRefreshClick: () -> Unit,
@@ -91,37 +91,90 @@ fun FilingDatasetListRow(
     val location = listOfNotNull(dataset.city, dataset.district).joinToString("، ")
     val format = dataset.fileFormat?.uppercase() ?: "JSON"
     val filename = dataset.originalFilename ?: "${dataset.id}.${format.lowercase()}"
+    val thumb = ImageUrlFormatter.normalize(dataset.thumbnailUrl)
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = AppSpacing.xs),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfColors.Surface,
+        shadowElevation = AppElevations.card,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .background(DfColors.SurfaceVariant),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = dataset.name,
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = filename,
-                    style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                if (thumb != null) {
+                    AsyncImage(
+                        model = thumb,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    Icon(
+                        imageVector = DfIcons.Building,
+                        contentDescription = null,
+                        tint = DfColors.TextMuted,
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.padding(AppSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = dataset.name,
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = DfColors.TextPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = filename,
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        IconAction(DfIcons.Download, "باز کردن", onClick)
+                        IconAction(DfIcons.RotateCcw, "بروزرسانی", onRefreshClick)
+                        Box {
+                            IconAction(DfIcons.MoreVertical, "بیشتر") { showMenu = true }
+                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("مشاهده آگهی‌ها") },
+                                    onClick = { showMenu = false; onClick() },
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(if (isFavorite) "حذف از علاقه‌مندی" else "افزودن به علاقه‌مندی")
+                                    },
+                                    onClick = { showMenu = false; onToggleFavorite() },
+                                )
+                            }
+                        }
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FormatBadge(format)
                     dataset.transactionType?.let {
@@ -135,142 +188,60 @@ fun FilingDatasetListRow(
                         }
                     }
                 }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                IconAction(DfIcons.Download, "باز کردن", onClick)
-                IconAction(DfIcons.RotateCcw, "بروزرسانی", onRefreshClick)
-                Box {
-                    IconAction(DfIcons.MoreVertical, "بیشتر") { showMenu = true }
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("مشاهده آگهی‌ها") },
-                            onClick = { showMenu = false; onClick() },
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (location.isNotBlank()) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(
+                                imageVector = DfIcons.MapPin,
+                                contentDescription = null,
+                                tint = DfColors.Purple,
+                                modifier = Modifier.size(12.dp),
+                            )
+                            Text(
+                                text = location,
+                                style = AppTypography.labelSmall,
+                                color = DfColors.TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    Text(
+                        text = "${dataset.itemCount} آگهی",
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.Purple,
+                    )
+                }
+                dataset.createdAt?.let { created ->
+                    DateUtils.formatJalaliDateTime(created) ?: DateUtils.formatJalaliDate(created)
+                }?.let { jalaliDate ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = DfIcons.Calendar,
+                            contentDescription = null,
+                            tint = DfColors.TextMuted,
+                            modifier = Modifier.size(12.dp),
                         )
-                        DropdownMenuItem(
-                            text = {
-                                Text(if (isFavorite) "حذف از علاقه‌مندی" else "افزودن به علاقه‌مندی")
-                            },
-                            onClick = { showMenu = false; onToggleFavorite() },
+                        Text(
+                            text = jalaliDate,
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextMuted,
+                            maxLines = 1,
                         )
                     }
                 }
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (location.isNotBlank()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(
-                        imageVector = DfIcons.MapPin,
-                        contentDescription = null,
-                        tint = DfColors.Purple,
-                        modifier = Modifier.size(12.dp),
-                    )
-                    Text(
-                        text = location,
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Text(
-                text = "${dataset.itemCount} آگهی",
-                style = AppTypography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = DfColors.Purple,
-            )
-            dataset.createdAt?.let { created ->
-                DateUtils.formatJalaliDateTime(created) ?: DateUtils.formatJalaliDate(created)
-            }?.let { jalaliDate ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = DfIcons.Calendar,
-                        contentDescription = null,
-                        tint = DfColors.TextMuted,
-                        modifier = Modifier.size(12.dp),
-                    )
-                    Text(
-                        text = jalaliDate,
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FilingDatasetGridCard(
-    dataset: DatasetDto,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val thumb = ImageUrlFormatter.normalize(dataset.thumbnailUrl)
-    Surface(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = AppElevations.card,
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(96.dp)
-                    .background(DfColors.SurfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (thumb != null) {
-                    AsyncImage(
-                        model = thumb,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(96.dp),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Icon(
-                        imageVector = DfIcons.Building,
-                        contentDescription = null,
-                        tint = DfColors.TextMuted,
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier.padding(AppSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = dataset.name,
-                    style = AppTypography.bodyDescription,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "${dataset.itemCount} آگهی",
-                    style = AppTypography.labelSmall,
-                    color = DfColors.Purple,
-                    fontWeight = FontWeight.SemiBold,
-                )
             }
         }
     }

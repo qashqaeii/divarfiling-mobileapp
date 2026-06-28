@@ -60,7 +60,7 @@ fun ListingSpecsCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = DfIcons.LayoutGrid,
+                    imageVector = DfIcons.ClipboardList,
                     contentDescription = null,
                     tint = DfColors.Purple,
                     modifier = Modifier.size(18.dp),
@@ -73,17 +73,9 @@ fun ListingSpecsCard(
                 )
             }
 
-            visibleItems.chunked(2).forEach { rowItems ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    rowItems.forEach { item ->
-                        SpecGridCell(item = item, modifier = Modifier.weight(1f))
-                    }
-                    if (rowItems.size == 1) {
-                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
-                    }
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                visibleItems.forEach { item ->
+                    SpecCard(item = item, modifier = Modifier.fillMaxWidth())
                 }
             }
 
@@ -139,7 +131,7 @@ fun ListingSpecsCard(
 }
 
 @Composable
-private fun SpecGridCell(
+private fun SpecCard(
     item: ListingSpecItem,
     modifier: Modifier = Modifier,
 ) {

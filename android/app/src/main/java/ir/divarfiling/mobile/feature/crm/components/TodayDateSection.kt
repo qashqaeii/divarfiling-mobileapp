@@ -19,6 +19,7 @@ import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import java.text.NumberFormat
@@ -90,10 +91,10 @@ private fun TodayDatePill(
                 modifier = Modifier.size(14.dp),
             )
             Text(
-                text = dateLabel,
+                text = TodayTaskLabels.formatDisplayDate(dateLabel),
                 style = AppTypography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = DfColors.TextPrimary,
+                color = DfColors.Purple,
             )
             Icon(
                 imageVector = DfIcons.ChevronDown,

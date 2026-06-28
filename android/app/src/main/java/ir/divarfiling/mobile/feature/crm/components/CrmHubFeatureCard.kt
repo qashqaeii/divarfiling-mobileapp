@@ -60,18 +60,17 @@ fun CrmHubFeatureCard(
         shadowElevation = AppElevations.card,
         tonalElevation = AppElevations.none,
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = AppSpacing.cardPadding,
-                        end = AppSpacing.xs,
-                        top = AppSpacing.sm,
-                        bottom = AppSpacing.sm,
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = AppSpacing.cardPadding,
+                    end = AppSpacing.cardPadding,
+                    top = AppSpacing.sm,
+                    bottom = AppSpacing.sm,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -136,29 +135,8 @@ fun CrmHubFeatureCard(
                     }
                 }
 
-                Box(contentAlignment = Alignment.Center) {
-                    illustration()
-                }
-            }
-
-            Surface(
-                onClick = onClick,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(AppSpacing.sm)
-                    .size(32.dp),
-                shape = AppShapes.IconContainer,
-                color = DfColors.SurfaceVariant,
-                shadowElevation = AppElevations.none,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = DfIcons.ChevronLeft,
-                        contentDescription = null,
-                        tint = DfColors.TextMuted,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
+            Box(contentAlignment = Alignment.Center) {
+                illustration()
             }
         }
     }

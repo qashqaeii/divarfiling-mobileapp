@@ -1,14 +1,9 @@
 package ir.divarfiling.mobile.feature.filing.components
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -128,7 +123,7 @@ fun ListingDetailHeader(
             }
         }
 
-        ListingKeyStatsRow(
+        ListingKeyStatsCards(
             price = priceLabel,
             area = listing.area?.let { FormatUtils.formatArea(it) } ?: "—",
             rooms = listing.rooms?.let { FormatUtils.formatRooms(it) } ?: "—",
@@ -139,83 +134,56 @@ fun ListingDetailHeader(
 }
 
 @Composable
-private fun ListingKeyStatsRow(
+private fun ListingKeyStatsCards(
     price: String,
     area: String,
     rooms: String,
     floor: String,
     propertyType: String,
 ) {
+    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+        KeyStatCard(label = "قیمت", value = price, valueColor = DfColors.Purple)
+        KeyStatCard(label = "متراژ", value = area)
+        KeyStatCard(label = "اتاق", value = rooms)
+        KeyStatCard(label = "طبقه", value = floor)
+        KeyStatCard(label = "نوع ملک", value = propertyType)
+    }
+}
+
+@Composable
+private fun KeyStatCard(
+    label: String,
+    value: String,
+    valueColor: Color = DfColors.TextPrimary,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.Hero,
+        shape = AppShapes.Card,
         color = DfColors.Surface,
-        shadowElevation = AppElevations.card,
+        shadowElevation = AppElevations.subtle,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min)
-                .padding(vertical = AppSpacing.sm),
+                .padding(horizontal = AppSpacing.sm, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            KeyStatCell(label = "قیمت", value = price, valueColor = DfColors.Purple, modifier = Modifier.weight(1.15f))
-            KeyStatDivider()
-            KeyStatCell(label = "متراژ", value = area, modifier = Modifier.weight(0.85f))
-            KeyStatDivider()
-            KeyStatCell(label = "اتاق", value = rooms, modifier = Modifier.weight(0.85f))
-            KeyStatDivider()
-            KeyStatCell(label = "طبقه", value = floor, modifier = Modifier.weight(0.85f))
-            KeyStatDivider()
-            KeyStatCell(label = "نوع ملک", value = propertyType, modifier = Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun KeyStatDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .padding(vertical = AppSpacing.xs),
-    ) {
-        Canvas(modifier = Modifier.fillMaxHeight().size(width = 1.dp, height = 48.dp)) {
-            drawLine(
-                color = DfColors.Outline,
-                start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                end = androidx.compose.ui.geometry.Offset(0f, size.height),
-                strokeWidth = 1.dp.toPx(),
+            Text(
+                text = label,
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+            )
+            Text(
+                text = value,
+                style = AppTypography.bodyDescription,
+                fontWeight = FontWeight.Bold,
+                color = valueColor,
+                textAlign = TextAlign.End,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
         }
-    }
-}
-
-@Composable
-private fun KeyStatCell(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    valueColor: Color = DfColors.TextPrimary,
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = label,
-            style = AppTypography.labelSmall,
-            color = DfColors.TextMuted,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-        Text(
-            text = value,
-            style = AppTypography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = valueColor,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }

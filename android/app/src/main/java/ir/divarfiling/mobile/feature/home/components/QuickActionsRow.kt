@@ -114,7 +114,6 @@ private fun QuickActionsRowPreview() {
                 QuickAction("مخاطب جدید", DfIcons.UserPlus, DfColors.Amber, DfColors.AmberLight) {},
                 QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight) {},
                 QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer) {},
-                QuickAction("تحلیل بازار", DfIcons.TrendingUp, DfColors.Green, DfColors.GreenLight) {},
             ),
         )
     }

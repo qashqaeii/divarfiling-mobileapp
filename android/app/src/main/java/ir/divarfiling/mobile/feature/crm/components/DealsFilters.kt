@@ -6,8 +6,6 @@ import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
 
-enum class DealsViewMode { Grid, List }
-
 enum class DealsSortOrder { Newest, Oldest }
 
 object DealsFilters {

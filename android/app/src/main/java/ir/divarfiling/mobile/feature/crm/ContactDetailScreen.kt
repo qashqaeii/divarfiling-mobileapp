@@ -1,4 +1,4 @@
-package ir.divarfiling.mobile.feature.crm
+﻿package ir.divarfiling.mobile.feature.crm
 
 import ir.divarfiling.mobile.R
 import ir.divarfiling.mobile.core.design.DateUtils
@@ -46,24 +46,18 @@ import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
+import ir.divarfiling.mobile.feature.crm.components.ActivityLogSheet
+import ir.divarfiling.mobile.feature.crm.components.ContactNoteSheet
+import ir.divarfiling.mobile.feature.crm.components.ContactReminderSheet
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -77,6 +71,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.feature.crm.components.ContactEditSheet
 import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -94,6 +89,7 @@ import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.LinkedListingDto
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.ReminderDto
+import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -155,7 +151,7 @@ fun ContactDetailScreen(
                 state.error != null && state.data == null -> {
                     Column {
                         DfDetailPageHeader(
-                            title = "جزئیات مخاطب",
+                            title = "Ø¬Ø²Ø¦ÛŒØ§Øª Ù…Ø®Ø§Ø·Ø¨",
                             onBack = onBack,
                             titleIcon = DfIcons.User,
                         )
@@ -180,7 +176,7 @@ fun ContactDetailScreen(
                                 onBack = onBack,
                                 actions = {
                                     IconButton(onClick = { viewModel.toggleEditSheet(true) }) {
-                                        Icon(Icons.Default.Edit, contentDescription = "ویرایش")
+                                        Icon(Icons.Default.Edit, contentDescription = "ÙˆÛŒØ±Ø§ÛŒØ´")
                                     }
                                 },
                             )
@@ -205,16 +201,16 @@ fun ContactDetailScreen(
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             ) {
                                 item {
-                                    ContactActionChip(label = "تماس", icon = Icons.Default.Call) {
+                                    ContactActionChip(label = "ØªÙ…Ø§Ø³", icon = Icons.Default.Call) {
                                         contactInfo.phone?.let { phone ->
                                             context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
-                                            viewModel.logActivity("تماس", "تماس تلفنی")
+                                            viewModel.logActivity("ØªÙ…Ø§Ø³", "ØªÙ…Ø§Ø³ ØªÙ„ÙÙ†ÛŒ")
                                         }
                                     }
                                 }
                                 item {
                                     ContactActionChip(
-                                        label = "واتساپ",
+                                        label = "ÙˆØ§ØªØ³Ø§Ù¾",
                                         iconRes = R.drawable.ic_whatsapp,
                                         tint = DfColors.Green,
                                     ) {
@@ -223,40 +219,40 @@ fun ContactDetailScreen(
                                             context.startActivity(
                                                 Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/98$wa")),
                                             )
-                                            viewModel.logActivity("واتساپ", "پیام واتساپ")
+                                            viewModel.logActivity("ÙˆØ§ØªØ³Ø§Ù¾", "Ù¾ÛŒØ§Ù… ÙˆØ§ØªØ³Ø§Ù¾")
                                         }
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "پیامک", icon = Icons.Default.Message) {
+                                    ContactActionChip(label = "Ù¾ÛŒØ§Ù…Ú©", icon = Icons.Default.Message) {
                                         contactInfo.phone?.let { phone ->
                                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("smsto:$phone")))
-                                            viewModel.logActivity("پیامک", "ارسال پیامک")
+                                            viewModel.logActivity("Ù¾ÛŒØ§Ù…Ú©", "Ø§Ø±Ø³Ø§Ù„ Ù¾ÛŒØ§Ù…Ú©")
                                         }
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "ارسال فایل", icon = Icons.Default.Share) {
+                                    ContactActionChip(label = "Ø§Ø±Ø³Ø§Ù„ ÙØ§ÛŒÙ„", icon = Icons.Default.Share) {
                                         viewModel.toggleSendFilingSheet(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "مدرک", icon = Icons.Default.AttachFile) {
+                                    ContactActionChip(label = "Ù…Ø¯Ø±Ú©", icon = Icons.Default.AttachFile) {
                                         documentPicker.launch("*/*")
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "یادداشت", icon = Icons.Default.NoteAdd) {
+                                    ContactActionChip(label = "ÛŒØ§Ø¯Ø¯Ø§Ø´Øª", icon = Icons.Default.NoteAdd) {
                                         viewModel.toggleNoteDialog(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "یادآور", icon = Icons.Default.Notifications) {
+                                    ContactActionChip(label = "ÛŒØ§Ø¯Ø¢ÙˆØ±", icon = Icons.Default.Notifications) {
                                         viewModel.toggleReminderDialog(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "فعالیت", icon = Icons.Default.History) {
+                                    ContactActionChip(label = "ÙØ¹Ø§Ù„ÛŒØª", icon = Icons.Default.History) {
                                         viewModel.toggleActivitySheet(true)
                                     }
                                 }
@@ -265,7 +261,7 @@ fun ContactDetailScreen(
 
                         val reminders = detail.reminders
                         if (reminders.isNotEmpty()) {
-                            item { DfSectionHeader("یادآورها", reminders.size) }
+                            item { DfSectionHeader("ÛŒØ§Ø¯Ø¢ÙˆØ±Ù‡Ø§", reminders.size) }
                             items(reminders, key = { it.id ?: it.hashCode().toLong() }) { reminder ->
                                 reminder.id?.let { id ->
                                     ReminderCard(
@@ -279,7 +275,7 @@ fun ContactDetailScreen(
 
                         val deals = detail.deals
                         if (deals.isNotEmpty()) {
-                            item { DfSectionHeader("معاملات", deals.size) }
+                            item { DfSectionHeader("Ù…Ø¹Ø§Ù…Ù„Ø§Øª", deals.size) }
                             items(deals, key = { it.id }) { deal ->
                                 DealCard(deal, onClick = { onDealClick(deal.id) })
                             }
@@ -287,15 +283,18 @@ fun ContactDetailScreen(
 
                         val properties = detail.properties
                         if (properties.isNotEmpty()) {
-                            item { DfSectionHeader("املاک مرتبط", properties.size) }
+                            item { DfSectionHeader("Ø§Ù…Ù„Ø§Ú© Ù…Ø±ØªØ¨Ø·", properties.size) }
                             items(properties, key = { it.id }) { property ->
-                                PropertyCard(property, onClick = { onPropertyClick(property.id) })
+                                PropertyListCard(
+                                    property = property,
+                                    onClick = { onPropertyClick(property.id) },
+                                )
                             }
                         }
 
                         val documents = detail.documents
                         if (documents.isNotEmpty()) {
-                            item { DfSectionHeader("مدارک مخاطب", documents.size) }
+                            item { DfSectionHeader("Ù…Ø¯Ø§Ø±Ú© Ù…Ø®Ø§Ø·Ø¨", documents.size) }
                             items(documents, key = { it.id }) { doc ->
                                 DocumentCard(
                                     document = doc,
@@ -309,7 +308,7 @@ fun ContactDetailScreen(
 
                         val listings = detail.linkedListings
                         if (listings.isNotEmpty()) {
-                            item { DfSectionHeader("آگهی‌های ارسال‌شده", listings.size) }
+                            item { DfSectionHeader("Ø¢Ú¯Ù‡ÛŒâ€ŒÙ‡Ø§ÛŒ Ø§Ø±Ø³Ø§Ù„â€ŒØ´Ø¯Ù‡", listings.size) }
                             items(listings, key = { it.id }) { listing ->
                                 LinkedListingCard(
                                     listing = listing,
@@ -325,7 +324,7 @@ fun ContactDetailScreen(
                                                     Uri.parse("https://wa.me/98$wa?text=$text"),
                                                 ),
                                             )
-                                            viewModel.logActivity("واتساپ", "ارسال فایل: ${listing.title}")
+                                            viewModel.logActivity("ÙˆØ§ØªØ³Ø§Ù¾", "Ø§Ø±Ø³Ø§Ù„ ÙØ§ÛŒÙ„: ${listing.title}")
                                         }
                                     },
                                 )
@@ -343,49 +342,35 @@ fun ContactDetailScreen(
     }
 
     if (state.showNoteDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.toggleNoteDialog(false) },
-            title = { Text("یادداشت جدید") },
-            text = {
-                OutlinedTextField(
-                    value = state.noteText,
-                    onValueChange = viewModel::onNoteChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    placeholder = { Text("متن یادداشت…") },
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::submitNote, enabled = !state.isSubmitting) {
-                    Text("ثبت")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.toggleNoteDialog(false) }) { Text("انصراف") }
-            },
-        )
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleNoteDialog(false) }) {
+            ContactNoteSheet(
+                note = state.noteText,
+                isSubmitting = state.isSubmitting,
+                onNoteChange = viewModel::onNoteChange,
+                onSubmit = viewModel::submitNote,
+                onDismiss = { viewModel.toggleNoteDialog(false) },
+            )
+        }
     }
 
     if (state.showReminderDialog) {
-        ReminderDialog(
-            title = state.reminderTitle,
-            note = state.reminderNote,
-            dueMillis = state.reminderDueMillis,
-            isSubmitting = state.isSubmitting,
-            onTitleChange = viewModel::onReminderTitleChange,
-            onNoteChange = viewModel::onReminderNoteChange,
-            onDueChange = viewModel::onReminderDueChange,
-            onDismiss = { viewModel.toggleReminderDialog(false) },
-            onSubmit = viewModel::submitReminder,
-        )
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleReminderDialog(false) }) {
+            ContactReminderSheet(
+                title = state.reminderTitle,
+                note = state.reminderNote,
+                dueMillis = state.reminderDueMillis,
+                isSubmitting = state.isSubmitting,
+                onTitleChange = viewModel::onReminderTitleChange,
+                onNoteChange = viewModel::onReminderNoteChange,
+                onDueChange = viewModel::onReminderDueChange,
+                onDismiss = { viewModel.toggleReminderDialog(false) },
+                onSubmit = viewModel::submitReminder,
+            )
+        }
     }
 
     if (state.showEditSheet) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
-            onDismissRequest = { viewModel.toggleEditSheet(false) },
-            sheetState = sheetState,
-        ) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleEditSheet(false) }) {
             ContactEditSheet(
                 name = state.editName,
                 phone = state.editPhone,
@@ -409,11 +394,7 @@ fun ContactDetailScreen(
     }
 
     if (state.showActivitySheet) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(
-            onDismissRequest = { viewModel.toggleActivitySheet(false) },
-            sheetState = sheetState,
-        ) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleActivitySheet(false) }) {
             ActivityLogSheet(
                 activityType = state.selectedActivityType,
                 content = state.activityContent,
@@ -478,7 +459,7 @@ private fun ContactProfileCard(
             }
             budget?.let {
                 Text(
-                    "بودجه: ${FormatUtils.formatPriceToman(it)}",
+                    "Ø¨ÙˆØ¯Ø¬Ù‡: ${FormatUtils.formatPriceToman(it)}",
                     style = AppTypography.bodyDescription,
                     color = DfColors.TextSecondary,
                 )
@@ -486,7 +467,7 @@ private fun ContactProfileCard(
             notes?.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = AppTypography.bodyDescription)
             }
-            Text("تغییر سریع وضعیت", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+            Text("ØªØºÛŒÛŒØ± Ø³Ø±ÛŒØ¹ ÙˆØ¶Ø¹ÛŒØª", style = AppTypography.labelSmall, color = DfColors.TextMuted)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -569,8 +550,8 @@ private fun ReminderCard(
                 Text(formatDateTime(due), style = AppTypography.labelSmall, color = DfColors.TextMuted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onComplete) { Text("انجام شد") }
-                TextButton(onClick = onPostpone) { Text("تعویق ۱ روز") }
+                TextButton(onClick = onComplete) { Text("Ø§Ù†Ø¬Ø§Ù… Ø´Ø¯") }
+                TextButton(onClick = onPostpone) { Text("ØªØ¹ÙˆÛŒÙ‚ Û± Ø±ÙˆØ²") }
             }
         }
     }
@@ -588,28 +569,6 @@ private fun DealCard(deal: DealDto, onClick: () -> Unit = {}) {
                     style = AppTypography.bodyDescription,
                     color = DfColors.TextSecondary,
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PropertyCard(property: PropertyDto, onClick: () -> Unit = {}) {
-    DfPremiumCard(onClick = onClick) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(property.title, style = AppTypography.cardTitle)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                property.dealMode?.let { DfBadge(it) }
-                property.transactionStatus?.let {
-                    DfBadge(it, color = DfColors.BlueLight, textColor = DfColors.Blue)
-                }
-            }
-            val location = listOfNotNull(property.district, property.city).joinToString("، ")
-            if (location.isNotBlank()) {
-                Text(location, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-            }
-            property.salePrice?.let {
-                Text(FormatUtils.formatPriceToman(it), style = AppTypography.bodyDescription)
             }
         }
     }
@@ -639,13 +598,13 @@ private fun LinkedListingCard(
                         tint = DfColors.Green,
                         modifier = Modifier.size(18.dp),
                     )
-                    Text("واتساپ", color = DfColors.Green)
+                    Text("ÙˆØ§ØªØ³Ø§Ù¾", color = DfColors.Green)
                 }
                 listing.link?.takeIf { it.isNotBlank() }?.let { link ->
                     TextButton(onClick = {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                     }) {
-                        Text("دیوار")
+                        Text("Ø¯ÛŒÙˆØ§Ø±")
                     }
                 }
             }
@@ -667,17 +626,17 @@ private fun CollapsibleTimelineSection(activities: List<ActivityDto>) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("تایم‌لاین فعالیت‌ها", style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold)
+                    Text("ØªØ§ÛŒÙ…â€ŒÙ„Ø§ÛŒÙ† ÙØ¹Ø§Ù„ÛŒØªâ€ŒÙ‡Ø§", style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold)
                     Text(
-                        if (activities.isEmpty()) "فعالیتی ثبت نشده"
-                        else "${activities.size} فعالیت ثبت‌شده",
+                        if (activities.isEmpty()) "ÙØ¹Ø§Ù„ÛŒØªÛŒ Ø«Ø¨Øª Ù†Ø´Ø¯Ù‡"
+                        else "${activities.size} ÙØ¹Ø§Ù„ÛŒØª Ø«Ø¨Øªâ€ŒØ´Ø¯Ù‡",
                         style = AppTypography.bodyDescription,
                         color = DfColors.TextMuted,
                     )
                 }
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "بستن" else "باز کردن",
+                    contentDescription = if (expanded) "Ø¨Ø³ØªÙ†" else "Ø¨Ø§Ø² Ú©Ø±Ø¯Ù†",
                     tint = DfColors.Purple,
                 )
             }
@@ -692,8 +651,8 @@ private fun CollapsibleTimelineSection(activities: List<ActivityDto>) {
                 ) {
                     if (activities.isEmpty()) {
                         DfEmptyState(
-                            title = "هنوز فعالیتی نیست",
-                            subtitle = "با تماس، یادداشت یا ثبت فعالیت، تایم‌لاین را شروع کنید",
+                            title = "Ù‡Ù†ÙˆØ² ÙØ¹Ø§Ù„ÛŒØªÛŒ Ù†ÛŒØ³Øª",
+                            subtitle = "Ø¨Ø§ ØªÙ…Ø§Ø³ØŒ ÛŒØ§Ø¯Ø¯Ø§Ø´Øª ÛŒØ§ Ø«Ø¨Øª ÙØ¹Ø§Ù„ÛŒØªØŒ ØªØ§ÛŒÙ…â€ŒÙ„Ø§ÛŒÙ† Ø±Ø§ Ø´Ø±ÙˆØ¹ Ú©Ù†ÛŒØ¯",
                         )
                     } else {
                         activities.forEach { activity ->
@@ -721,9 +680,9 @@ private fun DocumentCard(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 document.fileUrl?.takeIf { it.isNotBlank() }?.let { url ->
-                    TextButton(onClick = { onOpen(url) }) { Text("مشاهده") }
+                    TextButton(onClick = { onOpen(url) }) { Text("Ù…Ø´Ø§Ù‡Ø¯Ù‡") }
                 }
-                TextButton(onClick = onDelete) { Text("حذف") }
+                TextButton(onClick = onDelete) { Text("Ø­Ø°Ù") }
             }
         }
     }
@@ -738,7 +697,7 @@ private fun ActivityTimelineItem(activity: ActivityDto) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    activity.title ?: activity.activityTypeLabel ?: activity.activityType ?: "فعالیت",
+                    activity.title ?: activity.activityTypeLabel ?: activity.activityType ?: "ÙØ¹Ø§Ù„ÛŒØª",
                     style = AppTypography.cardTitle,
                 )
                 activity.content?.takeIf { it.isNotBlank() }?.let {
@@ -752,194 +711,6 @@ private fun ActivityTimelineItem(activity: ActivityDto) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ContactEditSheet(
-    name: String,
-    phone: String,
-    status: String,
-    customerType: String,
-    priority: String,
-    budget: String,
-    notes: String,
-    isSubmitting: Boolean,
-    onNameChange: (String) -> Unit,
-    onPhoneChange: (String) -> Unit,
-    onStatusChange: (String) -> Unit,
-    onCustomerTypeChange: (String) -> Unit,
-    onPriorityChange: (String) -> Unit,
-    onBudgetChange: (String) -> Unit,
-    onNotesChange: (String) -> Unit,
-    onSave: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.lg, vertical = AppSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text("ویرایش مخاطب", style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold)
-        OutlinedTextField(value = name, onValueChange = onNameChange, label = { Text("نام") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = phone, onValueChange = onPhoneChange, label = { Text("تلفن") }, modifier = Modifier.fillMaxWidth())
-        DfDropdown("وضعیت", status, CrmConstants.STATUSES, enabled = true, onStatusChange)
-        DfDropdown("نوع مخاطب", customerType, CrmConstants.CUSTOMER_TYPES, enabled = true, onCustomerTypeChange)
-        DfDropdown("اولویت", priority, CrmConstants.PRIORITIES, enabled = true, onPriorityChange)
-        OutlinedTextField(
-            value = budget,
-            onValueChange = onBudgetChange,
-            label = { Text("بودجه (تومان)") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = notes,
-            onValueChange = onNotesChange,
-            label = { Text("یادداشت") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            DfPrimaryButton("ذخیره", onClick = onSave, enabled = !isSubmitting, modifier = Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text("انصراف") }
-        }
-    }
-}
-
-@Composable
-private fun ActivityLogSheet(
-    activityType: String,
-    content: String,
-    isSubmitting: Boolean,
-    onTypeChange: (String) -> Unit,
-    onContentChange: (String) -> Unit,
-    onSubmit: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.lg, vertical = AppSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text("ثبت فعالیت", style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold)
-        DfDropdown(
-            "نوع فعالیت",
-            activityType,
-            CrmConstants.QUICK_ACTIVITY_TYPES.map { it.first },
-            enabled = true,
-            onTypeChange,
-        )
-        OutlinedTextField(
-            value = content,
-            onValueChange = onContentChange,
-            label = { Text("توضیحات") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 2,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            DfPrimaryButton("ثبت", onClick = onSubmit, enabled = !isSubmitting, modifier = Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text("انصراف") }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ReminderDialog(
-    title: String,
-    note: String,
-    dueMillis: Long,
-    isSubmitting: Boolean,
-    onTitleChange: (String) -> Unit,
-    onNoteChange: (String) -> Unit,
-    onDueChange: (Long) -> Unit,
-    onDismiss: () -> Unit,
-    onSubmit: () -> Unit,
-) {
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    val zone = ZoneId.systemDefault()
-    val localDateTime = Instant.ofEpochMilli(dueMillis).atZone(zone).toLocalDateTime()
-    val displayFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale("fa", "IR"))
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("یادآور جدید") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = onTitleChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("عنوان") },
-                )
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = onNoteChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("یادداشت (اختیاری)") },
-                )
-                TextButton(onClick = { showDatePicker = true }) {
-                    Text("زمان: ${localDateTime.format(displayFormatter)}")
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onSubmit, enabled = !isSubmitting) { Text("ثبت") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("انصراف") }
-        },
-    )
-
-    if (showDatePicker) {
-        val dateState = rememberDatePickerState(initialSelectedDateMillis = dueMillis)
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    dateState.selectedDateMillis?.let { selected ->
-                        val current = Instant.ofEpochMilli(dueMillis).atZone(zone).toLocalDateTime()
-                        val newDate = Instant.ofEpochMilli(selected).atZone(zone).toLocalDate()
-                        val updated = newDate.atTime(current.hour, current.minute)
-                        onDueChange(updated.atZone(zone).toInstant().toEpochMilli())
-                    }
-                    showDatePicker = false
-                    showTimePicker = true
-                }) { Text("بعدی") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("انصراف") }
-            },
-        ) {
-            DatePicker(state = dateState)
-        }
-    }
-
-    if (showTimePicker) {
-        val timeState = rememberTimePickerState(
-            initialHour = localDateTime.hour,
-            initialMinute = localDateTime.minute,
-            is24Hour = true,
-        )
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            title = { Text("انتخاب ساعت") },
-            text = { TimePicker(state = timeState) },
-            confirmButton = {
-                TextButton(onClick = {
-                    val current = Instant.ofEpochMilli(dueMillis).atZone(zone).toLocalDateTime()
-                    val updated = current.toLocalDate().atTime(timeState.hour, timeState.minute)
-                    onDueChange(updated.atZone(zone).toInstant().toEpochMilli())
-                    showTimePicker = false
-                }) { Text("تأیید") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("انصراف") }
-            },
-        )
-    }
-}
 
 private fun formatDateTime(iso: String): String =
     DateUtils.formatJalaliDateTime(iso) ?: DateUtils.formatJalaliDate(iso) ?: iso.take(16)

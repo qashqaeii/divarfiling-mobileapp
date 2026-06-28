@@ -1,17 +1,16 @@
 package ir.divarfiling.mobile.feature.crm.components
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -37,12 +36,11 @@ fun DealsStatsRow(
     modifier: Modifier = Modifier,
 ) {
     val numberFormat = NumberFormat.getNumberInstance(Locale("fa", "IR"))
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .padding(horizontal = AppSpacing.screenHorizontal),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
         DealsStatCard(
             value = numberFormat.format(activeCount),
@@ -92,23 +90,39 @@ private fun DealsStatCard(
 ) {
     Surface(
         shape = AppShapes.Card,
-        color = background,
-        shadowElevation = AppElevations.none,
-        modifier = Modifier.size(width = 132.dp, height = 108.dp),
+        color = DfColors.Surface,
+        shadowElevation = AppElevations.subtle,
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(16.dp),
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Surface(
+                shape = AppShapes.IconContainer,
+                color = background,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     text = value,
                     style = AppTypography.cardTitle,

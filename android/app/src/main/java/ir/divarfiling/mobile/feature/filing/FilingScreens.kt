@@ -46,20 +46,17 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
-import ir.divarfiling.mobile.core.design.components.DfSearchField
+import ir.divarfiling.mobile.core.design.components.DfSearchFilterPanel
 import ir.divarfiling.mobile.core.design.components.DfTopBar
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.feature.filing.components.FilingCategoryTabsRow
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetFilters
-import ir.divarfiling.mobile.feature.filing.components.FilingDatasetGridCard
-import ir.divarfiling.mobile.feature.filing.components.FilingDatasetListRow
+import ir.divarfiling.mobile.feature.filing.components.FilingDatasetCard
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetsSection
 import ir.divarfiling.mobile.feature.filing.components.FilingExtractFab
-import ir.divarfiling.mobile.feature.filing.components.FilingFilterBar
 import ir.divarfiling.mobile.feature.filing.components.FilingHubHeader
-import ir.divarfiling.mobile.feature.filing.components.FilingSearchToolbar
+import ir.divarfiling.mobile.feature.filing.components.FilingSearchFilterPanel
 import ir.divarfiling.mobile.feature.filing.components.FilingStatsRow
-import ir.divarfiling.mobile.feature.filing.components.FilingViewMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,7 +66,6 @@ fun DatasetsScreen(
     onNavigateExtract: () -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
-    onNavigateTools: () -> Unit = {},
     viewModel: DatasetsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -78,7 +74,6 @@ fun DatasetsScreen(
     var formatFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_FORMATS) }
     var cityFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_CITIES) }
     var transactionFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_TRANSACTIONS) }
-    var viewMode by remember { mutableStateOf(FilingViewMode.List) }
     var favoriteIds by remember { mutableStateOf(setOf<String>()) }
 
     val filteredDatasets = remember(
@@ -131,12 +126,21 @@ fun DatasetsScreen(
                     )
                 }
                 item {
-                    FilingSearchToolbar(
+                    FilingSearchFilterPanel(
                         query = searchDraft,
                         onQueryChange = { searchDraft = it },
                         onSearch = { onGlobalSearch(searchDraft.trim()) },
-                        onUploadClick = onNavigateExtract,
-                        onToolsClick = onNavigateTools,
+                        formats = FilingDatasetFilters.uniqueFormats(state.datasets),
+                        cities = FilingDatasetFilters.uniqueCities(state.datasets),
+                        transactions = FilingDatasetFilters.uniqueTransactions(state.datasets),
+                        selectedFormat = formatFilter,
+                        selectedCity = cityFilter,
+                        selectedTransaction = transactionFilter,
+                        viewMode = viewMode,
+                        onFormatChange = { formatFilter = it },
+                        onCityChange = { cityFilter = it },
+                        onTransactionChange = { transactionFilter = it },
+                        onApplyFilters = { },
                     )
                 }
                 item {
@@ -151,22 +155,6 @@ fun DatasetsScreen(
                     FilingCategoryTabsRow(
                         selectedTabId = selectedCategory,
                         onTabSelected = { selectedCategory = it },
-                    )
-                }
-                item {
-                    FilingFilterBar(
-                        formats = FilingDatasetFilters.uniqueFormats(state.datasets),
-                        cities = FilingDatasetFilters.uniqueCities(state.datasets),
-                        transactions = FilingDatasetFilters.uniqueTransactions(state.datasets),
-                        selectedFormat = formatFilter,
-                        selectedCity = cityFilter,
-                        selectedTransaction = transactionFilter,
-                        viewMode = viewMode,
-                        onFormatChange = { formatFilter = it },
-                        onCityChange = { cityFilter = it },
-                        onTransactionChange = { transactionFilter = it },
-                        onViewModeChange = { viewMode = it },
-                        onApplyFilters = { },
                     )
                 }
                 state.error?.let { error ->
@@ -192,46 +180,21 @@ fun DatasetsScreen(
                             title = "همه فایل‌ها",
                             count = filteredDatasets.size,
                         ) {
-                            if (viewMode == FilingViewMode.Grid) {
-                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                                    filteredDatasets.chunked(2).forEach { rowItems ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                                        ) {
-                                            rowItems.forEach { dataset ->
-                                                FilingDatasetGridCard(
-                                                    dataset = dataset,
-                                                    onClick = { onDatasetClick(dataset.id) },
-                                                    modifier = Modifier.weight(1f),
-                                                )
+                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                                filteredDatasets.forEach { dataset ->
+                                    FilingDatasetCard(
+                                        dataset = dataset,
+                                        onClick = { onDatasetClick(dataset.id) },
+                                        onRefreshClick = viewModel::refresh,
+                                        isFavorite = favoriteIds.contains(dataset.id),
+                                        onToggleFavorite = {
+                                            favoriteIds = if (favoriteIds.contains(dataset.id)) {
+                                                favoriteIds - dataset.id
+                                            } else {
+                                                favoriteIds + dataset.id
                                             }
-                                            if (rowItems.size == 1) {
-                                                Box(modifier = Modifier.weight(1f))
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                                    filteredDatasets.forEachIndexed { index, dataset ->
-                                        FilingDatasetListRow(
-                                            dataset = dataset,
-                                            onClick = { onDatasetClick(dataset.id) },
-                                            onRefreshClick = viewModel::refresh,
-                                            isFavorite = favoriteIds.contains(dataset.id),
-                                            onToggleFavorite = {
-                                                favoriteIds = if (favoriteIds.contains(dataset.id)) {
-                                                    favoriteIds - dataset.id
-                                                } else {
-                                                    favoriteIds + dataset.id
-                                                }
-                                            },
-                                        )
-                                        if (index < filteredDatasets.lastIndex) {
-                                            HorizontalDivider(color = DfColors.OutlineSubtle)
-                                        }
-                                    }
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -312,34 +275,35 @@ fun ListingsScreen(
                 .padding(padding),
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = AppSpacing.xl),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfSearchField(
-                        value = state.query,
-                        onValueChange = viewModel::onQueryChange,
-                        placeholder = "جستجو در عنوان…",
+                    DfSearchFilterPanel(
+                        query = state.query,
+                        onQueryChange = viewModel::onQueryChange,
                         onSearch = { viewModel.load(datasetId, reset = true) },
+                        searchPlaceholder = "جستجو در عنوان…",
+                        filters = if (filterCount > 0) {
+                            {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    state.priceMin?.let { DfBadge(text = "از ${formatFilterNumber(it)}") }
+                                    state.priceMax?.let { DfBadge(text = "تا ${formatFilterNumber(it)}") }
+                                    state.areaMin?.let { DfBadge(text = "متراژ از $it") }
+                                    state.areaMax?.let { DfBadge(text = "متراژ تا $it") }
+                                    state.rooms?.let { DfBadge(text = "$it اتاق") }
+                                }
+                            }
+                        } else {
+                            null
+                        },
                     )
-                }
-                if (filterCount > 0) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            state.priceMin?.let { DfBadge(text = "از ${formatFilterNumber(it)}") }
-                            state.priceMax?.let { DfBadge(text = "تا ${formatFilterNumber(it)}") }
-                            state.areaMin?.let { DfBadge(text = "متراژ از $it") }
-                            state.areaMax?.let { DfBadge(text = "متراژ تا $it") }
-                            state.rooms?.let { DfBadge(text = "$it اتاق") }
-                        }
-                    }
                 }
                 state.error?.let { error ->
                     item { DfErrorBanner(error) }
@@ -442,17 +406,34 @@ fun FilingSearchScreen(
                 .padding(padding),
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = AppSpacing.xl),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfSearchField(
-                        value = state.query,
-                        onValueChange = viewModel::onQueryChange,
-                        placeholder = "عنوان، محله یا شهر…",
+                    DfSearchFilterPanel(
+                        query = state.query,
+                        onQueryChange = viewModel::onQueryChange,
                         onSearch = { viewModel.search(reset = true) },
+                        searchPlaceholder = "عنوان، محله یا شهر…",
+                        filters = if (filterCount > 0) {
+                            {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    state.priceMin?.let { DfBadge(text = "از ${formatFilterNumber(it)}") }
+                                    state.priceMax?.let { DfBadge(text = "تا ${formatFilterNumber(it)}") }
+                                    state.areaMin?.let { DfBadge(text = "متراژ از $it") }
+                                    state.areaMax?.let { DfBadge(text = "متراژ تا $it") }
+                                    state.rooms?.let { DfBadge(text = "$it اتاق") }
+                                }
+                            }
+                        } else {
+                            null
+                        },
                     )
                 }
                 state.error?.let { error ->

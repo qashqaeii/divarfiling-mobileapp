@@ -10,15 +10,24 @@ object ContactsFilters {
     const val ALL_STATUSES = "همه وضعیت‌ها"
     const val ALL_TYPES = "همه انواع"
 
+    enum class QuickFilter {
+        ALL,
+        FOLLOW_UP,
+        NEW,
+        TODAY,
+    }
+
     fun filterContacts(
         contacts: List<ContactDto>,
         priorityFilter: String,
         statusFilter: String?,
         typeFilter: String,
         localQuery: String,
+        quickFilter: QuickFilter = QuickFilter.ALL,
     ): List<ContactDto> {
         return contacts.filter { contact ->
-            matchesPriority(contact, priorityFilter) &&
+            matchesQuickFilter(contact, quickFilter) &&
+                matchesPriority(contact, priorityFilter) &&
                 matchesStatus(contact, statusFilter) &&
                 matchesType(contact, typeFilter) &&
                 matchesQuery(contact, localQuery)
@@ -66,6 +75,17 @@ object ContactsFilters {
             null
         }
     }
+
+    private fun matchesQuickFilter(contact: ContactDto, quickFilter: QuickFilter): Boolean =
+        when (quickFilter) {
+            QuickFilter.ALL -> true
+            QuickFilter.FOLLOW_UP -> contact.status == "در حال پیگیری"
+            QuickFilter.NEW -> contact.status == "جدید"
+            QuickFilter.TODAY -> {
+                val today = LocalDate.now().toString()
+                contact.updatedAt?.startsWith(today) == true || parseDate(contact.updatedAt) == today
+            }
+        }
 
     private fun matchesPriority(contact: ContactDto, filter: String): Boolean =
         filter == ALL_PRIORITIES || contact.priority == filter

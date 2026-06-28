@@ -99,6 +99,14 @@ class DealsRepository @Inject constructor(
         api.updatePropertyStatus(propertyId, PropertyStatusRequest(status))
     }
 
+    suspend fun deleteProperty(propertyId: Long): ApiResult<Unit> = try {
+        val response = api.deleteProperty(propertyId)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
     private suspend inline fun <reified T> single(
         crossinline call: suspend () -> ir.divarfiling.mobile.core.network.ApiEnvelope,
     ): ApiResult<T> = try {

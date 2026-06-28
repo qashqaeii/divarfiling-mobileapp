@@ -101,27 +101,24 @@ fun StatsSection(
         HomeSectionTitle(title = "نمای کلی امروز")
 
         if (isLoading) {
-            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                repeat(2) {
-                    DfShimmerBox(modifier = Modifier.weight(1f).height(118.dp))
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                repeat(2) {
-                    DfShimmerBox(modifier = Modifier.weight(1f).height(118.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                repeat(4) {
+                    DfShimmerBox(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(88.dp),
+                    )
                 }
             }
             return
         }
 
-        cards.chunked(2).forEach { rowCards ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            ) {
-                rowCards.forEach { card ->
-                    OverviewStatCard(data = card, modifier = Modifier.weight(1f))
-                }
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            cards.forEach { card ->
+                OverviewStatCard(
+                    data = card,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
@@ -152,37 +149,36 @@ private fun OverviewStatCard(
     Surface(
         modifier = modifier
             .scale(scale)
-            .height(118.dp),
+            .fillMaxWidth(),
         shape = AppShapes.StatCard,
         color = DfColors.Surface,
         shadowElevation = AppElevations.card,
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(data.background),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(data.background),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        data.icon,
-                        contentDescription = null,
-                        tint = data.tint,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+                Icon(
+                    data.icon,
+                    contentDescription = null,
+                    tint = data.tint,
+                    modifier = Modifier.size(20.dp),
+                )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 if (data.displayValue.any { it.isDigit() } && data.displayValue.endsWith("٪").not()) {
                     val numeric = data.displayValue.toIntOrNull()
                     if (numeric != null) {

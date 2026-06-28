@@ -204,7 +204,6 @@ private fun buildQuickActions(
     QuickAction("مخاطب جدید", DfIcons.UserPlus, DfColors.Amber, DfColors.AmberLight, onNavigateContacts),
     QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight, onNavigateFiling),
     QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer, onNavigateCrm),
-    QuickAction("تحلیل بازار", DfIcons.TrendingUp, DfColors.Green, DfColors.GreenLight, onNavigateFiling),
 )
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")

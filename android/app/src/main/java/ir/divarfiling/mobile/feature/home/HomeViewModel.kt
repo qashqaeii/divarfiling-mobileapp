@@ -110,6 +110,7 @@ class HomeViewModel @Inject constructor(
                     } else {
                         0
                     }
+                    val unreadInPreview = data.notifications.count { !it.isRead }
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
@@ -143,7 +144,7 @@ class HomeViewModel @Inject constructor(
                                     thumbnailUrl = ds.thumbnailUrl,
                                 )
                             },
-                            notificationBadgeCount = data.notificationsUnread,
+                            notificationBadgeCount = maxOf(data.notificationsUnread, unreadInPreview),
                             maxExtractItems = 100,
                             canExtract = license?.features?.lightExtract ?: state.canExtract,
                             license = license?.let {

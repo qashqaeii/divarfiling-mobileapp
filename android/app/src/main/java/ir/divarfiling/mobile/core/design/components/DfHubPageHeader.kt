@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +39,9 @@ import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
+import ir.divarfiling.mobile.core.design.components.DfGlassIconButton
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
@@ -329,14 +334,11 @@ private fun DfHubBrandLogo(
 
 @Composable
 private fun DfHubBackButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "بازگشت",
-            tint = DfColors.TextSecondary,
-            modifier = Modifier.size(22.dp),
-        )
-    }
+    DfGlassIconButton(
+        icon = Icons.AutoMirrored.Filled.ArrowBack,
+        contentDescription = "بازگشت",
+        onClick = onClick,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -347,41 +349,37 @@ internal fun DfHubHeaderIconButton(
     onClick: () -> Unit,
     badgeCount: Int = 0,
 ) {
-    Box {
-        Surface(
+    val badgeLabel = when {
+        badgeCount <= 0 -> null
+        badgeCount > 99 -> "99+"
+        badgeCount > 9 -> "9+"
+        else -> badgeCount.toString()
+    }
+
+    BadgedBox(
+        modifier = Modifier.padding(top = 4.dp, end = 4.dp),
+        badge = {
+            if (badgeLabel != null) {
+                Badge(
+                    containerColor = DfColors.Purple,
+                    contentColor = Color.White,
+                ) {
+                    Text(
+                        text = DateUtils.toPersianDigits(badgeLabel),
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+            }
+        },
+    ) {
+        DfGlassIconButton(
+            icon = icon,
+            contentDescription = contentDescription,
             onClick = onClick,
-            shape = AppShapes.IconContainer,
-            color = DfColors.Surface.copy(alpha = 0.92f),
-            shadowElevation = AppElevations.subtle,
-            border = BorderStroke(1.dp, DfColors.GlassBorder),
-            modifier = Modifier.size(40.dp),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = contentDescription,
-                    tint = DfColors.TextSecondary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-        if (badgeCount > 0) {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 2.dp, end = 2.dp),
-                shape = CircleShape,
-                color = DfColors.Purple,
-            ) {
-                Text(
-                    text = if (badgeCount > 9) "9+" else badgeCount.toString(),
-                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                    style = AppTypography.labelSmall,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
+            variant = DfGlassButtonVariant.Secondary,
+        )
     }
 }
 

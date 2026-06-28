@@ -469,6 +469,7 @@ data class PropertyDto(
     @SerialName("deal_mode") val dealMode: String? = null,
     @SerialName("transaction_status") val transactionStatus: String? = null,
     @SerialName("property_type") val propertyType: String? = null,
+    @SerialName("publish_status") val publishStatus: String? = null,
     val city: String? = null,
     val district: String? = null,
     val neighborhood: String? = null,
@@ -477,10 +478,18 @@ data class PropertyDto(
     val deposit: Long? = null,
     val area: Double? = null,
     val rooms: String? = null,
+    val floor: Int? = null,
+    @SerialName("total_floors") val totalFloors: Int? = null,
+    @SerialName("build_year") val buildYear: Int? = null,
+    @SerialName("has_parking") val hasParking: Boolean = false,
+    @SerialName("has_storage") val hasStorage: Boolean = false,
+    @SerialName("has_elevator") val hasElevator: Boolean = false,
+    val amenities: String? = null,
     val address: String? = null,
     val notes: String? = null,
     val token: String? = null,
     val link: String? = null,
+    val images: List<String> = emptyList(),
     @SerialName("updated_at") val updatedAt: String? = null,
 )
 
@@ -533,10 +542,16 @@ data class PropertyUpdateRequest(
     val title: String? = null,
     @SerialName("deal_mode") val dealMode: String? = null,
     @SerialName("transaction_status") val transactionStatus: String? = null,
+    @SerialName("property_type") val propertyType: String? = null,
     val city: String? = null,
     val district: String? = null,
+    val neighborhood: String? = null,
     @SerialName("sale_price") val salePrice: Long? = null,
     val rent: Long? = null,
+    val deposit: Long? = null,
+    val area: Double? = null,
+    val rooms: String? = null,
+    val address: String? = null,
     val notes: String? = null,
 )
 
@@ -709,133 +724,4 @@ data class SyncPullData(
 data class SyncEntityBatch<T>(
     val upserted: List<T> = emptyList(),
     @SerialName("deleted_ids") val deletedIds: List<Long> = emptyList(),
-)
-
-@Serializable
-data class InsightsMetaDto(
-    @SerialName("row_count") val rowCount: Int = 0,
-    @SerialName("clean_count") val cleanCount: Int = 0,
-    @SerialName("lite_mode") val liteMode: Boolean = false,
-    @SerialName("geo_count") val geoCount: Int = 0,
-    @SerialName("transaction_type") val transactionType: String? = null,
-    @SerialName("is_rent") val isRent: Boolean = false,
-    @SerialName("filter_value_label") val filterValueLabel: String? = null,
-)
-
-@Serializable
-data class ChartDatasetDto(
-    val label: String? = null,
-    val data: List<JsonElement> = emptyList(),
-    @SerialName("backgroundColor") val backgroundColor: JsonElement? = null,
-)
-
-@Serializable
-data class ChartDto(
-    val type: String = "bar",
-    val title: String = "",
-    val labels: List<String> = emptyList(),
-    val datasets: List<ChartDatasetDto> = emptyList(),
-    val axis: String? = null,
-    val unit: String? = null,
-)
-
-@Serializable
-data class L2TabDto(
-    val id: String = "",
-    val label: String = "",
-    val insights: List<String> = emptyList(),
-    val charts: List<ChartDto> = emptyList(),
-    @SerialName("has_depth") val hasDepth: Boolean = false,
-    @SerialName("has_segments") val hasSegments: Boolean = false,
-    @SerialName("has_amenities") val hasAmenities: Boolean = false,
-    @SerialName("has_neighborhoods") val hasNeighborhoods: Boolean = false,
-)
-
-@Serializable
-data class L2InsightsDto(
-    val tabs: List<L2TabDto> = emptyList(),
-    val opportunities: List<JsonElement> = emptyList(),
-    val negotiation: List<String> = emptyList(),
-    @SerialName("quality_note") val qualityNote: String? = null,
-)
-
-@Serializable
-data class L3InsightsDto(
-    val show: Boolean = false,
-    val verdict: JsonElement? = null,
-    val sections: List<JsonElement> = emptyList(),
-    val bands: JsonElement? = null,
-    val confidence: JsonElement? = null,
-    @SerialName("summary_meta") val summaryMeta: String? = null,
-)
-
-@Serializable
-data class DatasetInsightsDto(
-    val dataset: DatasetDto,
-    val meta: InsightsMetaDto,
-    val confidence: JsonElement? = null,
-    val header: JsonElement? = null,
-    @SerialName("quick_snapshot") val quickSnapshot: JsonElement? = null,
-    @SerialName("market_depth") val marketDepth: JsonElement? = null,
-    @SerialName("area_segments") val areaSegments: List<JsonElement> = emptyList(),
-    val neighborhoods: List<JsonElement> = emptyList(),
-    @SerialName("amenities_coverage") val amenitiesCoverage: JsonElement? = null,
-    val opportunities: List<JsonElement> = emptyList(),
-    val insights: List<String> = emptyList(),
-    val negotiation: List<String> = emptyList(),
-    @SerialName("market_sentiment") val marketSentiment: JsonElement? = null,
-    @SerialName("data_quality") val dataQuality: JsonElement? = null,
-    val l2: L2InsightsDto? = null,
-    val l3: L3InsightsDto? = null,
-    val charts: List<ChartDto> = emptyList(),
-)
-
-@Serializable
-data class MapMarkerDto(
-    val id: Long = 0,
-    val lat: Double = 0.0,
-    val lng: Double = 0.0,
-    val title: String? = null,
-    @SerialName("price_label") val priceLabel: String? = null,
-    @SerialName("deposit_label") val depositLabel: String? = null,
-    @SerialName("rent_label") val rentLabel: String? = null,
-    val area: Int? = null,
-    @SerialName("area_label") val areaLabel: String? = null,
-    val rooms: String? = null,
-    @SerialName("pps_label") val ppsLabel: String? = null,
-    @SerialName("full_deposit") val fullDeposit: Long? = null,
-    val neighborhood: String? = null,
-    val city: String? = null,
-    @SerialName("seller_type") val sellerType: String? = null,
-    @SerialName("is_consultant") val isConsultant: Boolean = false,
-    @SerialName("published_ts") val publishedTs: Long? = null,
-    val token: String? = null,
-    val link: String? = null,
-    val thumb: String? = null,
-    @SerialName("market_tier") val marketTier: String? = null,
-    val verdict: String? = null,
-    @SerialName("filter_value") val filterValue: Long? = null,
-    @SerialName("location_radius_m") val locationRadiusM: Int? = null,
-    @SerialName("location_label") val locationLabel: String? = null,
-)
-
-@Serializable
-data class MapConfigDto(
-    @SerialName("is_rent") val isRent: Boolean = false,
-    @SerialName("filter_value_label") val filterValueLabel: String? = null,
-    @SerialName("dataset_name") val datasetName: String? = null,
-    @SerialName("dataset_city") val datasetCity: String? = null,
-    val modes: List<String> = emptyList(),
-)
-
-@Serializable
-data class DatasetMapDto(
-    val dataset: DatasetDto,
-    val markers: List<MapMarkerDto> = emptyList(),
-    val config: MapConfigDto? = null,
-    @SerialName("geo_count") val geoCount: Int = 0,
-    @SerialName("markers_shown") val markersShown: Int = 0,
-    @SerialName("markers_truncated") val markersTruncated: Boolean = false,
-    @SerialName("consultant_count") val consultantCount: Int = 0,
-    @SerialName("personal_count") val personalCount: Int = 0,
 )

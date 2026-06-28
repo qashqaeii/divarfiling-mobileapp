@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
@@ -14,6 +15,7 @@ import ir.divarfiling.mobile.core.network.PropertyUpdateRequest
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.DashboardRepository
+import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.DealsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,8 +37,12 @@ data class DealsUiState(
     val error: String? = null,
     val showCreateDialog: Boolean = false,
     val createTitle: String = "",
-    val createCustomerId: String = "",
+    val createCustomerId: Long? = null,
+    val createStage: String = "سرنخ",
     val createAmount: String = "",
+    val createNotes: String = "",
+    val contactPicker: List<ContactDto> = emptyList(),
+    val isSubmittingCreate: Boolean = false,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
 )
@@ -44,6 +50,7 @@ data class DealsUiState(
 @HiltViewModel
 class DealsViewModel @Inject constructor(
     private val repository: DealsRepository,
+    private val crmRepository: CrmRepository,
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
@@ -120,28 +127,87 @@ class DealsViewModel @Inject constructor(
         }
     }
 
-    fun toggleCreate(show: Boolean) = _uiState.update { it.copy(showCreateDialog = show) }
+    fun clearError() = _uiState.update { it.copy(error = null) }
+
+    fun toggleCreate(show: Boolean) {
+        _uiState.update {
+            it.copy(
+                showCreateDialog = show,
+                createTitle = if (show) it.createTitle else "",
+                createAmount = if (show) it.createAmount else "",
+                createNotes = if (show) it.createNotes else "",
+                createCustomerId = if (show) it.createCustomerId else null,
+                createStage = if (show) it.createStage else "سرنخ",
+            )
+        }
+        if (show) loadContactsForPicker()
+    }
+
     fun onCreateTitleChange(v: String) = _uiState.update { it.copy(createTitle = v) }
-    fun onCreateCustomerIdChange(v: String) = _uiState.update { it.copy(createCustomerId = v) }
+    fun onCreateCustomerSelect(id: Long) = _uiState.update { it.copy(createCustomerId = id) }
+    fun onCreateStageChange(v: String) = _uiState.update { it.copy(createStage = v) }
     fun onCreateAmountChange(v: String) = _uiState.update { it.copy(createAmount = v) }
+    fun onCreateNotesChange(v: String) = _uiState.update { it.copy(createNotes = v) }
+
+    private fun loadContactsForPicker() {
+        viewModelScope.launch {
+            when (val result = crmRepository.getContacts(page = 1, pageSize = 100)) {
+                is ApiResult.Success -> {
+                    val items = result.data.items
+                    _uiState.update {
+                        it.copy(
+                            contactPicker = items,
+                            createCustomerId = it.createCustomerId ?: items.firstOrNull()?.id,
+                        )
+                    }
+                }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
 
     fun submitCreate() {
-        val customerId = _uiState.value.createCustomerId.trim().toLongOrNull() ?: return
+        val state = _uiState.value
+        val customerId = state.createCustomerId
+        val title = state.createTitle.trim()
+        if (customerId == null) {
+            _uiState.update { it.copy(error = "مخاطب را انتخاب کنید") }
+            return
+        }
+        if (title.isBlank()) {
+            _uiState.update { it.copy(error = "عنوان معامله الزامی است") }
+            return
+        }
         viewModelScope.launch {
-            when (repository.createDeal(
-                DealCreateRequest(
-                    customerId = customerId,
-                    title = _uiState.value.createTitle.trim(),
-                    amount = _uiState.value.createAmount.trim().toLongOrNull(),
-                ),
-            )) {
+            _uiState.update { it.copy(isSubmittingCreate = true, error = null) }
+            when (
+                val result = repository.createDeal(
+                    DealCreateRequest(
+                        customerId = customerId,
+                        title = title,
+                        stage = state.createStage.ifBlank { "سرنخ" },
+                        amount = state.createAmount.trim().toLongOrNull(),
+                        notes = state.createNotes.trim(),
+                    ),
+                )
+            ) {
                 is ApiResult.Success -> {
                     _uiState.update {
-                        it.copy(showCreateDialog = false, createTitle = "", createCustomerId = "", createAmount = "")
+                        it.copy(
+                            showCreateDialog = false,
+                            createTitle = "",
+                            createCustomerId = null,
+                            createAmount = "",
+                            createNotes = "",
+                            createStage = "سرنخ",
+                            isSubmittingCreate = false,
+                        )
                     }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(error = it.error) }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmittingCreate = false, error = result.message)
+                }
             }
         }
     }
@@ -265,6 +331,7 @@ data class PropertiesUiState(
     val createRent: String = "",
     val createArea: String = "",
     val createNotes: String = "",
+    val isSubmittingCreate: Boolean = false,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
 )
@@ -329,7 +396,25 @@ class PropertiesViewModel @Inject constructor(
     fun onDealModeChange(mode: String?) = _uiState.update { it.copy(dealMode = mode) }
     fun onPropertyTypeChange(type: String?) = _uiState.update { it.copy(propertyType = type) }
     fun search() = load()
-    fun toggleCreate(show: Boolean) = _uiState.update { it.copy(showCreateDialog = show) }
+    fun clearError() = _uiState.update { it.copy(error = null) }
+
+    fun toggleCreate(show: Boolean) {
+        _uiState.update {
+            it.copy(
+                showCreateDialog = show,
+                createTitle = if (!show) "" else it.createTitle,
+                createCity = if (!show) "" else it.createCity,
+                createDistrict = if (!show) "" else it.createDistrict,
+                createPrice = if (!show) "" else it.createPrice,
+                createDeposit = if (!show) "" else it.createDeposit,
+                createRent = if (!show) "" else it.createRent,
+                createArea = if (!show) "" else it.createArea,
+                createNotes = if (!show) "" else it.createNotes,
+                createDealMode = if (!show) PropertyConstants.DEAL_MODES.first() else it.createDealMode,
+                createPropertyType = if (!show) PropertyConstants.PROPERTY_TYPES.first() else it.createPropertyType,
+            )
+        }
+    }
     fun onCreateTitleChange(v: String) = _uiState.update { it.copy(createTitle = v) }
     fun onCreateCityChange(v: String) = _uiState.update { it.copy(createCity = v) }
     fun onCreateDistrictChange(v: String) = _uiState.update { it.copy(createDistrict = v) }
@@ -343,41 +428,38 @@ class PropertiesViewModel @Inject constructor(
 
     fun submitCreate() {
         val title = _uiState.value.createTitle.trim()
-        if (title.isBlank()) return
+        if (title.isBlank()) {
+            _uiState.update { it.copy(error = "عنوان ملک الزامی است") }
+            return
+        }
         val state = _uiState.value
         val isRent = state.createDealMode.contains("اجاره") || state.createDealMode.contains("رهن")
         viewModelScope.launch {
-            when (repository.createProperty(
-                PropertyCreateRequest(
-                    title = title,
-                    dealMode = state.createDealMode,
-                    propertyType = state.createPropertyType,
-                    city = state.createCity.trim(),
-                    district = state.createDistrict.trim(),
-                    salePrice = if (!isRent) state.createPrice.trim().toLongOrNull() else null,
-                    deposit = if (isRent) state.createDeposit.trim().toLongOrNull() else null,
-                    rent = if (isRent) state.createRent.trim().toLongOrNull() else null,
-                    area = state.createArea.trim().toDoubleOrNull(),
-                    notes = state.createNotes.trim(),
-                ),
-            )) {
+            _uiState.update { it.copy(isSubmittingCreate = true, error = null) }
+            when (
+                repository.createProperty(
+                    PropertyCreateRequest(
+                        title = title,
+                        dealMode = state.createDealMode,
+                        propertyType = state.createPropertyType,
+                        city = state.createCity.trim(),
+                        district = state.createDistrict.trim(),
+                        salePrice = if (!isRent) state.createPrice.trim().toLongOrNull() else null,
+                        deposit = if (isRent) state.createDeposit.trim().toLongOrNull() else null,
+                        rent = if (isRent) state.createRent.trim().toLongOrNull() else null,
+                        area = state.createArea.trim().toDoubleOrNull(),
+                        notes = state.createNotes.trim(),
+                    ),
+                )
+            ) {
                 is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            showCreateDialog = false,
-                            createTitle = "",
-                            createCity = "",
-                            createDistrict = "",
-                            createPrice = "",
-                            createDeposit = "",
-                            createRent = "",
-                            createArea = "",
-                            createNotes = "",
-                        )
-                    }
+                    toggleCreate(false)
+                    _uiState.update { it.copy(isSubmittingCreate = false) }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { s -> s.copy(error = s.error) }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmittingCreate = false, error = result.message)
+                }
             }
         }
     }
@@ -395,22 +477,24 @@ class PropertiesViewModel @Inject constructor(
         link: String?,
     ) {
         viewModelScope.launch {
-            when (repository.createProperty(
-                PropertyCreateRequest(
-                    title = title,
-                    dealMode = dealMode,
-                    city = city.orEmpty(),
-                    district = district.orEmpty(),
-                    salePrice = salePrice,
-                    deposit = deposit,
-                    rent = rent,
-                    area = area,
-                    token = token,
-                    link = link.orEmpty(),
-                ),
-            )) {
+            when (
+                val result = repository.createProperty(
+                    PropertyCreateRequest(
+                        title = title,
+                        dealMode = dealMode,
+                        city = city.orEmpty(),
+                        district = district.orEmpty(),
+                        salePrice = salePrice,
+                        deposit = deposit,
+                        rent = rent,
+                        area = area,
+                        token = token,
+                        link = link.orEmpty(),
+                    ),
+                )
+            ) {
                 is ApiResult.Success -> load()
-                is ApiResult.Error -> _uiState.update { s -> s.copy(error = s.error) }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
             }
         }
     }
@@ -424,9 +508,20 @@ data class PropertyDetailUiState(
     val error: String? = null,
     val successMessage: String? = null,
     val showEditSheet: Boolean = false,
+    val showDeleteDialog: Boolean = false,
     val editTitle: String = "",
     val editCity: String = "",
+    val editDistrict: String = "",
+    val editNeighborhood: String = "",
+    val editDealMode: String = PropertyConstants.DEAL_MODES.first(),
+    val editPropertyType: String = PropertyConstants.PROPERTY_TYPES.first(),
+    val editTransactionStatus: String = CrmConstants.PROPERTY_TX_STATUSES.first(),
+    val editArea: String = "",
+    val editRooms: String = "",
     val editPrice: String = "",
+    val editDeposit: String = "",
+    val editRent: String = "",
+    val editAddress: String = "",
     val editNotes: String = "",
 )
 
@@ -445,16 +540,29 @@ class PropertyDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = it.property == null) }
             when (val result = repository.getProperty(propertyId)) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        property = result.data,
-                        isLoading = false,
-                        isRefreshing = false,
-                        editTitle = result.data.title,
-                        editCity = result.data.city.orEmpty(),
-                        editPrice = result.data.salePrice?.toString().orEmpty(),
-                        editNotes = result.data.notes.orEmpty(),
-                    )
+                is ApiResult.Success -> {
+                    val p = result.data
+                    _uiState.update {
+                        it.copy(
+                            property = p,
+                            isLoading = false,
+                            isRefreshing = false,
+                            editTitle = p.title,
+                            editCity = p.city.orEmpty(),
+                            editDistrict = p.district.orEmpty(),
+                            editNeighborhood = p.neighborhood.orEmpty(),
+                            editDealMode = p.dealMode ?: PropertyConstants.DEAL_MODES.first(),
+                            editPropertyType = p.propertyType ?: PropertyConstants.PROPERTY_TYPES.first(),
+                            editTransactionStatus = p.transactionStatus ?: CrmConstants.PROPERTY_TX_STATUSES.first(),
+                            editArea = p.area?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() }.orEmpty(),
+                            editRooms = p.rooms.orEmpty(),
+                            editPrice = p.salePrice?.toString().orEmpty(),
+                            editDeposit = p.deposit?.toString().orEmpty(),
+                            editRent = p.rent?.toString().orEmpty(),
+                            editAddress = p.address.orEmpty(),
+                            editNotes = p.notes.orEmpty(),
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoading = false, isRefreshing = false, error = result.message)
@@ -476,37 +584,82 @@ class PropertyDetailViewModel @Inject constructor(
                     _uiState.update { it.copy(isSubmitting = false, successMessage = "وضعیت به‌روز شد") }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false) }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
             }
         }
     }
 
     fun saveEdit() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true) }
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
             val state = _uiState.value
-            when (repository.updateProperty(
-                propertyId,
-                PropertyUpdateRequest(
-                    title = state.editTitle.trim(),
-                    city = state.editCity.trim(),
-                    salePrice = state.editPrice.trim().toLongOrNull(),
-                    notes = state.editNotes,
-                ),
-            )) {
+            val isRent = state.editDealMode.contains("اجاره") || state.editDealMode.contains("رهن")
+            when (
+                repository.updateProperty(
+                    propertyId,
+                    PropertyUpdateRequest(
+                        title = state.editTitle.trim(),
+                        dealMode = state.editDealMode,
+                        transactionStatus = state.editTransactionStatus,
+                        propertyType = state.editPropertyType,
+                        city = state.editCity.trim(),
+                        district = state.editDistrict.trim(),
+                        neighborhood = state.editNeighborhood.trim(),
+                        area = state.editArea.trim().toDoubleOrNull(),
+                        rooms = state.editRooms.trim(),
+                        salePrice = if (isRent) null else state.editPrice.trim().toLongOrNull(),
+                        deposit = if (isRent) state.editDeposit.trim().toLongOrNull() else null,
+                        rent = if (isRent) state.editRent.trim().toLongOrNull() else null,
+                        address = state.editAddress.trim(),
+                        notes = state.editNotes,
+                    ),
+                )
+            ) {
                 is ApiResult.Success -> {
-                    _uiState.update { it.copy(isSubmitting = false, showEditSheet = false, successMessage = "ذخیره شد") }
+                    _uiState.update {
+                        it.copy(isSubmitting = false, showEditSheet = false, successMessage = "ذخیره شد")
+                    }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false) }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun deleteProperty(onDeleted: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (repository.deleteProperty(propertyId)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isSubmitting = false, showDeleteDialog = false) }
+                    onDeleted()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message, showDeleteDialog = false)
+                }
             }
         }
     }
 
     fun toggleEditSheet(show: Boolean) = _uiState.update { it.copy(showEditSheet = show) }
+    fun toggleDeleteDialog(show: Boolean) = _uiState.update { it.copy(showDeleteDialog = show) }
     fun onEditTitleChange(v: String) = _uiState.update { it.copy(editTitle = v) }
     fun onEditCityChange(v: String) = _uiState.update { it.copy(editCity = v) }
+    fun onEditDistrictChange(v: String) = _uiState.update { it.copy(editDistrict = v) }
+    fun onEditNeighborhoodChange(v: String) = _uiState.update { it.copy(editNeighborhood = v) }
+    fun onEditDealModeChange(v: String) = _uiState.update { it.copy(editDealMode = v) }
+    fun onEditPropertyTypeChange(v: String) = _uiState.update { it.copy(editPropertyType = v) }
+    fun onEditTransactionStatusChange(v: String) = _uiState.update { it.copy(editTransactionStatus = v) }
+    fun onEditAreaChange(v: String) = _uiState.update { it.copy(editArea = v) }
+    fun onEditRoomsChange(v: String) = _uiState.update { it.copy(editRooms = v) }
     fun onEditPriceChange(v: String) = _uiState.update { it.copy(editPrice = v) }
+    fun onEditDepositChange(v: String) = _uiState.update { it.copy(editDeposit = v) }
+    fun onEditRentChange(v: String) = _uiState.update { it.copy(editRent = v) }
+    fun onEditAddressChange(v: String) = _uiState.update { it.copy(editAddress = v) }
     fun onEditNotesChange(v: String) = _uiState.update { it.copy(editNotes = v) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 }

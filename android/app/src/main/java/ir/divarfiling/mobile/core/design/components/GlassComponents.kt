@@ -8,13 +8,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -33,7 +37,94 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+
+enum class DfGlassButtonVariant {
+    Secondary,
+    Primary,
+    Accent,
+}
+
+fun liquidGlassBrush(
+    variant: DfGlassButtonVariant = DfGlassButtonVariant.Secondary,
+    accent: Color = DfColors.Purple,
+): Brush = when (variant) {
+    DfGlassButtonVariant.Secondary -> Brush.verticalGradient(
+        colors = listOf(
+            DfColors.GlassHighlight.copy(alpha = 0.88f),
+            Color.White.copy(alpha = 0.52f),
+            Color.White.copy(alpha = 0.38f),
+        ),
+    )
+    DfGlassButtonVariant.Primary -> Brush.linearGradient(
+        colors = listOf(
+            DfColors.PurpleGradientStart.copy(alpha = 0.72f),
+            DfColors.Purple.copy(alpha = 0.58f),
+            DfColors.PurpleGradientEnd.copy(alpha = 0.48f),
+            Color.White.copy(alpha = 0.16f),
+        ),
+    )
+    DfGlassButtonVariant.Accent -> Brush.horizontalGradient(
+        colors = listOf(
+            accent.copy(alpha = 0.34f),
+            accent.copy(alpha = 0.2f),
+            Color.White.copy(alpha = 0.42f),
+        ),
+    )
+}
+
+fun liquidGlassBorderColor(
+    variant: DfGlassButtonVariant = DfGlassButtonVariant.Secondary,
+    accent: Color = DfColors.Purple,
+): Color = when (variant) {
+    DfGlassButtonVariant.Secondary -> DfColors.GlassBorder
+    DfGlassButtonVariant.Primary -> Color.White.copy(alpha = 0.52f)
+    DfGlassButtonVariant.Accent -> accent.copy(alpha = 0.42f)
+}
+
+fun Modifier.liquidGlassSurface(
+    shape: Shape,
+    variant: DfGlassButtonVariant = DfGlassButtonVariant.Secondary,
+    accent: Color = DfColors.Purple,
+    elevation: Dp = AppElevations.subtle + 4.dp,
+    enabled: Boolean = true,
+): Modifier {
+    val shadowColor = when (variant) {
+        DfGlassButtonVariant.Primary -> DfColors.Purple.copy(alpha = 0.28f)
+        DfGlassButtonVariant.Accent -> accent.copy(alpha = 0.2f)
+        DfGlassButtonVariant.Secondary -> DfColors.GlassShadow
+    }
+    return this
+        .shadow(
+            elevation = if (enabled) elevation else AppElevations.none,
+            shape = shape,
+            ambientColor = shadowColor,
+            spotColor = shadowColor,
+        )
+        .clip(shape)
+        .background(
+            if (enabled) {
+                liquidGlassBrush(variant = variant, accent = accent)
+            } else {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.35f),
+                        Color.White.copy(alpha = 0.22f),
+                    ),
+                )
+            },
+        )
+        .border(
+            width = 1.dp,
+            color = if (enabled) {
+                liquidGlassBorderColor(variant = variant, accent = accent)
+            } else {
+                DfColors.GlassBorder.copy(alpha = 0.35f)
+            },
+            shape = shape,
+        )
+}
 
 @Composable
 fun DfLiquidBackground(modifier: Modifier = Modifier) {
@@ -86,21 +177,9 @@ fun DfGlassCard(
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    val base = Modifier
-        .shadow(AppElevations.floating + 6.dp, shape, ambientColor = DfColors.GlassShadow, spotColor = DfColors.GlassShadow)
-        .clip(shape)
-        .background(
-            Brush.verticalGradient(
-                colors = listOf(
-                    DfColors.GlassHighlight.copy(alpha = 0.82f),
-                    DfColors.GlassOverlay.copy(alpha = 0.58f),
-                ),
-            ),
-        )
-        .border(1.dp, DfColors.GlassBorder, shape)
     Box(
         modifier = modifier
-            .then(base)
+            .liquidGlassSurface(shape = shape, elevation = AppElevations.floating + 6.dp)
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
@@ -126,34 +205,113 @@ fun DfGlassButton(
     icon: ImageVector? = null,
     selected: Boolean = false,
     accent: Color = DfColors.Purple,
+    variant: DfGlassButtonVariant = DfGlassButtonVariant.Secondary,
+    enabled: Boolean = true,
 ) {
-    val shape = AppShapes.GlassSmall
-    val bg = if (selected) {
-        Brush.horizontalGradient(listOf(accent.copy(alpha = 0.35f), accent.copy(alpha = 0.18f)))
-    } else {
-        Brush.verticalGradient(
-            listOf(Color.White.copy(alpha = 0.75f), Color.White.copy(alpha = 0.45f)),
-        )
+    val resolvedVariant = when {
+        variant == DfGlassButtonVariant.Primary -> DfGlassButtonVariant.Primary
+        selected -> DfGlassButtonVariant.Accent
+        else -> variant
     }
+    val shape = AppShapes.GlassSmall
+    val contentColor = when (resolvedVariant) {
+        DfGlassButtonVariant.Primary -> Color.White
+        DfGlassButtonVariant.Accent -> accent
+        DfGlassButtonVariant.Secondary -> DfColors.TextPrimary
+    }
+
     Row(
         modifier = modifier
-            .shadow(if (selected) 10.dp else 6.dp, shape, ambientColor = accent.copy(alpha = 0.2f))
-            .clip(shape)
-            .background(bg)
-            .border(1.dp, if (selected) accent.copy(alpha = 0.45f) else DfColors.GlassBorder, shape)
-            .clickable(onClick = onClick)
+            .defaultMinSize(minHeight = 42.dp)
+            .liquidGlassSurface(
+                shape = shape,
+                variant = resolvedVariant,
+                accent = accent,
+                enabled = enabled,
+            )
+            .then(
+                if (enabled) Modifier.clickable(onClick = onClick) else Modifier,
+            )
             .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = null, tint = if (selected) accent else DfColors.TextSecondary)
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (selected && resolvedVariant != DfGlassButtonVariant.Primary) accent else contentColor,
+                modifier = Modifier.size(18.dp),
+            )
         }
         Text(
             text,
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) accent else DfColors.TextPrimary,
+            fontWeight = if (selected || resolvedVariant == DfGlassButtonVariant.Primary) {
+                FontWeight.Bold
+            } else {
+                FontWeight.Medium
+            },
+            color = contentColor,
+        )
+    }
+}
+
+@Composable
+fun DfGlassIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    variant: DfGlassButtonVariant = DfGlassButtonVariant.Secondary,
+    accent: Color = DfColors.Purple,
+    size: Dp = 40.dp,
+    iconSize: Dp = 20.dp,
+) {
+    val tint = when (variant) {
+        DfGlassButtonVariant.Primary -> Color.White
+        DfGlassButtonVariant.Accent -> accent
+        DfGlassButtonVariant.Secondary -> DfColors.TextSecondary
+    }
+    Box(
+        modifier = modifier
+            .size(size)
+            .liquidGlassSurface(shape = AppShapes.IconContainer, variant = variant, accent = accent)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+@Composable
+fun DfGlassTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accent: Color = DfColors.Purple,
+    compact: Boolean = false,
+) {
+    val shape = if (compact) AppShapes.Chip else AppShapes.GlassSmall
+    val vertical = if (compact) 6.dp else 8.dp
+    val horizontal = if (compact) 10.dp else 12.dp
+    Box(
+        modifier = modifier
+            .liquidGlassSurface(shape = shape, variant = DfGlassButtonVariant.Accent, accent = accent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = horizontal, vertical = vertical),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = if (compact) AppTypography.labelSmall else MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = accent,
         )
     }
 }
@@ -168,19 +326,12 @@ fun DfGlassChip(
     val shape = CircleShape
     Box(
         modifier = modifier
-            .clip(shape)
-            .background(
-                if (selected) {
-                    Brush.horizontalGradient(
-                        listOf(DfColors.Purple.copy(alpha = 0.28f), DfColors.Blue.copy(alpha = 0.22f)),
-                    )
-                } else {
-                    Brush.verticalGradient(
-                        listOf(Color.White.copy(alpha = 0.7f), Color.White.copy(alpha = 0.4f)),
-                    )
-                },
+            .liquidGlassSurface(
+                shape = shape,
+                variant = if (selected) DfGlassButtonVariant.Accent else DfGlassButtonVariant.Secondary,
+                accent = DfColors.Purple,
+                elevation = if (selected) 8.dp else 5.dp,
             )
-            .border(1.dp, if (selected) DfColors.Purple.copy(alpha = 0.4f) else DfColors.GlassBorder, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
@@ -205,13 +356,7 @@ fun DfGlassTopBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
-            .clip(AppShapes.GlassSmall)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.88f), Color.White.copy(alpha = 0.62f)),
-                ),
-            )
-            .border(1.dp, DfColors.GlassBorder, AppShapes.GlassSmall)
+            .liquidGlassSurface(shape = AppShapes.GlassSmall, elevation = 8.dp)
             .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -221,7 +366,9 @@ fun DfGlassTopBar(
             title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
             maxLines = 1,
         )
         if (action != null) {
@@ -259,14 +406,20 @@ fun DfConfidenceRing(
                         startAngle = -90f,
                         sweepAngle = 360f,
                         useCenter = false,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                            width = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        ),
                     )
                     drawArc(
                         brush = Brush.sweepGradient(listOf(DfColors.Purple, DfColors.Blue, DfColors.Purple)),
                         startAngle = -90f,
                         sweepAngle = 360f * progress,
                         useCenter = false,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                            width = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        ),
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

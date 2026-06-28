@@ -81,9 +81,11 @@ fun DfTopBar(
     TopAppBar(
         navigationIcon = {
             if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "بازگشت")
-                }
+                DfGlassIconButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "بازگشت",
+                    onClick = onBack,
+                )
             }
         },
         title = {
@@ -140,23 +142,11 @@ fun DfPrimaryButton(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 52.dp)
-            .shadow(
-                elevation = if (enabled && !loading) AppElevations.raised else AppElevations.none,
+            .liquidGlassSurface(
                 shape = shape,
-                ambientColor = DfColors.Purple.copy(alpha = 0.3f),
-            )
-            .clip(shape)
-            .background(
-                if (enabled && !loading) {
-                    Brush.horizontalGradient(listOf(DfColors.PurpleGradientStart, DfColors.PurpleGradientEnd))
-                } else {
-                    Brush.horizontalGradient(
-                        listOf(
-                            DfColors.Purple.copy(alpha = 0.4f),
-                            DfColors.PurpleDark.copy(alpha = 0.35f),
-                        ),
-                    )
-                },
+                variant = DfGlassButtonVariant.Primary,
+                elevation = AppElevations.raised,
+                enabled = enabled && !loading,
             )
             .then(
                 if (enabled && !loading) {
@@ -182,6 +172,23 @@ fun DfPrimaryButton(
             )
         }
     }
+}
+
+@Composable
+fun DfTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accent: Color = DfColors.Purple,
+    compact: Boolean = false,
+) {
+    DfGlassTextButton(
+        text = text,
+        onClick = onClick,
+        modifier = modifier,
+        accent = accent,
+        compact = compact,
+    )
 }
 
 @Composable
@@ -311,7 +318,7 @@ fun DfSearchField(
         ),
         trailingIcon = onSearch?.let {
             {
-                TextButton(onClick = it) { Text("اعمال", color = DfColors.Purple) }
+                DfGlassTextButton(text = "اعمال", onClick = it, compact = true)
             }
         },
     )
@@ -463,16 +470,16 @@ fun DfFab(
     contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
-    FloatingActionButton(
-        onClick = onClick,
-        modifier = modifier,
-        containerColor = DfColors.Purple,
-        contentColor = Color.White,
-        shape = CircleShape,
-        elevation = FloatingActionButtonDefaults.elevation(
-            defaultElevation = AppElevations.floating,
-            pressedElevation = AppElevations.raised,
-        ),
+    Box(
+        modifier = modifier
+            .size(56.dp)
+            .liquidGlassSurface(
+                shape = CircleShape,
+                variant = DfGlassButtonVariant.Primary,
+                elevation = AppElevations.floating,
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         icon()
     }
@@ -486,27 +493,29 @@ fun DfExtendedFab(
     modifier: Modifier = Modifier,
     contentDescription: String = text,
 ) {
-    ExtendedFloatingActionButton(
-        onClick = onClick,
-        modifier = modifier,
-        containerColor = DfColors.Purple,
-        contentColor = Color.White,
-        shape = AppShapes.Hero,
-        elevation = FloatingActionButtonDefaults.elevation(
-            defaultElevation = AppElevations.floating,
-            pressedElevation = AppElevations.raised,
-        ),
+    Row(
+        modifier = modifier
+            .liquidGlassSurface(
+                shape = AppShapes.Hero,
+                variant = DfGlassButtonVariant.Primary,
+                elevation = AppElevations.floating,
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
             modifier = Modifier.size(18.dp),
+            tint = Color.White,
         )
-        Spacer(Modifier.width(AppSpacing.xs))
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
+            color = Color.White,
         )
     }
 }
@@ -522,40 +531,50 @@ fun DfActionButton(
     contentColor: Color = DfColors.Purple,
     filled: Boolean = false,
 ) {
-    val bg = if (filled) contentColor else containerColor
-    val fg = if (filled) Color.White else contentColor
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = DfShapes.Chip,
-        color = bg,
+    val variant = if (filled) DfGlassButtonVariant.Primary else DfGlassButtonVariant.Secondary
+    val labelColor = when (variant) {
+        DfGlassButtonVariant.Primary -> Color.White
+        else -> DfColors.TextPrimary
+    }
+    val iconTint = when (variant) {
+        DfGlassButtonVariant.Primary -> Color.White
+        else -> contentColor
+    }
+    Row(
+        modifier = modifier
+            .defaultMinSize(minHeight = 42.dp)
+            .liquidGlassSurface(
+                shape = AppShapes.GlassSmall,
+                variant = variant,
+                accent = contentColor,
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            when {
-                iconRes != null -> Icon(
-                    painter = androidx.compose.ui.res.painterResource(iconRes),
-                    contentDescription = null,
-                    tint = fg,
-                    modifier = Modifier.size(18.dp),
-                )
-                icon != null -> Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = fg,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-            Text(
-                text,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = fg,
+        when {
+            iconRes != null -> Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(18.dp),
+            )
+            icon != null -> Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(18.dp),
             )
         }
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (filled) FontWeight.Bold else FontWeight.SemiBold,
+            color = labelColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

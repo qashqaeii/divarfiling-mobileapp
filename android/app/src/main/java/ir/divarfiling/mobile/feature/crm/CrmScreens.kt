@@ -23,15 +23,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import ir.divarfiling.mobile.feature.crm.components.ContactGridCard
 import ir.divarfiling.mobile.feature.crm.components.ContactListCard
-import ir.divarfiling.mobile.feature.crm.components.ContactsActionBar
-import ir.divarfiling.mobile.feature.crm.components.ContactsFilterBar
-import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
+import androidx.compose.foundation.lazy.rememberLazyListState
+import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import ir.divarfiling.mobile.feature.crm.components.ContactQuickLeadSheet
+import ir.divarfiling.mobile.feature.crm.components.TodayFilterSheet
+import ir.divarfiling.mobile.feature.crm.components.TodayNewTaskSheet
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.feature.crm.components.ContactsHeader
-import ir.divarfiling.mobile.feature.crm.components.ContactsSearchField
+import ir.divarfiling.mobile.feature.crm.components.ContactsSearchFilterPanel
+import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
 import ir.divarfiling.mobile.feature.crm.components.ContactsStatsRow
-import ir.divarfiling.mobile.feature.crm.components.ContactsViewMode
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 import ir.divarfiling.mobile.feature.crm.components.TodayDateSection
 import ir.divarfiling.mobile.feature.crm.components.TodayFilterChip
@@ -59,7 +65,6 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -93,7 +98,6 @@ import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
-import ir.divarfiling.mobile.core.design.components.DfSearchField
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.design.components.DfStatChip
 import ir.divarfiling.mobile.core.design.components.DfTopBar
@@ -108,7 +112,6 @@ fun ContactsScreen(
     onContactClick: (Long) -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
-    onImportFromFile: () -> Unit = {},
     viewModel: ContactsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -116,8 +119,8 @@ fun ContactsScreen(
     var priorityFilter by remember { mutableStateOf(ContactsFilters.ALL_PRIORITIES) }
     var statusFilter by remember { mutableStateOf(ContactsFilters.ALL_STATUSES) }
     var typeFilter by remember { mutableStateOf(ContactsFilters.ALL_TYPES) }
-    var viewMode by remember { mutableStateOf(ContactsViewMode.List) }
-    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
+    var quickFilter by remember { mutableStateOf(ContactsFilters.QuickFilter.ALL) }
+    val listState = rememberLazyListState()
 
     val statusForFilter = remember(statusFilter) {
         if (statusFilter == ContactsFilters.ALL_STATUSES) null else statusFilter
@@ -129,6 +132,7 @@ fun ContactsScreen(
         statusFilter,
         typeFilter,
         state.query,
+        quickFilter,
     ) {
         ContactsFilters.filterContacts(
             contacts = state.contacts,
@@ -136,11 +140,31 @@ fun ContactsScreen(
             statusFilter = statusForFilter,
             typeFilter = typeFilter,
             localQuery = state.query,
+            quickFilter = quickFilter,
         )
+    }
+
+    LaunchedEffect(listState, state.hasMore, state.isLoadingMore, state.isLoading) {
+        snapshotFlow {
+            val info = listState.layoutInfo
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= info.totalItemsCount - 4
+        }.collect { nearEnd ->
+            if (nearEnd && state.hasMore && !state.isLoadingMore && !state.isLoading) {
+                viewModel.loadMore()
+            }
+        }
     }
 
     Scaffold(
         containerColor = DfScreenContainerColor,
+        floatingActionButton = {
+            DfExtendedFab(
+                text = "مخاطب جدید",
+                icon = DfIcons.UserPlus,
+                onClick = { viewModel.toggleQuickLead(true) },
+            )
+        },
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
@@ -151,9 +175,10 @@ fun ContactsScreen(
                 .statusBarsPadding(),
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
                 item {
                     ContactsHeader(
@@ -165,45 +190,35 @@ fun ContactsScreen(
                     )
                 }
                 item {
-                    ContactsActionBar(
-                        onNewContact = { viewModel.toggleQuickLead(true) },
-                        onImportFromFile = onImportFromFile,
-                        onQuickRefresh = viewModel::refresh,
-                    )
-                }
-                item {
                     ContactsStatsRow(
                         todayCount = ContactsFilters.todayCount(state.contacts),
                         newCount = ContactsFilters.newCount(state.contacts),
                         followUpCount = ContactsFilters.followUpCount(state.contacts),
                         totalCount = ContactsFilters.totalCount(state.contacts),
+                        selectedFilter = quickFilter,
+                        onFilterSelect = { quickFilter = it },
                     )
                 }
                 item {
-                    ContactsFilterBar(
+                    ContactsSearchFilterPanel(
+                        query = state.query,
+                        onQueryChange = viewModel::onQueryChange,
+                        onSearch = viewModel::search,
                         priorities = ContactsFilters.uniquePriorities(state.contacts),
                         statuses = ContactsFilters.uniqueStatuses(state.contacts),
                         types = ContactsFilters.uniqueTypes(state.contacts),
                         selectedPriority = priorityFilter,
                         selectedStatus = statusFilter,
                         selectedType = typeFilter,
-                        viewMode = viewMode,
                         onPriorityChange = { priorityFilter = it },
                         onStatusChange = { status ->
                             statusFilter = status
+                            quickFilter = ContactsFilters.QuickFilter.ALL
                             viewModel.onStatusFilterChange(
                                 if (status == ContactsFilters.ALL_STATUSES) null else status,
                             )
                         },
                         onTypeChange = { typeFilter = it },
-                        onViewModeChange = { viewMode = it },
-                    )
-                }
-                item {
-                    ContactsSearchField(
-                        query = state.query,
-                        onQueryChange = viewModel::onQueryChange,
-                        onSearch = viewModel::search,
                     )
                 }
                 state.error?.let { error ->
@@ -225,7 +240,7 @@ fun ContactsScreen(
                         DfEmptyState(
                             title = if (state.contacts.isEmpty()) "مخاطبی ثبت نشده" else "نتیجه‌ای با این فیلتر نیست",
                             subtitle = if (state.contacts.isEmpty()) {
-                                "سرنخ جدید اضافه کنید یا از میزکار وارد شوید"
+                                "با دکمه پایین صفحه، اولین مخاطب را اضافه کنید"
                             } else {
                                 "فیلترها یا جستجو را تغییر دهید"
                             },
@@ -234,82 +249,58 @@ fun ContactsScreen(
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
-                } else {
+                } else if (filteredContacts.isNotEmpty()) {
                     item {
-                        ExtractSectionCard(
-                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                                if (viewMode == ContactsViewMode.Grid) {
-                                    filteredContacts.chunked(2).forEach { rowItems ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                                        ) {
-                                            rowItems.forEach { contact ->
-                                                ContactGridCard(
-                                                    contact = contact,
-                                                    onClick = { onContactClick(contact.id) },
-                                                    onCallClick = {
-                                                        contact.phone?.let { phone ->
-                                                            context.startActivity(
-                                                                Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
-                                                            )
-                                                        }
-                                                    },
-                                                    modifier = Modifier.weight(1f),
-                                                )
-                                            }
-                                            if (rowItems.size == 1) {
-                                                Box(modifier = Modifier.weight(1f))
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    filteredContacts.forEach { contact ->
-                                        ContactListCard(
-                                            contact = contact,
-                                            selected = selectedIds.contains(contact.id),
-                                            onSelectedChange = { checked ->
-                                                selectedIds = if (checked) {
-                                                    selectedIds + contact.id
-                                                } else {
-                                                    selectedIds - contact.id
-                                                }
-                                            },
-                                            onClick = { onContactClick(contact.id) },
-                                            onCallClick = {
-                                                contact.phone?.let { phone ->
-                                                    context.startActivity(
-                                                        Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
-                                                    )
-                                                }
-                                            },
-                                            onWhatsAppClick = {
-                                                contact.phone?.let { phone ->
-                                                    val wa = phone.removePrefix("0")
-                                                    context.startActivity(
-                                                        Intent(
-                                                            Intent.ACTION_VIEW,
-                                                            Uri.parse("https://wa.me/98$wa"),
-                                                        ),
-                                                    )
-                                                }
-                                            },
+                        Box(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                            DfSectionHeader(
+                                title = "لیست مخاطبین",
+                                count = filteredContacts.size,
+                            )
+                        }
+                    }
+                    items(
+                        items = filteredContacts,
+                        key = { it.id },
+                    ) { contact ->
+                        ContactListCard(
+                            contact = contact,
+                            onClick = { onContactClick(contact.id) },
+                            onCallClick = {
+                                contact.phone?.let { phone ->
+                                    runCatching {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
                                         )
                                     }
                                 }
-                            }
-                        }
+                            },
+                            onWhatsAppClick = {
+                                contact.phone?.let { phone ->
+                                    val wa = phone.removePrefix("0")
+                                    runCatching {
+                                        context.startActivity(
+                                            Intent(
+                                                Intent.ACTION_VIEW,
+                                                Uri.parse("https://wa.me/98$wa"),
+                                            ),
+                                        )
+                                    }
+                                }
+                            },
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
                     }
-                    if (state.hasMore) {
+                    if (state.isLoadingMore) {
                         item {
-                            TextButton(
-                                onClick = viewModel::loadMore,
-                                modifier = Modifier.fillMaxWidth(),
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = AppSpacing.md),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    if (state.isLoadingMore) "در حال بارگذاری…" else "مشاهده بیشتر",
+                                    "در حال بارگذاری…",
+                                    style = AppTypography.labelSmall,
                                     color = DfColors.Purple,
                                 )
                             }
@@ -321,58 +312,20 @@ fun ContactsScreen(
     }
 
     if (state.showQuickLead) {
-        QuickLeadDialog(
-            name = state.leadName,
-            phone = state.leadPhone,
-            isSubmitting = state.isSubmitting,
-            onNameChange = viewModel::onLeadNameChange,
-            onPhoneChange = viewModel::onLeadPhoneChange,
-            onDismiss = { viewModel.toggleQuickLead(false) },
-            onSubmit = viewModel::submitQuickLead,
-        )
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleQuickLead(false) }) {
+            ContactQuickLeadSheet(
+                name = state.leadName,
+                phone = state.leadPhone,
+                customerType = state.leadCustomerType,
+                isSubmitting = state.isSubmitting,
+                onNameChange = viewModel::onLeadNameChange,
+                onPhoneChange = viewModel::onLeadPhoneChange,
+                onCustomerTypeChange = viewModel::onLeadCustomerTypeChange,
+                onSubmit = viewModel::submitQuickLead,
+                onDismiss = { viewModel.toggleQuickLead(false) },
+            )
+        }
     }
-}
-
-@Composable
-private fun QuickLeadDialog(
-    name: String,
-    phone: String,
-    isSubmitting: Boolean,
-    onNameChange: (String) -> Unit,
-    onPhoneChange: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onSubmit: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("ثبت سریع سرنخ", fontWeight = FontWeight.SemiBold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = onNameChange,
-                    label = { Text("نام") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = onPhoneChange,
-                    label = { Text("تلفن") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onSubmit, enabled = !isSubmitting) {
-                Text(if (isSubmitting) "…" else "ثبت", color = DfColors.Purple)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("انصراف") }
-        },
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -380,13 +333,24 @@ private fun QuickLeadDialog(
 fun TodayScreen(
     onBack: () -> Unit = {},
     onContactClick: (Long) -> Unit = {},
-    onNewTask: () -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableStateOf(TodayFilterTab.All) }
     var showDoneSummary by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.successMessage, state.error) {
+        state.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessage()
+        }
+        state.error?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessage()
+        }
+    }
 
     val filterChips = state.data?.let { today ->
         buildList {
@@ -395,7 +359,7 @@ fun TodayScreen(
                     TodayFilterTab.All,
                     "همه",
                     TodayFilters.todayCount(today),
-                    DfIcons.LayoutGrid,
+                    DfIcons.ListTodo,
                 ),
             )
             add(
@@ -445,8 +409,9 @@ fun TodayScreen(
 
     Scaffold(
         containerColor = DfScreenContainerColor,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            TodayNewTaskFab(onClick = onNewTask)
+            TodayNewTaskFab(onClick = { viewModel.toggleNewTaskSheet(true) })
         },
     ) { padding ->
         DfPullRefresh(
@@ -465,10 +430,7 @@ fun TodayScreen(
                 item {
                     TodayHeader(
                         onBack = onBack,
-                        onFilterClick = {
-                            showDoneSummary = false
-                            selectedTab = TodayFilterTab.All
-                        },
+                        onFilterClick = { viewModel.toggleFilterSheet(true) },
                     )
                 }
                 state.error?.let { error ->
@@ -515,7 +477,7 @@ fun TodayScreen(
                     }
                     item {
                         TodayDateSection(
-                            dateLabel = today.date ?: "امروز",
+                            dateLabel = today.date ?: "",
                             totalCount = TodayFilters.todayCount(today),
                             onDateClick = viewModel::refresh,
                         )
@@ -555,23 +517,28 @@ fun TodayScreen(
                             TodayTaskCard(
                                 item = entry.item,
                                 isOverdue = entry.isOverdue,
+                                isActionRunning = state.isActionRunning,
                                 onCall = {
                                     entry.item.contact?.phone?.let { phone ->
-                                        context.startActivity(
-                                            Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
-                                        )
+                                        runCatching {
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
+                                            )
+                                        }
                                     }
                                     entry.item.contact?.id?.let { viewModel.logCallActivity(it) }
                                 },
                                 onWhatsApp = {
                                     entry.item.contact?.phone?.let { phone ->
                                         val wa = phone.removePrefix("0")
-                                        context.startActivity(
-                                            Intent(
-                                                Intent.ACTION_VIEW,
-                                                Uri.parse("https://wa.me/98$wa"),
-                                            ),
-                                        )
+                                        runCatching {
+                                            context.startActivity(
+                                                Intent(
+                                                    Intent.ACTION_VIEW,
+                                                    Uri.parse("https://wa.me/98$wa"),
+                                                ),
+                                            )
+                                        }
                                     }
                                 },
                                 onViewContact = { entry.item.contact?.id?.let(onContactClick) },
@@ -581,10 +548,11 @@ fun TodayScreen(
                                         reminderId = entry.item.reminder?.id,
                                     )
                                 },
-                                onPostpone = {
+                                onPostpone = { days ->
                                     viewModel.postponeTask(
                                         contactId = entry.item.contact?.id,
                                         reminderId = entry.item.reminder?.id,
+                                        days = days,
                                     )
                                 },
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -602,6 +570,37 @@ fun TodayScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (state.showFilterSheet) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleFilterSheet(false) }) {
+            TodayFilterSheet(
+                chips = filterChips,
+                selectedTab = activeTab,
+                onSelect = {
+                    showDoneSummary = false
+                    selectedTab = it
+                },
+                onDismiss = { viewModel.toggleFilterSheet(false) },
+            )
+        }
+    }
+
+    if (state.showNewTaskSheet) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleNewTaskSheet(false) }) {
+            TodayNewTaskSheet(
+                contacts = state.contactPicker,
+                selectedContactId = state.newTaskContactId,
+                title = state.newTaskTitle,
+                dueMillis = state.newTaskDueMillis,
+                isSubmitting = state.isSubmittingTask,
+                onContactSelect = viewModel::onNewTaskContactSelect,
+                onTitleChange = viewModel::onNewTaskTitleChange,
+                onDueChange = viewModel::onNewTaskDueChange,
+                onSubmit = viewModel::submitNewTask,
+                onDismiss = { viewModel.toggleNewTaskSheet(false) },
+            )
         }
     }
 }
@@ -831,11 +830,12 @@ private fun TodayScreenPreview() {
                     reminder = ReminderDto(id = 1, title = "پیگیری", dueAt = "09:00"),
                 ),
                 isOverdue = true,
+                isActionRunning = false,
                 onCall = {},
                 onWhatsApp = {},
                 onViewContact = {},
                 onComplete = {},
-                onPostpone = {},
+                onPostpone = { _ -> },
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
         }

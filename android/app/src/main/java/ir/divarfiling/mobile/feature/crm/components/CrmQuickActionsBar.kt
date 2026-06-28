@@ -6,31 +6,28 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
+import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 
 data class CrmQuickAction(
     val title: String,
@@ -44,32 +41,27 @@ fun CrmQuickActionsBar(
     actions: List<CrmQuickAction>,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(AppElevations.card, AppShapes.Card, ambientColor = DfColors.Shadow),
-        shape = AppShapes.Card,
-        color = DfColors.Surface,
+            .liquidGlassSurface(shape = AppShapes.Hero, elevation = 8.dp)
+            .padding(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(88.dp)
-                .padding(horizontal = AppSpacing.xxs, vertical = AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            actions.forEachIndexed { index, action ->
-                if (index > 0) {
-                    VerticalDivider(
-                        modifier = Modifier.height(48.dp),
-                        color = DfColors.OutlineSubtle,
-                        thickness = 1.dp,
+        actions.chunked(2).forEach { rowActions ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                rowActions.forEach { action ->
+                    CrmQuickActionItem(
+                        action = action,
+                        modifier = Modifier.weight(1f),
                     )
                 }
-                CrmQuickActionItem(
-                    action = action,
-                    modifier = Modifier.weight(1f),
-                )
+                if (rowActions.size == 1) {
+                    Box(modifier = Modifier.weight(1f))
+                }
             }
         }
     }
@@ -82,48 +74,54 @@ private fun CrmQuickActionItem(
 ) {
     Column(
         modifier = modifier
+            .heightIn(min = 92.dp)
+            .liquidGlassSurface(
+                shape = AppShapes.CardSmall,
+                variant = DfGlassButtonVariant.Secondary,
+                elevation = 4.dp,
+            )
             .clickable(onClick = action.onClick)
-            .padding(horizontal = AppSpacing.xxs, vertical = AppSpacing.xxs),
+            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .padding(bottom = 2.dp),
+                .size(40.dp)
+                .liquidGlassSurface(
+                    shape = AppShapes.IconContainer,
+                    variant = DfGlassButtonVariant.Accent,
+                    accent = DfColors.Purple,
+                    elevation = 3.dp,
+                ),
             contentAlignment = Alignment.Center,
         ) {
-            Surface(
-                shape = AppShapes.IconContainer,
-                color = DfColors.PurpleContainer,
-                modifier = Modifier.size(34.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = action.icon,
-                        contentDescription = action.title,
-                        tint = DfColors.Purple,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
+            Icon(
+                imageVector = action.icon,
+                contentDescription = action.title,
+                tint = DfColors.Purple,
+                modifier = Modifier.size(18.dp),
+            )
         }
         Text(
             text = action.title,
-            style = AppTypography.bottomNav,
-            fontWeight = FontWeight.SemiBold,
+            style = AppTypography.labelSmall,
+            fontWeight = FontWeight.Bold,
             color = DfColors.TextPrimary,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
         Text(
             text = action.subtitle,
             style = AppTypography.labelSmall,
+            fontWeight = FontWeight.Normal,
             color = DfColors.TextMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

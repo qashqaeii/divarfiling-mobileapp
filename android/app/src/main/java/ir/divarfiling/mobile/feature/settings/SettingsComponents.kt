@@ -22,13 +22,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -46,7 +44,11 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfShapes
 import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSheetActions
+import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
+import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.UserDto
 
@@ -331,40 +333,40 @@ fun ProfileEditSheet(
     onSave: () -> Unit,
 ) {
     if (!visible) return
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = AppShapes.Sheet,
-        containerColor = DfColors.Surface.copy(alpha = 0.96f),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+    DfModalBottomSheet(onDismissRequest = onDismiss) {
+        DfSheetScaffold(
+            title = "ویرایش پروفایل",
+            subtitle = "نام و شماره تماس نمایشی خود را به‌روز کنید",
+            icon = Icons.Default.Edit,
+            onClose = onDismiss,
+            footer = {
+                DfSheetActions(
+                    primaryText = if (isSaving) "در حال ذخیره…" else "ذخیره تغییرات",
+                    onPrimary = onSave,
+                    primaryEnabled = !isSaving && fullName.isNotBlank(),
+                    isSubmitting = isSaving,
+                    onSecondary = onDismiss,
+                )
+            },
         ) {
-            Text("ویرایش پروفایل", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            OutlinedTextField(
-                value = fullName,
-                onValueChange = onFullNameChange,
-                label = { Text("نام کامل") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = phone,
-                onValueChange = onPhoneChange,
-                label = { Text("تلفن") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-            DfPrimaryButton(
-                text = if (isSaving) "در حال ذخیره…" else "ذخیره تغییرات",
-                onClick = onSave,
-                enabled = !isSaving && fullName.isNotBlank(),
-            )
+            DfSheetSection(title = "اطلاعات کاربری") {
+                OutlinedTextField(
+                    value = fullName,
+                    onValueChange = onFullNameChange,
+                    label = { Text("نام کامل") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !isSaving,
+                )
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = onPhoneChange,
+                    label = { Text("تلفن") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !isSaving,
+                )
+            }
         }
     }
 }

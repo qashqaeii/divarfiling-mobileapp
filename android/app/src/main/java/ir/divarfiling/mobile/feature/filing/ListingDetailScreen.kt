@@ -21,7 +21,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
+import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
+import ir.divarfiling.mobile.feature.crm.components.ListingSendSheet
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -172,41 +173,16 @@ fun ListingDetailScreen(
     }
 
     if (state.showSendDialog) {
-        AlertDialog(
-            onDismissRequest = viewModel::dismissSendDialog,
-            title = { Text("ارسال به CRM") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "پیام حرفه‌ای بدون لینک دیوار ارسال می‌شود.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DfColors.TextSecondary,
-                    )
-                    OutlinedTextField(
-                        value = state.sendNote,
-                        onValueChange = viewModel::onSendNoteChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("یادداشت (اختیاری)") },
-                        minLines = 3,
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.sendToContact(false) }, enabled = !state.isLinking) {
-                    Text("ارسال")
-                }
-            },
-            dismissButton = {
-                androidx.compose.foundation.layout.Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    TextButton(onClick = { viewModel.sendToContact(true) }, enabled = !state.isLinking) {
-                        Text("واتساپ")
-                    }
-                    TextButton(onClick = viewModel::dismissSendDialog) { Text("انصراف") }
-                }
-            },
-        )
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissSendDialog) {
+            ListingSendSheet(
+                note = state.sendNote,
+                isSubmitting = state.isLinking,
+                onNoteChange = viewModel::onSendNoteChange,
+                onSend = { viewModel.sendToContact(false) },
+                onSendWhatsApp = { viewModel.sendToContact(true) },
+                onDismiss = viewModel::dismissSendDialog,
+            )
+        }
     }
 }
 

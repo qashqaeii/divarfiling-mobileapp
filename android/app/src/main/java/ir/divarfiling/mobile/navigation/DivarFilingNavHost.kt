@@ -180,7 +180,6 @@ fun DivarFilingNavHost(
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
-                            onImportFromFile = { navController.navigate(Routes.FILING) },
                         )
                     }
                     composable(
@@ -229,7 +228,6 @@ fun DivarFilingNavHost(
                         TodayScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
-                            onNewTask = { navController.navigate(Routes.CRM_CONTACTS) },
                         )
                     }
                     composable(Routes.FILING) {
@@ -239,7 +237,6 @@ fun DivarFilingNavHost(
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
-                            onNavigateTools = { navController.navigate(Routes.TOOLS) },
                         )
                     }
                     composable(
