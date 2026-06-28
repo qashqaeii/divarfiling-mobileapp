@@ -44,6 +44,7 @@ import ir.divarfiling.mobile.feature.filing.ListingsScreen
 import ir.divarfiling.mobile.feature.home.HomeScreen
 import ir.divarfiling.mobile.feature.notifications.NotificationsScreen
 import ir.divarfiling.mobile.feature.settings.SettingsScreen
+import ir.divarfiling.mobile.feature.tools.ToolsScreen
 import kotlinx.coroutines.flow.first
 
 object Routes {
@@ -68,6 +69,7 @@ object Routes {
     const val CRM_PROPERTIES = "crm/properties"
     const val CRM_PROPERTY_DETAIL = "crm/properties/{propertyId}"
     const val NOTIFICATIONS = "notifications"
+    const val TOOLS = "tools"
 
     fun listings(datasetId: String) = "filing/$datasetId"
     fun datasetInsights(datasetId: String) = "filing/$datasetId/insights"
@@ -237,6 +239,7 @@ fun DivarFilingNavHost(
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onNavigateTools = { navController.navigate(Routes.TOOLS) },
                             onDatasetMapClick = { id -> navController.navigate(Routes.datasetMap(id)) },
                             onDatasetInsightsClick = { id -> navController.navigate(Routes.datasetInsights(id)) },
                         )
@@ -316,6 +319,13 @@ fun DivarFilingNavHost(
                         NotificationsScreen(
                             onBack = { navController.popBackStack() },
                             onDeepLink = { target -> navController.navigateDeepLink(target) },
+                        )
+                    }
+                    composable(Routes.TOOLS) {
+                        ToolsScreen(
+                            onBack = { navController.popBackStack() },
+                            onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                            onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                         )
                     }
                 }

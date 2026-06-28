@@ -67,7 +67,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -426,19 +425,21 @@ fun TodayScreen(
         }
     } ?: emptyList()
 
-    val displayedEntries = state.data?.let { today ->
-        TodayFilters.filterEntries(today, selectedTab)
-    } ?: emptyList()
-
-    LaunchedEffect(state.data, selectedTab) {
-        val today = state.data ?: return@LaunchedEffect
-        if (selectedTab == TodayFilterTab.Done && !TodayFilters.canFilterByDone(today)) {
-            if (TodayFilters.doneCount(today) > 0) {
-                showDoneSummary = true
-            }
-            selectedTab = TodayFilterTab.All
-        }
+    val today = state.data
+    val activeTab = when {
+        today != null &&
+            selectedTab == TodayFilterTab.Done &&
+            !TodayFilters.canFilterByDone(today) -> TodayFilterTab.All
+        else -> selectedTab
     }
+    val implicitDoneSummary = today != null &&
+        selectedTab == TodayFilterTab.Done &&
+        !TodayFilters.canFilterByDone(today) &&
+        TodayFilters.doneCount(today) > 0
+
+    val displayedEntries = today?.let { data ->
+        TodayFilters.filterEntries(data, activeTab)
+    } ?: emptyList()
 
     Scaffold(
         containerColor = DfColors.Background,
@@ -521,14 +522,14 @@ fun TodayScreen(
                     item {
                         TodayFilterTabsRow(
                             chips = filterChips,
-                            selectedTab = selectedTab,
+                            selectedTab = activeTab,
                             onTabSelected = {
                                 showDoneSummary = false
                                 selectedTab = it
                             },
                         )
                     }
-                    if (showDoneSummary) {
+                    if (showDoneSummary || implicitDoneSummary) {
                         item {
                             val doneCount = TodayFilters.doneCount(today)
                             DfEmptyState(

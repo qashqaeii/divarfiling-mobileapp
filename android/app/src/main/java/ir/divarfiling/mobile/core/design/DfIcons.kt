@@ -79,4 +79,7 @@ object DfIcons {
     val Trophy: ImageVector = LucideIcons.Trophy
     val Coins: ImageVector = LucideIcons.Coins
     val Map: ImageVector = LucideIcons.Map
+    val Wrench: ImageVector = LucideIcons.Wrench
+    val Calculator: ImageVector = LucideIcons.Calculator
+    val Percent: ImageVector = LucideIcons.Percent
 }

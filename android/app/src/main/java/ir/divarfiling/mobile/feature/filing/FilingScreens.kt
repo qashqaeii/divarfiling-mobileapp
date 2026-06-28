@@ -70,6 +70,7 @@ fun DatasetsScreen(
     onNavigateExtract: () -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
+    onNavigateTools: () -> Unit = {},
     onDatasetMapClick: (String) -> Unit = {},
     onDatasetInsightsClick: (String) -> Unit = {},
     viewModel: DatasetsViewModel = hiltViewModel(),
@@ -141,7 +142,7 @@ fun DatasetsScreen(
                         onSearch = { onGlobalSearch(searchDraft.trim()) },
                         onUploadClick = onNavigateExtract,
                         onTutorialClick = { showTutorial = true },
-                        onToolsClick = onNavigateSettings,
+                        onToolsClick = onNavigateTools,
                         onCompareClick = {
                             state.datasets.firstOrNull()?.let { onDatasetInsightsClick(it.id) }
                         },
