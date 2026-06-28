@@ -54,4 +54,16 @@ object DfIcons {
     val WandSparkles: ImageVector = LucideIcons.WandSparkles
     val ClipboardList: ImageVector = LucideIcons.ClipboardList
     val Rocket: ImageVector = LucideIcons.Rocket
+    val Heart: ImageVector = LucideIcons.Heart
+    val Share2: ImageVector = LucideIcons.Share2
+    val ExternalLink: ImageVector = LucideIcons.ExternalLink
+    val Copy: ImageVector = LucideIcons.Copy
+    val Flag: ImageVector = LucideIcons.Flag
+    val Compass: ImageVector = LucideIcons.Compass
+    val StickyNote: ImageVector = LucideIcons.StickyNote
+    val LayoutGrid: ImageVector = LucideIcons.LayoutGrid
+    val ChevronUp: ImageVector = LucideIcons.ChevronUp
+    val Bed: ImageVector = LucideIcons.Bed
+    val Bath: ImageVector = LucideIcons.Bath
+    val Car: ImageVector = LucideIcons.Car
 }
