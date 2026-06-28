@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.TodayData
+import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
+import ir.divarfiling.mobile.data.repository.DashboardRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,16 +30,36 @@ data class ContactsUiState(
     val showQuickLead: Boolean = false,
     val leadName: String = "",
     val leadPhone: String = "",
+    val userName: String = "",
+    val notificationBadgeCount: Int = 0,
 )
 
 @HiltViewModel
 class ContactsViewModel @Inject constructor(
     private val crmRepository: CrmRepository,
+    private val sessionStore: SessionStore,
+    private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ContactsUiState())
     val uiState: StateFlow<ContactsUiState> = _uiState.asStateFlow()
 
-    init { load(reset = true) }
+    init {
+        viewModelScope.launch {
+            sessionStore.currentUser.collect { user ->
+                _uiState.update {
+                    it.copy(userName = user?.fullName?.substringBefore(" ") ?: "کاربر")
+                }
+            }
+        }
+        viewModelScope.launch {
+            when (val result = dashboardRepository.getDashboard()) {
+                is ApiResult.Success ->
+                    _uiState.update { it.copy(notificationBadgeCount = result.data.notificationsUnread) }
+                is ApiResult.Error -> Unit
+            }
+        }
+        load(reset = true)
+    }
 
     fun load(reset: Boolean = false) {
         viewModelScope.launch {

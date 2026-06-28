@@ -15,7 +15,24 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
-import ir.divarfiling.mobile.feature.crm.components.CrmContactsIllustration
+import androidx.compose.foundation.layout.statusBarsPadding
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import ir.divarfiling.mobile.feature.crm.components.ContactGridCard
+import ir.divarfiling.mobile.feature.crm.components.ContactListCard
+import ir.divarfiling.mobile.feature.crm.components.ContactsActionBar
+import ir.divarfiling.mobile.feature.crm.components.ContactsFilterBar
+import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
+import ir.divarfiling.mobile.feature.crm.components.ContactsHeader
+import ir.divarfiling.mobile.feature.crm.components.ContactsSearchField
+import ir.divarfiling.mobile.feature.crm.components.ContactsStatsRow
+import ir.divarfiling.mobile.feature.crm.components.ContactsViewMode
+import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 import ir.divarfiling.mobile.feature.crm.components.CrmDealsIllustration
 import ir.divarfiling.mobile.feature.crm.components.CrmHubFeatureCard
 import ir.divarfiling.mobile.feature.crm.components.CrmHubFeatureCardSkeleton
@@ -59,14 +76,11 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
-import ir.divarfiling.mobile.core.design.components.DfContactRow
+import ir.divarfiling.mobile.feature.crm.components.CrmContactsIllustration
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfContactListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
-import ir.divarfiling.mobile.core.design.components.DfFab
-import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
-import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfSearchField
@@ -82,79 +96,198 @@ import ir.divarfiling.mobile.core.network.TodayItemDto
 fun ContactsScreen(
     onBack: () -> Unit = {},
     onContactClick: (Long) -> Unit = {},
+    onNavigateNotifications: () -> Unit = {},
+    onNavigateSettings: () -> Unit = {},
+    onImportFromFile: () -> Unit = {},
     viewModel: ContactsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val displayed = state.contacts.filter { contact ->
-        state.statusFilter == null || contact.status == state.statusFilter
+    val context = LocalContext.current
+    var priorityFilter by remember { mutableStateOf(ContactsFilters.ALL_PRIORITIES) }
+    var statusFilter by remember { mutableStateOf(ContactsFilters.ALL_STATUSES) }
+    var typeFilter by remember { mutableStateOf(ContactsFilters.ALL_TYPES) }
+    var viewMode by remember { mutableStateOf(ContactsViewMode.List) }
+    val selectedIds = remember { mutableStateSetOf<Long>() }
+
+    val statusForFilter = remember(statusFilter) {
+        if (statusFilter == ContactsFilters.ALL_STATUSES) null else statusFilter
+    }
+
+    val filteredContacts = remember(
+        state.contacts,
+        priorityFilter,
+        statusFilter,
+        typeFilter,
+        state.query,
+    ) {
+        ContactsFilters.filterContacts(
+            contacts = state.contacts,
+            priorityFilter = priorityFilter,
+            statusFilter = statusForFilter,
+            typeFilter = typeFilter,
+            localQuery = state.query,
+        )
     }
 
     Scaffold(
-        topBar = { DfTopBar(title = "مخاطبین CRM", onBack = onBack) },
-        floatingActionButton = {
-            DfFab(
-                onClick = { viewModel.toggleQuickLead(true) },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                contentDescription = "سرنخ جدید",
-            )
-        },
+        containerColor = DfColors.Background,
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .background(DfColors.Background)
+                .statusBarsPadding(),
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfSearchField(
-                        value = state.query,
-                        onValueChange = viewModel::onQueryChange,
-                        placeholder = "جستجو نام یا تلفن…",
+                    ContactsHeader(
+                        userName = state.userName,
+                        notificationCount = state.notificationBadgeCount,
+                        onNotificationsClick = onNavigateNotifications,
+                        onMenuClick = onNavigateSettings,
+                    )
+                }
+                item {
+                    ContactsActionBar(
+                        onNewContact = { viewModel.toggleQuickLead(true) },
+                        onImportFromFile = onImportFromFile,
+                        onQuickRefresh = viewModel::refresh,
+                    )
+                }
+                item {
+                    ContactsStatsRow(
+                        todayCount = ContactsFilters.todayCount(state.contacts),
+                        newCount = ContactsFilters.newCount(state.contacts),
+                        followUpCount = ContactsFilters.followUpCount(state.contacts),
+                        totalCount = ContactsFilters.totalCount(state.contacts),
+                    )
+                }
+                item {
+                    ContactsFilterBar(
+                        priorities = ContactsFilters.uniquePriorities(state.contacts),
+                        statuses = ContactsFilters.uniqueStatuses(state.contacts),
+                        types = ContactsFilters.uniqueTypes(state.contacts),
+                        selectedPriority = priorityFilter,
+                        selectedStatus = statusFilter,
+                        selectedType = typeFilter,
+                        viewMode = viewMode,
+                        onPriorityChange = { priorityFilter = it },
+                        onStatusChange = { status ->
+                            statusFilter = status
+                            viewModel.onStatusFilterChange(
+                                if (status == ContactsFilters.ALL_STATUSES) null else status,
+                            )
+                        },
+                        onTypeChange = { typeFilter = it },
+                        onViewModeChange = { viewMode = it },
+                    )
+                }
+                item {
+                    ContactsSearchField(
+                        query = state.query,
+                        onQueryChange = viewModel::onQueryChange,
                         onSearch = viewModel::search,
                     )
                 }
-                item {
-                    DfFilterChipRow(
-                        options = listOf(
-                            DfFilterOption(null, "همه"),
-                            DfFilterOption("جدید", "جدید"),
-                            DfFilterOption("در حال پیگیری", "در پیگیری"),
-                            DfFilterOption("بسته شده", "بسته"),
-                        ),
-                        selected = state.statusFilter,
-                        onSelect = { viewModel.onStatusFilterChange(it); viewModel.search() },
-                    )
-                }
                 state.error?.let { error ->
-                    item { DfErrorBanner(error) }
+                    item {
+                        DfErrorBanner(
+                            error,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 if (state.isLoading && state.contacts.isEmpty()) {
-                    item { DfContactListSkeleton() }
-                } else if (!state.isLoading && displayed.isEmpty() && state.error == null) {
+                    item {
+                        DfContactListSkeleton(
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
+                } else if (!state.isLoading && filteredContacts.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
-                            title = "مخاطبی ثبت نشده",
-                            subtitle = "سرنخ جدید اضافه کنید یا از میزکار وارد شوید",
-                            actionLabel = "سرنخ سریع",
+                            title = if (state.contacts.isEmpty()) "مخاطبی ثبت نشده" else "نتیجه‌ای با این فیلتر نیست",
+                            subtitle = if (state.contacts.isEmpty()) {
+                                "سرنخ جدید اضافه کنید یا از میزکار وارد شوید"
+                            } else {
+                                "فیلترها یا جستجو را تغییر دهید"
+                            },
+                            actionLabel = "مخاطب جدید",
                             onAction = { viewModel.toggleQuickLead(true) },
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 } else {
-                    items(displayed, key = { it.id }) { contact ->
-                        DfContactRow(
-                            name = contact.fullName,
-                            phone = contact.phone,
-                            status = contact.status,
-                            customerType = contact.customerType,
-                            onClick = { onContactClick(contact.id) },
-                        )
+                    item {
+                        ExtractSectionCard(
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                                if (viewMode == ContactsViewMode.Grid) {
+                                    filteredContacts.chunked(2).forEach { rowItems ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                        ) {
+                                            rowItems.forEach { contact ->
+                                                ContactGridCard(
+                                                    contact = contact,
+                                                    onClick = { onContactClick(contact.id) },
+                                                    onCallClick = {
+                                                        contact.phone?.let { phone ->
+                                                            context.startActivity(
+                                                                Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
+                                                            )
+                                                        }
+                                                    },
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                            }
+                                            if (rowItems.size == 1) {
+                                                Box(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    filteredContacts.forEach { contact ->
+                                        ContactListCard(
+                                            contact = contact,
+                                            selected = selectedIds.contains(contact.id),
+                                            onSelectedChange = { checked ->
+                                                if (checked) selectedIds.add(contact.id)
+                                                else selectedIds.remove(contact.id)
+                                            },
+                                            onClick = { onContactClick(contact.id) },
+                                            onCallClick = {
+                                                contact.phone?.let { phone ->
+                                                    context.startActivity(
+                                                        Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
+                                                    )
+                                                }
+                                            },
+                                            onWhatsAppClick = {
+                                                contact.phone?.let { phone ->
+                                                    val wa = phone.removePrefix("0")
+                                                    context.startActivity(
+                                                        Intent(
+                                                            Intent.ACTION_VIEW,
+                                                            Uri.parse("https://wa.me/98$wa"),
+                                                        ),
+                                                    )
+                                                }
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                     if (state.hasMore) {
                         item {
@@ -162,7 +295,10 @@ fun ContactsScreen(
                                 onClick = viewModel::loadMore,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text(if (state.isLoadingMore) "در حال بارگذاری…" else "بارگذاری بیشتر")
+                                Text(
+                                    if (state.isLoadingMore) "در حال بارگذاری…" else "مشاهده بیشتر",
+                                    color = DfColors.Purple,
+                                )
                             }
                         }
                     }

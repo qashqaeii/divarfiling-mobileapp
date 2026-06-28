@@ -178,6 +178,9 @@ fun DivarFilingNavHost(
                         ContactsScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                            onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onImportFromFile = { navController.navigate(Routes.FILING) },
                         )
                     }
                     composable(

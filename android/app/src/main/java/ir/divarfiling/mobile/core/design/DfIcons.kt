@@ -74,5 +74,6 @@ object DfIcons {
     val Upload: ImageVector = LucideIcons.Upload
     val Scale: ImageVector = LucideIcons.Scale
     val RotateCcw: ImageVector = LucideIcons.RotateCcw
+    val MessageCircle: ImageVector = LucideIcons.MessageCircle
     val Map: ImageVector = LucideIcons.Map
 }
