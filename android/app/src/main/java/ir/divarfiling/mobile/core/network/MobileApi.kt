@@ -163,6 +163,8 @@ interface MobileApi {
     suspend fun getProperties(
         @Query("q") query: String? = null,
         @Query("deal_mode") dealMode: String? = null,
+        @Query("property_type") propertyType: String? = null,
+        @Query("city") city: String? = null,
         @Query("transaction_status") transactionStatus: String? = null,
         @Query("page") page: Int = 1,
         @Query("page_size") pageSize: Int = 20,

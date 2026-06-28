@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -399,7 +400,7 @@ private fun DfHubBrandLogo(
 private fun DfHubBackButton(onClick: () -> Unit) {
     IconButton(onClick = onClick, modifier = Modifier.size(42.dp)) {
         Icon(
-            imageVector = DfIcons.ChevronLeft,
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "بازگشت",
             tint = DfColors.TextSecondary,
         )

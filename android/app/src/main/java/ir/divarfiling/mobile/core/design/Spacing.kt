@@ -20,6 +20,7 @@ object AppSpacing {
     val iconTextGap = 12.dp
     val listRowMinHeight = 64.dp
     val bottomNavHeight = 72.dp
+    val fabClearance = 88.dp
 }
 
 typealias DfSpacing = AppSpacing

@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import ir.divarfiling.mobile.core.design.DateUtils
+
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
@@ -79,9 +81,12 @@ object DealsFilters {
 
     fun splitDateTime(updatedAt: String?): Pair<String, String> {
         if (updatedAt.isNullOrBlank()) return "—" to "—"
-        val datePart = updatedAt.take(10).replace('-', '/')
-        val timePart = updatedAt.drop(11).take(5).ifBlank { "—" }
-        return datePart to timePart
+        val formatted = DateUtils.formatJalaliDateTime(updatedAt)
+        if (formatted != null) {
+            val parts = formatted.split(' ')
+            return parts.firstOrNull().orEmpty() to parts.drop(1).joinToString(" ").ifBlank { "—" }
+        }
+        return "—" to "—"
     }
 
     private fun matchesOwner(deal: DealDto, filter: String): Boolean =

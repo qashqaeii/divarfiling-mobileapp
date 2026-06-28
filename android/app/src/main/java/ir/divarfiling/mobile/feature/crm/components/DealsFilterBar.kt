@@ -105,45 +105,49 @@ fun DealsFilterBar(
             }
         }
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                DealsFilterDropdown(
-                    label = DealsFilters.ALL_FILTERS,
-                    options = listOf(DealsFilters.ALL_FILTERS),
-                    onSelect = { if (it == DealsFilters.ALL_FILTERS) onResetFilters() },
-                )
-                DealsFilterDropdown(
-                    label = selectedSort,
-                    options = listOf(DealsFilters.NEWEST, DealsFilters.OLDEST),
-                    onSelect = onSortChange,
-                )
-                DealsFilterDropdown(
-                    label = selectedOwner,
-                    options = owners,
-                    onSelect = onOwnerChange,
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                DealsViewModeButton(
-                    icon = DfIcons.LayoutGrid,
-                    selected = viewMode == DealsViewMode.Grid,
-                    onClick = { onViewModeChange(DealsViewMode.Grid) },
-                )
-                DealsViewModeButton(
-                    icon = DfIcons.LayoutList,
-                    selected = viewMode == DealsViewMode.List,
-                    onClick = { onViewModeChange(DealsViewMode.List) },
-                )
-            }
+            DealsFilterDropdown(
+                label = DealsFilters.ALL_FILTERS,
+                options = listOf(DealsFilters.ALL_FILTERS),
+                onSelect = { if (it == DealsFilters.ALL_FILTERS) onResetFilters() },
+            )
+            DealsFilterDropdown(
+                label = selectedSort,
+                options = listOf(DealsFilters.NEWEST, DealsFilters.OLDEST),
+                onSelect = onSortChange,
+            )
+            DealsFilterDropdown(
+                label = selectedOwner,
+                options = owners,
+                onSelect = onOwnerChange,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "نمایش:",
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+                modifier = Modifier.padding(end = AppSpacing.xs),
+            )
+            DealsViewModeButton(
+                icon = DfIcons.LayoutGrid,
+                selected = viewMode == DealsViewMode.Grid,
+                onClick = { onViewModeChange(DealsViewMode.Grid) },
+            )
+            DealsViewModeButton(
+                icon = DfIcons.LayoutList,
+                selected = viewMode == DealsViewMode.List,
+                onClick = { onViewModeChange(DealsViewMode.List) },
+            )
         }
     }
 }

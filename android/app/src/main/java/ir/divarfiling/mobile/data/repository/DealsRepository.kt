@@ -67,11 +67,17 @@ class DealsRepository @Inject constructor(
 
     suspend fun getProperties(
         query: String? = null,
+        dealMode: String? = null,
+        propertyType: String? = null,
+        city: String? = null,
         transactionStatus: String? = null,
         page: Int = 1,
     ): ApiResult<PaginatedResult<PropertyDto>> = paginatedProperties {
         api.getProperties(
             query = query?.ifBlank { null },
+            dealMode = dealMode?.ifBlank { null },
+            propertyType = propertyType?.ifBlank { null },
+            city = city?.ifBlank { null },
             transactionStatus = transactionStatus?.ifBlank { null },
             page = page,
         )

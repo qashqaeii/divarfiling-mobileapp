@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.home.components
 
 import ir.divarfiling.mobile.core.image.ImageUrlFormatter
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 
 import androidx.compose.foundation.background
@@ -45,13 +46,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.RecentFileItem
 
-private val JalaliDatePattern = Regex("""^1[34]\d{2}/\d{2}/\d{2}$""")
-
-private fun formatJalaliDate(createdAt: String?): String? {
-    val value = createdAt?.trim().orEmpty()
-    if (value.isBlank()) return null
-    return if (JalaliDatePattern.matches(value)) value else null
-}
+import ir.divarfiling.mobile.core.design.DateUtils
 
 private fun fileTitle(file: RecentFileItem): String {
     val district = file.district?.trim().orEmpty()
@@ -160,7 +155,7 @@ private fun RecentFileCard(
     }
     val badgeColor = if (badgeLabel == "اجاره") DfColors.Blue else DfColors.Pink
     val badgeIcon = if (badgeLabel == "اجاره") DfIcons.Building else DfIcons.Home
-    val displayDate = formatJalaliDate(file.createdAt)
+    val displayDate = DateUtils.formatJalaliDate(file.createdAt)
     val estimatedSizeMb = ((file.itemCount * 0.48f).coerceAtLeast(8f)).toInt()
 
     Surface(

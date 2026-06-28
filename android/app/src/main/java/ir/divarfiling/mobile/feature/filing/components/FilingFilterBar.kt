@@ -50,22 +50,27 @@ fun FilingFilterBar(
 ) {
     ColumnSection(modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                ViewModeButton(
-                    icon = DfIcons.LayoutGrid,
-                    selected = viewMode == FilingViewMode.Grid,
-                    onClick = { onViewModeChange(FilingViewMode.Grid) },
-                )
-                ViewModeButton(
-                    icon = DfIcons.LayoutList,
-                    selected = viewMode == FilingViewMode.List,
-                    onClick = { onViewModeChange(FilingViewMode.List) },
-                )
-            }
+            FilingFilterDropdown(
+                label = selectedTransaction,
+                options = transactions,
+                onSelect = onTransactionChange,
+            )
+            FilingFilterDropdown(
+                label = selectedCity,
+                options = cities,
+                onSelect = onCityChange,
+            )
+            FilingFilterDropdown(
+                label = selectedFormat,
+                options = formats,
+                onSelect = onFormatChange,
+            )
             Surface(
                 onClick = onApplyFilters,
                 shape = AppShapes.CardSmall,
@@ -93,49 +98,26 @@ fun FilingFilterBar(
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FilingFilterDropdown(
-                label = selectedTransaction,
-                options = transactions,
-                onSelect = onTransactionChange,
+            Text(
+                text = "نمایش:",
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+                modifier = Modifier.padding(end = AppSpacing.xs),
             )
-            FilingFilterDropdown(
-                label = selectedCity,
-                options = cities,
-                onSelect = onCityChange,
+            ViewModeButton(
+                icon = DfIcons.LayoutGrid,
+                selected = viewMode == FilingViewMode.Grid,
+                onClick = { onViewModeChange(FilingViewMode.Grid) },
             )
-            FilingFilterDropdown(
-                label = selectedFormat,
-                options = formats,
-                onSelect = onFormatChange,
+            ViewModeButton(
+                icon = DfIcons.LayoutList,
+                selected = viewMode == FilingViewMode.List,
+                onClick = { onViewModeChange(FilingViewMode.List) },
             )
-            Surface(
-                shape = AppShapes.CardSmall,
-                color = DfColors.SurfaceVariant,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = DfIcons.Bookmark,
-                        contentDescription = null,
-                        tint = DfColors.Purple,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        text = "فیلترهای ذخیره‌شده",
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
-                    )
-                }
-            }
         }
     }
 }

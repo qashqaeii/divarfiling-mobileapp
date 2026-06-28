@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.crm
 
 import ir.divarfiling.mobile.R
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 
@@ -940,9 +941,5 @@ private fun ReminderDialog(
     }
 }
 
-private fun formatDateTime(iso: String): String {
-    return runCatching {
-        val dt = Instant.parse(iso).atZone(ZoneId.systemDefault()).toLocalDateTime()
-        dt.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale("fa", "IR")))
-    }.getOrElse { iso.take(16) }
-}
+private fun formatDateTime(iso: String): String =
+    DateUtils.formatJalaliDateTime(iso) ?: DateUtils.formatJalaliDate(iso) ?: iso.take(16)

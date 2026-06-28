@@ -45,9 +45,7 @@ import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfStatChip
 import ir.divarfiling.mobile.core.network.ExtractionRunDto
 import ir.divarfiling.mobile.core.network.ExtractionScheduleDto
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import ir.divarfiling.mobile.core.design.DateUtils
 
 @Composable
 fun ExtractSchedulesScreen(
@@ -288,11 +286,5 @@ private fun formatInterval(hours: Double): String {
     }
 }
 
-private fun formatDateTime(iso: String): String {
-    return try {
-        val dt = Instant.parse(iso).atZone(ZoneId.systemDefault()).toLocalDateTime()
-        dt.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"))
-    } catch (_: Exception) {
-        iso
-    }
-}
+private fun formatDateTime(iso: String): String =
+    DateUtils.formatJalaliDateTime(iso) ?: DateUtils.formatJalaliDate(iso) ?: iso

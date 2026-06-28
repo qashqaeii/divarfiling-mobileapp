@@ -711,8 +711,8 @@ fun CrmHubScreen(
                 }
                 item {
                     CrmHubFeatureCard(
-                        title = "املاک CRM",
-                        subtitle = "ملک‌های شخصی و پرونده‌ها",
+                        title = "فایل‌های شخصی",
+                        subtitle = "مدیریت فایل‌های ملکی و پرونده‌ها",
                         icon = DfIcons.Building,
                         tint = DfColors.Amber,
                         background = DfColors.AmberLight,

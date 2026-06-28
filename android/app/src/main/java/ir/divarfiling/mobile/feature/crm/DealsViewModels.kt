@@ -248,6 +248,8 @@ data class PropertiesUiState(
     val properties: List<PropertyDto> = emptyList(),
     val query: String = "",
     val transactionStatus: String? = null,
+    val dealMode: String? = null,
+    val propertyType: String? = null,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val hasMore: Boolean = false,
@@ -255,10 +257,23 @@ data class PropertiesUiState(
     val showCreateDialog: Boolean = false,
     val createTitle: String = "",
     val createCity: String = "",
+    val createDistrict: String = "",
+    val createDealMode: String = PropertyConstants.DEAL_MODES.first(),
+    val createPropertyType: String = PropertyConstants.PROPERTY_TYPES.first(),
     val createPrice: String = "",
+    val createDeposit: String = "",
+    val createRent: String = "",
+    val createArea: String = "",
+    val createNotes: String = "",
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
 )
+
+object PropertyConstants {
+    val DEAL_MODES = listOf("فروش", "رهن و اجاره", "اجاره", "پیش‌فروش")
+    val PROPERTY_TYPES = listOf("آپارتمان", "ویلا", "کلنگی", "اداری", "مغازه", "زمین", "سایر")
+    val TX_STATUSES = listOf("فعال", "در مذاکره", "قرارداد", "فروخته‌شده", "اجاره‌رفته", "بایگانی")
+}
 
 @HiltViewModel
 class PropertiesViewModel @Inject constructor(
@@ -294,6 +309,8 @@ class PropertiesViewModel @Inject constructor(
             }
             when (val result = repository.getProperties(
                 query = _uiState.value.query,
+                dealMode = _uiState.value.dealMode,
+                propertyType = _uiState.value.propertyType,
                 transactionStatus = _uiState.value.transactionStatus,
             )) {
                 is ApiResult.Success -> _uiState.update {
@@ -309,28 +326,91 @@ class PropertiesViewModel @Inject constructor(
     fun refresh() = load(refreshing = true)
     fun onQueryChange(v: String) = _uiState.update { it.copy(query = v) }
     fun onTransactionStatusChange(status: String?) = _uiState.update { it.copy(transactionStatus = status) }
+    fun onDealModeChange(mode: String?) = _uiState.update { it.copy(dealMode = mode) }
+    fun onPropertyTypeChange(type: String?) = _uiState.update { it.copy(propertyType = type) }
     fun search() = load()
     fun toggleCreate(show: Boolean) = _uiState.update { it.copy(showCreateDialog = show) }
     fun onCreateTitleChange(v: String) = _uiState.update { it.copy(createTitle = v) }
     fun onCreateCityChange(v: String) = _uiState.update { it.copy(createCity = v) }
+    fun onCreateDistrictChange(v: String) = _uiState.update { it.copy(createDistrict = v) }
+    fun onCreateDealModeChange(v: String) = _uiState.update { it.copy(createDealMode = v) }
+    fun onCreatePropertyTypeChange(v: String) = _uiState.update { it.copy(createPropertyType = v) }
     fun onCreatePriceChange(v: String) = _uiState.update { it.copy(createPrice = v) }
+    fun onCreateDepositChange(v: String) = _uiState.update { it.copy(createDeposit = v) }
+    fun onCreateRentChange(v: String) = _uiState.update { it.copy(createRent = v) }
+    fun onCreateAreaChange(v: String) = _uiState.update { it.copy(createArea = v) }
+    fun onCreateNotesChange(v: String) = _uiState.update { it.copy(createNotes = v) }
 
     fun submitCreate() {
         val title = _uiState.value.createTitle.trim()
         if (title.isBlank()) return
+        val state = _uiState.value
+        val isRent = state.createDealMode.contains("اجاره") || state.createDealMode.contains("رهن")
         viewModelScope.launch {
             when (repository.createProperty(
                 PropertyCreateRequest(
                     title = title,
-                    city = _uiState.value.createCity.trim(),
-                    salePrice = _uiState.value.createPrice.trim().toLongOrNull(),
+                    dealMode = state.createDealMode,
+                    propertyType = state.createPropertyType,
+                    city = state.createCity.trim(),
+                    district = state.createDistrict.trim(),
+                    salePrice = if (!isRent) state.createPrice.trim().toLongOrNull() else null,
+                    deposit = if (isRent) state.createDeposit.trim().toLongOrNull() else null,
+                    rent = if (isRent) state.createRent.trim().toLongOrNull() else null,
+                    area = state.createArea.trim().toDoubleOrNull(),
+                    notes = state.createNotes.trim(),
                 ),
             )) {
                 is ApiResult.Success -> {
-                    _uiState.update { it.copy(showCreateDialog = false, createTitle = "", createCity = "", createPrice = "") }
+                    _uiState.update {
+                        it.copy(
+                            showCreateDialog = false,
+                            createTitle = "",
+                            createCity = "",
+                            createDistrict = "",
+                            createPrice = "",
+                            createDeposit = "",
+                            createRent = "",
+                            createArea = "",
+                            createNotes = "",
+                        )
+                    }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(error = it.error) }
+                is ApiResult.Error -> _uiState.update { s -> s.copy(error = s.error) }
+            }
+        }
+    }
+
+    fun createFromListing(
+        title: String,
+        city: String?,
+        district: String?,
+        dealMode: String,
+        salePrice: Long?,
+        deposit: Long?,
+        rent: Long?,
+        area: Double?,
+        token: String,
+        link: String?,
+    ) {
+        viewModelScope.launch {
+            when (repository.createProperty(
+                PropertyCreateRequest(
+                    title = title,
+                    dealMode = dealMode,
+                    city = city.orEmpty(),
+                    district = district.orEmpty(),
+                    salePrice = salePrice,
+                    deposit = deposit,
+                    rent = rent,
+                    area = area,
+                    token = token,
+                    link = link.orEmpty(),
+                ),
+            )) {
+                is ApiResult.Success -> load()
+                is ApiResult.Error -> _uiState.update { s -> s.copy(error = s.error) }
             }
         }
     }

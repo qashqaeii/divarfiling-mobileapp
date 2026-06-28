@@ -50,7 +50,7 @@ fun ToolsScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                contentPadding = PaddingValues(bottom = AppSpacing.fabClearance),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {

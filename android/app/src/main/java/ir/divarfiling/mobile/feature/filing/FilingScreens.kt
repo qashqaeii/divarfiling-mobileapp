@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,7 +59,6 @@ import ir.divarfiling.mobile.feature.filing.components.FilingFilterBar
 import ir.divarfiling.mobile.feature.filing.components.FilingHubHeader
 import ir.divarfiling.mobile.feature.filing.components.FilingSearchToolbar
 import ir.divarfiling.mobile.feature.filing.components.FilingStatsRow
-import ir.divarfiling.mobile.feature.filing.components.FilingTutorialBanner
 import ir.divarfiling.mobile.feature.filing.components.FilingViewMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,8 +70,6 @@ fun DatasetsScreen(
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
     onNavigateTools: () -> Unit = {},
-    onDatasetMapClick: (String) -> Unit = {},
-    onDatasetInsightsClick: (String) -> Unit = {},
     viewModel: DatasetsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -83,7 +79,6 @@ fun DatasetsScreen(
     var cityFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_CITIES) }
     var transactionFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_TRANSACTIONS) }
     var viewMode by remember { mutableStateOf(FilingViewMode.List) }
-    var showTutorial by remember { mutableStateOf(true) }
     var favoriteIds by remember { mutableStateOf(setOf<String>()) }
 
     val filteredDatasets = remember(
@@ -124,7 +119,7 @@ fun DatasetsScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                contentPadding = PaddingValues(bottom = AppSpacing.fabClearance + AppSpacing.xl),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
@@ -141,11 +136,7 @@ fun DatasetsScreen(
                         onQueryChange = { searchDraft = it },
                         onSearch = { onGlobalSearch(searchDraft.trim()) },
                         onUploadClick = onNavigateExtract,
-                        onTutorialClick = { showTutorial = true },
                         onToolsClick = onNavigateTools,
-                        onCompareClick = {
-                            state.datasets.firstOrNull()?.let { onDatasetInsightsClick(it.id) }
-                        },
                     )
                 }
                 item {
@@ -161,14 +152,6 @@ fun DatasetsScreen(
                         selectedTabId = selectedCategory,
                         onTabSelected = { selectedCategory = it },
                     )
-                }
-                if (showTutorial) {
-                    item {
-                        FilingTutorialBanner(
-                            onDismiss = { showTutorial = false },
-                            onWatchClick = { showTutorial = false },
-                        )
-                    }
                 }
                 item {
                     FilingFilterBar(
@@ -235,8 +218,6 @@ fun DatasetsScreen(
                                         FilingDatasetListRow(
                                             dataset = dataset,
                                             onClick = { onDatasetClick(dataset.id) },
-                                            onMapClick = { onDatasetMapClick(dataset.id) },
-                                            onInsightsClick = { onDatasetInsightsClick(dataset.id) },
                                             onRefreshClick = viewModel::refresh,
                                             isFavorite = favoriteIds.contains(dataset.id),
                                             onToggleFavorite = {
@@ -277,7 +258,6 @@ fun ListingsScreen(
     datasetId: String,
     onBack: () -> Unit = {},
     onListingClick: (String) -> Unit = {},
-    onInsightsClick: (String) -> Unit = {},
     viewModel: ListingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -309,9 +289,6 @@ fun ListingsScreen(
                 title = state.datasetName ?: "آگهی‌ها",
                 onBack = onBack,
                 actions = {
-                    IconButton(onClick = { onInsightsClick(datasetId) }) {
-                        Icon(Icons.Default.Analytics, contentDescription = "تحلیل و نقشه")
-                    }
                     BadgedBox(
                         badge = {
                             if (filterCount > 0) {

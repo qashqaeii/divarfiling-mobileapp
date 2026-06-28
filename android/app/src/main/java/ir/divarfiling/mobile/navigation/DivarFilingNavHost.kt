@@ -35,8 +35,6 @@ import ir.divarfiling.mobile.feature.crm.PropertyDetailScreen
 import ir.divarfiling.mobile.feature.crm.TodayScreen
 import ir.divarfiling.mobile.feature.extract.ExtractScreen
 import ir.divarfiling.mobile.feature.extract.schedule.ExtractSchedulesScreen
-import ir.divarfiling.mobile.feature.filing.DatasetInsightsScreen
-import ir.divarfiling.mobile.feature.filing.DatasetMapScreen
 import ir.divarfiling.mobile.feature.filing.DatasetsScreen
 import ir.divarfiling.mobile.feature.filing.FilingSearchScreen
 import ir.divarfiling.mobile.feature.filing.ListingDetailScreen
@@ -44,7 +42,9 @@ import ir.divarfiling.mobile.feature.filing.ListingsScreen
 import ir.divarfiling.mobile.feature.home.HomeScreen
 import ir.divarfiling.mobile.feature.notifications.NotificationsScreen
 import ir.divarfiling.mobile.feature.settings.SettingsScreen
+import ir.divarfiling.mobile.feature.tools.SmartToolCalculatorScreen
 import ir.divarfiling.mobile.feature.tools.ToolsScreen
+import ir.divarfiling.mobile.feature.tools.smartToolIdFromKey
 import kotlinx.coroutines.flow.first
 
 object Routes {
@@ -58,8 +58,6 @@ object Routes {
     const val FILING = "filing"
     const val FILING_SEARCH = "filing/search?query={query}"
     const val FILING_LISTINGS = "filing/{datasetId}"
-    const val FILING_INSIGHTS = "filing/{datasetId}/insights"
-    const val FILING_MAP = "filing/{datasetId}/map"
     const val FILING_LISTING_DETAIL = "filing/listing/{token}"
     const val EXTRACT = "extract"
     const val EXTRACT_SCHEDULES = "extract/schedules"
@@ -70,10 +68,10 @@ object Routes {
     const val CRM_PROPERTY_DETAIL = "crm/properties/{propertyId}"
     const val NOTIFICATIONS = "notifications"
     const val TOOLS = "tools"
+    const val TOOL_CALCULATOR = "tools/{toolId}"
 
     fun listings(datasetId: String) = "filing/$datasetId"
-    fun datasetInsights(datasetId: String) = "filing/$datasetId/insights"
-    fun datasetMap(datasetId: String) = "filing/$datasetId/map"
+    fun toolCalculator(toolId: String) = "tools/$toolId"
     fun filingSearch(query: String = "") = "filing/search?query=${Uri.encode(query)}"
     fun contactDetail(contactId: Long) = "crm/contacts/$contactId"
     fun dealDetail(dealId: Long) = "crm/deals/$dealId"
@@ -242,8 +240,6 @@ fun DivarFilingNavHost(
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                             onNavigateTools = { navController.navigate(Routes.TOOLS) },
-                            onDatasetMapClick = { id -> navController.navigate(Routes.datasetMap(id)) },
-                            onDatasetInsightsClick = { id -> navController.navigate(Routes.datasetInsights(id)) },
                         )
                     }
                     composable(
@@ -269,25 +265,6 @@ fun DivarFilingNavHost(
                         val id = entry.arguments?.getString("datasetId") ?: return@composable
                         ListingsScreen(
                             datasetId = id,
-                            onBack = { navController.popBackStack() },
-                            onListingClick = { token -> navController.navigate(Routes.listingDetail(token)) },
-                            onInsightsClick = { datasetId -> navController.navigate(Routes.datasetInsights(datasetId)) },
-                        )
-                    }
-                    composable(
-                        route = Routes.FILING_INSIGHTS,
-                        arguments = listOf(navArgument("datasetId") { type = NavType.StringType }),
-                    ) {
-                        DatasetInsightsScreen(
-                            onBack = { navController.popBackStack() },
-                            onOpenMap = { datasetId -> navController.navigate(Routes.datasetMap(datasetId)) },
-                        )
-                    }
-                    composable(
-                        route = Routes.FILING_MAP,
-                        arguments = listOf(navArgument("datasetId") { type = NavType.StringType }),
-                    ) {
-                        DatasetMapScreen(
                             onBack = { navController.popBackStack() },
                             onListingClick = { token -> navController.navigate(Routes.listingDetail(token)) },
                         )
@@ -329,7 +306,23 @@ fun DivarFilingNavHost(
                             onBack = { navController.popBackStack() },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onToolClick = { toolId ->
+                                navController.navigate(Routes.toolCalculator(toolId.key))
+                            },
                         )
+                    }
+                    composable(
+                        route = Routes.TOOL_CALCULATOR,
+                        arguments = listOf(navArgument("toolId") { type = NavType.StringType }),
+                    ) { entry ->
+                        val key = entry.arguments?.getString("toolId").orEmpty()
+                        val toolId = smartToolIdFromKey(key)
+                        if (toolId != null) {
+                            SmartToolCalculatorScreen(
+                                toolId = toolId,
+                                onBack = { navController.popBackStack() },
+                            )
+                        }
                     }
                 }
             }

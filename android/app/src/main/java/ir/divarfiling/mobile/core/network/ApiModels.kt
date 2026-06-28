@@ -523,6 +523,8 @@ data class PropertyCreateRequest(
     val deposit: Long? = null,
     val area: Double? = null,
     @SerialName("contact_id") val contactId: Long? = null,
+    val token: String = "",
+    val link: String = "",
     val notes: String = "",
 )
 

@@ -7,9 +7,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.network.PropertyCreateRequest
 import ir.divarfiling.mobile.core.network.SendListingRequest
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
+import ir.divarfiling.mobile.data.repository.DealsRepository
 import ir.divarfiling.mobile.data.repository.FilingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +25,7 @@ data class ListingDetailUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isLinking: Boolean = false,
+    val isSavingProperty: Boolean = false,
     val showContactPicker: Boolean = false,
     val showSendDialog: Boolean = false,
     val sendNote: String = "",
@@ -36,6 +39,7 @@ data class ListingDetailUiState(
 class ListingDetailViewModel @Inject constructor(
     private val filingRepository: FilingRepository,
     private val crmRepository: CrmRepository,
+    private val dealsRepository: DealsRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val token: String = savedStateHandle.get<String>("token") ?: ""
@@ -127,4 +131,36 @@ class ListingDetailViewModel @Inject constructor(
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 
     fun showMessage(message: String) = _uiState.update { it.copy(successMessage = message) }
+
+    fun saveAsPersonalProperty() {
+        val listing = _uiState.value.listing ?: return
+        val dealMode = when {
+            listing.rent != null || listing.deposit != null -> "رهن و اجاره"
+            else -> "فروش"
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingProperty = true) }
+            when (val result = dealsRepository.createProperty(
+                PropertyCreateRequest(
+                    title = listing.title.orEmpty().ifBlank { "فایل شخصی" },
+                    dealMode = dealMode,
+                    city = listing.city.orEmpty(),
+                    district = listing.district.orEmpty(),
+                    salePrice = listing.price,
+                    deposit = listing.deposit,
+                    rent = listing.rent,
+                    area = listing.area?.toDouble(),
+                    token = listing.token,
+                    link = listing.shareLink.orEmpty(),
+                ),
+            )) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(isSavingProperty = false, successMessage = "به فایل‌های شخصی اضافه شد")
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSavingProperty = false, error = result.message)
+                }
+            }
+        }
+    }
 }

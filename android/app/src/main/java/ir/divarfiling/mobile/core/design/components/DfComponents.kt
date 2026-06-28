@@ -50,7 +50,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -459,18 +462,53 @@ fun DfFab(
     onClick: () -> Unit,
     icon: @Composable () -> Unit,
     contentDescription: String,
+    modifier: Modifier = Modifier,
 ) {
     FloatingActionButton(
         onClick = onClick,
+        modifier = modifier,
         containerColor = DfColors.Purple,
         contentColor = Color.White,
         shape = CircleShape,
-        elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(
+        elevation = FloatingActionButtonDefaults.elevation(
             defaultElevation = AppElevations.floating,
             pressedElevation = AppElevations.raised,
         ),
     ) {
         icon()
+    }
+}
+
+@Composable
+fun DfExtendedFab(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentDescription: String = text,
+) {
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        modifier = modifier,
+        containerColor = DfColors.Purple,
+        contentColor = Color.White,
+        shape = AppShapes.Hero,
+        elevation = FloatingActionButtonDefaults.elevation(
+            defaultElevation = AppElevations.floating,
+            pressedElevation = AppElevations.raised,
+        ),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(AppSpacing.xs))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 

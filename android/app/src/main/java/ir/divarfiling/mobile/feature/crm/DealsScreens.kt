@@ -19,10 +19,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.ui.text.font.FontWeight
+import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfFab
+import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
+import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfSearchField
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
@@ -47,16 +51,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
-import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPillChip
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -116,7 +117,7 @@ fun DealsScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                contentPadding = PaddingValues(bottom = AppSpacing.fabClearance + AppSpacing.xl),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
@@ -416,10 +417,10 @@ fun PropertiesScreen(
     Scaffold(
         containerColor = DfScreenContainerColor,
         floatingActionButton = {
-            DfFab(
+            DfExtendedFab(
+                text = "فایل جدید",
+                icon = DfIcons.Plus,
                 onClick = { viewModel.toggleCreate(true) },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                contentDescription = "افزودن ملک",
             )
         },
     ) { padding ->
@@ -432,12 +433,12 @@ fun PropertiesScreen(
                 .statusBarsPadding(),
         ) {
             LazyColumn(
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                contentPadding = PaddingValues(bottom = AppSpacing.fabClearance + AppSpacing.xl),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
                     DfHubPageHeader(
-                        title = "املاک CRM",
+                        title = "فایل‌های شخصی",
                         subtitle = "مدیریت فایل‌های ملکی و وضعیت معاملات",
                         titleIcon = DfIcons.Building,
                         userName = state.userName,
@@ -451,21 +452,35 @@ fun PropertiesScreen(
                     DfSearchField(
                         value = state.query,
                         onValueChange = viewModel::onQueryChange,
-                        placeholder = "جستجوی ملک…",
+                        placeholder = "جستجو در فایل‌های شخصی…",
                         onSearch = viewModel::search,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
                 item {
                     DfFilterChipRow(
-                        options = listOf(
-                            DfFilterOption(null, "همه"),
-                            DfFilterOption("فعال", "فعال"),
-                            DfFilterOption("در مذاکره", "مذاکره"),
-                            DfFilterOption("فروخته شده", "فروخته"),
-                        ),
+                        options = listOf(DfFilterOption(null, "همه وضعیت‌ها")) +
+                            PropertyConstants.TX_STATUSES.map { DfFilterOption(it, it) },
                         selected = state.transactionStatus,
                         onSelect = { viewModel.onTransactionStatusChange(it); viewModel.search() },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+                item {
+                    DfFilterChipRow(
+                        options = listOf(DfFilterOption(null, "همه معاملات")) +
+                            PropertyConstants.DEAL_MODES.map { DfFilterOption(it, it) },
+                        selected = state.dealMode,
+                        onSelect = { viewModel.onDealModeChange(it); viewModel.search() },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+                item {
+                    DfFilterChipRow(
+                        options = listOf(DfFilterOption(null, "همه انواع")) +
+                            PropertyConstants.PROPERTY_TYPES.map { DfFilterOption(it, it) },
+                        selected = state.propertyType,
+                        onSelect = { viewModel.onPropertyTypeChange(it); viewModel.search() },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
@@ -487,8 +502,8 @@ fun PropertiesScreen(
                 } else if (state.properties.isEmpty()) {
                     item {
                         DfEmptyState(
-                            title = "ملکی ثبت نشده",
-                            subtitle = "با + ملک جدید اضافه کنید",
+                            title = "فایل شخصی ثبت نشده",
+                            subtitle = "با «فایل جدید» اضافه کنید یا از جزئیات آگهی تبدیل کنید",
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -508,12 +523,74 @@ fun PropertiesScreen(
     if (state.showCreateDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.toggleCreate(false) },
-            title = { Text("ملک جدید") },
+            title = { Text("فایل شخصی جدید") },
             text = {
+                val isRent = state.createDealMode.contains("اجاره") || state.createDealMode.contains("رهن")
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(state.createTitle, viewModel::onCreateTitleChange, label = { Text("عنوان") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(state.createCity, viewModel::onCreateCityChange, label = { Text("شهر") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(state.createPrice, viewModel::onCreatePriceChange, label = { Text("قیمت فروش") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(
+                        state.createTitle,
+                        viewModel::onCreateTitleChange,
+                        label = { Text("عنوان") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        state.createCity,
+                        viewModel::onCreateCityChange,
+                        label = { Text("شهر") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        state.createDistrict,
+                        viewModel::onCreateDistrictChange,
+                        label = { Text("محله") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        state.createDealMode,
+                        viewModel::onCreateDealModeChange,
+                        label = { Text("نوع معامله (فروش / رهن و اجاره / …)") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        state.createPropertyType,
+                        viewModel::onCreatePropertyTypeChange,
+                        label = { Text("نوع ملک") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        state.createArea,
+                        viewModel::onCreateAreaChange,
+                        label = { Text("متراژ") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (isRent) {
+                        OutlinedTextField(
+                            state.createDeposit,
+                            viewModel::onCreateDepositChange,
+                            label = { Text("رهن (تومان)") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            state.createRent,
+                            viewModel::onCreateRentChange,
+                            label = { Text("اجاره ماهانه (تومان)") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        OutlinedTextField(
+                            state.createPrice,
+                            viewModel::onCreatePriceChange,
+                            label = { Text("قیمت فروش (تومان)") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    OutlinedTextField(
+                        state.createNotes,
+                        viewModel::onCreateNotesChange,
+                        label = { Text("یادداشت") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                    )
                 }
             },
             confirmButton = { TextButton(onClick = viewModel::submitCreate) { Text("ثبت") } },
@@ -539,6 +616,17 @@ private fun PropertyRow(property: PropertyDto, onClick: () -> Unit, modifier: Mo
             }
             property.salePrice?.let {
                 Text(FormatUtils.formatPriceToman(it), style = AppTypography.bodyDescription, color = DfColors.Purple)
+            }
+            property.rent?.let {
+                Text("اجاره: ${FormatUtils.formatPriceToman(it)}", style = AppTypography.labelSmall, color = DfColors.Blue)
+            }
+            property.deposit?.let {
+                Text("رهن: ${FormatUtils.formatPriceToman(it)}", style = AppTypography.labelSmall, color = DfColors.Blue)
+            }
+            property.updatedAt?.let { updated ->
+                DateUtils.formatJalaliDateTime(updated)?.let { jalali ->
+                    Text(jalali, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                }
             }
         }
     }

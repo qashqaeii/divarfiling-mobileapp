@@ -108,6 +108,7 @@ fun ListingDetailScreen(
                             { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
                         },
                         onSetReminder = { viewModel.toggleContactPicker(true) },
+                        onSaveAsPersonal = viewModel::saveAsPersonalProperty,
                         onShare = {
                             val message = ListingMessageFormatter.fromDetail(listing)
                             context.startActivity(
@@ -219,6 +220,7 @@ private fun ListingDetailContent(
     onWhatsAppShare: () -> Unit,
     onOpenDivar: (() -> Unit)?,
     onSetReminder: () -> Unit,
+    onSaveAsPersonal: () -> Unit,
     onShare: () -> Unit,
     onCopyLink: () -> Unit,
     onCopyAdCode: () -> Unit,
@@ -256,6 +258,7 @@ private fun ListingDetailContent(
                     onWhatsAppShare = onWhatsAppShare,
                     onOpenDivar = onOpenDivar ?: onShare,
                     onSetReminder = onSetReminder,
+                    onSaveAsPersonal = onSaveAsPersonal,
                 )
             }
 

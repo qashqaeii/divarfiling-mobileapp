@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
@@ -81,8 +82,6 @@ fun FilingDatasetsSection(
 fun FilingDatasetListRow(
     dataset: DatasetDto,
     onClick: () -> Unit,
-    onMapClick: () -> Unit,
-    onInsightsClick: () -> Unit,
     onRefreshClick: () -> Unit,
     isFavorite: Boolean = false,
     onToggleFavorite: () -> Unit = {},
@@ -139,7 +138,6 @@ fun FilingDatasetListRow(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 IconAction(DfIcons.Download, "باز کردن", onClick)
-                IconAction(DfIcons.Map, "نقشه", onMapClick)
                 IconAction(DfIcons.RotateCcw, "بروزرسانی", onRefreshClick)
                 Box {
                     IconAction(DfIcons.MoreVertical, "بیشتر") { showMenu = true }
@@ -147,10 +145,6 @@ fun FilingDatasetListRow(
                         DropdownMenuItem(
                             text = { Text("مشاهده آگهی‌ها") },
                             onClick = { showMenu = false; onClick() },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("تحلیل و بینش") },
-                            onClick = { showMenu = false; onInsightsClick() },
                         )
                         DropdownMenuItem(
                             text = {
@@ -194,7 +188,9 @@ fun FilingDatasetListRow(
                 fontWeight = FontWeight.Bold,
                 color = DfColors.Purple,
             )
-            dataset.createdAt?.takeIf { it.isNotBlank() }?.let { created ->
+            dataset.createdAt?.let { created ->
+                DateUtils.formatJalaliDateTime(created) ?: DateUtils.formatJalaliDate(created)
+            }?.let { jalaliDate ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -206,7 +202,7 @@ fun FilingDatasetListRow(
                         modifier = Modifier.size(12.dp),
                     )
                     Text(
-                        text = created.take(16),
+                        text = jalaliDate,
                         style = AppTypography.labelSmall,
                         color = DfColors.TextMuted,
                         maxLines = 1,

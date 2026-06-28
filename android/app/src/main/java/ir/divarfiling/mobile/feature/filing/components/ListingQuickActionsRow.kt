@@ -33,6 +33,7 @@ fun ListingQuickActionsRow(
     onWhatsAppShare: () -> Unit,
     onOpenDivar: (() -> Unit)?,
     onSetReminder: () -> Unit,
+    onSaveAsPersonal: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -41,6 +42,14 @@ fun ListingQuickActionsRow(
             .padding(horizontal = AppSpacing.screenHorizontal),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
+        ListingQuickActionCard(
+            label = "فایل شخصی",
+            icon = DfIcons.Building,
+            background = DfColors.AmberLight,
+            iconTint = DfColors.Amber,
+            onClick = onSaveAsPersonal,
+            modifier = Modifier.weight(1f),
+        )
         ListingQuickActionCard(
             label = "ارسال به مخاطب",
             icon = DfIcons.UserPlus,

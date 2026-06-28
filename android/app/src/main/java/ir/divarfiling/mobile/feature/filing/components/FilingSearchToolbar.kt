@@ -32,9 +32,7 @@ fun FilingSearchToolbar(
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onUploadClick: () -> Unit,
-    onTutorialClick: () -> Unit,
     onToolsClick: () -> Unit,
-    onCompareClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ColumnSection(modifier = modifier) {
@@ -52,19 +50,9 @@ fun FilingSearchToolbar(
                 onClick = onUploadClick,
             )
             FilingToolbarAction(
-                label = "آموزش",
-                icon = DfIcons.Play,
-                onClick = onTutorialClick,
-            )
-            FilingToolbarAction(
                 label = "ابزارها",
                 icon = DfIcons.WandSparkles,
                 onClick = onToolsClick,
-            )
-            FilingToolbarAction(
-                label = "مقایسه",
-                icon = DfIcons.Scale,
-                onClick = onCompareClick,
             )
         }
 

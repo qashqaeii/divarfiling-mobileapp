@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.NotificationDto
@@ -217,7 +218,7 @@ class HomeViewModel @Inject constructor(
                 days <= 0 -> "امروز"
                 days == 1L -> "دیروز"
                 days < 7 -> "$days روز پیش"
-                else -> iso.take(10)
+                else -> DateUtils.formatJalaliDate(iso) ?: iso.take(10)
             }
         } catch (_: Exception) {
             "اخیراً"
