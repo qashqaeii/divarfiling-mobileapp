@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.core.design
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import compose.icons.LucideIcons
+import compose.icons.lucideicons.*
 
 /** Lucide thin-stroke icons — centralized for the design system. */
 object DfIcons {

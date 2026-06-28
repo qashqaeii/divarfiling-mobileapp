@@ -59,7 +59,7 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
-icons-lucide = { group = "io.github.ardasoyturk.compose.icons", name = "lucide", version.ref = "composeIconsLucide" }
+icons-lucide = { group = "io.github.ardasoyturk.compose.icons", name = "lucide-android", version.ref = "composeIconsLucide" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
