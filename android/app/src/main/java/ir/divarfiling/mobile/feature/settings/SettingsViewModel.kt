@@ -8,6 +8,7 @@ import ir.divarfiling.mobile.core.network.NotificationPrefsDto
 import ir.divarfiling.mobile.core.network.UserDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.AuthRepository
+import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.LicenseRepository
 import ir.divarfiling.mobile.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,7 @@ data class SettingsUiState(
     val editPhone: String = "",
     val successMessage: String? = null,
     val error: String? = null,
+    val notificationBadgeCount: Int = 0,
 )
 
 @HiltViewModel
@@ -38,6 +40,7 @@ class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val settingsRepository: SettingsRepository,
     private val licenseRepository: LicenseRepository,
+    private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -50,6 +53,13 @@ class SettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(license = license) }
             }
         }
+        viewModelScope.launch {
+            when (val result = dashboardRepository.getDashboard()) {
+                is ApiResult.Success ->
+                    _uiState.update { it.copy(notificationBadgeCount = result.data.notificationsUnread) }
+                is ApiResult.Error -> Unit
+            }
+        }
         refreshAll()
     }
 
@@ -57,6 +67,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = it.user != null, isLoading = it.user == null, error = null) }
             licenseRepository.refreshLicense()
+            when (val dashboard = dashboardRepository.getDashboard()) {
+                is ApiResult.Success ->
+                    _uiState.update { it.copy(notificationBadgeCount = dashboard.data.notificationsUnread) }
+                is ApiResult.Error -> Unit
+            }
             when (val profile = settingsRepository.getProfile()) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(

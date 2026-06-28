@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -91,6 +92,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSearchField
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.design.components.DfStatChip
@@ -138,7 +140,7 @@ fun ContactsScreen(
     }
 
     Scaffold(
-        containerColor = DfColors.Background,
+        containerColor = DfScreenContainerColor,
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
@@ -146,7 +148,6 @@ fun ContactsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(DfColors.Background)
                 .statusBarsPadding(),
         ) {
             LazyColumn(
@@ -442,7 +443,7 @@ fun TodayScreen(
     } ?: emptyList()
 
     Scaffold(
-        containerColor = DfColors.Background,
+        containerColor = DfScreenContainerColor,
         floatingActionButton = {
             TodayNewTaskFab(onClick = onNewTask)
         },
@@ -453,7 +454,6 @@ fun TodayScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(DfColors.Background)
                 .statusBarsPadding(),
         ) {
             LazyColumn(
@@ -547,13 +547,10 @@ fun TodayScreen(
                             )
                         }
                     } else {
-                        items(
+                        itemsIndexed(
                             items = displayedEntries,
-                            key = { entry ->
-                                val item = entry.item
-                                "${entry.isOverdue}-${item.reminder?.id ?: item.contact?.id ?: item.hashCode()}"
-                            },
-                        ) { entry ->
+                            key = { index, entry -> TodayFilters.entryStableKey(entry, index) },
+                        ) { _, entry ->
                             TodayTaskCard(
                                 item = entry.item,
                                 isOverdue = entry.isOverdue,
@@ -631,8 +628,7 @@ fun CrmHubScreen(
         isRefreshing = state.isRefreshing,
         onRefresh = viewModel::refresh,
         modifier = Modifier
-            .fillMaxSize()
-            .background(DfColors.Background),
+            .fillMaxSize(),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -767,8 +763,7 @@ private fun CrmHubScreenPreview() {
 internal fun CrmHubScreenContentPreview() {
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
-            .background(DfColors.Background),
+            .fillMaxSize(),
         contentPadding = PaddingValues(
             horizontal = AppSpacing.screenHorizontal,
             vertical = AppSpacing.md,
@@ -815,8 +810,7 @@ private fun TodayScreenPreview() {
     DivarFilingTheme {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(DfColors.Background),
+                .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
             TodayHeader(onBack = {}, onFilterClick = {})

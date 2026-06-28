@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfShapes
@@ -212,11 +214,11 @@ private fun FeatureChip(label: String, enabled: Boolean) {
 }
 
 @Composable
-fun SettingsSectionTitle(title: String, subtitle: String? = null) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+fun SettingsSectionTitle(title: String, subtitle: String? = null, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(title, style = AppTypography.sectionTitle, fontWeight = FontWeight.SemiBold)
         subtitle?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = DfColors.TextMuted)
+            Text(it, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
         }
     }
 }
@@ -330,7 +332,12 @@ fun ProfileEditSheet(
 ) {
     if (!visible) return
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = AppShapes.Sheet,
+        containerColor = DfColors.Surface.copy(alpha = 0.96f),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -363,10 +370,10 @@ fun ProfileEditSheet(
 }
 
 @Composable
-fun LogoutButton(onClick: () -> Unit) {
+fun LogoutButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = DfShapes.Card,
         color = DfColors.RoseLight,
     ) {

@@ -5,6 +5,7 @@ import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -81,15 +82,14 @@ fun ListingDetailScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = DfColors.Background,
+        containerColor = DfScreenContainerColor,
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .background(DfColors.Background),
+                .padding(padding),
         ) {
             when {
                 state.isLoading -> DfDetailSkeleton()

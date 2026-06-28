@@ -217,6 +217,8 @@ fun DivarFilingNavHost(
                         PropertiesScreen(
                             onBack = { navController.popBackStack() },
                             onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                            onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                            onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                         )
                     }
                     composable(
@@ -313,6 +315,7 @@ fun DivarFilingNavHost(
                     composable(Routes.SETTINGS) {
                         SettingsScreen(
                             onLoggedOut = { isLoggedIn = false },
+                            onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                         )
                     }
                     composable(Routes.NOTIFICATIONS) {

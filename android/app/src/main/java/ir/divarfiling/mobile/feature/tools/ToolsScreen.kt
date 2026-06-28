@@ -21,6 +21,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.feature.tools.components.SmartToolCard
 import ir.divarfiling.mobile.feature.tools.components.ToolsHubHeader
 import ir.divarfiling.mobile.feature.tools.components.ToolsInfoBanner
@@ -37,7 +38,7 @@ fun ToolsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        containerColor = DfColors.Background,
+        containerColor = DfScreenContainerColor,
     ) { padding ->
         DfPullRefresh(
             isRefreshing = false,
@@ -45,7 +46,6 @@ fun ToolsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(DfColors.Background)
                 .statusBarsPadding(),
         ) {
             LazyColumn(

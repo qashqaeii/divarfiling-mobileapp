@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.animation.AnimatedVisibility
@@ -25,6 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -47,6 +49,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -80,8 +83,10 @@ import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
-import ir.divarfiling.mobile.core.design.components.DfTopBar
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.network.ActivityDto
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.DealDto
@@ -133,17 +138,7 @@ fun ContactDetailScreen(
     }
 
     Scaffold(
-        topBar = {
-            DfTopBar(
-                title = contact?.fullName ?: "جزئیات مخاطب",
-                onBack = onBack,
-                actions = {
-                    TextButton(onClick = { viewModel.toggleEditSheet(true) }) {
-                        Icon(Icons.Default.Edit, contentDescription = null)
-                    }
-                },
-            )
-        },
+        containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         DfPullRefresh(
@@ -151,20 +146,44 @@ fun ContactDetailScreen(
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .statusBarsPadding(),
         ) {
             when {
                 state.isLoading -> DfDetailSkeleton()
                 state.error != null && state.data == null -> {
-                    Column(Modifier.padding(16.dp)) { DfErrorBanner(state.error!!) }
+                    Column {
+                        DfDetailPageHeader(
+                            title = "جزئیات مخاطب",
+                            onBack = onBack,
+                            titleIcon = DfIcons.User,
+                        )
+                        DfErrorBanner(
+                            state.error!!,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 state.data != null -> {
                     val detail = state.data!!
                     val contactInfo = detail.contact
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
+                        item {
+                            DfDetailPageHeader(
+                                title = contactInfo.fullName,
+                                subtitle = contactInfo.phone,
+                                titleIcon = DfIcons.User,
+                                onBack = onBack,
+                                actions = {
+                                    IconButton(onClick = { viewModel.toggleEditSheet(true) }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "ویرایش")
+                                    }
+                                },
+                            )
+                        }
                         item {
                             ContactProfileCard(
                                 name = contactInfo.fullName,
@@ -175,11 +194,15 @@ fun ContactDetailScreen(
                                 budget = contactInfo.budget,
                                 notes = contactInfo.notes,
                                 onStatusChange = viewModel::changeStatus,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
 
                         item {
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            ) {
                                 item {
                                     ContactActionChip(label = "تماس", icon = Icons.Default.Call) {
                                         contactInfo.phone?.let { phone ->
@@ -435,8 +458,9 @@ private fun ContactProfileCard(
     budget: Long?,
     notes: String?,
     onStatusChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    DfPremiumCard {
+    DfPremiumCard(modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(name, style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold)
             phone?.let {
@@ -476,7 +500,7 @@ private fun ContactProfileCard(
                     ) {
                         Text(
                             s,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = AppTypography.labelSmall,
                             color = if (selected) DfColors.Purple else DfColors.TextSecondary,
                         )
                     }
@@ -526,7 +550,7 @@ private fun ContactActionChipContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             icon()
-            Text(label, style = MaterialTheme.typography.labelMedium, color = tint)
+            Text(label, style = AppTypography.labelSmall, color = tint)
         }
     }
 }

@@ -30,6 +30,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppElevations
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfColors
 
 @Composable
@@ -84,7 +87,7 @@ fun DfGlassCard(
 ) {
     val shape = RoundedCornerShape(cornerRadius)
     val base = Modifier
-        .shadow(12.dp, shape, ambientColor = DfColors.GlassShadow, spotColor = DfColors.GlassShadow)
+        .shadow(AppElevations.floating + 6.dp, shape, ambientColor = DfColors.GlassShadow, spotColor = DfColors.GlassShadow)
         .clip(shape)
         .background(
             Brush.verticalGradient(
@@ -109,7 +112,7 @@ fun DfGlassCard(
                     Modifier
                 },
             )
-            .padding(16.dp),
+            .padding(AppSpacing.cardPadding),
     ) {
         content()
     }
@@ -124,7 +127,7 @@ fun DfGlassButton(
     selected: Boolean = false,
     accent: Color = DfColors.Purple,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = AppShapes.GlassSmall
     val bg = if (selected) {
         Brush.horizontalGradient(listOf(accent.copy(alpha = 0.35f), accent.copy(alpha = 0.18f)))
     } else {
@@ -202,13 +205,13 @@ fun DfGlassTopBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(AppShapes.GlassSmall)
             .background(
                 Brush.verticalGradient(
                     listOf(Color.White.copy(alpha = 0.88f), Color.White.copy(alpha = 0.62f)),
                 ),
             )
-            .border(1.dp, DfColors.GlassBorder, RoundedCornerShape(18.dp))
+            .border(1.dp, DfColors.GlassBorder, AppShapes.GlassSmall)
             .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,

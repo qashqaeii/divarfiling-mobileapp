@@ -1,7 +1,6 @@
 package ir.divarfiling.mobile.feature.auth
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,11 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -33,10 +31,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.BuildConfig
 import ir.divarfiling.mobile.R
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.DfShapes
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
-import ir.divarfiling.mobile.core.design.components.DfScreenGradient
+import ir.divarfiling.mobile.core.design.components.DfScreenBackground
 
 @Composable
 fun LoginScreen(
@@ -45,77 +45,86 @@ fun LoginScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(
+    DfScreenBackground(
         modifier = Modifier
             .fillMaxSize()
-            .background(DfScreenGradient())
-            .padding(24.dp),
+            .statusBarsPadding()
+            .padding(AppSpacing.screenHorizontal),
+    ) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
             painter = painterResource(R.drawable.logo_divarfiling),
             contentDescription = "فایلینگ دیوار",
-            modifier = Modifier.size(96.dp),
+            modifier = Modifier.size(88.dp),
             contentScale = ContentScale.Fit,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(AppSpacing.md))
         Text(
             text = "فایلینگ دیوار",
-            style = MaterialTheme.typography.headlineMedium,
+            style = AppTypography.pageTitle,
             fontWeight = FontWeight.Bold,
             color = DfColors.TextPrimary,
         )
         Text(
             text = "همراه هوشمند مشاور املاک",
-            style = MaterialTheme.typography.bodyLarge,
+            style = AppTypography.bodyDescription,
             color = DfColors.TextSecondary,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(AppSpacing.sectionGap))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = DfShapes.Card,
-            colors = CardDefaults.cardColors(containerColor = DfColors.Surface.copy(alpha = 0.95f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = AppShapes.Hero,
+            colors = CardDefaults.cardColors(containerColor = DfColors.Surface.copy(alpha = 0.92f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Column(
-                Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                Modifier.padding(AppSpacing.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
                 OutlinedTextField(
                     value = state.username,
                     onValueChange = viewModel::onUsernameChange,
-                    label = { Text("شماره موبایل / نام کاربری") },
+                    label = { Text("شماره موبایل / نام کاربری", style = AppTypography.labelSmall) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true,
-                    shape = DfShapes.Field,
+                    shape = AppShapes.Field,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = DfColors.Purple,
                         focusedLabelColor = DfColors.Purple,
+                        unfocusedBorderColor = DfColors.Outline,
                     ),
                 )
                 OutlinedTextField(
                     value = state.password,
                     onValueChange = viewModel::onPasswordChange,
-                    label = { Text("رمز عبور") },
+                    label = { Text("رمز عبور", style = AppTypography.labelSmall) },
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppShapes.Field,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = DfColors.Purple,
                         focusedLabelColor = DfColors.Purple,
+                        unfocusedBorderColor = DfColors.Outline,
                     ),
                 )
 
                 state.error?.let { error ->
-                    Text(text = error, color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = error,
+                        style = AppTypography.labelSmall,
+                        color = DfColors.Rose,
+                    )
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(AppSpacing.xs))
                 DfPrimaryButton(
                     text = "ورود به میزکار",
                     onClick = { viewModel.login(onLoggedIn) },
@@ -124,11 +133,12 @@ fun LoginScreen(
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(AppSpacing.lg))
         Text(
             text = "نسخه ${BuildConfig.VERSION_NAME}",
-            style = MaterialTheme.typography.labelSmall,
+            style = AppTypography.labelSmall,
             color = DfColors.TextMuted,
         )
+    }
     }
 }

@@ -36,9 +36,9 @@ object AppColors {
     val GlassBorder = Color(0x99FFFFFF)
     val GlassHighlight = Color(0xE6FFFFFF)
     val GlassShadow = Color(0x1A7C3AED)
-    val LiquidPurple = Color(0x667C3AED)
-    val LiquidBlue = Color(0x662563EB)
-    val LiquidPink = Color(0x66EC4899)
+    val LiquidPurple = Color(0x807C3AED)
+    val LiquidBlue = Color(0x802563EB)
+    val LiquidPink = Color(0x80EC4899)
 
     val ImageOverlayStart = Color.Transparent
     val ImageOverlayEnd = Color(0x990F172A)

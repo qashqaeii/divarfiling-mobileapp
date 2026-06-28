@@ -46,6 +46,7 @@ import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSearchField
 import ir.divarfiling.mobile.core.design.components.DfTopBar
 import ir.divarfiling.mobile.core.network.ListingDto
@@ -108,7 +109,7 @@ fun DatasetsScreen(
     val totalAds = remember(state.datasets) { FilingDatasetFilters.totalAds(state.datasets) }
 
     Scaffold(
-        containerColor = DfColors.Background,
+        containerColor = DfScreenContainerColor,
         floatingActionButton = {
             FilingExtractFab(onClick = onNavigateExtract)
         },
@@ -119,7 +120,6 @@ fun DatasetsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(DfColors.Background)
                 .statusBarsPadding(),
         ) {
             LazyColumn(

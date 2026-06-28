@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -76,8 +77,9 @@ fun DfBottomNavigation(
             .navigationBarsPadding()
             .shadow(AppElevations.navBar, AppShapes.BottomNav, ambientColor = AppColors.Shadow),
         shape = AppShapes.BottomNav,
-        color = AppColors.Surface,
+        color = AppColors.Surface.copy(alpha = 0.94f),
         tonalElevation = 0.dp,
+        border = BorderStroke(1.dp, AppColors.GlassBorder),
     ) {
         Row(
             modifier = Modifier
@@ -270,6 +272,7 @@ fun DfPremiumCard(
             modifier = cardModifier,
             shape = AppShapes.Card,
             color = containerColor,
+            border = BorderStroke(1.dp, AppColors.OutlineSubtle),
         ) {
             Column(
                 modifier = Modifier
@@ -285,6 +288,7 @@ fun DfPremiumCard(
             modifier = cardModifier,
             shape = AppShapes.Card,
             color = containerColor,
+            border = BorderStroke(1.dp, AppColors.OutlineSubtle),
         ) {
             Column(
                 modifier = Modifier

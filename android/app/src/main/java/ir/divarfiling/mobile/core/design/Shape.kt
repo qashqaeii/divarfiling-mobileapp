@@ -16,6 +16,9 @@ object AppShapes {
     val StatCard = RoundedCornerShape(16.dp)
     val ListingCard = RoundedCornerShape(14.dp)
     val IconContainer = RoundedCornerShape(12.dp)
+    val Glass = RoundedCornerShape(20.dp)
+    val GlassSmall = RoundedCornerShape(16.dp)
+    val Sheet = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
 }
 
 typealias DfShapes = AppShapes

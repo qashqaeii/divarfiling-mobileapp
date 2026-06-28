@@ -15,10 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfScreenBackground
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -102,17 +101,18 @@ private fun NotificationOnboardingScreen(
         }
     }
 
-    Scaffold { padding ->
+    DfScreenBackground(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = AppSpacing.lg, vertical = AppSpacing.xl),
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = AppSpacing.lg, vertical = AppSpacing.xl),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             Icon(
-                Icons.Default.Notifications,
+                DfIcons.Bell,
                 contentDescription = null,
                 tint = DfColors.Purple,
                 modifier = Modifier.size(72.dp),

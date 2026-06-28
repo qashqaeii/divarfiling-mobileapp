@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -37,12 +37,13 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfNotificationListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
+import ir.divarfiling.mobile.core.design.components.DfNotificationListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
-import ir.divarfiling.mobile.core.design.components.DfTopBar
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.feature.home.HomeNotificationType
 import ir.divarfiling.mobile.navigation.DeepLinkParser
 import ir.divarfiling.mobile.navigation.DeepLinkTarget
@@ -57,26 +58,24 @@ fun NotificationsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = {
-            DfTopBar(
-                title = if (state.unreadCount > 0) "اعلان‌ها (${state.unreadCount})" else "اعلان‌ها",
-                onBack = onBack,
-            )
-        },
+        containerColor = DfScreenContainerColor,
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .statusBarsPadding(),
         ) {
             when {
                 state.isLoading -> {
-                    DfNotificationListSkeleton()
+                    DfNotificationListSkeleton(
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
                 }
                 state.error != null && state.items.isEmpty() -> {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(Modifier.padding(AppSpacing.screenHorizontal)) {
                         DfErrorBanner(state.error!!)
                     }
                 }
@@ -84,13 +83,26 @@ fun NotificationsScreen(
                     DfEmptyState(
                         title = "اعلانی ندارید",
                         subtitle = "یادآورها، استخراج‌ها و پیگیری‌ها اینجا نمایش داده می‌شوند",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
                 else -> {
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
+                        item {
+                            DfHubPageHeader(
+                                title = if (state.unreadCount > 0) {
+                                    "اعلان‌ها (${state.unreadCount})"
+                                } else {
+                                    "اعلان‌ها"
+                                },
+                                subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
+                                titleIcon = DfIcons.Bell,
+                                onBack = onBack,
+                            )
+                        }
                         items(state.items, key = { it.id }) { item ->
                             NotificationListRow(
                                 item = item,
@@ -100,6 +112,7 @@ fun NotificationsScreen(
                                         DeepLinkParser.parse(Uri.parse(link))?.let(onDeepLink)
                                     }
                                 },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
                         if (state.hasMore) {
@@ -109,7 +122,11 @@ fun NotificationsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     enabled = !state.isLoadingMore,
                                 ) {
-                                    Text(if (state.isLoadingMore) "در حال بارگذاری…" else "بیشتر")
+                                    Text(
+                                        if (state.isLoadingMore) "در حال بارگذاری…" else "بیشتر",
+                                        style = AppTypography.labelSmall,
+                                        color = DfColors.Purple,
+                                    )
                                 }
                             }
                         }
@@ -124,9 +141,10 @@ fun NotificationsScreen(
 private fun NotificationListRow(
     item: NotificationListItem,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val (icon, tint, bg) = notificationStyle(item.type)
-    DfPremiumCard(onClick = onClick) {
+    DfPremiumCard(onClick = onClick, modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),

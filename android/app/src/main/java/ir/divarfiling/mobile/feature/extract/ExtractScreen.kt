@@ -63,7 +63,6 @@ fun ExtractScreen(
         onRefresh = viewModel::refreshGate,
         modifier = Modifier
             .fillMaxSize()
-            .background(DfColors.Background)
             .statusBarsPadding(),
     ) {
         LazyColumn(
@@ -376,8 +375,7 @@ private fun ExtractScreenPreview() {
 internal fun ExtractScreenContentPreview() {
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
-            .background(DfColors.Background),
+            .fillMaxSize(),
         contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
     ) {

@@ -50,4 +50,10 @@ object TodayFilters {
 
     fun remindersCount(today: TodayData): Int =
         allEntries(today).count { it.item.reminder != null }
+
+    fun entryStableKey(entry: TodayTaskEntry, index: Int): String {
+        val item = entry.item
+        val bucket = if (entry.isOverdue) "overdue" else "today"
+        return "$bucket:$index:${item.type}:${item.reminder?.id}:${item.contact?.id}"
+    }
 }

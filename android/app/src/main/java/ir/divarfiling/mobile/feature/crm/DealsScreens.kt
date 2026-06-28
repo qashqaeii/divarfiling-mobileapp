@@ -54,8 +54,12 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
+import ir.divarfiling.mobile.core.design.components.DfPillChip
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
-import ir.divarfiling.mobile.core.design.components.DfTopBar
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.feature.crm.components.DealGridCard
@@ -97,7 +101,7 @@ fun DealsScreen(
     }
 
     Scaffold(
-        containerColor = DfColors.Background,
+        containerColor = DfScreenContainerColor,
         floatingActionButton = {
             DealsNewFab(onClick = { viewModel.toggleCreate(true) })
         },
@@ -108,7 +112,6 @@ fun DealsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(DfColors.Background)
                 .statusBarsPadding(),
         ) {
             LazyColumn(
@@ -291,63 +294,94 @@ fun DealDetailScreen(
     }
 
     Scaffold(
-        topBar = { DfTopBar(title = deal?.title ?: "جزئیات معامله", onBack = onBack) },
+        containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .statusBarsPadding(),
         ) {
             when {
                 state.isLoading -> DfDetailSkeleton()
                 deal != null -> {
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
                         item {
-                            DfPremiumCard {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DfDetailPageHeader(
+                                title = deal.title,
+                                subtitle = deal.stage,
+                                titleIcon = DfIcons.Handshake,
+                                onBack = onBack,
+                            )
+                        }
+                        item {
+                            DfPremiumCard(
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                                     deal.stage?.let { DfBadge(it) }
                                     deal.amount?.let {
-                                        Text(FormatUtils.formatPriceToman(it), style = AppTypography.sectionTitle, color = DfColors.Purple)
+                                        Text(
+                                            FormatUtils.formatPriceToman(it),
+                                            style = AppTypography.sectionTitle,
+                                            color = DfColors.Purple,
+                                        )
                                     }
                                     deal.commissionAmount?.let {
-                                        Text("کمیسیون: ${FormatUtils.formatPriceToman(it)}", style = AppTypography.bodyDescription)
+                                        Text(
+                                            "کمیسیون: ${FormatUtils.formatPriceToman(it)}",
+                                            style = AppTypography.bodyDescription,
+                                        )
                                     }
                                     deal.customerName?.let {
                                         TextButton(onClick = { deal.customerId?.let(onContactClick) }) {
-                                            Text("مخاطب: $it")
+                                            Text("مخاطب: $it", style = AppTypography.bodyDescription)
                                         }
                                     }
                                     deal.propertyTitle?.let {
                                         Text("ملک: $it", style = AppTypography.bodyDescription)
                                     }
                                     deal.notes?.takeIf { it.isNotBlank() }?.let {
-                                        Text(it, style = AppTypography.bodyDescription)
+                                        Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
                                     }
                                 }
                             }
                         }
                         item {
-                            Text("تغییر مرحله", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                            Text(
+                                "تغییر مرحله",
+                                style = AppTypography.labelSmall,
+                                color = DfColors.TextMuted,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
                             Row(
-                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = AppSpacing.screenHorizontal),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                             ) {
                                 state.stages.forEach { stage ->
-                                    TextButton(
+                                    DfPillChip(
+                                        label = stage,
+                                        selected = deal.stage == stage,
                                         onClick = { viewModel.changeStage(stage) },
-                                        enabled = deal.stage != stage && !state.isSubmitting,
-                                    ) {
-                                        Text(stage, style = AppTypography.labelSmall)
-                                    }
+                                    )
                                 }
                             }
                         }
                         item {
-                            DfPrimaryButton("ویرایش", onClick = { viewModel.toggleEditSheet(true) })
+                            DfPrimaryButton(
+                                "ویرایش",
+                                onClick = { viewModel.toggleEditSheet(true) },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
                         }
                     }
                 }
@@ -373,12 +407,14 @@ fun DealDetailScreen(
 fun PropertiesScreen(
     onBack: () -> Unit = {},
     onPropertyClick: (Long) -> Unit = {},
+    onNavigateNotifications: () -> Unit = {},
+    onNavigateSettings: () -> Unit = {},
     viewModel: PropertiesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { DfTopBar(title = "املاک CRM", onBack = onBack) },
+        containerColor = DfScreenContainerColor,
         floatingActionButton = {
             DfFab(
                 onClick = { viewModel.toggleCreate(true) },
@@ -390,18 +426,34 @@ fun PropertiesScreen(
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .statusBarsPadding(),
         ) {
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
+                item {
+                    DfHubPageHeader(
+                        title = "املاک CRM",
+                        subtitle = "مدیریت فایل‌های ملکی و وضعیت معاملات",
+                        titleIcon = DfIcons.Building,
+                        userName = state.userName,
+                        notificationCount = state.notificationBadgeCount,
+                        onNotificationsClick = onNavigateNotifications,
+                        onMenuClick = onNavigateSettings,
+                        onBack = onBack,
+                    )
+                }
                 item {
                     DfSearchField(
                         value = state.query,
                         onValueChange = viewModel::onQueryChange,
                         placeholder = "جستجوی ملک…",
                         onSearch = viewModel::search,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
                 item {
@@ -414,16 +466,39 @@ fun PropertiesScreen(
                         ),
                         selected = state.transactionStatus,
                         onSelect = { viewModel.onTransactionStatusChange(it); viewModel.search() },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
-                state.error?.let { item { DfErrorBanner(it) } }
+                state.error?.let {
+                    item {
+                        DfErrorBanner(
+                            it,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
+                }
                 if (state.isLoading && state.properties.isEmpty()) {
-                    item { DfCardListSkeleton(count = 5) }
+                    item {
+                        DfCardListSkeleton(
+                            count = 5,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 } else if (state.properties.isEmpty()) {
-                    item { DfEmptyState(title = "ملکی ثبت نشده", subtitle = "با + ملک جدید اضافه کنید") }
+                    item {
+                        DfEmptyState(
+                            title = "ملکی ثبت نشده",
+                            subtitle = "با + ملک جدید اضافه کنید",
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 } else {
                     items(state.properties, key = { it.id }) { prop ->
-                        PropertyRow(prop, onClick = { onPropertyClick(prop.id) })
+                        PropertyRow(
+                            property = prop,
+                            onClick = { onPropertyClick(prop.id) },
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
                     }
                 }
             }
@@ -448,8 +523,8 @@ fun PropertiesScreen(
 }
 
 @Composable
-private fun PropertyRow(property: PropertyDto, onClick: () -> Unit) {
-    DfPremiumCard(onClick = onClick) {
+private fun PropertyRow(property: PropertyDto, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    DfPremiumCard(onClick = onClick, modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(property.title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -484,56 +559,88 @@ fun PropertyDetailScreen(
     }
 
     Scaffold(
-        topBar = { DfTopBar(title = property?.title ?: "جزئیات ملک", onBack = onBack) },
+        containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .statusBarsPadding(),
         ) {
             when {
                 state.isLoading -> DfDetailSkeleton()
                 property != null -> {
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
                         item {
-                            DfPremiumCard {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            DfDetailPageHeader(
+                                title = property.title,
+                                subtitle = property.transactionStatus,
+                                titleIcon = DfIcons.Building,
+                                onBack = onBack,
+                            )
+                        }
+                        item {
+                            DfPremiumCard(
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                                     property.transactionStatus?.let { DfBadge(it) }
                                     property.dealMode?.let { DfBadge(it) }
                                     property.salePrice?.let {
-                                        Text(FormatUtils.formatPriceToman(it), style = AppTypography.sectionTitle, color = DfColors.Purple)
+                                        Text(
+                                            FormatUtils.formatPriceToman(it),
+                                            style = AppTypography.sectionTitle,
+                                            color = DfColors.Purple,
+                                        )
                                     }
                                     property.area?.let {
                                         Text("$it متر", style = AppTypography.bodyDescription)
                                     }
                                     property.address?.takeIf { it.isNotBlank() }?.let {
-                                        Text(it, style = AppTypography.bodyDescription)
+                                        Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
                                     }
                                     property.notes?.takeIf { it.isNotBlank() }?.let {
-                                        Text(it, style = AppTypography.bodyDescription)
+                                        Text(it, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
                                     }
                                 }
                             }
                         }
                         item {
-                            Text("تغییر وضعیت", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                            Text(
+                                "تغییر وضعیت",
+                                style = AppTypography.labelSmall,
+                                color = DfColors.TextMuted,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
                             Row(
-                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = AppSpacing.screenHorizontal),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                             ) {
                                 CrmConstants.PROPERTY_TX_STATUSES.forEach { status ->
-                                    TextButton(
+                                    DfPillChip(
+                                        label = status,
+                                        selected = property.transactionStatus == status,
                                         onClick = { viewModel.changeStatus(status) },
-                                        enabled = property.transactionStatus != status,
-                                    ) { Text(status, style = AppTypography.labelSmall) }
+                                    )
                                 }
                             }
                         }
-                        item { DfPrimaryButton("ویرایش", onClick = { viewModel.toggleEditSheet(true) }) }
+                        item {
+                            DfPrimaryButton(
+                                "ویرایش",
+                                onClick = { viewModel.toggleEditSheet(true) },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
                     }
                 }
             }

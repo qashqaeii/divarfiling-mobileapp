@@ -1,17 +1,15 @@
 package ir.divarfiling.mobile.feature.settings
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -25,21 +23,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
+import android.content.Intent
+import android.net.Uri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.BuildConfig
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
+import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
-import ir.divarfiling.mobile.core.design.components.DfTopBar
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onLoggedOut: () -> Unit,
+    onNavigateNotifications: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -73,7 +76,7 @@ fun SettingsScreen(
     )
 
     Scaffold(
-        topBar = { DfTopBar(title = "تنظیمات", showLogo = true) },
+        containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         DfPullRefresh(
@@ -81,8 +84,8 @@ fun SettingsScreen(
             onRefresh = viewModel::refreshAll,
             modifier = Modifier
                 .fillMaxSize()
-                .background(DfColors.Background)
-                .padding(padding),
+                .padding(padding)
+                .statusBarsPadding(),
         ) {
             if (state.isLoading && state.user == null) {
                 DfDetailSkeleton()
@@ -90,13 +93,25 @@ fun SettingsScreen(
             }
 
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
+                item {
+                    DfHubPageHeader(
+                        title = "تنظیمات",
+                        subtitle = "پروفایل، اعلان‌ها و امنیت",
+                        titleIcon = DfIcons.Settings,
+                        userName = state.user?.fullName?.substringBefore(" ") ?: "کاربر",
+                        notificationCount = state.notificationBadgeCount,
+                        onNotificationsClick = onNavigateNotifications,
+                    )
+                }
+
                 item {
                     SettingsHeroCard(
                         user = state.user,
                         onEditProfile = { viewModel.toggleProfileSheet(true) },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
 
@@ -104,6 +119,7 @@ fun SettingsScreen(
                     LicenseInsightCard(
                         license = state.license,
                         onRenew = { openWeb("https://divarfiling.ir/shop/") },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
 
@@ -111,12 +127,13 @@ fun SettingsScreen(
                     SettingsSectionTitle(
                         title = "اعلان‌ها",
                         subtitle = if (state.isSavingPrefs) "در حال ذخیره…" else "کنترل دقیق رویدادهای Push",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
 
                 item {
-                    DfCard {
-                        Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                    DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                        Column(Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs)) {
                             NotificationPrefRow(
                                 title = "یادآور CRM",
                                 subtitle = "تماس، بازدید و پیگیری‌های سررسید",
@@ -209,7 +226,10 @@ fun SettingsScreen(
                                 },
                                 enabled = !state.isSavingPrefs,
                             )
-                            HorizontalDivider(color = DfColors.OutlineSubtle, modifier = Modifier.padding(vertical = 8.dp))
+                            HorizontalDivider(
+                                color = DfColors.OutlineSubtle,
+                                modifier = Modifier.padding(vertical = AppSpacing.xs),
+                            )
                             DigestHourPicker(
                                 hour = state.notificationPrefs.digestHour,
                                 onHourChange = viewModel::onDigestHourChange,
@@ -219,12 +239,15 @@ fun SettingsScreen(
                 }
 
                 item {
-                    SettingsSectionTitle(title = "درباره اپ")
+                    SettingsSectionTitle(
+                        title = "درباره اپ",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
                 }
 
                 item {
-                    DfCard {
-                        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                        Column(Modifier.padding(horizontal = AppSpacing.cardPadding, vertical = AppSpacing.xs)) {
                             SettingsInfoRow(
                                 title = "نسخه اپ",
                                 subtitle = "Divar Filing Companion",
@@ -234,7 +257,7 @@ fun SettingsScreen(
                             SettingsInfoRow(
                                 title = "میزکار وب",
                                 subtitle = "استخراج حرفه‌ای، Excel و مدیریت کامل",
-                                icon = Icons.Default.Language,
+                                icon = DfIcons.ExternalLink,
                                 trailing = "divarfiling.ir",
                                 onClick = { openWeb("https://divarfiling.ir/") },
                             )
@@ -248,15 +271,18 @@ fun SettingsScreen(
                 }
 
                 item {
-                    LogoutButton(onClick = { viewModel.logout(onLoggedOut) })
+                    LogoutButton(
+                        onClick = { viewModel.logout(onLoggedOut) },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
                 }
 
                 item {
                     Text(
                         "ساخته‌شده برای مشاورانی که هر روز در حرکت‌اند.",
-                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                        style = AppTypography.bodyDescription,
                         color = DfColors.TextMuted,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
             }

@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.filing
 
 import android.graphics.drawable.GradientDrawable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,15 +27,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
-import ir.divarfiling.mobile.core.design.components.DfGlassButton
-import ir.divarfiling.mobile.core.design.components.DfGlassCard
-import ir.divarfiling.mobile.core.design.components.DfGlassChip
-import ir.divarfiling.mobile.core.design.components.DfGlassTopBar
-import ir.divarfiling.mobile.core.design.components.DfLiquidBackground
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfPillChip
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfPremiumCard
+import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.network.MapMarkerDto
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -96,33 +106,41 @@ fun DatasetMapScreen(
         mapView.invalidate()
     }
 
-    Box(Modifier.fillMaxSize()) {
-        DfLiquidBackground()
-        Column(Modifier.fillMaxSize()) {
-            DfGlassTopBar(
-                title = state.mapData?.dataset?.name?.let { "نقشه $it" } ?: "نقشه فایل",
+    val mapTitle = state.mapData?.dataset?.name?.let { "نقشه $it" } ?: "نقشه فایل"
+
+    Scaffold(containerColor = DfScreenContainerColor) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .statusBarsPadding(),
+        ) {
+            DfDetailPageHeader(
+                title = mapTitle,
+                subtitle = "${state.filteredMarkers.size} آگهی",
+                titleIcon = DfIcons.Map,
                 onBack = onBack,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             )
 
             when {
                 state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    androidx.compose.material3.CircularProgressIndicator(color = DfColors.Purple)
                 }
-                state.error != null -> Column(Modifier.padding(16.dp)) {
+                state.error != null -> Column(Modifier.padding(AppSpacing.screenHorizontal)) {
                     DfErrorBanner(state.error!!)
                 }
                 state.mapData == null -> DfEmptyState(
                     title = "نقشه در دسترس نیست",
                     subtitle = "برای این فایل موقعیت مکانی ثبت نشده",
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
                 else -> {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.xs),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
                         val modes = if (state.mapData?.config?.isRent == true) {
                             listOf(MapDisplayMode.Markers, MapDisplayMode.Market, MapDisplayMode.FullDeposit)
@@ -130,8 +148,8 @@ fun DatasetMapScreen(
                             listOf(MapDisplayMode.Markers, MapDisplayMode.Market, MapDisplayMode.Value)
                         }
                         modes.forEach { mode ->
-                            DfGlassChip(
-                                text = mode.label,
+                            DfPillChip(
+                                label = mode.label,
                                 selected = state.displayMode == mode,
                                 onClick = { viewModel.setDisplayMode(mode) },
                             )
@@ -141,35 +159,29 @@ fun DatasetMapScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
                         SellerFilter.entries.forEach { filter ->
-                            DfGlassChip(
-                                text = filter.label,
+                            DfPillChip(
+                                label = filter.label,
                                 selected = state.sellerFilter == filter,
                                 onClick = { viewModel.setSellerFilter(filter) },
                             )
                         }
-                        DfGlassChip(
-                            text = "زیر بازار",
+                        DfPillChip(
+                            label = "زیر بازار",
                             selected = state.underMarketOnly,
                             onClick = { viewModel.setUnderMarketOnly(!state.underMarketOnly) },
                         )
                     }
 
-                    Text(
-                        "${state.filteredMarkers.size} آگهی روی نقشه",
-                        style = AppTypography.bodyDescription,
-                        color = DfColors.TextMuted,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .padding(12.dp),
+                            .padding(AppSpacing.screenHorizontal),
                     ) {
                         AndroidView(
                             factory = { mapView },
@@ -178,19 +190,21 @@ fun DatasetMapScreen(
                     }
 
                     state.selectedMarker?.let { marker ->
-                        DfGlassCard(
+                        DfPremiumCard(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
+                                .padding(AppSpacing.screenHorizontal),
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(
+                                modifier = Modifier.padding(AppSpacing.sm),
+                                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                            ) {
                                 Text(marker.title ?: "آگهی", style = AppTypography.cardTitle)
                                 Text(buildMarkerSnippet(marker), style = AppTypography.bodyDescription)
                                 marker.token?.let { token ->
-                                    DfGlassButton(
+                                    DfPrimaryButton(
                                         text = "جزئیات آگهی",
                                         onClick = { onListingClick(token) },
-                                        selected = true,
                                     )
                                 }
                             }

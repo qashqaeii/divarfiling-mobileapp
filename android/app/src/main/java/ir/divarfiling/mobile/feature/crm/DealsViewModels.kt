@@ -256,16 +256,36 @@ data class PropertiesUiState(
     val createTitle: String = "",
     val createCity: String = "",
     val createPrice: String = "",
+    val userName: String = "",
+    val notificationBadgeCount: Int = 0,
 )
 
 @HiltViewModel
 class PropertiesViewModel @Inject constructor(
     private val repository: DealsRepository,
+    private val sessionStore: SessionStore,
+    private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PropertiesUiState())
     val uiState: StateFlow<PropertiesUiState> = _uiState.asStateFlow()
 
-    init { load() }
+    init {
+        viewModelScope.launch {
+            sessionStore.currentUser.collect { user ->
+                _uiState.update {
+                    it.copy(userName = user?.fullName?.substringBefore(" ") ?: "کاربر")
+                }
+            }
+        }
+        viewModelScope.launch {
+            when (val result = dashboardRepository.getDashboard()) {
+                is ApiResult.Success ->
+                    _uiState.update { it.copy(notificationBadgeCount = result.data.notificationsUnread) }
+                is ApiResult.Error -> Unit
+            }
+        }
+        load()
+    }
 
     fun load(refreshing: Boolean = false) {
         viewModelScope.launch {

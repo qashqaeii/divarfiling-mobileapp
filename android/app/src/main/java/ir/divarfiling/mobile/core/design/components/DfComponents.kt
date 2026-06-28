@@ -1,19 +1,23 @@
 package ir.divarfiling.mobile.core.design.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,11 +44,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Inbox
@@ -56,8 +55,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.style.TextOverflow
 import ir.divarfiling.mobile.R
+import ir.divarfiling.mobile.core.design.AppElevations
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfShapes
 import ir.divarfiling.mobile.core.design.FormatUtils
@@ -96,9 +100,11 @@ fun DfTopBar(
         },
         actions = { actions() },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = DfColors.Surface,
+            containerColor = Color.Transparent,
             titleContentColor = DfColors.TextPrimary,
         ),
+        modifier = Modifier
+            .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
     )
 }
 
@@ -109,38 +115,12 @@ fun DfCard(
     containerColor: Color = DfColors.Surface,
     content: @Composable () -> Unit,
 ) {
-    if (onClick != null) {
-        Card(
-            onClick = onClick,
-            modifier = modifier.fillMaxWidth(),
-            shape = DfShapes.Card,
-            colors = CardDefaults.cardColors(containerColor = containerColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-            ) {
-                content()
-            }
-        }
-    } else {
-        Card(
-            modifier = modifier.fillMaxWidth(),
-            shape = DfShapes.Card,
-            colors = CardDefaults.cardColors(containerColor = containerColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-            ) {
-                content()
-            }
-        }
-    }
+    DfPremiumCard(
+        modifier = modifier,
+        onClick = onClick,
+        containerColor = containerColor,
+        content = content,
+    )
 }
 
 @Composable
@@ -151,16 +131,37 @@ fun DfPrimaryButton(
     enabled: Boolean = true,
     loading: Boolean = false,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        enabled = enabled && !loading,
-        shape = DfShapes.Button,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = DfColors.Purple,
-            contentColor = Color.White,
-            disabledContainerColor = DfColors.Purple.copy(alpha = 0.4f),
-        ),
+    val shape = DfShapes.Button
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 52.dp)
+            .shadow(
+                elevation = if (enabled && !loading) AppElevations.raised else AppElevations.none,
+                shape = shape,
+                ambientColor = DfColors.Purple.copy(alpha = 0.3f),
+            )
+            .clip(shape)
+            .background(
+                if (enabled && !loading) {
+                    Brush.horizontalGradient(listOf(DfColors.PurpleGradientStart, DfColors.PurpleGradientEnd))
+                } else {
+                    Brush.horizontalGradient(
+                        listOf(
+                            DfColors.Purple.copy(alpha = 0.4f),
+                            DfColors.PurpleDark.copy(alpha = 0.35f),
+                        ),
+                    )
+                },
+            )
+            .then(
+                if (enabled && !loading) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                },
+            ),
+        contentAlignment = Alignment.Center,
     ) {
         if (loading) {
             CircularProgressIndicator(
@@ -169,14 +170,23 @@ fun DfPrimaryButton(
                 strokeWidth = 2.dp,
             )
         } else {
-            Text(text, fontWeight = FontWeight.Medium)
+            Text(
+                text,
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+            )
         }
     }
 }
 
 @Composable
 fun DfScreenGradient(): Brush = Brush.verticalGradient(
-    colors = listOf(DfColors.PurpleLight, DfColors.Background, DfColors.Background),
+    colors = listOf(
+        DfColors.PurpleLight.copy(alpha = 0.65f),
+        DfColors.Background,
+        DfColors.Background,
+    ),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -315,27 +325,50 @@ fun DfEmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(32.dp),
+            .padding(AppSpacing.xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = DfColors.TextMuted,
-        )
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        if (subtitle.isNotBlank()) {
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = DfColors.TextSecondary,
-            )
-        }
-        if (actionLabel != null && onAction != null) {
-            Button(onClick = onAction, modifier = Modifier.padding(top = 8.dp)) {
-                Text(actionLabel)
+        DfGlassCard(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(DfColors.PurpleContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = DfColors.Purple,
+                    )
+                }
+                Text(
+                    title,
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfColors.TextPrimary,
+                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        subtitle,
+                        style = AppTypography.bodyDescription,
+                        color = DfColors.TextSecondary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
+                if (actionLabel != null && onAction != null) {
+                    DfPrimaryButton(
+                        text = actionLabel,
+                        onClick = onAction,
+                        modifier = Modifier.padding(top = AppSpacing.xs),
+                    )
+                }
             }
         }
     }
@@ -408,12 +441,14 @@ fun DfPullRefresh(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = modifier,
-    ) {
-        content()
+    DfScreenBackground(modifier = modifier) {
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            content()
+        }
     }
 }
 
@@ -428,6 +463,10 @@ fun DfFab(
         containerColor = DfColors.Purple,
         contentColor = Color.White,
         shape = CircleShape,
+        elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(
+            defaultElevation = AppElevations.floating,
+            pressedElevation = AppElevations.raised,
+        ),
     ) {
         icon()
     }

@@ -5,7 +5,6 @@ import ir.divarfiling.mobile.core.design.DfColors
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,7 +64,6 @@ fun HomeScreen(
         onRefresh = viewModel::refresh,
         modifier = Modifier
             .fillMaxSize()
-            .background(DfColors.Background)
             .statusBarsPadding(),
     ) {
         LazyColumn(
@@ -221,11 +219,15 @@ private fun HomeScreenPreview() {
 
 @Composable
 internal fun HomeScreenContentPreview() {
-    LazyColumn(
+    DfPullRefresh(
+        isRefreshing = false,
+        onRefresh = {},
         modifier = Modifier
             .fillMaxSize()
-            .background(DfColors.Background)
             .statusBarsPadding(),
+    ) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = AppSpacing.xxl),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionGap),
     ) {
@@ -290,5 +292,6 @@ internal fun HomeScreenContentPreview() {
                 onFileClick = {},
             )
         }
+    }
     }
 }
