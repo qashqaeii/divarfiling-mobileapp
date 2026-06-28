@@ -224,6 +224,7 @@ fun DivarFilingNavHost(
                         TodayScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onNewTask = { navController.navigate(Routes.CRM_CONTACTS) },
                         )
                     }
                     composable(Routes.FILING) {

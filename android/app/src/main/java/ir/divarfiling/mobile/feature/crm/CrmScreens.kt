@@ -32,6 +32,15 @@ import ir.divarfiling.mobile.feature.crm.components.ContactsSearchField
 import ir.divarfiling.mobile.feature.crm.components.ContactsStatsRow
 import ir.divarfiling.mobile.feature.crm.components.ContactsViewMode
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
+import ir.divarfiling.mobile.feature.crm.components.TodayDateSection
+import ir.divarfiling.mobile.feature.crm.components.TodayFilterChip
+import ir.divarfiling.mobile.feature.crm.components.TodayFilterTab
+import ir.divarfiling.mobile.feature.crm.components.TodayFilterTabsRow
+import ir.divarfiling.mobile.feature.crm.components.TodayFilters
+import ir.divarfiling.mobile.feature.crm.components.TodayHeader
+import ir.divarfiling.mobile.feature.crm.components.TodayNewTaskFab
+import ir.divarfiling.mobile.feature.crm.components.TodayStatsRow
+import ir.divarfiling.mobile.feature.crm.components.TodayTaskCard
 import ir.divarfiling.mobile.feature.crm.components.CrmDealsIllustration
 import ir.divarfiling.mobile.feature.crm.components.CrmHubFeatureCard
 import ir.divarfiling.mobile.feature.crm.components.CrmHubFeatureCardSkeleton
@@ -369,299 +378,167 @@ private fun QuickLeadDialog(
 fun TodayScreen(
     onBack: () -> Unit = {},
     onContactClick: (Long) -> Unit = {},
+    onNewTask: () -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
+    var selectedTab by remember { mutableStateOf(TodayFilterTab.All) }
 
-    Scaffold(topBar = { DfTopBar(title = "کارهای امروز", onBack = onBack) }) { padding ->
+    val filterChips = state.data?.let { today ->
+        listOf(
+            TodayFilterChip(TodayFilterTab.All, "همه", TodayFilters.todayCount(today), DfIcons.LayoutGrid),
+            TodayFilterChip(TodayFilterTab.Overdue, "معوق", TodayFilters.overdueCount(today), DfIcons.Clock),
+            TodayFilterChip(TodayFilterTab.Done, "انجام‌شده", TodayFilters.doneCount(today), DfIcons.CircleCheck),
+            TodayFilterChip(TodayFilterTab.Reminders, "یادآورها", TodayFilters.remindersCount(today), DfIcons.Bell),
+        )
+    } ?: emptyList()
+
+    val displayedEntries = state.data?.let { today ->
+        TodayFilters.filterEntries(today, selectedTab)
+    } ?: emptyList()
+
+    Scaffold(
+        containerColor = DfColors.Background,
+        floatingActionButton = {
+            TodayNewTaskFab(onClick = onNewTask)
+        },
+    ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .background(DfColors.Background)
+                .statusBarsPadding(),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    horizontal = AppSpacing.screenHorizontal,
-                    vertical = AppSpacing.md,
-                ),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionGap),
+                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
+                item {
+                    TodayHeader(
+                        onBack = onBack,
+                        onFilterClick = { selectedTab = TodayFilterTab.All },
+                    )
+                }
                 state.error?.let { error ->
                     item {
-                        DfErrorBanner(error)
+                        DfErrorBanner(
+                            error,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
                     }
                 }
-
                 if (state.isLoading && state.data == null) {
-                    item { DfCardListSkeleton(count = 4, itemHeight = 100.dp) }
+                    item {
+                        DfCardListSkeleton(
+                            count = 4,
+                            itemHeight = 120.dp,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
-
                 state.data?.let { today ->
                     item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                        ) {
-                            DfStatChip(
-                                label = "امروز",
-                                value = "${today.stats?.total ?: 0}",
-                                modifier = Modifier.weight(1f),
-                            )
-                            DfStatChip(
-                                label = "انجام‌شده",
-                                value = "${today.stats?.done ?: 0}",
-                                modifier = Modifier.weight(1f),
-                            )
-                            DfStatChip(
-                                label = "معوق",
-                                value = "${today.overdue.size}",
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
+                        TodayStatsRow(
+                            todayCount = TodayFilters.todayCount(today),
+                            doneCount = TodayFilters.doneCount(today),
+                            overdueCount = TodayFilters.overdueCount(today),
+                            onTodayClick = { selectedTab = TodayFilterTab.All },
+                            onDoneClick = { selectedTab = TodayFilterTab.Done },
+                            onOverdueClick = { selectedTab = TodayFilterTab.Overdue },
+                        )
                     }
-                    today.date?.let { date ->
-                        item {
-                            Text(
-                                text = "تاریخ: $date",
-                                style = AppTypography.bodyDescription,
-                                color = DfColors.TextSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                    item {
+                        TodayDateSection(
+                            dateLabel = today.date ?: "امروز",
+                            totalCount = TodayFilters.todayCount(today),
+                            onDateClick = viewModel::refresh,
+                        )
                     }
-
-                    if (today.overdue.isNotEmpty()) {
-                        item { DfSectionHeader("معوق", today.overdue.size) }
-                        items(
-                            items = today.overdue,
-                            key = { "overdue-${it.reminder?.id ?: it.contact?.id}" },
-                        ) { item ->
-                            TodayTaskCard(
-                                item = item,
-                                isOverdue = true,
-                                onCall = {
-                                    item.contact?.phone?.let { phone ->
-                                        context.startActivity(
-                                            android.content.Intent(
-                                                android.content.Intent.ACTION_DIAL,
-                                                android.net.Uri.parse("tel:$phone"),
-                                            ),
-                                        )
-                                    }
-                                    item.contact?.id?.let { viewModel.logCallActivity(it) }
-                                },
-                                onWhatsApp = {
-                                    item.contact?.phone?.let { phone ->
-                                        val wa = phone.removePrefix("0")
-                                        context.startActivity(
-                                            android.content.Intent(
-                                                android.content.Intent.ACTION_VIEW,
-                                                android.net.Uri.parse("https://wa.me/98$wa"),
-                                            ),
-                                        )
-                                    }
-                                },
-                                onViewContact = { item.contact?.id?.let(onContactClick) },
-                                onComplete = {
-                                    viewModel.completeTask(
-                                        contactId = item.contact?.id,
-                                        reminderId = item.reminder?.id,
-                                    )
-                                },
-                                onPostpone = {
-                                    viewModel.postponeTask(
-                                        contactId = item.contact?.id,
-                                        reminderId = item.reminder?.id,
-                                    )
-                                },
-                            )
-                        }
+                    item {
+                        TodayFilterTabsRow(
+                            chips = filterChips,
+                            selectedTab = selectedTab,
+                            onTabSelected = { selectedTab = it },
+                        )
                     }
-                    if (today.today.isNotEmpty()) {
-                        item { DfSectionHeader("امروز", today.today.size) }
-                        items(
-                            items = today.today,
-                            key = { "today-${it.reminder?.id ?: it.contact?.id}" },
-                        ) { item ->
-                            TodayTaskCard(
-                                item = item,
-                                isOverdue = false,
-                                onCall = {
-                                    item.contact?.phone?.let { phone ->
-                                        context.startActivity(
-                                            android.content.Intent(
-                                                android.content.Intent.ACTION_DIAL,
-                                                android.net.Uri.parse("tel:$phone"),
-                                            ),
-                                        )
-                                    }
-                                    item.contact?.id?.let { viewModel.logCallActivity(it) }
-                                },
-                                onWhatsApp = {
-                                    item.contact?.phone?.let { phone ->
-                                        val wa = phone.removePrefix("0")
-                                        context.startActivity(
-                                            android.content.Intent(
-                                                android.content.Intent.ACTION_VIEW,
-                                                android.net.Uri.parse("https://wa.me/98$wa"),
-                                            ),
-                                        )
-                                    }
-                                },
-                                onViewContact = { item.contact?.id?.let(onContactClick) },
-                                onComplete = {
-                                    viewModel.completeTask(
-                                        contactId = item.contact?.id,
-                                        reminderId = item.reminder?.id,
-                                    )
-                                },
-                                onPostpone = {
-                                    viewModel.postponeTask(
-                                        contactId = item.contact?.id,
-                                        reminderId = item.reminder?.id,
-                                    )
-                                },
-                            )
-                        }
-                    }
-                    if (today.overdue.isEmpty() && today.today.isEmpty()) {
+                    if (displayedEntries.isEmpty()) {
                         item {
                             DfEmptyState(
-                                title = "کاری برای امروز نیست",
-                                subtitle = "همه پیگیری‌ها انجام شده — عالی!",
+                                title = if (selectedTab == TodayFilterTab.Done) {
+                                    "کار انجام‌شده‌ای برای نمایش نیست"
+                                } else {
+                                    "کاری برای امروز نیست"
+                                },
+                                subtitle = if (selectedTab == TodayFilterTab.Done) {
+                                    "کارهای تکمیل‌شده در این لیست نمایش داده نمی‌شوند"
+                                } else {
+                                    "همه پیگیری‌ها انجام شده — عالی!"
+                                },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                    } else {
+                        items(
+                            items = displayedEntries,
+                            key = { entry ->
+                                val item = entry.item
+                                "${entry.isOverdue}-${item.reminder?.id ?: item.contact?.id ?: item.hashCode()}"
+                            },
+                        ) { entry ->
+                            TodayTaskCard(
+                                item = entry.item,
+                                isOverdue = entry.isOverdue,
+                                onCall = {
+                                    entry.item.contact?.phone?.let { phone ->
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
+                                        )
+                                    }
+                                    entry.item.contact?.id?.let { viewModel.logCallActivity(it) }
+                                },
+                                onWhatsApp = {
+                                    entry.item.contact?.phone?.let { phone ->
+                                        val wa = phone.removePrefix("0")
+                                        context.startActivity(
+                                            Intent(
+                                                Intent.ACTION_VIEW,
+                                                Uri.parse("https://wa.me/98$wa"),
+                                            ),
+                                        )
+                                    }
+                                },
+                                onViewContact = { entry.item.contact?.id?.let(onContactClick) },
+                                onComplete = {
+                                    viewModel.completeTask(
+                                        contactId = entry.item.contact?.id,
+                                        reminderId = entry.item.reminder?.id,
+                                    )
+                                },
+                                onPostpone = {
+                                    viewModel.postponeTask(
+                                        contactId = entry.item.contact?.id,
+                                        reminderId = entry.item.reminder?.id,
+                                    )
+                                },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
                     }
                 }
-
                 if (state.data == null && !state.isLoading && state.error == null) {
                     item {
                         DfEmptyState(
                             title = "داده‌ای نیست",
                             subtitle = "با کشیدن صفحه به‌روزرسانی کنید",
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TodayTaskCard(
-    item: TodayItemDto,
-    isOverdue: Boolean,
-    onCall: () -> Unit = {},
-    onWhatsApp: () -> Unit = {},
-    onViewContact: () -> Unit = {},
-    onComplete: () -> Unit = {},
-    onPostpone: () -> Unit = {},
-) {
-    val contactName = item.contact?.fullName
-    val phone = item.contact?.phone
-    val reminderTitle = item.reminder?.title
-    val dueAt = item.reminder?.dueAt
-    val reminderType = item.type?.takeIf { it.isNotBlank() }
-
-    val title = contactName ?: reminderTitle ?: "—"
-    val subtitle = when {
-        !reminderTitle.isNullOrBlank() && contactName != null -> reminderTitle
-        !phone.isNullOrBlank() -> phone
-        else -> ""
-    }
-
-    DfPremiumCard(
-        containerColor = if (isOverdue) DfColors.OverdueBackground else DfColors.Surface,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = AppSpacing.listRowMinHeight),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
-            ) {
-                Text(
-                    text = title,
-                    style = AppTypography.cardTitle,
-                    color = DfColors.TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (subtitle.isNotBlank()) {
-                    Text(
-                        text = subtitle,
-                        style = AppTypography.bodyDescription,
-                        color = DfColors.TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    reminderType?.let { type ->
-                        DfBadge(
-                            text = type,
-                            color = DfColors.SurfaceVariant,
-                            textColor = DfColors.TextSecondary,
-                        )
-                    }
-                    dueAt?.let { due ->
-                        Text(
-                            text = due,
-                            style = AppTypography.labelSmall,
-                            color = DfColors.TextMuted,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (isOverdue) {
-                        DfBadge(
-                            text = "معوق",
-                            color = DfColors.RoseLight,
-                            textColor = DfColors.OverdueAccent,
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = AppSpacing.xs),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    TextButton(onClick = onCall) { Text("تماس", style = AppTypography.labelSmall) }
-                    TextButton(onClick = onWhatsApp) { Text("واتساپ", style = AppTypography.labelSmall) }
-                    TextButton(onClick = onViewContact) { Text("مخاطب", style = AppTypography.labelSmall) }
-                    TextButton(onClick = onComplete) { Text("انجام شد", style = AppTypography.labelSmall) }
-                    TextButton(onClick = onPostpone) { Text("تعویق", style = AppTypography.labelSmall) }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(AppShapes.IconContainer)
-                    .background(
-                        if (isOverdue) DfColors.RoseLight else DfColors.PurpleContainer,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = if (isOverdue) Icons.Default.Warning else Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    tint = if (isOverdue) DfColors.OverdueAccent else DfColors.Purple,
-                    modifier = Modifier.size(20.dp),
-                )
             }
         }
     }
@@ -869,48 +746,38 @@ internal fun CrmHubScreenContentPreview() {
 }
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Today 360×800")
-@Preview(showBackground = true, widthDp = 390, heightDp = 844, name = "Today 390×844")
-@Preview(showBackground = true, widthDp = 412, heightDp = 915, name = "Today 412×915")
 @Composable
 private fun TodayScreenPreview() {
     DivarFilingTheme {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                horizontal = AppSpacing.screenHorizontal,
-                vertical = AppSpacing.md,
-            ),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sectionGap),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DfColors.Background),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                    DfStatChip(label = "امروز", value = "5")
-                    DfStatChip(label = "انجام‌شده", value = "2")
-                    DfStatChip(label = "معوق", value = "1")
-                }
-            }
-            item { DfSectionHeader("معوق", 1) }
-            item {
-                TodayTaskCard(
-                    item = TodayItemDto(
-                        type = "تماس",
-                        contact = ContactDto(id = 1, fullName = "رضا احمدی", phone = "09121234567"),
-                        reminder = ReminderDto(id = 1, title = "پیگیری خرید", dueAt = "09:00"),
-                    ),
-                    isOverdue = true,
-                )
-            }
-            item { DfSectionHeader("امروز", 2) }
-            item {
-                TodayTaskCard(
-                    item = TodayItemDto(
-                        type = "بازدید",
-                        contact = ContactDto(id = 2, fullName = "مریم کریمی", phone = "09129876543"),
-                        reminder = ReminderDto(id = 2, title = "بازدید ملک", dueAt = "14:30"),
-                    ),
-                    isOverdue = false,
-                )
-            }
+            TodayHeader(onBack = {}, onFilterClick = {})
+            TodayStatsRow(
+                todayCount = 33,
+                doneCount = 0,
+                overdueCount = 32,
+                onTodayClick = {},
+                onDoneClick = {},
+                onOverdueClick = {},
+            )
+            TodayTaskCard(
+                item = TodayItemDto(
+                    type = "follow_up",
+                    contact = ContactDto(id = 1, fullName = "آرش ستوده", phone = "09121110010"),
+                    reminder = ReminderDto(id = 1, title = "پیگیری", dueAt = "09:00"),
+                ),
+                isOverdue = true,
+                onCall = {},
+                onWhatsApp = {},
+                onViewContact = {},
+                onComplete = {},
+                onPostpone = {},
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+            )
         }
     }
 }
