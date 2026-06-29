@@ -49,7 +49,44 @@ class DivarImageExtractorTest {
     }
 
     @Test
-    fun `firstImageUrl returns null when no media`() {
+    fun `extracts image url from carousel with thumbnail_url`() {
+        val detail = json.parseToJsonElement(
+            """
+            {
+              "sections": [
+                {
+                  "section_name": "IMAGE",
+                  "widgets": [
+                    {
+                      "widget_type": "IMAGE_CAROUSEL",
+                      "data": {
+                        "items": [
+                          {
+                            "image_url": "",
+                            "image": {
+                              "url": "https://postimage01.divarcdn.com/static/photo/neda/webp_post/zXBkW8ICNLRYcdh_T4pifQ/becf62b6-1b74-4669-92cd-9577deb4b2e4.webp",
+                              "thumbnail_url": "https://postimage01.divarcdn.com/static/photo/neda/webp_thumbnail/grv07UPd6lSlAD3kgTpp1Q/becf62b6-1b74-4669-92cd-9577deb4b2e4.webp"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+        val urls = DivarImageExtractor.extractImageUrls(detail)
+        assertEquals(
+            "https://postimage01.divarcdn.com/static/photo/neda/webp_post/zXBkW8ICNLRYcdh_T4pifQ/becf62b6-1b74-4669-92cd-9577deb4b2e4.webp",
+            urls.first(),
+        )
+        assertEquals(2, urls.size)
+    }
+
+    @Test
+    fun `returns empty when no media`() {
         val detail = buildJsonObject { put("sections", json.parseToJsonElement("[]")) }
         assertTrue(DivarImageExtractor.extractImageUrls(detail).isEmpty())
     }

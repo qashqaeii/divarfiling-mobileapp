@@ -38,6 +38,7 @@ object DivarImageExtractor {
             postRowData["thumbnail"]?.jsonPrimitive?.content,
             postRowData["image"]?.jsonObject?.get("url")?.jsonPrimitive?.content,
             postRowData["image"]?.jsonObject?.get("webp_url")?.jsonPrimitive?.content,
+            postRowData["image"]?.jsonObject?.get("thumbnail_url")?.jsonPrimitive?.content,
             postRowData["cover_image"]?.jsonPrimitive?.content,
         )
         return candidates.firstOrNull { isLikelyImageUrl(it) }?.let(::normalizeDivarImageUrl)
@@ -82,11 +83,11 @@ object DivarImageExtractor {
 
     private fun addUrlFromObject(obj: JsonObject, urls: LinkedHashSet<String>) {
         obj["image"]?.jsonObject?.let { image ->
-            listOf("url", "webp_url", "thumbnail").forEach { key ->
+            listOf("url", "webp_url", "thumbnail_url", "thumbnail").forEach { key ->
                 image[key]?.jsonPrimitive?.content?.takeIf(::isLikelyImageUrl)?.let(urls::add)
             }
         }
-        listOf("image_url", "webp_url", "thumbnail", "url").forEach { key ->
+        listOf("image_url", "webp_url", "thumbnail_url", "thumbnail", "url").forEach { key ->
             obj[key]?.jsonPrimitive?.content?.takeIf(::isLikelyImageUrl)?.let(urls::add)
         }
     }
