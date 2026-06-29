@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.filing.components
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,6 +38,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
@@ -134,10 +138,10 @@ fun FilingDatasetCard(
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        IconAction(DfIcons.Download, "خروجی") { onExport() }
-                        IconAction(DfIcons.File, "مشاهده فایل", onClick)
+                        IconAction(iconRes = DfDecorIcons.Download, contentDescription = "خروجی") { onExport() }
+                        IconAction(iconRes = DfDecorIcons.FileText, contentDescription = "مشاهده فایل", onClick)
                         Box {
-                            IconAction(DfIcons.MoreVertical, "بیشتر") { showMenu = true }
+                            IconAction(icon = DfIcons.MoreVertical, contentDescription = "بیشتر") { showMenu = true }
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 DropdownMenuItem(
                                     text = { Text("مشاهده آگهی‌ها") },
@@ -243,16 +247,25 @@ private fun FormatBadge(format: String) {
 
 @Composable
 private fun IconAction(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
 ) {
     IconButton(onClick = onClick, modifier = Modifier.size(32.dp)) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = DfColors.TextMuted,
-            modifier = Modifier.size(16.dp),
-        )
+        when {
+            iconRes != null -> Image(
+                painter = painterResource(iconRes),
+                contentDescription = contentDescription,
+                modifier = Modifier.size(16.dp),
+                contentScale = ContentScale.Fit,
+            )
+            icon != null -> Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = DfColors.TextMuted,
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }

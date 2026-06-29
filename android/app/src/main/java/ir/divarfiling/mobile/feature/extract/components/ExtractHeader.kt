@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 
@@ -19,7 +20,7 @@ fun ExtractHeader(
     DfHubPageHeader(
         title = "استخراج جدید",
         subtitle = "استخراج املاک دیوار",
-        titleIcon = DfIcons.Sparkles,
+        titleIconRes = DfDecorIcons.Sparkles,
         userName = userName,
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,

@@ -35,7 +35,7 @@ fun DfExportSheet(
     DfSheetScaffold(
         title = title,
         subtitle = subtitle,
-        icon = DfIcons.Download,
+        iconRes = DfDecorIcons.Download,
         onClose = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
@@ -70,10 +70,10 @@ private fun ExportFormatOption(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val icon = when (format) {
-        ExportFormat.XLSX -> DfIcons.File
-        ExportFormat.JSON -> DfIcons.Database
-        ExportFormat.CSV -> DfIcons.ClipboardList
+    val decorIcon = when (format) {
+        ExportFormat.XLSX -> DfDecorIcons.FileText
+        ExportFormat.JSON -> DfDecorIcons.Layers
+        ExportFormat.CSV -> DfDecorIcons.ClipboardList
     }
     Surface(
         onClick = onClick,
@@ -90,24 +90,12 @@ private fun ExportFormatOption(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                shape = AppShapes.IconContainer,
-                color = DfColors.PurpleContainer,
-                modifier = Modifier.size(40.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = DfColors.Purple,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
+            DfDecorIconBox(
+                resId = decorIcon,
+                containerSize = 40.dp,
+                imageSize = 22.dp,
+                background = DfColors.PurpleContainer,
+            )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = format.label,

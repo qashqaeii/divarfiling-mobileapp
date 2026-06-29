@@ -22,6 +22,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 
 @Composable
@@ -39,11 +41,9 @@ fun ListingLocationSection(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = DfIcons.MapPin,
-                    contentDescription = null,
-                    tint = DfColors.Purple,
-                    modifier = Modifier.size(18.dp),
+                DfDecorImage(
+                    resId = DfDecorIcons.MapPin,
+                    size = 18.dp,
                 )
                 Text(
                     text = "موقعیت ملک",

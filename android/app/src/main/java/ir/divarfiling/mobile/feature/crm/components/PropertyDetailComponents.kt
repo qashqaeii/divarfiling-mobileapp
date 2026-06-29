@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfAsyncImage
 import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
@@ -139,7 +142,7 @@ fun PropertyDetailContent(
         property.address?.takeIf { it.isNotBlank() }?.let { address ->
             item {
                 PropertyDetailInfoCard(
-                    icon = DfIcons.MapPin,
+                    iconRes = DfDecorIcons.MapPin,
                     title = "آدرس",
                     body = address,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -150,7 +153,7 @@ fun PropertyDetailContent(
         property.notes?.takeIf { it.isNotBlank() }?.let { notes ->
             item {
                 PropertyDetailInfoCard(
-                    icon = DfIcons.StickyNote,
+                    iconRes = DfDecorIcons.StickyNote,
                     title = "یادداشت",
                     body = notes,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -539,8 +542,8 @@ fun PropertyDetailQuickActions(
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         PropertyQuickAction(label = "ویرایش", icon = DfIcons.File, bg = DfColors.PurpleContainer, tint = DfColors.Purple, onClick = onEdit, modifier = Modifier.weight(1f))
-        PropertyQuickAction(label = "اشتراک", icon = DfIcons.Share2, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onShare, modifier = Modifier.weight(1f))
-        PropertyQuickAction(label = "واتساپ", iconRes = R.drawable.ic_whatsapp, bg = DfColors.GreenLight, tint = DfColors.Green, onClick = onWhatsApp, modifier = Modifier.weight(1f))
+        PropertyQuickAction(label = "اشتراک", iconRes = DfDecorIcons.Share2, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onShare, modifier = Modifier.weight(1f))
+        PropertyQuickAction(label = "واتساپ", iconRes = R.drawable.ic_whatsapp, tintIconRes = true, bg = DfColors.GreenLight, tint = DfColors.Green, onClick = onWhatsApp, modifier = Modifier.weight(1f))
         PropertyQuickAction(label = "کپی", icon = DfIcons.Copy, bg = DfColors.AmberLight, tint = DfColors.Amber, onClick = onCopyLink, modifier = Modifier.weight(1f))
         if (onOpenLink != null) {
             PropertyQuickAction(label = "دیوار", icon = DfIcons.ExternalLink, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onOpenLink, modifier = Modifier.weight(1f))
@@ -558,6 +561,7 @@ private fun PropertyQuickAction(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     iconRes: Int? = null,
+    tintIconRes: Boolean = false,
 ) {
     Surface(
         onClick = onClick,
@@ -574,7 +578,13 @@ private fun PropertyQuickAction(
         ) {
             when {
                 icon != null -> Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
-                iconRes != null -> Icon(painterResource(iconRes), null, tint = tint, modifier = Modifier.size(18.dp))
+                iconRes != null && tintIconRes -> Icon(painterResource(iconRes), null, tint = tint, modifier = Modifier.size(18.dp))
+                iconRes != null -> Image(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    contentScale = ContentScale.Fit,
+                )
             }
             Text(label, style = AppTypography.labelSmall, fontWeight = FontWeight.SemiBold, color = tint)
         }
@@ -628,10 +638,11 @@ fun PropertyTxStatusSection(
 
 @Composable
 private fun PropertyDetailInfoCard(
-    icon: ImageVector,
     title: String,
     body: String,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    iconRes: Int? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -644,7 +655,10 @@ private fun PropertyDetailInfoCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = DfColors.Purple, modifier = Modifier.size(16.dp))
+                when {
+                    iconRes != null -> DfDecorImage(resId = iconRes, size = 16.dp)
+                    icon != null -> Icon(icon, null, tint = DfColors.Purple, modifier = Modifier.size(16.dp))
+                }
                 Text(title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
             }
             Text(body, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)

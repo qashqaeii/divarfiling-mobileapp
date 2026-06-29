@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
 import androidx.compose.foundation.layout.statusBarsPadding
 import android.content.Intent
@@ -32,6 +32,7 @@ import ir.divarfiling.mobile.feature.crm.components.ContactQuickLeadSheet
 import ir.divarfiling.mobile.feature.crm.components.TodayNewTaskSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
 import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.core.export.ExportFormat
@@ -87,6 +88,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
@@ -210,19 +212,12 @@ fun ContactsScreen(
                     )
                 }
                 item {
-                    TextButton(
+                    DfExportLinkButton(
                         onClick = viewModel::openExportSheet,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = AppSpacing.screenHorizontal),
-                    ) {
-                        Icon(
-                            imageVector = DfIcons.Download,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 6.dp).size(18.dp),
-                        )
-                        Text("خروجی Excel / JSON / CSV")
-                    }
+                    )
                 }
                 item {
                     ContactsSearchFilterPanel(
@@ -673,21 +668,21 @@ fun CrmHubScreen(
                         ),
                         CrmQuickAction(
                             title = "یادداشت",
-                            icon = DfIcons.File,
+                            iconRes = DfDecorIcons.StickyNote,
                             onClick = onQuickNote,
                             tint = DfColors.Blue,
                             background = DfColors.BlueLight,
                         ),
                         CrmQuickAction(
                             title = "یادآور",
-                            icon = DfIcons.AlarmClock,
+                            iconRes = DfDecorIcons.Upload,
                             onClick = onQuickReminder,
                             tint = DfColors.Amber,
                             background = DfColors.AmberLight,
                         ),
                         CrmQuickAction(
                             title = "مخاطب",
-                            icon = DfIcons.UserPlus,
+                            iconRes = DfDecorIcons.ClipboardList,
                             onClick = onQuickContact,
                             tint = DfColors.Green,
                             background = DfColors.GreenLight,
@@ -818,10 +813,10 @@ internal fun CrmHubScreenContentPreview() {
         item {
             CrmQuickActionsBar(
                 actions = listOf(
-                    CrmQuickAction("فیلتر", DfIcons.Filter, {}, tint = DfColors.Purple, background = DfColors.PurpleContainer),
-                    CrmQuickAction("یادداشت", DfIcons.File, {}, tint = DfColors.Blue, background = DfColors.BlueLight),
-                    CrmQuickAction("یادآور", DfIcons.AlarmClock, {}, tint = DfColors.Amber, background = DfColors.AmberLight),
-                    CrmQuickAction("مخاطب", DfIcons.UserPlus, {}, tint = DfColors.Green, background = DfColors.GreenLight),
+                    CrmQuickAction("فیلتر", icon = DfIcons.Filter, onClick = {}, tint = DfColors.Purple, background = DfColors.PurpleContainer),
+                    CrmQuickAction("یادداشت", iconRes = DfDecorIcons.StickyNote, onClick = {}, tint = DfColors.Blue, background = DfColors.BlueLight),
+                    CrmQuickAction("یادآور", iconRes = DfDecorIcons.Upload, onClick = {}, tint = DfColors.Amber, background = DfColors.AmberLight),
+                    CrmQuickAction("مخاطب", iconRes = DfDecorIcons.ClipboardList, onClick = {}, tint = DfColors.Green, background = DfColors.GreenLight),
                 ),
             )
         }

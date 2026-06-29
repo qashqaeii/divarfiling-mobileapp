@@ -38,6 +38,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
+import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
@@ -139,19 +140,12 @@ fun PropertiesScreen(
                         )
                     }
                     item {
-                        TextButton(
+                        DfExportLinkButton(
                             onClick = viewModel::openExportSheet,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = AppSpacing.screenHorizontal),
-                        ) {
-                            Icon(
-                                imageVector = DfIcons.Download,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 6.dp),
-                            )
-                            Text("خروجی Excel / JSON / CSV")
-                        }
+                        )
                     }
                 }
                 item {

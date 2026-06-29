@@ -50,7 +50,8 @@ import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
-import ir.divarfiling.mobile.core.design.components.DfAsyncImage
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfListingImage
@@ -448,7 +449,7 @@ private fun PropertyDossierPanel(
         )
         PropertyDossierGroup(
             title = "معامله و قیمت",
-            icon = DfIcons.Tag,
+            iconRes = DfDecorIcons.Coins,
             rows = buildList {
                 property.dealMode?.let { add("نوع معامله" to it) }
                 add("وضعیت" to (property.transactionStatus ?: "فعال"))
@@ -460,7 +461,7 @@ private fun PropertyDossierPanel(
         )
         PropertyDossierGroup(
             title = "مشخصات فنی",
-            icon = DfIcons.Ruler,
+            iconRes = DfDecorIcons.Ruler,
             rows = buildList {
                 property.propertyType?.let { add("نوع ملک" to it) }
                 PropertyFilters.formatArea(property.area)?.let { add("متراژ" to it) }
@@ -474,7 +475,7 @@ private fun PropertyDossierPanel(
         )
         PropertyDossierGroup(
             title = "موقعیت",
-            icon = DfIcons.MapPin,
+            iconRes = DfDecorIcons.MapPin,
             rows = buildList {
                 add("نمایش" to PropertyFilters.locationLabel(property))
                 property.neighborhood?.takeIf { it.isNotBlank() }?.let { add("محله" to it) }
@@ -509,9 +510,10 @@ private fun PropertyDossierPanel(
 @Composable
 private fun PropertyDossierGroup(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
     rows: List<Pair<String, String>>,
     modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    iconRes: Int? = null,
 ) {
     if (rows.isEmpty()) return
     DfPremiumCard(modifier = modifier.fillMaxWidth()) {
@@ -523,7 +525,10 @@ private fun PropertyDossierGroup(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(icon, null, tint = DfColors.Purple, modifier = Modifier.size(16.dp))
+                when {
+                    iconRes != null -> DfDecorImage(resId = iconRes, size = 16.dp)
+                    icon != null -> Icon(icon, null, tint = DfColors.Purple, modifier = Modifier.size(16.dp))
+                }
                 Text(title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
             }
             rows.forEach { (label, value) ->
@@ -684,7 +689,13 @@ private fun PropertyNotesPanel(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-        Text("یادداشت مالک", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DfDecorImage(resId = DfDecorIcons.StickyNote, size = 18.dp)
+            Text("یادداشت مالک", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+        }
         if (maskSensitive) {
             DfEmptyState(
                 title = "یادداشت مخفی است",
@@ -740,9 +751,22 @@ private fun PropertyDocumentsPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("مدارک", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DfDecorImage(resId = DfDecorIcons.FileText, size = 18.dp)
+                Text("مدارک", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+            }
             if (canEdit && !maskSensitive) {
-                TextButton(onClick = onUpload, enabled = !isSubmitting) { Text("آپلود مدرک") }
+                TextButton(onClick = onUpload, enabled = !isSubmitting) {
+                    DfDecorImage(
+                        resId = DfDecorIcons.Upload,
+                        size = 16.dp,
+                        modifier = Modifier.padding(end = 4.dp),
+                    )
+                    Text("آپلود مدرک")
+                }
             }
         }
         if (maskSensitive) {

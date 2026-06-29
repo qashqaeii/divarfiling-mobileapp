@@ -31,6 +31,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
@@ -60,11 +62,9 @@ fun ListingSpecsCard(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = DfIcons.ClipboardList,
-                    contentDescription = null,
-                    tint = DfColors.Purple,
-                    modifier = Modifier.size(18.dp),
+                DfDecorImage(
+                    resId = DfDecorIcons.Ruler,
+                    size = 18.dp,
                 )
                 Text(
                     text = "مشخصات ملک",

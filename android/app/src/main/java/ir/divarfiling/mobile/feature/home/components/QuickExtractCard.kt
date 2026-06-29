@@ -4,6 +4,7 @@ import ir.divarfiling.mobile.core.design.DfColors
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,6 +36,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,8 +146,13 @@ fun QuickExtractCard(
                     }
                 }
 
-                HomeRobotIllustration(
-                    modifier = Modifier.padding(start = AppSpacing.xs),
+                Image(
+                    painter = painterResource(DfDecorIcons.Rocket),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(start = AppSpacing.xs)
+                        .size(DfDecorSize.Hero),
+                    contentScale = ContentScale.Fit,
                 )
             }
         }

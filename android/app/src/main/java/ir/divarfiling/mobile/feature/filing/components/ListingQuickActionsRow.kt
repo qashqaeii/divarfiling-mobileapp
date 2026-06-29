@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.filing.components
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +35,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 @Composable
@@ -51,7 +54,7 @@ fun ListingQuickActionsRow(
             add(
                 QuickActionSpec(
                     label = "شخصی",
-                    icon = DfIcons.Building,
+                    iconRes = DfDecorIcons.ClipboardList,
                     tint = DfColors.Amber,
                     background = DfColors.AmberLight,
                     onClick = onSaveAsPersonal,
@@ -61,7 +64,7 @@ fun ListingQuickActionsRow(
         add(
             QuickActionSpec(
                 label = "ارسال",
-                icon = DfIcons.UserPlus,
+                iconRes = DfDecorIcons.Share2,
                 tint = DfColors.Purple,
                 background = DfColors.PurpleContainer,
                 onClick = onSendToContact,
@@ -80,6 +83,7 @@ fun ListingQuickActionsRow(
             QuickActionSpec(
                 label = "واتساپ",
                 iconRes = R.drawable.ic_whatsapp,
+                tintIconRes = true,
                 tint = DfColors.Green,
                 background = DfColors.GreenLight,
                 onClick = onWhatsAppShare,
@@ -128,6 +132,7 @@ fun ListingQuickActionsRow(
                     label = action.label,
                     icon = action.icon,
                     iconRes = action.iconRes,
+                    tintIconRes = action.tintIconRes,
                     tint = action.tint,
                     background = action.background,
                     onClick = action.onClick,
@@ -144,6 +149,7 @@ private data class QuickActionSpec(
     val onClick: () -> Unit,
     val icon: ImageVector? = null,
     val iconRes: Int? = null,
+    val tintIconRes: Boolean = false,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -155,6 +161,7 @@ private fun ListingQuickActionButton(
     onClick: () -> Unit,
     icon: ImageVector? = null,
     iconRes: Int? = null,
+    tintIconRes: Boolean = false,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -179,11 +186,17 @@ private fun ListingQuickActionButton(
                         tint = tint,
                         modifier = Modifier.size(22.dp),
                     )
-                    iconRes != null -> Icon(
+                    iconRes != null && tintIconRes -> Icon(
                         painter = painterResource(iconRes),
                         contentDescription = label,
                         tint = tint,
                         modifier = Modifier.size(22.dp),
+                    )
+                    iconRes != null -> Image(
+                        painter = painterResource(iconRes),
+                        contentDescription = label,
+                        modifier = Modifier.size(22.dp),
+                        contentScale = ContentScale.Fit,
                     )
                 }
             }

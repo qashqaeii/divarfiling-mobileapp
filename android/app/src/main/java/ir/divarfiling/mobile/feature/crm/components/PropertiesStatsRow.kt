@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,6 +34,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import java.text.NumberFormat
 import java.util.Locale
@@ -62,8 +67,7 @@ fun PropertiesStatsRow(
         PropertiesStatCell(
             value = numberFormat.format(saleCount),
             label = "فروش",
-            icon = DfIcons.Home,
-            tint = DfColors.Purple,
+            iconRes = DfDecorIcons.Coins,
             modifier = Modifier.weight(1f),
         )
         PropertiesStatDivider()
@@ -89,9 +93,10 @@ fun PropertiesStatsRow(
 private fun PropertiesStatCell(
     value: String,
     label: String,
-    icon: ImageVector,
-    tint: Color,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
+    tint: Color = DfColors.Purple,
 ) {
     Column(
         modifier = modifier
@@ -104,12 +109,20 @@ private fun PropertiesStatCell(
             horizontalArrangement = Arrangement.spacedBy(3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(11.dp),
-            )
+            when {
+                iconRes != null -> Image(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(11.dp),
+                    contentScale = ContentScale.Fit,
+                )
+                icon != null -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(11.dp),
+                )
+            }
             Text(
                 text = value,
                 style = AppTypography.labelLarge,

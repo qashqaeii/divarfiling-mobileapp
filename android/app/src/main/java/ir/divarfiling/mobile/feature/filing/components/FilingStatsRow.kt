@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.filing.components
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -23,6 +27,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -45,17 +50,15 @@ fun FilingStatsRow(
             value = numberFormat.format(totalAds),
             label = "از کل فایل‌ها",
             title = "کل آگهی‌ها",
-            icon = DfIcons.ClipboardList,
+            iconRes = DfDecorIcons.ClipboardList,
             background = DfColors.PurpleContainer,
-            iconTint = DfColors.Purple,
         )
         FilingStatCard(
             value = numberFormat.format(filesCount),
             label = "تعداد فایل",
             title = "فایل‌ها",
-            icon = DfIcons.Folder,
+            iconRes = DfDecorIcons.Layers,
             background = DfColors.GreenLight,
-            iconTint = DfColors.Green,
         )
         FilingStatCard(
             value = String.format(Locale.US, "%.1f GB", estimatedSizeGb),
@@ -81,9 +84,11 @@ private fun FilingStatCard(
     value: String,
     label: String,
     title: String,
-    icon: ImageVector,
     background: Color,
-    iconTint: Color,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
+    iconTint: Color = DfColors.Purple,
 ) {
     Surface(
         shape = AppShapes.Card,
@@ -108,12 +113,20 @@ private fun FilingStatCard(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(18.dp),
-                    )
+                    when {
+                        iconRes != null -> Image(
+                            painter = painterResource(iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            contentScale = ContentScale.Fit,
+                        )
+                        icon != null -> Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
             Column(

@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,13 +33,15 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 
 data class CrmQuickAction(
     val title: String,
-    val icon: ImageVector,
     val onClick: () -> Unit,
     val tint: Color = DfColors.Purple,
     val background: Color = DfColors.PurpleContainer,
+    val icon: ImageVector? = null,
+    @DrawableRes val iconRes: Int? = null,
 )
 
 @Composable
@@ -82,12 +88,20 @@ private fun CrmQuickActionItem(
                 modifier = Modifier.size(36.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = action.icon,
-                        contentDescription = action.title,
-                        tint = action.tint,
-                        modifier = Modifier.size(17.dp),
-                    )
+                    when {
+                        action.iconRes != null -> Image(
+                            painter = painterResource(action.iconRes),
+                            contentDescription = action.title,
+                            modifier = Modifier.size(20.dp),
+                            contentScale = ContentScale.Fit,
+                        )
+                        action.icon != null -> Icon(
+                            imageVector = action.icon,
+                            contentDescription = action.title,
+                            tint = action.tint,
+                            modifier = Modifier.size(17.dp),
+                        )
+                    }
                 }
             }
             Text(
@@ -109,10 +123,10 @@ private fun CrmQuickActionsBarPreview() {
     DivarFilingTheme {
         CrmQuickActionsBar(
             actions = listOf(
-                CrmQuickAction("فیلتر", DfIcons.Filter, {}, tint = DfColors.Purple, background = DfColors.PurpleContainer),
-                CrmQuickAction("یادداشت", DfIcons.File, {}, tint = DfColors.Blue, background = DfColors.BlueLight),
-                CrmQuickAction("یادآور", DfIcons.AlarmClock, {}, tint = DfColors.Amber, background = DfColors.AmberLight),
-                CrmQuickAction("مخاطب", DfIcons.UserPlus, {}, tint = DfColors.Green, background = DfColors.GreenLight),
+                CrmQuickAction("فیلتر", icon = DfIcons.Filter, onClick = {}, tint = DfColors.Purple, background = DfColors.PurpleContainer),
+                CrmQuickAction("یادداشت", iconRes = DfDecorIcons.StickyNote, onClick = {}, tint = DfColors.Blue, background = DfColors.BlueLight),
+                CrmQuickAction("یادآور", iconRes = DfDecorIcons.Upload, onClick = {}, tint = DfColors.Amber, background = DfColors.AmberLight),
+                CrmQuickAction("مخاطب", iconRes = DfDecorIcons.ClipboardList, onClick = {}, tint = DfColors.Green, background = DfColors.GreenLight),
             ),
             modifier = Modifier.padding(16.dp),
         )

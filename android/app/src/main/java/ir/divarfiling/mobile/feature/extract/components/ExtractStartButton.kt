@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.extract.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,6 +27,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
@@ -69,11 +73,11 @@ fun ExtractStartButton(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = DfIcons.WandSparkles,
+            Image(
+                painter = painterResource(DfDecorIcons.Rocket),
                 contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(26.dp),
+                contentScale = ContentScale.Fit,
             )
         }
         Column(

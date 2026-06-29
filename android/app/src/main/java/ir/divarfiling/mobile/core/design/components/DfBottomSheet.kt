@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.core.design.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -120,6 +121,7 @@ fun DfSheetScaffold(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
     iconContainerColor: Color = DfColors.PurpleContainer,
     iconTint: Color = DfColors.Purple,
     onClose: (() -> Unit)? = null,
@@ -135,6 +137,7 @@ fun DfSheetScaffold(
             title = title,
             subtitle = subtitle,
             icon = icon,
+            iconRes = iconRes,
             iconContainerColor = iconContainerColor,
             iconTint = iconTint,
             onClose = onClose,
@@ -169,6 +172,7 @@ fun DfSheetHeader(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
     iconContainerColor: Color = DfColors.PurpleContainer,
     iconTint: Color = DfColors.Purple,
     onClose: (() -> Unit)? = null,
@@ -181,8 +185,14 @@ fun DfSheetHeader(
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         verticalAlignment = Alignment.Top,
     ) {
-        if (icon != null) {
-            Box(
+        when {
+            iconRes != null -> DfDecorIconBox(
+                resId = iconRes,
+                containerSize = 44.dp,
+                imageSize = 28.dp,
+                background = iconContainerColor,
+            )
+            icon != null -> Box(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(AppShapes.IconContainer)

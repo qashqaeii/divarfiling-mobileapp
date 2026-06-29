@@ -2,6 +2,8 @@ package ir.divarfiling.mobile.feature.home.components
 
 import ir.divarfiling.mobile.core.design.DfColors
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,15 +34,16 @@ import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 data class QuickAction(
     val label: String,
-    val icon: ImageVector,
     val tint: Color,
     val background: Color,
     val onClick: () -> Unit,
+    val icon: ImageVector? = null,
+    @DrawableRes val iconRes: Int? = null,
 )
 
 @Composable
@@ -81,12 +86,20 @@ private fun QuickActionItem(action: QuickAction) {
                     modifier = Modifier.size(40.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = action.icon,
-                            contentDescription = action.label,
-                            tint = action.tint,
-                            modifier = Modifier.size(20.dp),
-                        )
+                        when {
+                            action.iconRes != null -> Image(
+                                painter = painterResource(action.iconRes),
+                                contentDescription = action.label,
+                                modifier = Modifier.size(22.dp),
+                                contentScale = ContentScale.Fit,
+                            )
+                            action.icon != null -> Icon(
+                                imageVector = action.icon,
+                                contentDescription = action.label,
+                                tint = action.tint,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -110,10 +123,10 @@ private fun QuickActionsRowPreview() {
     DivarFilingTheme {
         QuickActionsRow(
             actions = listOf(
-                QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight) {},
-                QuickAction("مخاطب جدید", DfIcons.UserPlus, DfColors.Amber, DfColors.AmberLight) {},
-                QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight) {},
-                QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer) {},
+                QuickAction("یادآور جدید", DfColors.Pink, DfColors.PinkLight, {}, iconRes = DfDecorIcons.StickyNote),
+                QuickAction("مخاطب جدید", DfColors.Amber, DfColors.AmberLight, {}, iconRes = DfDecorIcons.Upload),
+                QuickAction("فایل‌ها", DfColors.Blue, DfColors.BlueLight, {}, iconRes = DfDecorIcons.Layers),
+                QuickAction("مخاطبین", DfColors.Purple, DfColors.PurpleContainer, {}, iconRes = DfDecorIcons.ClipboardList),
             ),
         )
     }

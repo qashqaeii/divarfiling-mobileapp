@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.core.design.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -58,6 +59,7 @@ fun DfStandardPageHeader(
     modifier: Modifier = Modifier,
     subtitle: String = "",
     titleIcon: ImageVector? = null,
+    @DrawableRes titleIconRes: Int? = null,
     titleColor: Color = DfColors.TextPrimary,
     userName: String? = null,
     notificationCount: Int = 0,
@@ -79,6 +81,7 @@ fun DfStandardPageHeader(
             title = title,
             subtitle = subtitle,
             titleIcon = titleIcon,
+            titleIconRes = titleIconRes,
             titleColor = titleColor,
             modifier = Modifier
                 .weight(1f)
@@ -102,8 +105,9 @@ fun DfStandardPageHeader(
 fun DfHubPageHeader(
     title: String,
     subtitle: String,
-    titleIcon: ImageVector,
     modifier: Modifier = Modifier,
+    titleIcon: ImageVector? = null,
+    @DrawableRes titleIconRes: Int? = null,
     userName: String? = null,
     notificationCount: Int = 0,
     onNotificationsClick: (() -> Unit)? = null,
@@ -122,6 +126,7 @@ fun DfHubPageHeader(
             title = title,
             subtitle = subtitle,
             titleIcon = titleIcon,
+            titleIconRes = titleIconRes,
             titleColor = titleColor,
             userName = userName,
             notificationCount = notificationCount,
@@ -194,6 +199,7 @@ private fun DfHeaderTitleBlock(
     title: String,
     subtitle: String,
     titleIcon: ImageVector?,
+    @DrawableRes titleIconRes: Int? = null,
     titleColor: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -220,6 +226,12 @@ private fun DfHeaderTitleBlock(
                     contentDescription = null,
                     tint = DfColors.Purple,
                     modifier = Modifier.size(20.dp),
+                )
+            }
+            titleIconRes?.let { res ->
+                DfDecorImage(
+                    resId = res,
+                    size = DfDecorSize.Small,
                 )
             }
         }

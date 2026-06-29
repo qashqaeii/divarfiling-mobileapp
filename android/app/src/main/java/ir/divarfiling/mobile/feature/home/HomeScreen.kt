@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.feature.home.components.HomeDashboardCard
@@ -200,10 +201,10 @@ private fun buildQuickActions(
     onNavigateCrm: () -> Unit,
     onNavigateToday: () -> Unit,
 ): List<QuickAction> = listOf(
-    QuickAction("یادآور جدید", DfIcons.Bell, DfColors.Pink, DfColors.PinkLight, onNavigateToday),
-    QuickAction("مخاطب جدید", DfIcons.UserPlus, DfColors.Amber, DfColors.AmberLight, onNavigateContacts),
-    QuickAction("فایل‌ها", DfIcons.Folder, DfColors.Blue, DfColors.BlueLight, onNavigateFiling),
-    QuickAction("مخاطبین", DfIcons.Users, DfColors.Purple, DfColors.PurpleContainer, onNavigateCrm),
+    QuickAction("یادآور جدید", DfColors.Pink, DfColors.PinkLight, onNavigateToday, iconRes = DfDecorIcons.StickyNote),
+    QuickAction("مخاطب جدید", DfColors.Amber, DfColors.AmberLight, onNavigateContacts, iconRes = DfDecorIcons.Upload),
+    QuickAction("فایل‌ها", DfColors.Blue, DfColors.BlueLight, onNavigateFiling, iconRes = DfDecorIcons.Layers),
+    QuickAction("مخاطبین", DfColors.Purple, DfColors.PurpleContainer, onNavigateCrm, iconRes = DfDecorIcons.ClipboardList),
 )
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")

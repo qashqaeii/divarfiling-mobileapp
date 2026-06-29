@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 
@@ -18,7 +19,7 @@ fun FilingHubHeader(
     DfHubPageHeader(
         title = "فایلینگ دیوار",
         subtitle = "استخراج از دیوار",
-        titleIcon = DfIcons.Folder,
+        titleIconRes = DfDecorIcons.Layers,
         userName = userName,
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,

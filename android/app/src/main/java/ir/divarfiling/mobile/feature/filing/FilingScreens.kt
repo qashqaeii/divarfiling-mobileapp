@@ -34,6 +34,7 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
 import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
@@ -290,19 +291,12 @@ fun ListingsScreen(
                     )
                 }
                 item {
-                    TextButton(
+                    DfExportLinkButton(
                         onClick = viewModel::openExportSheet,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = AppSpacing.screenHorizontal),
-                    ) {
-                        androidx.compose.material3.Icon(
-                            imageVector = DfIcons.Download,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 6.dp),
-                        )
-                        Text("خروجی Excel / JSON / CSV")
-                    }
+                    )
                 }
                 item {
                     ListingsSearchFilterPanel(
