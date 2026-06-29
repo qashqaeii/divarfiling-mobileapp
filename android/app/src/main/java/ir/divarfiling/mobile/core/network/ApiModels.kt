@@ -419,6 +419,8 @@ data class ActivityDto(
     val content: String? = null,
     val token: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("customer_id") val customerId: Long? = null,
+    @SerialName("customer_name") val customerName: String? = null,
 )
 
 @Serializable
@@ -499,6 +501,7 @@ data class PropertyDto(
     val token: String? = null,
     val link: String? = null,
     val images: List<String> = emptyList(),
+    @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
 )
 
@@ -567,6 +570,77 @@ data class PropertyUpdateRequest(
 @Serializable
 data class PropertyStatusRequest(
     @SerialName("transaction_status") val transactionStatus: String,
+)
+
+@Serializable
+data class PropertyContactLinkDto(
+    val id: Long,
+    @SerialName("customer_id") val customerId: Long,
+    @SerialName("customer_name") val customerName: String,
+    val phone: String? = null,
+    val status: String? = null,
+    val role: String? = null,
+    @SerialName("deal_type") val dealType: String? = null,
+    @SerialName("interest_level") val interestLevel: String? = null,
+    @SerialName("is_primary") val isPrimary: Boolean = false,
+    val notes: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class PropertyLinkContactRequest(
+    @SerialName("customer_id") val customerId: Long,
+    val role: String = "پیشنهادی",
+    @SerialName("deal_type") val dealType: String = "سایر",
+    @SerialName("interest_level") val interestLevel: String = "",
+    @SerialName("is_primary") val isPrimary: Boolean = false,
+    val notes: String = "",
+)
+
+@Serializable
+data class ListingFeatureItemDto(
+    val key: String? = null,
+    val label: String? = null,
+    val value: String? = null,
+    val state: String? = null,
+    @SerialName("is_chip") val isChip: Boolean = false,
+    val chips: List<String> = emptyList(),
+)
+
+@Serializable
+data class ListingFeatureGroupDto(
+    val id: String? = null,
+    val title: String? = null,
+    val items: List<ListingFeatureItemDto> = emptyList(),
+)
+
+@Serializable
+data class ListingFeatureCoreDto(
+    val key: String? = null,
+    val label: String? = null,
+    val value: String? = null,
+    val state: String? = null,
+)
+
+@Serializable
+data class ListingFeatureProfileDto(
+    val core: List<ListingFeatureCoreDto> = emptyList(),
+    val groups: List<ListingFeatureGroupDto> = emptyList(),
+    @SerialName("has_details") val hasDetails: Boolean = false,
+    @SerialName("detail_count") val detailCount: Int = 0,
+)
+
+@Serializable
+data class PropertyDetailData(
+    val property: PropertyDto,
+    val contacts: List<PropertyContactLinkDto> = emptyList(),
+    val activities: List<ActivityDto> = emptyList(),
+    val documents: List<CustomerDocumentDto> = emptyList(),
+    @SerialName("feature_profile") val featureProfile: ListingFeatureProfileDto? = null,
+    @SerialName("listing_highlights") val listingHighlights: List<String> = emptyList(),
+    @SerialName("can_edit") val canEdit: Boolean = true,
+    @SerialName("mask_sensitive") val maskSensitive: Boolean = false,
+    @SerialName("contact_count") val contactCount: Int = 0,
 )
 
 @Serializable

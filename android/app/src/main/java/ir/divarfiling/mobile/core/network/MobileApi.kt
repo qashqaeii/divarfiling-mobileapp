@@ -191,6 +191,28 @@ interface MobileApi {
     @DELETE("crm/properties/{id}")
     suspend fun deleteProperty(@Path("id") propertyId: Long): ApiEnvelope
 
+    @POST("crm/properties/{id}/contacts")
+    suspend fun linkPropertyContact(
+        @Path("id") propertyId: Long,
+        @Body body: PropertyLinkContactRequest,
+    ): ApiEnvelope
+
+    @Multipart
+    @POST("crm/properties/{id}/documents")
+    suspend fun uploadPropertyDocument(
+        @Path("id") propertyId: Long,
+        @Part file: okhttp3.MultipartBody.Part,
+        @Part("title") title: okhttp3.RequestBody,
+        @Part("doc_type") docType: okhttp3.RequestBody,
+        @Part("note") note: okhttp3.RequestBody,
+    ): ApiEnvelope
+
+    @DELETE("crm/properties/{id}/documents/{documentId}")
+    suspend fun deletePropertyDocument(
+        @Path("id") propertyId: Long,
+        @Path("documentId") documentId: Long,
+    ): ApiEnvelope
+
     @GET("filing/datasets")
     suspend fun getDatasets(
         @Query("page") page: Int = 1,

@@ -1,5 +1,8 @@
 package ir.divarfiling.mobile.data.repository
 
+import android.content.Context
+import android.net.Uri
+import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineData
@@ -8,19 +11,27 @@ import ir.divarfiling.mobile.core.network.DealStagesData
 import ir.divarfiling.mobile.core.network.DealUpdateRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
+import ir.divarfiling.mobile.core.network.PropertyContactLinkDto
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
+import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
 import ir.divarfiling.mobile.core.network.PropertyStatusRequest
 import ir.divarfiling.mobile.core.network.PropertyUpdateRequest
+import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class DealsRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val api: MobileApi,
     private val json: Json,
 ) {
@@ -83,8 +94,64 @@ class DealsRepository @Inject constructor(
         )
     }
 
-    suspend fun getProperty(propertyId: Long): ApiResult<PropertyDto> = single {
-        api.getProperty(propertyId)
+    suspend fun getProperty(propertyId: Long): ApiResult<PropertyDetailData> = try {
+        val response = api.getProperty(propertyId)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun linkPropertyContact(
+        propertyId: Long,
+        request: PropertyLinkContactRequest,
+    ): ApiResult<PropertyContactLinkDto> = single {
+        api.linkPropertyContact(propertyId, request)
+    }
+
+    suspend fun uploadPropertyDocument(
+        propertyId: Long,
+        uri: Uri,
+        title: String = "",
+        docType: String = "",
+        note: String = "",
+    ): ApiResult<CustomerDocumentDto> {
+        return try {
+            val resolver = context.contentResolver
+            val mime = resolver.getType(uri) ?: "application/octet-stream"
+            val fileName = title.ifBlank {
+                resolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+                } ?: "document"
+            }
+            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: return ApiResult.Error("خواندن فایل ناموفق")
+            val part = MultipartBody.Part.createFormData(
+                "file",
+                fileName,
+                bytes.toRequestBody(mime.toMediaType()),
+            )
+            val response = api.uploadPropertyDocument(
+                propertyId = propertyId,
+                file = part,
+                title = fileName.toRequestBody("text/plain".toMediaType()),
+                docType = docType.toRequestBody("text/plain".toMediaType()),
+                note = note.toRequestBody("text/plain".toMediaType()),
+            )
+            if (!response.ok) ApiResult.Error(response.error ?: "آپلود ناموفق")
+            else ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun deletePropertyDocument(propertyId: Long, documentId: Long): ApiResult<Unit> = try {
+        val response = api.deletePropertyDocument(propertyId, documentId)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
     }
 
     suspend fun createProperty(request: PropertyCreateRequest): ApiResult<PropertyDto> = single {

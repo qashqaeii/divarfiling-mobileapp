@@ -222,7 +222,10 @@ fun DivarFilingNavHost(
                         route = Routes.CRM_PROPERTY_DETAIL,
                         arguments = listOf(navArgument("propertyId") { type = NavType.LongType }),
                     ) {
-                        PropertyDetailScreen(onBack = { navController.popBackStack() })
+                        PropertyDetailScreen(
+                            onBack = { navController.popBackStack() },
+                            onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                        )
                     }
                     composable(Routes.CRM_TODAY) {
                         TodayScreen(

@@ -13,7 +13,9 @@ import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
 import ir.divarfiling.mobile.core.network.DealUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
+import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
 import ir.divarfiling.mobile.core.network.PropertyUpdateRequest
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.ApiResult
@@ -325,6 +327,7 @@ data class PropertiesUiState(
     val dealMode: String? = null,
     val propertyType: String? = null,
     val isLoading: Boolean = false,
+    val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
     val hasMore: Boolean = false,
     val error: String? = null,
@@ -362,6 +365,7 @@ class PropertiesViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PropertiesUiState())
     val uiState: StateFlow<PropertiesUiState> = _uiState.asStateFlow()
+    private var currentPage = 1
 
     init {
         viewModelScope.launch {
@@ -383,6 +387,7 @@ class PropertiesViewModel @Inject constructor(
 
     fun load(refreshing: Boolean = false) {
         viewModelScope.launch {
+            currentPage = 1
             _uiState.update {
                 it.copy(isLoading = !refreshing && it.properties.isEmpty(), isRefreshing = refreshing)
             }
@@ -391,18 +396,64 @@ class PropertiesViewModel @Inject constructor(
                 dealMode = _uiState.value.dealMode,
                 propertyType = _uiState.value.propertyType,
                 transactionStatus = _uiState.value.transactionStatus,
+                page = if (refreshing) 1 else currentPage,
             )) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(properties = result.data.items, hasMore = result.data.hasMore, isLoading = false, isRefreshing = false)
+                is ApiResult.Success -> {
+                    val page = result.data.page
+                    currentPage = page
+                    _uiState.update {
+                        val items = if (refreshing || page == 1) {
+                            result.data.items
+                        } else {
+                            it.properties + result.data.items
+                        }
+                        it.copy(
+                            properties = items,
+                            hasMore = result.data.hasMore,
+                            isLoading = false,
+                            isRefreshing = false,
+                            isLoadingMore = false,
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
+                    it.copy(isLoading = false, isRefreshing = false, isLoadingMore = false, error = result.message)
                 }
             }
         }
     }
 
-    fun refresh() = load(refreshing = true)
+    fun loadMore() {
+        if (_uiState.value.isLoadingMore || !_uiState.value.hasMore || _uiState.value.isLoading) return
+        currentPage += 1
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingMore = true) }
+            when (val result = repository.getProperties(
+                query = _uiState.value.query,
+                dealMode = _uiState.value.dealMode,
+                propertyType = _uiState.value.propertyType,
+                transactionStatus = _uiState.value.transactionStatus,
+                page = currentPage,
+            )) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        properties = it.properties + result.data.items,
+                        hasMore = result.data.hasMore,
+                        isLoadingMore = false,
+                    )
+                }
+                is ApiResult.Error -> {
+                    currentPage -= 1
+                    _uiState.update { it.copy(isLoadingMore = false, error = result.message) }
+                }
+            }
+        }
+    }
+
+    fun refresh() {
+        currentPage = 1
+        load(refreshing = true)
+    }
     fun onQueryChange(v: String) = _uiState.update { it.copy(query = v) }
     fun onTransactionStatusChange(status: String?) = _uiState.update { it.copy(transactionStatus = status) }
     fun onDealModeChange(mode: String?) = _uiState.update { it.copy(dealMode = mode) }
@@ -560,7 +611,8 @@ class PropertiesViewModel @Inject constructor(
 }
 
 data class PropertyDetailUiState(
-    val property: PropertyDto? = null,
+    val detail: PropertyDetailData? = null,
+    val selectedTab: PropertyDetailTab = PropertyDetailTab.OVERVIEW,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isSubmitting: Boolean = false,
@@ -568,6 +620,9 @@ data class PropertyDetailUiState(
     val successMessage: String? = null,
     val showEditSheet: Boolean = false,
     val showDeleteDialog: Boolean = false,
+    val showLinkContactSheet: Boolean = false,
+    val linkContactId: String = "",
+    val linkContactRole: String = "مالک",
     val editTitle: String = "",
     val editCity: String = "",
     val editDistrict: String = "",
@@ -582,7 +637,17 @@ data class PropertyDetailUiState(
     val editRent: String = "",
     val editAddress: String = "",
     val editNotes: String = "",
+    val inlineNotes: String = "",
 )
+
+enum class PropertyDetailTab(val label: String) {
+    OVERVIEW("پرونده"),
+    CONTACTS("مخاطبین"),
+    ACTIVITY("فعالیت‌ها"),
+    SPECS("مشخصات"),
+    NOTES("یادداشت"),
+    DOCS("مدارک"),
+}
 
 @HiltViewModel
 class PropertyDetailViewModel @Inject constructor(
@@ -597,15 +662,16 @@ class PropertyDetailViewModel @Inject constructor(
 
     fun load() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = it.property == null) }
+            _uiState.update { it.copy(isLoading = it.detail == null) }
             when (val result = repository.getProperty(propertyId)) {
                 is ApiResult.Success -> {
-                    val p = result.data
+                    val p = result.data.property
                     _uiState.update {
                         it.copy(
-                            property = p,
+                            detail = result.data,
                             isLoading = false,
                             isRefreshing = false,
+                            inlineNotes = p.notes.orEmpty(),
                             editTitle = p.title,
                             editCity = p.city.orEmpty(),
                             editDistrict = p.district.orEmpty(),
@@ -613,7 +679,7 @@ class PropertyDetailViewModel @Inject constructor(
                             editDealMode = p.dealMode ?: PropertyConstants.DEAL_MODES.first(),
                             editPropertyType = p.propertyType ?: PropertyConstants.PROPERTY_TYPES.first(),
                             editTransactionStatus = p.transactionStatus ?: CrmConstants.PROPERTY_TX_STATUSES.first(),
-                            editArea = p.area?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() }.orEmpty(),
+                            editArea = p.area?.let { v -> if (v % 1.0 == 0.0) v.toInt().toString() else v.toString() }.orEmpty(),
                             editRooms = p.rooms.orEmpty(),
                             editPrice = p.salePrice?.toString().orEmpty(),
                             editDeposit = p.deposit?.toString().orEmpty(),
@@ -629,6 +695,8 @@ class PropertyDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun selectTab(tab: PropertyDetailTab) = _uiState.update { it.copy(selectedTab = tab) }
 
     fun refresh() {
         _uiState.update { it.copy(isRefreshing = true) }
@@ -706,6 +774,93 @@ class PropertyDetailViewModel @Inject constructor(
 
     fun toggleEditSheet(show: Boolean) = _uiState.update { it.copy(showEditSheet = show) }
     fun toggleDeleteDialog(show: Boolean) = _uiState.update { it.copy(showDeleteDialog = show) }
+    fun toggleLinkContactSheet(show: Boolean) = _uiState.update {
+        it.copy(showLinkContactSheet = show, linkContactId = if (!show) "" else it.linkContactId)
+    }
+    fun onLinkContactIdChange(v: String) = _uiState.update { it.copy(linkContactId = v) }
+    fun onLinkContactRoleChange(v: String) = _uiState.update { it.copy(linkContactRole = v) }
+    fun onInlineNotesChange(v: String) = _uiState.update { it.copy(inlineNotes = v) }
+
+    fun saveInlineNotes() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (
+                val result = repository.updateProperty(
+                    propertyId,
+                    PropertyUpdateRequest(notes = _uiState.value.inlineNotes),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isSubmitting = false, successMessage = "یادداشت ذخیره شد") }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun linkContact() {
+        val customerId = _uiState.value.linkContactId.trim().toLongOrNull()
+        if (customerId == null) {
+            _uiState.update { it.copy(error = "شناسه مخاطب نامعتبر است") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (
+                val result = repository.linkPropertyContact(
+                    propertyId,
+                    PropertyLinkContactRequest(
+                        customerId = customerId,
+                        role = _uiState.value.linkContactRole,
+                    ),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(isSubmitting = false, showLinkContactSheet = false, successMessage = "مخاطب پیوند شد")
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun uploadDocument(uri: android.net.Uri) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = repository.uploadPropertyDocument(propertyId, uri)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isSubmitting = false, successMessage = "مدرک آپلود شد") }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun deleteDocument(documentId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = repository.deletePropertyDocument(propertyId, documentId)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isSubmitting = false, successMessage = "مدرک حذف شد") }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
     fun onEditTitleChange(v: String) = _uiState.update { it.copy(editTitle = v) }
     fun onEditCityChange(v: String) = _uiState.update { it.copy(editCity = v) }
     fun onEditDistrictChange(v: String) = _uiState.update { it.copy(editDistrict = v) }

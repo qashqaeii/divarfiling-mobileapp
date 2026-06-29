@@ -50,8 +50,9 @@ import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.feature.crm.components.PropertiesSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.PropertiesStatsRow
 import ir.divarfiling.mobile.feature.crm.components.PropertyCreateSheet
-import ir.divarfiling.mobile.feature.crm.components.PropertyDetailContent
+import ir.divarfiling.mobile.feature.crm.components.PropertyDetailTabbedContent
 import ir.divarfiling.mobile.feature.crm.components.PropertyEditSheet
+import ir.divarfiling.mobile.feature.crm.components.PropertyLinkContactSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFilters
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
 
@@ -67,6 +68,17 @@ fun PropertiesScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    LaunchedEffect(listState, state.hasMore, state.isLoadingMore, state.isLoading) {
+        val layoutInfo = listState.layoutInfo
+        val total = layoutInfo.totalItemsCount
+        val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+        val nearEnd = total > 0 && lastVisible >= total - 3
+        if (nearEnd && state.hasMore && !state.isLoadingMore && !state.isLoading) {
+            viewModel.loadMore()
+        }
+    }
 
     LaunchedEffect(state.error, state.exportMessage) {
         state.error?.let {
@@ -99,6 +111,7 @@ fun PropertiesScreen(
                 .statusBarsPadding(),
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = AppSpacing.fabClearance + AppSpacing.xl),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
@@ -190,6 +203,14 @@ fun PropertiesScreen(
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
+                    if (state.isLoadingMore) {
+                        item {
+                            DfCardListSkeleton(
+                                count = 2,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -243,13 +264,18 @@ fun PropertiesScreen(
 @Composable
 fun PropertyDetailScreen(
     onBack: () -> Unit,
+    onContactClick: (Long) -> Unit = {},
     viewModel: PropertyDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val property = state.property
+    val detail = state.detail
+    val property = detail?.property
     val snackbar = remember { SnackbarHostState() }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
+    val documentPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+    ) { uri -> uri?.let { viewModel.uploadDocument(it) } }
 
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
@@ -270,11 +296,25 @@ fun PropertyDetailScreen(
         ) {
             when {
                 state.isLoading -> DfDetailSkeleton()
-                property != null -> {
-                    PropertyDetailContent(
-                        property = property,
+                state.error != null && detail == null -> {
+                    Column {
+                        DfErrorBanner(
+                            state.error!!,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                        TextButton(onClick = onBack, modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                            Text("بازگشت")
+                        }
+                    }
+                }
+                detail != null && property != null -> {
+                    PropertyDetailTabbedContent(
+                        detail = detail,
+                        selectedTab = state.selectedTab,
                         isSubmitting = state.isSubmitting,
+                        inlineNotes = state.inlineNotes,
                         onBack = onBack,
+                        onTabSelect = viewModel::selectTab,
                         onEdit = { viewModel.toggleEditSheet(true) },
                         onShare = {
                             sharePropertyText(context, PropertyShareFormatter.buildShareText(property))
@@ -294,6 +334,12 @@ fun PropertyDetailScreen(
                         },
                         onStatusChange = viewModel::changeStatus,
                         onDelete = { viewModel.toggleDeleteDialog(true) },
+                        onLinkContact = { viewModel.toggleLinkContactSheet(true) },
+                        onContactClick = onContactClick,
+                        onInlineNotesChange = viewModel::onInlineNotesChange,
+                        onSaveNotes = viewModel::saveInlineNotes,
+                        onUploadDocument = { documentPicker.launch("*/*") },
+                        onDeleteDocument = viewModel::deleteDocument,
                     )
                 }
             }
@@ -348,6 +394,20 @@ fun PropertyDetailScreen(
             onConfirm = { viewModel.deleteProperty(onBack) },
             onDismiss = { viewModel.toggleDeleteDialog(false) },
         )
+    }
+
+    if (state.showLinkContactSheet) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleLinkContactSheet(false) }) {
+            PropertyLinkContactSheet(
+                contactId = state.linkContactId,
+                role = state.linkContactRole,
+                isSubmitting = state.isSubmitting,
+                onContactIdChange = viewModel::onLinkContactIdChange,
+                onRoleChange = viewModel::onLinkContactRoleChange,
+                onSubmit = viewModel::linkContact,
+                onDismiss = { viewModel.toggleLinkContactSheet(false) },
+            )
+        }
     }
 }
 

@@ -218,6 +218,13 @@ private fun ContactTimelineItem(
                     )
                 }
             }
+            activity.customerName?.takeIf { it.isNotBlank() }?.let { name ->
+                Text(
+                    text = "مخاطب: $name",
+                    style = AppTypography.labelSmall,
+                    color = DfColors.Purple,
+                )
+            }
         }
     }
 }
