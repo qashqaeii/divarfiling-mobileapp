@@ -138,10 +138,22 @@ fun FilingDatasetCard(
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        IconAction(iconRes = DfDecorIcons.Download, contentDescription = "خروجی") { onExport() }
-                        IconAction(iconRes = DfDecorIcons.FileText, contentDescription = "مشاهده فایل", onClick)
+                        IconAction(
+                            contentDescription = "خروجی",
+                            onClick = onExport,
+                            iconRes = DfDecorIcons.Download,
+                        )
+                        IconAction(
+                            contentDescription = "مشاهده فایل",
+                            onClick = onClick,
+                            iconRes = DfDecorIcons.FileText,
+                        )
                         Box {
-                            IconAction(icon = DfIcons.MoreVertical, contentDescription = "بیشتر") { showMenu = true }
+                            IconAction(
+                                contentDescription = "بیشتر",
+                                onClick = { showMenu = true },
+                                icon = DfIcons.MoreVertical,
+                            )
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 DropdownMenuItem(
                                     text = { Text("مشاهده آگهی‌ها") },
