@@ -221,7 +221,7 @@ fun ContactsScreen(
                             contentDescription = null,
                             modifier = Modifier.padding(end = 6.dp).size(18.dp),
                         )
-                        Text("خروجی Excel / JSON مخاطبین")
+                        Text("خروجی Excel / JSON / CSV")
                     }
                 }
                 item {
@@ -357,7 +357,7 @@ fun ContactsScreen(
             DfExportSheet(
                 title = "خروجی مخاطبین",
                 subtitle = "فایل CRM با فیلترهای فعلی",
-                formats = listOf(ExportFormat.XLSX, ExportFormat.JSON),
+                formats = listOf(ExportFormat.XLSX, ExportFormat.JSON, ExportFormat.CSV),
                 isExporting = state.isExporting,
                 onSelect = { format -> viewModel.exportContacts(context, format) },
                 onDismiss = viewModel::dismissExportSheet,
