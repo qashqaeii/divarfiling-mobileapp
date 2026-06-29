@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,7 +34,10 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
+import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
+import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.network.ListingDto
@@ -86,9 +91,20 @@ fun DatasetsScreen(
     }
 
     val totalAds = remember(state.datasets) { FilingDatasetFilters.totalAds(state.datasets) }
+    val context = LocalContext.current
+    val snackbar = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.exportMessage, state.error) {
+        state.exportMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearExportMessage()
+        }
+        state.error?.let { snackbar.showSnackbar(it) }
+    }
 
     Scaffold(
         containerColor = DfScreenContainerColor,
+        snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             FilingExtractFab(onClick = onNavigateExtract)
         },
@@ -173,6 +189,7 @@ fun DatasetsScreen(
                                     FilingDatasetCard(
                                         dataset = dataset,
                                         onClick = { onDatasetClick(dataset.id) },
+                                        onExport = { viewModel.openExportSheet(dataset) },
                                     )
                                 }
                             }
@@ -192,6 +209,19 @@ fun DatasetsScreen(
             }
         }
     }
+
+    if (state.showExportSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissExportSheet) {
+            DfExportSheet(
+                title = "خروجی فایل",
+                subtitle = state.exportTarget?.name ?: "انتخاب فرمت خروجی",
+                formats = listOf(ExportFormat.XLSX, ExportFormat.JSON, ExportFormat.CSV),
+                isExporting = state.isExporting,
+                onSelect = { format -> viewModel.exportDataset(context, format) },
+                onDismiss = viewModel::dismissExportSheet,
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -204,12 +234,21 @@ fun ListingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbar = remember { SnackbarHostState() }
     var showFilters by remember { mutableStateOf(false) }
     val filterCount = activeListingFilterCount(
         state.priceMin, state.priceMax, state.areaMin, state.areaMax, state.rooms,
     )
 
     LaunchedEffect(datasetId) { viewModel.load(datasetId) }
+
+    LaunchedEffect(state.exportMessage, state.error) {
+        state.exportMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearExportMessage()
+        }
+        state.error?.let { snackbar.showSnackbar(it) }
+    }
 
     ListingFiltersSheet(
         visible = showFilters,
@@ -227,6 +266,7 @@ fun ListingsScreen(
 
     Scaffold(
         containerColor = DfScreenContainerColor,
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
@@ -248,6 +288,21 @@ fun ListingsScreen(
                         titleIcon = DfIcons.Building,
                         onBack = onBack,
                     )
+                }
+                item {
+                    TextButton(
+                        onClick = viewModel::openExportSheet,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = DfIcons.Download,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 6.dp),
+                        )
+                        Text("خروجی Excel / JSON / CSV")
+                    }
                 }
                 item {
                     ListingsSearchFilterPanel(
@@ -328,6 +383,19 @@ fun ListingsScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (state.showExportSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissExportSheet) {
+            DfExportSheet(
+                title = "خروجی فایل",
+                subtitle = state.datasetName ?: "انتخاب فرمت خروجی",
+                formats = listOf(ExportFormat.XLSX, ExportFormat.JSON, ExportFormat.CSV),
+                isExporting = state.isExporting,
+                onSelect = { format -> viewModel.exportDataset(context, format) },
+                onDismiss = viewModel::dismissExportSheet,
+            )
         }
     }
 }

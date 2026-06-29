@@ -46,10 +46,10 @@ object ListingPriceUtils {
         val lines = mutableListOf<ListingPriceLine>()
         val perSqm = listing.pricePerSqm
             ?: listing.price?.takeIf { it > 0 }?.let { price ->
-                listing.area?.takeIf { it > 0 }?.let { area -> (price / area).toInt() }
+                listing.area?.takeIf { it > 0 }?.let { area -> price / area }
             }
         perSqm?.takeIf { it > 0 }?.let {
-            lines.add(ListingPriceLine("هر متر", FormatUtils.formatPriceShort(it.toLong())))
+            lines.add(ListingPriceLine("هر متر", FormatUtils.formatPriceShort(it)))
         }
         if (!isRental(listing)) {
             listing.deposit?.takeIf { it > 0 }?.let {

@@ -3,13 +3,17 @@ package ir.divarfiling.mobile.feature.filing
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.divarfiling.mobile.core.export.ExportFormat
+import ir.divarfiling.mobile.core.export.ExportShareHelper
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.DashboardRepository
+import ir.divarfiling.mobile.data.repository.ExportRepository
 import ir.divarfiling.mobile.data.repository.FilingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +29,10 @@ data class DatasetsUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
+    val isExporting: Boolean = false,
+    val showExportSheet: Boolean = false,
+    val exportTarget: DatasetDto? = null,
+    val exportMessage: String? = null,
     val error: String? = null,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
@@ -33,6 +41,7 @@ data class DatasetsUiState(
 @HiltViewModel
 class DatasetsViewModel @Inject constructor(
     private val filingRepository: FilingRepository,
+    private val exportRepository: ExportRepository,
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
@@ -98,16 +107,53 @@ class DatasetsViewModel @Inject constructor(
         _uiState.update { it.copy(isRefreshing = true, page = 1) }
         load(reset = true)
     }
+
+    fun openExportSheet(dataset: DatasetDto) {
+        _uiState.update { it.copy(showExportSheet = true, exportTarget = dataset) }
+    }
+
+    fun dismissExportSheet() {
+        _uiState.update { it.copy(showExportSheet = false, exportTarget = null) }
+    }
+
+    fun clearExportMessage() = _uiState.update { it.copy(exportMessage = null) }
+
+    fun exportDataset(context: Context, format: ExportFormat) {
+        val target = _uiState.value.exportTarget ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, exportMessage = null) }
+            when (val result = exportRepository.exportDataset(context, target.id, target.name, format)) {
+                is ApiResult.Success -> {
+                    ExportShareHelper.shareFile(context, result.data, format.mimeType, "خروجی ${target.name}")
+                    _uiState.update {
+                        it.copy(
+                            isExporting = false,
+                            showExportSheet = false,
+                            exportTarget = null,
+                            exportMessage = "فایل ${format.label} آماده شد",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isExporting = false, error = result.message)
+                }
+            }
+        }
+    }
 }
 
 data class ListingsUiState(
     val listings: List<ListingDto> = emptyList(),
+    val datasetId: String? = null,
     val datasetName: String? = null,
     val page: Int = 1,
     val hasMore: Boolean = false,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
+    val isExporting: Boolean = false,
+    val showExportSheet: Boolean = false,
+    val exportMessage: String? = null,
     val error: String? = null,
     val query: String = "",
     val priceMin: Long? = null,
@@ -120,6 +166,7 @@ data class ListingsUiState(
 @HiltViewModel
 class ListingsViewModel @Inject constructor(
     private val filingRepository: FilingRepository,
+    private val exportRepository: ExportRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ListingsUiState())
@@ -135,8 +182,8 @@ class ListingsViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = filingRepository.getDatasets()) {
                 is ApiResult.Success -> {
-                    val name = result.data.items.firstOrNull { it.id == datasetId }?.name
-                    _uiState.update { it.copy(datasetName = name) }
+                    val dataset = result.data.items.firstOrNull { it.id == datasetId }
+                    _uiState.update { it.copy(datasetId = datasetId, datasetName = dataset?.name) }
                 }
                 is ApiResult.Error -> Unit
             }
@@ -149,6 +196,7 @@ class ListingsViewModel @Inject constructor(
             val state = _uiState.value
             _uiState.update {
                 it.copy(
+                    datasetId = datasetId,
                     isLoading = reset && it.listings.isEmpty(),
                     isLoadingMore = !reset,
                     isRefreshing = reset && it.listings.isNotEmpty(),
@@ -222,6 +270,35 @@ class ListingsViewModel @Inject constructor(
 
     fun clearFilters(datasetId: String) {
         applyFilters(datasetId, null, null, null, null, null)
+    }
+
+    fun openExportSheet() = _uiState.update { it.copy(showExportSheet = true) }
+
+    fun dismissExportSheet() = _uiState.update { it.copy(showExportSheet = false) }
+
+    fun clearExportMessage() = _uiState.update { it.copy(exportMessage = null) }
+
+    fun exportDataset(context: Context, format: ExportFormat) {
+        val datasetId = _uiState.value.datasetId ?: return
+        val datasetName = _uiState.value.datasetName ?: "dataset"
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true) }
+            when (val result = exportRepository.exportDataset(context, datasetId, datasetName, format)) {
+                is ApiResult.Success -> {
+                    ExportShareHelper.shareFile(context, result.data, format.mimeType, "خروجی $datasetName")
+                    _uiState.update {
+                        it.copy(
+                            isExporting = false,
+                            showExportSheet = false,
+                            exportMessage = "فایل ${format.label} آماده شد",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isExporting = false, error = result.message)
+                }
+            }
+        }
     }
 }
 

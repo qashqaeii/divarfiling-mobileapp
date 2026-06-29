@@ -218,7 +218,7 @@ data class ListingDto(
     @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
     @SerialName("dataset_id") val datasetId: String? = null,
     @SerialName("dataset_name") val datasetName: String? = null,
-    @SerialName("price_per_sqm") val pricePerSqm: Int? = null,
+    @SerialName("price_per_sqm") val pricePerSqm: Long? = null,
     @SerialName("year_built") val yearBuilt: String? = null,
     val floor: String? = null,
     @SerialName("transaction_type") val transactionType: String? = null,
@@ -610,10 +610,29 @@ data class ListingDetailDto(
     @SerialName("year_built") val yearBuilt: String? = null,
     val floor: String? = null,
     @SerialName("total_floors") val totalFloors: String? = null,
-    @SerialName("price_per_sqm") val pricePerSqm: Int? = null,
+    @SerialName("price_per_sqm") val pricePerSqm: Long? = null,
     @SerialName("scraped_at") val scrapedAt: String? = null,
     @SerialName("dataset_id") val datasetId: String? = null,
     @SerialName("is_expired") val isExpired: Boolean = false,
+    @SerialName("owner_phone") val ownerPhone: String? = null,
+)
+
+@Serializable
+data class ListingUpdateRequest(
+    val title: String? = null,
+    val price: Long? = null,
+    val deposit: Long? = null,
+    val rent: Long? = null,
+    val area: Double? = null,
+    val rooms: String? = null,
+    val floor: String? = null,
+    @SerialName("build_year") val buildYear: String? = null,
+    val neighborhood: String? = null,
+    val city: String? = null,
+    @SerialName("business_type") val businessType: String? = null,
+    val description: String? = null,
+    val link: String? = null,
+    @SerialName("owner_phone") val ownerPhone: String? = null,
 )
 
 @Serializable

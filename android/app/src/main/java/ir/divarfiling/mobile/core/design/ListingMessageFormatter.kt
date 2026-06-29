@@ -82,7 +82,7 @@ object ListingMessageFormatter {
         yearBuilt: String?,
         floor: String?,
         totalFloors: String?,
-        pricePerSqm: Int?,
+        pricePerSqm: Long?,
         advertiserType: String?,
         businessType: String?,
         description: String?,
@@ -108,7 +108,7 @@ object ListingMessageFormatter {
         if (specs.isNotEmpty()) lines += "📐 ${specs.joinToString(" · ")}"
 
         pricePerSqm?.takeIf { it > 0 }?.let {
-            lines += "📊 هر متر: ${FormatUtils.formatPriceToman(it.toLong())}"
+            lines += "📊 هر متر: ${FormatUtils.formatPriceToman(it)}"
         }
         advertiserType?.takeIf { it.isNotBlank() }?.let { lines += "👤 $it" }
         businessType?.takeIf { it.isNotBlank() }?.let { lines += "🏷 $it" }

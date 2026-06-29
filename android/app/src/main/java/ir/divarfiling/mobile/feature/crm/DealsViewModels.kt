@@ -1,9 +1,12 @@
 package ir.divarfiling.mobile.feature.crm
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.divarfiling.mobile.core.export.ExportFormat
+import ir.divarfiling.mobile.core.export.ExportShareHelper
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealDto
@@ -17,6 +20,7 @@ import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.DealsRepository
+import ir.divarfiling.mobile.data.repository.ExportRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -336,6 +340,9 @@ data class PropertiesUiState(
     val createArea: String = "",
     val createNotes: String = "",
     val isSubmittingCreate: Boolean = false,
+    val isExporting: Boolean = false,
+    val showExportSheet: Boolean = false,
+    val exportMessage: String? = null,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
 )
@@ -349,6 +356,7 @@ object PropertyConstants {
 @HiltViewModel
 class PropertiesViewModel @Inject constructor(
     private val repository: DealsRepository,
+    private val exportRepository: ExportRepository,
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
@@ -511,6 +519,41 @@ class PropertiesViewModel @Inject constructor(
             ) {
                 is ApiResult.Success -> load()
                 is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    fun openExportSheet() = _uiState.update { it.copy(showExportSheet = true) }
+
+    fun dismissExportSheet() = _uiState.update { it.copy(showExportSheet = false) }
+
+    fun clearExportMessage() = _uiState.update { it.copy(exportMessage = null) }
+
+    fun exportProperties(context: Context, format: ExportFormat) {
+        val state = _uiState.value
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true) }
+            when (val result = exportRepository.exportProperties(
+                context = context,
+                format = format,
+                query = state.query,
+                dealMode = state.dealMode,
+                propertyType = state.propertyType,
+                transactionStatus = state.transactionStatus,
+            )) {
+                is ApiResult.Success -> {
+                    ExportShareHelper.shareFile(context, result.data, format.mimeType, "خروجی فایل‌های شخصی")
+                    _uiState.update {
+                        it.copy(
+                            isExporting = false,
+                            showExportSheet = false,
+                            exportMessage = "فایل ${format.label} آماده شد",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isExporting = false, error = result.message)
+                }
             }
         }
     }

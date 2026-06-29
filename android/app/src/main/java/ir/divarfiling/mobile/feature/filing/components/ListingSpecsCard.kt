@@ -219,7 +219,7 @@ private fun buildListingSpecItems(listing: ListingDetailDto, expanded: Boolean):
             ListingSpecItem("اجاره", FormatUtils.formatPriceShort(it), DfIcons.Tag)
         },
         listing.pricePerSqm?.let {
-            ListingSpecItem("قیمت هر متر", FormatUtils.formatPriceToman(it.toLong()), DfIcons.Tag)
+            ListingSpecItem("قیمت هر متر", FormatUtils.formatPriceToman(it), DfIcons.Tag)
         },
     )
 }

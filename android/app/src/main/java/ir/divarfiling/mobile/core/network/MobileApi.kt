@@ -216,6 +216,12 @@ interface MobileApi {
     @GET("filing/listings/{token}")
     suspend fun getListingDetail(@Path("token") token: String): ApiEnvelope
 
+    @PATCH("filing/listings/{token}")
+    suspend fun updateListing(
+        @Path("token") token: String,
+        @Body body: ListingUpdateRequest,
+    ): ApiEnvelope
+
     @GET("filing/search")
     suspend fun searchListings(
         @Query("q") query: String? = null,

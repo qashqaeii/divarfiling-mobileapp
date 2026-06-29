@@ -32,7 +32,9 @@ import ir.divarfiling.mobile.feature.crm.components.ContactQuickLeadSheet
 import ir.divarfiling.mobile.feature.crm.components.TodayNewTaskSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
+import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.feature.crm.components.ContactsHeader
 import ir.divarfiling.mobile.feature.crm.components.ContactsSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
@@ -119,6 +121,15 @@ fun ContactsScreen(
     var typeFilter by remember { mutableStateOf(ContactsFilters.ALL_TYPES) }
     var quickFilter by remember { mutableStateOf(ContactsFilters.QuickFilter.ALL) }
     val listState = rememberLazyListState()
+    val snackbar = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.exportMessage, state.error) {
+        state.exportMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearExportMessage()
+        }
+        state.error?.let { snackbar.showSnackbar(it) }
+    }
 
     val statusForFilter = remember(statusFilter) {
         if (statusFilter == ContactsFilters.ALL_STATUSES) null else statusFilter
@@ -156,6 +167,7 @@ fun ContactsScreen(
 
     Scaffold(
         containerColor = DfScreenContainerColor,
+        snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             DfExtendedFab(
                 text = "مخاطب جدید",
@@ -196,6 +208,21 @@ fun ContactsScreen(
                         selectedFilter = quickFilter,
                         onFilterSelect = { quickFilter = it },
                     )
+                }
+                item {
+                    TextButton(
+                        onClick = viewModel::openExportSheet,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                    ) {
+                        Icon(
+                            imageVector = DfIcons.Download,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 6.dp).size(18.dp),
+                        )
+                        Text("خروجی Excel / JSON مخاطبین")
+                    }
                 }
                 item {
                     ContactsSearchFilterPanel(
@@ -321,6 +348,19 @@ fun ContactsScreen(
                 onCustomerTypeChange = viewModel::onLeadCustomerTypeChange,
                 onSubmit = viewModel::submitQuickLead,
                 onDismiss = { viewModel.toggleQuickLead(false) },
+            )
+        }
+    }
+
+    if (state.showExportSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissExportSheet) {
+            DfExportSheet(
+                title = "خروجی مخاطبین",
+                subtitle = "فایل CRM با فیلترهای فعلی",
+                formats = listOf(ExportFormat.XLSX, ExportFormat.JSON),
+                isExporting = state.isExporting,
+                onSelect = { format -> viewModel.exportContacts(context, format) },
+                onDismiss = viewModel::dismissExportSheet,
             )
         }
     }

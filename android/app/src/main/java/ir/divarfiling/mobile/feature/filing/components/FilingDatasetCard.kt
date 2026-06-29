@@ -81,6 +81,7 @@ fun FilingDatasetsSection(
 fun FilingDatasetCard(
     dataset: DatasetDto,
     onClick: () -> Unit,
+    onExport: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -133,7 +134,7 @@ fun FilingDatasetCard(
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        IconAction(DfIcons.Download, "باز کردن", onClick)
+                        IconAction(DfIcons.Download, "خروجی") { onExport() }
                         IconAction(DfIcons.File, "مشاهده فایل", onClick)
                         Box {
                             IconAction(DfIcons.MoreVertical, "بیشتر") { showMenu = true }
@@ -141,6 +142,10 @@ fun FilingDatasetCard(
                                 DropdownMenuItem(
                                     text = { Text("مشاهده آگهی‌ها") },
                                     onClick = { showMenu = false; onClick() },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("خروجی Excel / JSON") },
+                                    onClick = { showMenu = false; onExport() },
                                 )
                             }
                         }

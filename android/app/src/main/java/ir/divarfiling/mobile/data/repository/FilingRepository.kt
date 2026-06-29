@@ -5,6 +5,7 @@ import ir.divarfiling.mobile.core.database.DatasetCacheDao
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.network.ListingUpdateRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
 import ir.divarfiling.mobile.core.network.requireData
@@ -88,6 +89,16 @@ class FilingRepository @Inject constructor(
         return try {
             val response = api.getListingDetail(token)
             if (!response.ok) return ApiResult.Error(response.error ?: "خطا در دریافت آگهی")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun updateListing(token: String, request: ListingUpdateRequest): ApiResult<ListingDetailDto> {
+        return try {
+            val response = api.updateListing(token, request)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در ذخیره آگهی")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")

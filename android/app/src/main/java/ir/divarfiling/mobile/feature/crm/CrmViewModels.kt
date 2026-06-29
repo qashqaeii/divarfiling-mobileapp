@@ -1,8 +1,11 @@
 package ir.divarfiling.mobile.feature.crm
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.divarfiling.mobile.core.export.ExportFormat
+import ir.divarfiling.mobile.core.export.ExportShareHelper
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.TodayData
 import ir.divarfiling.mobile.core.datastore.SessionStore
@@ -10,6 +13,7 @@ import ir.divarfiling.mobile.core.network.ContactUpdateRequest
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.DashboardRepository
+import ir.divarfiling.mobile.data.repository.ExportRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +37,9 @@ data class ContactsUiState(
     val leadName: String = "",
     val leadPhone: String = "",
     val leadCustomerType: String = "سرنخ",
+    val isExporting: Boolean = false,
+    val showExportSheet: Boolean = false,
+    val exportMessage: String? = null,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
 )
@@ -40,6 +47,7 @@ data class ContactsUiState(
 @HiltViewModel
 class ContactsViewModel @Inject constructor(
     private val crmRepository: CrmRepository,
+    private val exportRepository: ExportRepository,
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
@@ -161,6 +169,39 @@ class ContactsViewModel @Inject constructor(
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun openExportSheet() = _uiState.update { it.copy(showExportSheet = true) }
+
+    fun dismissExportSheet() = _uiState.update { it.copy(showExportSheet = false) }
+
+    fun clearExportMessage() = _uiState.update { it.copy(exportMessage = null) }
+
+    fun exportContacts(context: Context, format: ExportFormat) {
+        val state = _uiState.value
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true) }
+            when (val result = exportRepository.exportContacts(
+                context = context,
+                format = format,
+                query = state.query,
+                status = state.statusFilter,
+            )) {
+                is ApiResult.Success -> {
+                    ExportShareHelper.shareFile(context, result.data, format.mimeType, "خروجی مخاطبین")
+                    _uiState.update {
+                        it.copy(
+                            isExporting = false,
+                            showExportSheet = false,
+                            exportMessage = "فایل ${format.label} آماده شد",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isExporting = false, error = result.message)
                 }
             }
         }

@@ -31,9 +31,8 @@ import ir.divarfiling.mobile.core.design.DfIcons
 @Composable
 fun ListingDetailGallerySection(
     images: List<String>,
-    isFavorite: Boolean,
     onBack: () -> Unit,
-    onFavoriteToggle: () -> Unit,
+    onEdit: () -> Unit,
     onSaveAsPersonal: () -> Unit,
     onCopyLink: () -> Unit,
     modifier: Modifier = Modifier,
@@ -55,8 +54,7 @@ fun ListingDetailGallerySection(
         }
 
         ListingGalleryActionsRow(
-            isFavorite = isFavorite,
-            onFavoriteToggle = onFavoriteToggle,
+            onEdit = onEdit,
             onSaveAsPersonal = onSaveAsPersonal,
             onCopyLink = onCopyLink,
             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -92,8 +90,7 @@ private fun ListingDetailBackButton(onClick: () -> Unit) {
 
 @Composable
 private fun ListingGalleryActionsRow(
-    isFavorite: Boolean,
-    onFavoriteToggle: () -> Unit,
+    onEdit: () -> Unit,
     onSaveAsPersonal: () -> Unit,
     onCopyLink: () -> Unit,
     modifier: Modifier = Modifier,
@@ -111,11 +108,11 @@ private fun ListingGalleryActionsRow(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
             GalleryActionChip(
-                label = if (isFavorite) "علاقه‌مند" else "علاقه‌مندی",
-                icon = DfIcons.Heart,
-                tint = if (isFavorite) DfColors.Rose else DfColors.Purple,
-                background = if (isFavorite) DfColors.PinkLight else DfColors.PurpleContainer,
-                onClick = onFavoriteToggle,
+                label = "ویرایش",
+                icon = DfIcons.SlidersHorizontal,
+                tint = DfColors.Purple,
+                background = DfColors.PurpleContainer,
+                onClick = onEdit,
                 modifier = Modifier.weight(1f),
             )
             GalleryActionChip(

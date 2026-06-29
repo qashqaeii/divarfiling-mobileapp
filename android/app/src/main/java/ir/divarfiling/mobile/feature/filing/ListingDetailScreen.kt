@@ -40,7 +40,9 @@ import ir.divarfiling.mobile.feature.crm.ContactPickerSheet
 import ir.divarfiling.mobile.core.filing.ListingImageUtils
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailGallerySection
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailHeader
+import ir.divarfiling.mobile.feature.filing.components.ListingEditSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingLocationSection
+import ir.divarfiling.mobile.feature.filing.components.ListingOwnerPhoneCard
 import ir.divarfiling.mobile.feature.filing.components.ListingQuickActionsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingSpecsCard
 
@@ -54,7 +56,6 @@ fun ListingDetailScreen(
     val context = LocalContext.current
     val listing = state.listing
     val snackbarHostState = remember { SnackbarHostState() }
-    var isFavorite by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.pendingWhatsAppShare) {
         val message = state.pendingWhatsAppShare ?: return@LaunchedEffect
@@ -92,9 +93,17 @@ fun ListingDetailScreen(
                 listing != null -> {
                     ListingDetailContent(
                         listing = listing,
-                        isFavorite = isFavorite,
+                        ownerPhone = state.ownerPhoneDraft,
+                        isSavingPhone = state.isSavingPhone,
                         onBack = onBack,
-                        onFavoriteToggle = { isFavorite = !isFavorite },
+                        onEdit = viewModel::openEditSheet,
+                        onOwnerPhoneChange = viewModel::onOwnerPhoneChange,
+                        onSaveOwnerPhone = viewModel::saveOwnerPhone,
+                        onCallOwner = { phone ->
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
+                            }
+                        },
                         onSendToContact = { viewModel.toggleContactPicker(true) },
                         onWhatsAppShare = { openWhatsApp(context, ListingMessageFormatter.fromDetail(listing)) },
                         onOpenDivar = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
@@ -148,14 +157,54 @@ fun ListingDetailScreen(
             )
         }
     }
+
+    if (state.showEditSheet && listing != null) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissEditSheet) {
+            val form = state.editForm
+            ListingEditSheet(
+                listing = listing,
+                title = form.title,
+                price = form.price,
+                deposit = form.deposit,
+                rent = form.rent,
+                area = form.area,
+                rooms = form.rooms,
+                floor = form.floor,
+                buildYear = form.buildYear,
+                neighborhood = form.neighborhood,
+                city = form.city,
+                description = form.description,
+                ownerPhone = form.ownerPhone,
+                isSubmitting = state.isSavingEdit,
+                onTitleChange = { viewModel.onEditFormChange { f -> f.copy(title = it) } },
+                onPriceChange = { viewModel.onEditFormChange { f -> f.copy(price = it) } },
+                onDepositChange = { viewModel.onEditFormChange { f -> f.copy(deposit = it) } },
+                onRentChange = { viewModel.onEditFormChange { f -> f.copy(rent = it) } },
+                onAreaChange = { viewModel.onEditFormChange { f -> f.copy(area = it) } },
+                onRoomsChange = { viewModel.onEditFormChange { f -> f.copy(rooms = it) } },
+                onFloorChange = { viewModel.onEditFormChange { f -> f.copy(floor = it) } },
+                onBuildYearChange = { viewModel.onEditFormChange { f -> f.copy(buildYear = it) } },
+                onNeighborhoodChange = { viewModel.onEditFormChange { f -> f.copy(neighborhood = it) } },
+                onCityChange = { viewModel.onEditFormChange { f -> f.copy(city = it) } },
+                onDescriptionChange = { viewModel.onEditFormChange { f -> f.copy(description = it) } },
+                onOwnerPhoneChange = { viewModel.onEditFormChange { f -> f.copy(ownerPhone = it) } },
+                onSave = viewModel::saveEdit,
+                onDismiss = viewModel::dismissEditSheet,
+            )
+        }
+    }
 }
 
 @Composable
 private fun ListingDetailContent(
     listing: ListingDetailDto,
-    isFavorite: Boolean,
+    ownerPhone: String,
+    isSavingPhone: Boolean,
     onBack: () -> Unit,
-    onFavoriteToggle: () -> Unit,
+    onEdit: () -> Unit,
+    onOwnerPhoneChange: (String) -> Unit,
+    onSaveOwnerPhone: () -> Unit,
+    onCallOwner: (String) -> Unit,
     onSendToContact: () -> Unit,
     onWhatsAppShare: () -> Unit,
     onOpenDivar: (() -> Unit)?,
@@ -177,11 +226,21 @@ private fun ListingDetailContent(
             item {
                 ListingDetailGallerySection(
                     images = galleryImages,
-                    isFavorite = isFavorite,
                     onBack = onBack,
-                    onFavoriteToggle = onFavoriteToggle,
+                    onEdit = onEdit,
                     onSaveAsPersonal = onSaveAsPersonal,
                     onCopyLink = onCopyLink,
+                )
+            }
+
+            item {
+                ListingOwnerPhoneCard(
+                    phone = ownerPhone,
+                    isSaving = isSavingPhone,
+                    onPhoneChange = onOwnerPhoneChange,
+                    onSave = onSaveOwnerPhone,
+                    onCall = onCallOwner,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
 
