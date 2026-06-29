@@ -5,16 +5,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,7 +35,6 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.network.DealDto
-import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,10 +44,9 @@ fun DealListCard(
     modifier: Modifier = Modifier,
 ) {
     val stage = deal.stage ?: "سرنخ"
-    val stageColors = dealStageColors(stage)
-    val progress = DealsFilters.progressPercent(deal) / 100f
+    val stageColors = DealUiUtils.dealStageColors(stage)
+    val progress = DealsFilters.progressPercent(deal)
     val (jalaliDate, jalaliTime) = DealsFilters.splitDateTime(deal.updatedAt)
-    val accent = dealAccentColor(deal.customerName ?: deal.title)
 
     Surface(
         onClick = onClick,
@@ -57,18 +55,20 @@ fun DealListCard(
         color = DfColors.Surface,
         shadowElevation = 3.dp,
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxHeight()
-                    .width(4.dp)
-                    .background(stageColors.first),
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(stageColors.first, stageColors.first.copy(alpha = 0.4f)),
+                        ),
+                    ),
             )
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 4.dp)
                     .padding(AppSpacing.sm),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
@@ -77,18 +77,20 @@ fun DealListCard(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(accent, accent.copy(alpha = 0.72f)))),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            progress = { progress / 100f },
+                            modifier = Modifier.size(48.dp),
+                            color = stageColors.first,
+                            trackColor = DfColors.SurfaceVariant,
+                            strokeWidth = 3.dp,
+                            strokeCap = StrokeCap.Round,
+                        )
                         Text(
                             text = DealsFilters.customerInitials(deal.customerName),
-                            style = AppTypography.labelLarge,
+                            style = AppTypography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = stageColors.first,
                         )
                     }
                     Column(
@@ -112,28 +114,29 @@ fun DealListCard(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
-                        deal.propertyTitle?.takeIf { it.isNotBlank() }?.let { property ->
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    imageVector = DfIcons.Building,
-                                    contentDescription = null,
-                                    tint = DfColors.TextMuted,
-                                    modifier = Modifier.size(12.dp),
-                                )
-                                Text(
-                                    text = property,
-                                    style = AppTypography.labelSmall,
-                                    color = DfColors.TextMuted,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
                     }
                     DealStageBadge(stage = stage, colors = stageColors)
+                }
+
+                deal.propertyTitle?.takeIf { it.isNotBlank() }?.let { property ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = DfIcons.Building,
+                            contentDescription = null,
+                            tint = DfColors.TextMuted,
+                            modifier = Modifier.size(12.dp),
+                        )
+                        Text(
+                            text = property,
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
 
                 Row(
@@ -142,19 +145,60 @@ fun DealListCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     deal.amount?.let { amount ->
-                        Text(
-                            text = FormatUtils.formatPriceShort(amount) + " تومان",
-                            style = AppTypography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = DfColors.Purple,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Surface(shape = AppShapes.Chip, color = DfColors.PurpleContainer.copy(alpha = 0.65f)) {
+                            Text(
+                                text = FormatUtils.formatPriceShort(amount) + " تومان",
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                style = AppTypography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = DfColors.Purple,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     } ?: Text(
                         text = "بدون مبلغ",
                         style = AppTypography.labelSmall,
                         color = DfColors.TextMuted,
                     )
+                    deal.commissionAmount?.takeIf { it > 0 }?.let { commission ->
+                        Surface(shape = AppShapes.Chip, color = DfColors.GreenLight) {
+                            Text(
+                                text = "کمیسیون ${FormatUtils.formatPriceShort(commission)}",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = AppTypography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DfColors.Green,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.12f))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = DfIcons.Percent,
+                            contentDescription = null,
+                            tint = stageColors.first,
+                            modifier = Modifier.size(12.dp),
+                        )
+                        Text(
+                            text = "احتمال بسته‌شدن $progress٪",
+                            style = AppTypography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = stageColors.first,
+                        )
+                    }
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = jalaliDate,
@@ -171,28 +215,6 @@ fun DealListCard(
                             )
                         }
                     }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    LinearProgressIndicator(
-                        progress = { progress.coerceIn(0f, 1f) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(5.dp)
-                            .clip(AppShapes.Chip),
-                        color = stageColors.first,
-                        trackColor = DfColors.SurfaceVariant,
-                    )
-                    Text(
-                        text = "${DealsFilters.progressPercent(deal)}٪",
-                        style = AppTypography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = stageColors.first,
-                    )
                 }
             }
         }
@@ -228,21 +250,6 @@ private fun DealStageBadge(
     }
 }
 
-private fun dealAccentColor(seed: String): Color {
-    val palette = listOf(DfColors.Purple, DfColors.Blue, DfColors.Green, DfColors.Amber, DfColors.Rose)
-    return palette[seed.hashCode().absoluteValue % palette.size]
-}
-
-private fun dealStageColors(stage: String): Pair<Color, Color> = when {
-    stage.contains("از دست") || stage.contains("سرد") -> DfColors.OverdueAccent to DfColors.RoseLight
-    stage.contains("بسته") -> DfColors.Green to DfColors.GreenLight
-    stage.contains("قرارداد") || stage.contains("پیش") -> Color(0xFFEC4899) to Color(0xFFFCE7F3)
-    stage.contains("بازدید") -> DfColors.Blue to DfColors.BlueLight
-    stage.contains("مذاکره") -> DfColors.Amber to DfColors.AmberLight
-    stage == "سرنخ" || stage == "جدید" -> DfColors.Blue to DfColors.BlueLight
-    else -> DfColors.Purple to DfColors.PurpleContainer
-}
-
 @Preview(showBackground = true, widthDp = 360)
 @Composable
 private fun DealListCardPreview() {
@@ -256,6 +263,7 @@ private fun DealListCardPreview() {
                 customerName = "رضا محمدی",
                 propertyTitle = "ولنجک — ۱۲۰ متر",
                 probability = 40,
+                commissionAmount = 125_000_000,
                 updatedAt = "2026-06-28T14:30:00Z",
             ),
             onClick = {},

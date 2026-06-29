@@ -64,8 +64,8 @@ fun ContactsStatsRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
-                .padding(horizontal = 4.dp, vertical = 6.dp),
+                .height(58.dp)
+                .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             stats.forEachIndexed { index, stat ->
@@ -119,9 +119,9 @@ private fun ContactsMiniStatCell(
             .background(
                 if (selected) valueColor.copy(alpha = 0.12f) else Color.Transparent,
             )
-            .padding(horizontal = 2.dp, vertical = 2.dp),
+            .padding(horizontal = 2.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
     ) {
         Text(
             text = value,

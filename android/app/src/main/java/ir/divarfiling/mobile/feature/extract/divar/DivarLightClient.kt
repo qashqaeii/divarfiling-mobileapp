@@ -32,6 +32,8 @@ import javax.inject.Singleton
 data class RawExtractedItem(
     val token: String,
     val raw: JsonElement,
+    val thumbnailUrl: String? = null,
+    val imageUrls: List<String> = emptyList(),
 )
 
 @Singleton
@@ -63,7 +65,7 @@ class DivarLightClient @Inject constructor(
         isCancelled: () -> Boolean,
     ): List<RawExtractedItem> = withContext(Dispatchers.IO) {
         val maxItems = filters.maxItems.coerceIn(1, ExtractLightLimits.MAX_ITEMS)
-        val tokens = fetchPostTokens(filters, maxItems, isCancelled)
+        val (tokens, listThumbnails) = fetchPostTokens(filters, maxItems, isCancelled)
         val limitedTokens = tokens.take(maxItems)
         onProgress(0, limitedTokens.size)
 
@@ -76,7 +78,20 @@ class DivarLightClient @Inject constructor(
                     if (isCancelled()) return@async null
                     semaphore.withPermit {
                         delay(ExtractLightLimits.MIN_DELAY_MS)
-                        fetchDetailEnriched(token)?.let { RawExtractedItem(token, it) }
+                        val detail = fetchDetailEnriched(token) ?: return@withPermit null
+                        val imageUrls = DivarImageExtractor.extractImageUrls(detail)
+                        val fallbackThumb = listThumbnails[token]
+                        val thumbnailUrl = imageUrls.firstOrNull() ?: fallbackThumb
+                        val mergedUrls = buildList {
+                            thumbnailUrl?.let { add(it) }
+                            addAll(imageUrls.filter { it != thumbnailUrl })
+                        }
+                        RawExtractedItem(
+                            token = token,
+                            raw = detail,
+                            thumbnailUrl = thumbnailUrl,
+                            imageUrls = mergedUrls,
+                        )
                     }?.also {
                         completed++
                         onProgress(completed, limitedTokens.size)
@@ -90,8 +105,9 @@ class DivarLightClient @Inject constructor(
         filters: ExtractFilters,
         maxItems: Int,
         isCancelled: () -> Boolean,
-    ): List<String> {
+    ): Pair<List<String>, Map<String, String>> {
         val tokens = mutableListOf<String>()
+        val listThumbnails = mutableMapOf<String, String>()
         var page = 1
         var searchUid: String? = null
         var lastPostDate: String? = null
@@ -125,9 +141,15 @@ class DivarLightClient @Inject constructor(
                 val obj = widget.jsonObject
                 if (obj["widget_type"]?.jsonPrimitive?.content != "POST_ROW") return@mapNotNull null
                 val data = obj["data"]?.jsonObject ?: return@mapNotNull null
-                data["token"]?.jsonPrimitive?.content
+                val token = data["token"]?.jsonPrimitive?.content
                     ?: data["action"]?.jsonObject?.get("payload")?.jsonObject
                         ?.get("token")?.jsonPrimitive?.content
+                token?.let { tok ->
+                    DivarImageExtractor.extractListThumbnail(data)?.let { thumb ->
+                        listThumbnails[tok] = thumb
+                    }
+                }
+                token
             }
 
             if (pageTokens.isEmpty()) {
@@ -164,7 +186,7 @@ class DivarLightClient @Inject constructor(
             Thread.sleep(ExtractLightLimits.MIN_DELAY_MS)
         }
 
-        return tokens.distinct()
+        return tokens.distinct() to listThumbnails
     }
 
     private fun fetchDetailEnriched(token: String): JsonElement? {

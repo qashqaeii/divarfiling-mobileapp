@@ -6,6 +6,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDropdown
@@ -37,10 +38,11 @@ fun DealCreateSheet(
     val contactNames = contacts.map { it.fullName }
     val selectedName = contacts.firstOrNull { it.id == selectedContactId }?.fullName.orEmpty()
     val stageOptions = stages.ifEmpty { CrmConstants.DEAL_STAGES }
+    val resolvedStage = selectedStage.ifBlank { stageOptions.first() }
 
     DfSheetScaffold(
         title = "معامله جدید",
-        subtitle = "فرصت فروش را به مخاطب و مرحله فروش متصل کنید",
+        subtitle = "فرصت فروش جدید را با مخاطب و مرحله فروش ثبت کنید",
         icon = DfIcons.Handshake,
         onClose = onDismiss,
         footer = {
@@ -53,17 +55,17 @@ fun DealCreateSheet(
             )
         },
     ) {
-        DfSheetSection(title = "اطلاعات معامله") {
+        DfSheetSection(title = "مخاطب") {
             if (contacts.isEmpty()) {
                 Text(
                     text = "ابتدا در بخش مخاطبین، یک مشتری ثبت کنید",
-                    style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
+                    style = AppTypography.labelSmall,
                     color = DfColors.Amber,
                 )
             } else {
                 DfDropdown(
-                    label = "مخاطب",
-                    value = selectedName.ifBlank { "انتخاب مخاطب" },
+                    label = "انتخاب مخاطب",
+                    value = selectedName.ifBlank { "مخاطب را انتخاب کنید" },
                     options = contactNames,
                     enabled = !isSubmitting,
                     onSelect = { name ->
@@ -71,6 +73,9 @@ fun DealCreateSheet(
                     },
                 )
             }
+        }
+
+        DfSheetSection(title = "جزئیات معامله") {
             OutlinedTextField(
                 value = title,
                 onValueChange = onTitleChange,
@@ -80,29 +85,39 @@ fun DealCreateSheet(
                 placeholder = { Text("مثلاً فروش آپارتمان ۱۲۰ متری") },
                 enabled = !isSubmitting,
             )
-            DfDropdown(
-                label = "مرحله فروش",
-                value = selectedStage.ifBlank { stageOptions.first() },
-                options = stageOptions,
-                enabled = !isSubmitting,
-                onSelect = onStageChange,
-            )
             OutlinedTextField(
                 value = amount,
                 onValueChange = onAmountChange,
                 label = { Text("مبلغ تقریبی (تومان)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("اختیاری") },
+                placeholder = { Text("اختیاری — برای پیش‌بینی درآمد") },
                 enabled = !isSubmitting,
             )
+        }
+
+        DfSheetSection(title = "مرحله فروش") {
+            Text(
+                text = "احتمال بسته‌شدن بر اساس مرحله انتخاب‌شده محاسبه می‌شود",
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+            )
+            DealStageOptionList(
+                stages = stageOptions,
+                selectedStage = resolvedStage,
+                onStageSelect = onStageChange,
+                enabled = !isSubmitting,
+            )
+        }
+
+        DfSheetSection(title = "یادداشت") {
             OutlinedTextField(
                 value = notes,
                 onValueChange = onNotesChange,
-                label = { Text("یادداشت") },
+                label = { Text("یادداشت داخلی") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                placeholder = { Text("جزئیات مذاکره یا یادآوری…") },
+                minLines = 3,
+                placeholder = { Text("جزئیات مذاکره، یادآوری تماس یا شرایط خاص…") },
                 enabled = !isSubmitting,
             )
         }

@@ -17,7 +17,7 @@ fun FilingHubHeader(
 ) {
     DfHubPageHeader(
         title = "فایلینگ دیوار",
-        subtitle = "مدیریت و فیلتر فایل‌های استخراج‌شده از دیوار",
+        subtitle = "استخراج از دیوار",
         titleIcon = DfIcons.Folder,
         userName = userName,
         notificationCount = notificationCount,

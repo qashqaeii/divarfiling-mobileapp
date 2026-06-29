@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.crm.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -9,10 +10,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
+import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.feature.crm.CrmConstants
@@ -48,9 +50,10 @@ fun PropertyCreateSheet(
 
     DfSheetScaffold(
         title = "فایل شخصی جدید",
-        subtitle = "ثبت ملک در پرونده شخصی CRM",
+        subtitle = "ثبت ملک در پرونده شخصی با جزئیات کامل",
         icon = DfIcons.Building,
         onClose = onDismiss,
+        scrollable = true,
         footer = {
             DfSheetActions(
                 primaryText = if (isSubmitting) "در حال ثبت…" else "ثبت فایل",
@@ -61,7 +64,7 @@ fun PropertyCreateSheet(
             )
         },
     ) {
-        DfSheetSection(title = "اطلاعات ملک") {
+        DfSheetSection(title = "اطلاعات اصلی") {
             OutlinedTextField(
                 value = title,
                 onValueChange = onTitleChange,
@@ -89,20 +92,6 @@ fun PropertyCreateSheet(
                     enabled = !isSubmitting,
                 )
             }
-            DfDropdown(
-                label = "نوع معامله",
-                value = dealMode,
-                options = CrmConstants.PROPERTY_DEAL_MODES,
-                enabled = !isSubmitting,
-                onSelect = onDealModeChange,
-            )
-            DfDropdown(
-                label = "نوع ملک",
-                value = propertyType,
-                options = CrmConstants.PROPERTY_TYPES,
-                enabled = !isSubmitting,
-                onSelect = onPropertyTypeChange,
-            )
             OutlinedTextField(
                 value = area,
                 onValueChange = onAreaChange,
@@ -112,6 +101,33 @@ fun PropertyCreateSheet(
                 enabled = !isSubmitting,
             )
         }
+
+        DfSheetSection(title = "نوع معامله") {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                CrmConstants.PROPERTY_DEAL_MODES.forEach { mode ->
+                    DfSheetOptionRow(
+                        label = mode,
+                        selected = mode == dealMode,
+                        onClick = { if (!isSubmitting) onDealModeChange(mode) },
+                        icon = if (mode.contains("فروش")) DfIcons.Home else DfIcons.Tag,
+                    )
+                }
+            }
+        }
+
+        DfSheetSection(title = "نوع ملک") {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                CrmConstants.PROPERTY_TYPES.forEach { type ->
+                    DfSheetOptionRow(
+                        label = type,
+                        selected = type == propertyType,
+                        onClick = { if (!isSubmitting) onPropertyTypeChange(type) },
+                        icon = PropertyFilters.propertyTypeIcon(type),
+                    )
+                }
+            }
+        }
+
         DfSheetSection(title = "قیمت‌گذاری") {
             if (isRent) {
                 OutlinedTextField(
@@ -120,6 +136,7 @@ fun PropertyCreateSheet(
                     label = { Text("رهن (تومان)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    placeholder = { Text("مبلغ رهن") },
                     enabled = !isSubmitting,
                 )
                 OutlinedTextField(
@@ -128,6 +145,7 @@ fun PropertyCreateSheet(
                     label = { Text("اجاره ماهانه (تومان)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    placeholder = { Text("مبلغ اجاره") },
                     enabled = !isSubmitting,
                 )
             } else {
@@ -137,17 +155,20 @@ fun PropertyCreateSheet(
                     label = { Text("قیمت فروش (تومان)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    placeholder = { Text("مبلغ فروش") },
                     enabled = !isSubmitting,
                 )
             }
         }
+
         DfSheetSection(title = "یادداشت") {
             OutlinedTextField(
                 value = notes,
                 onValueChange = onNotesChange,
                 label = { Text("یادداشت داخلی") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
+                minLines = 3,
+                placeholder = { Text("شرایط ویژه، یادآوری تماس یا توضیحات ملک…") },
                 enabled = !isSubmitting,
             )
         }
@@ -198,6 +219,7 @@ fun PropertyEditSheet(
         iconContainerColor = DfColors.BlueLight,
         iconTint = DfColors.Blue,
         onClose = onDismiss,
+        scrollable = true,
         footer = {
             DfSheetActions(
                 primaryText = if (isSubmitting) "در حال ذخیره…" else "ذخیره تغییرات",
@@ -217,28 +239,47 @@ fun PropertyEditSheet(
                 singleLine = true,
                 enabled = !isSubmitting,
             )
-            DfDropdown(
-                label = "نوع معامله",
-                value = dealMode,
-                options = CrmConstants.PROPERTY_DEAL_MODES,
-                enabled = !isSubmitting,
-                onSelect = onDealModeChange,
-            )
-            DfDropdown(
-                label = "نوع ملک",
-                value = propertyType,
-                options = CrmConstants.PROPERTY_TYPES,
-                enabled = !isSubmitting,
-                onSelect = onPropertyTypeChange,
-            )
-            DfDropdown(
-                label = "وضعیت معامله",
-                value = transactionStatus,
-                options = CrmConstants.PROPERTY_TX_STATUSES,
-                enabled = !isSubmitting,
-                onSelect = onTransactionStatusChange,
-            )
         }
+
+        DfSheetSection(title = "نوع معامله") {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                CrmConstants.PROPERTY_DEAL_MODES.forEach { mode ->
+                    DfSheetOptionRow(
+                        label = mode,
+                        selected = mode == dealMode,
+                        onClick = { if (!isSubmitting) onDealModeChange(mode) },
+                        icon = if (mode.contains("فروش")) DfIcons.Home else DfIcons.Tag,
+                    )
+                }
+            }
+        }
+
+        DfSheetSection(title = "نوع ملک") {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                CrmConstants.PROPERTY_TYPES.forEach { type ->
+                    DfSheetOptionRow(
+                        label = type,
+                        selected = type == propertyType,
+                        onClick = { if (!isSubmitting) onPropertyTypeChange(type) },
+                        icon = PropertyFilters.propertyTypeIcon(type),
+                    )
+                }
+            }
+        }
+
+        DfSheetSection(title = "وضعیت معامله") {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                CrmConstants.PROPERTY_TX_STATUSES.forEach { status ->
+                    DfSheetOptionRow(
+                        label = status,
+                        selected = status == transactionStatus,
+                        onClick = { if (!isSubmitting) onTransactionStatusChange(status) },
+                        icon = PropertyFilters.txStatusIcon(status),
+                    )
+                }
+            }
+        }
+
         DfSheetSection(title = "موقعیت") {
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 OutlinedTextField(
@@ -275,6 +316,7 @@ fun PropertyEditSheet(
                 enabled = !isSubmitting,
             )
         }
+
         DfSheetSection(title = "مشخصات و قیمت") {
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 OutlinedTextField(
@@ -322,6 +364,7 @@ fun PropertyEditSheet(
                 )
             }
         }
+
         DfSheetSection(title = "یادداشت") {
             OutlinedTextField(
                 value = notes,

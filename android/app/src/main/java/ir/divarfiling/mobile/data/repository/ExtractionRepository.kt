@@ -146,7 +146,14 @@ class ExtractionRepository @Inject constructor(
                     ),
                     startedAt = startedAt,
                     finishedAt = finishedAt,
-                    items = filteredItems.map { ExtractionItemDto(it.token, it.raw) },
+                    items = filteredItems.map { item ->
+                        ExtractionItemDto(
+                            token = item.token,
+                            raw = item.raw,
+                            thumbnailUrl = item.thumbnailUrl,
+                            imageUrls = item.imageUrls,
+                        )
+                    },
                     runId = runId,
                     scheduleId = scheduleId,
                 ),

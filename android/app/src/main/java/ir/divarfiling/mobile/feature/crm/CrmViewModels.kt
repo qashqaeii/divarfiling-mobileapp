@@ -169,6 +169,7 @@ class ContactsViewModel @Inject constructor(
 
 data class TodayUiState(
     val data: TodayData? = null,
+    val query: String = "",
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isActionRunning: Boolean = false,
@@ -214,6 +215,8 @@ class TodayViewModel @Inject constructor(
     }
 
     fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
+
+    fun onQueryChange(value: String) = _uiState.update { it.copy(query = value) }
 
     fun toggleFilterSheet(show: Boolean) = _uiState.update { it.copy(showFilterSheet = show) }
 

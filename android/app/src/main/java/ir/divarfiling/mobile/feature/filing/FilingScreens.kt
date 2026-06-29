@@ -2,27 +2,16 @@ package ir.divarfiling.mobile.feature.filing
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,16 +27,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
-import ir.divarfiling.mobile.core.design.components.DfSearchFilterPanel
-import ir.divarfiling.mobile.core.design.components.DfTopBar
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.feature.filing.components.FilingCategoryTabsRow
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetFilters
@@ -57,6 +44,8 @@ import ir.divarfiling.mobile.feature.filing.components.FilingExtractFab
 import ir.divarfiling.mobile.feature.filing.components.FilingHubHeader
 import ir.divarfiling.mobile.feature.filing.components.FilingSearchFilterPanel
 import ir.divarfiling.mobile.feature.filing.components.FilingStatsRow
+import ir.divarfiling.mobile.feature.filing.components.ListingsActiveFilterChips
+import ir.divarfiling.mobile.feature.filing.components.ListingsSearchFilterPanel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,6 +115,14 @@ fun DatasetsScreen(
                     )
                 }
                 item {
+                    FilingStatsRow(
+                        totalAds = totalAds,
+                        filesCount = state.datasets.size,
+                        estimatedSizeGb = FilingDatasetFilters.estimatedSizeGb(totalAds),
+                        datasetsThisMonth = FilingDatasetFilters.datasetsThisMonth(state.datasets),
+                    )
+                }
+                item {
                     FilingSearchFilterPanel(
                         query = searchDraft,
                         onQueryChange = { searchDraft = it },
@@ -140,14 +137,6 @@ fun DatasetsScreen(
                         onCityChange = { cityFilter = it },
                         onTransactionChange = { transactionFilter = it },
                         onApplyFilters = { },
-                    )
-                }
-                item {
-                    FilingStatsRow(
-                        totalAds = totalAds,
-                        filesCount = state.datasets.size,
-                        estimatedSizeGb = FilingDatasetFilters.estimatedSizeGb(totalAds),
-                        datasetsThisMonth = FilingDatasetFilters.datasetsThisMonth(state.datasets),
                     )
                 }
                 item {
@@ -184,15 +173,6 @@ fun DatasetsScreen(
                                     FilingDatasetCard(
                                         dataset = dataset,
                                         onClick = { onDatasetClick(dataset.id) },
-                                        onRefreshClick = viewModel::refresh,
-                                        isFavorite = favoriteIds.contains(dataset.id),
-                                        onToggleFavorite = {
-                                            favoriteIds = if (favoriteIds.contains(dataset.id)) {
-                                                favoriteIds - dataset.id
-                                            } else {
-                                                favoriteIds + dataset.id
-                                            }
-                                        },
                                     )
                                 }
                             }
@@ -246,32 +226,15 @@ fun ListingsScreen(
     )
 
     Scaffold(
-        topBar = {
-            DfTopBar(
-                title = state.datasetName ?: "آگهی‌ها",
-                onBack = onBack,
-                actions = {
-                    BadgedBox(
-                        badge = {
-                            if (filterCount > 0) {
-                                androidx.compose.material3.Badge { Text("$filterCount") }
-                            }
-                        },
-                    ) {
-                        IconButton(onClick = { showFilters = true }) {
-                            Icon(Icons.Default.Tune, contentDescription = "فیلتر")
-                        }
-                    }
-                },
-            )
-        },
+        containerColor = DfScreenContainerColor,
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.refresh(datasetId) },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .statusBarsPadding(),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -279,41 +242,54 @@ fun ListingsScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfSearchFilterPanel(
+                    DfHubPageHeader(
+                        title = state.datasetName ?: "آگهی‌های فایل",
+                        subtitle = "آگهی‌های استخراج‌شده از دیوار",
+                        titleIcon = DfIcons.Building,
+                        onBack = onBack,
+                    )
+                }
+                item {
+                    ListingsSearchFilterPanel(
                         query = state.query,
                         onQueryChange = viewModel::onQueryChange,
                         onSearch = { viewModel.load(datasetId, reset = true) },
-                        searchPlaceholder = "جستجو در عنوان…",
-                        filters = if (filterCount > 0) {
-                            {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    state.priceMin?.let { DfBadge(text = "از ${formatFilterNumber(it)}") }
-                                    state.priceMax?.let { DfBadge(text = "تا ${formatFilterNumber(it)}") }
-                                    state.areaMin?.let { DfBadge(text = "متراژ از $it") }
-                                    state.areaMax?.let { DfBadge(text = "متراژ تا $it") }
-                                    state.rooms?.let { DfBadge(text = "$it اتاق") }
-                                }
-                            }
-                        } else {
-                            null
+                        activeFilterCount = filterCount,
+                        onOpenFilters = { showFilters = true },
+                        activeFilterChips = {
+                            ListingsActiveFilterChips(
+                                priceMin = state.priceMin,
+                                priceMax = state.priceMax,
+                                areaMin = state.areaMin,
+                                areaMax = state.areaMax,
+                                rooms = state.rooms,
+                                formatPrice = ::formatFilterNumber,
+                            )
                         },
                     )
                 }
                 state.error?.let { error ->
-                    item { DfErrorBanner(error) }
+                    item {
+                        DfErrorBanner(
+                            error,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 if (state.isLoading && state.listings.isEmpty()) {
-                    item { DfCardListSkeleton(count = 6, itemHeight = 120.dp) }
+                    item {
+                        DfCardListSkeleton(
+                            count = 5,
+                            itemHeight = 280.dp,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 } else if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
                             title = "آگهی‌ای یافت نشد",
-                            subtitle = "فیلتر جستجو را تغییر دهید یا فایل دیگری انتخاب کنید",
+                            subtitle = "فیلتر جستجو را تغییر دهید یا عبارت دیگری امتحان کنید",
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 } else {
@@ -328,6 +304,16 @@ fun ListingsScreen(
                                     )
                                 }
                             },
+                            onShare = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
+                                {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, link)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "اشتراک آگهی"))
+                                }
+                            },
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                     if (state.hasMore) {
@@ -355,6 +341,7 @@ fun FilingSearchScreen(
     viewModel: FilingSearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var showFilters by remember { mutableStateOf(false) }
     val filterCount = activeListingFilterCount(
         state.priceMin, state.priceMax, state.areaMin, state.areaMax, state.rooms,
@@ -377,32 +364,15 @@ fun FilingSearchScreen(
     )
 
     Scaffold(
-        topBar = {
-            DfTopBar(
-                title = "جستجوی فایلینگ",
-                onBack = onBack,
-                actions = {
-                    BadgedBox(
-                        badge = {
-                            if (filterCount > 0) {
-                                androidx.compose.material3.Badge { Text("$filterCount") }
-                            }
-                        },
-                    ) {
-                        IconButton(onClick = { showFilters = true }) {
-                            Icon(Icons.Default.Tune, contentDescription = "فیلتر")
-                        }
-                    }
-                },
-            )
-        },
+        containerColor = DfScreenContainerColor,
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .statusBarsPadding(),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -410,48 +380,62 @@ fun FilingSearchScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfSearchFilterPanel(
+                    DfHubPageHeader(
+                        title = "جستجوی فایلینگ",
+                        subtitle = "جستجو در همه فایل‌های استخراج‌شده",
+                        titleIcon = DfIcons.Search,
+                        onBack = onBack,
+                    )
+                }
+                item {
+                    ListingsSearchFilterPanel(
                         query = state.query,
                         onQueryChange = viewModel::onQueryChange,
                         onSearch = { viewModel.search(reset = true) },
-                        searchPlaceholder = "عنوان، محله یا شهر…",
-                        filters = if (filterCount > 0) {
-                            {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    state.priceMin?.let { DfBadge(text = "از ${formatFilterNumber(it)}") }
-                                    state.priceMax?.let { DfBadge(text = "تا ${formatFilterNumber(it)}") }
-                                    state.areaMin?.let { DfBadge(text = "متراژ از $it") }
-                                    state.areaMax?.let { DfBadge(text = "متراژ تا $it") }
-                                    state.rooms?.let { DfBadge(text = "$it اتاق") }
-                                }
-                            }
-                        } else {
-                            null
+                        activeFilterCount = filterCount,
+                        onOpenFilters = { showFilters = true },
+                        activeFilterChips = {
+                            ListingsActiveFilterChips(
+                                priceMin = state.priceMin,
+                                priceMax = state.priceMax,
+                                areaMin = state.areaMin,
+                                areaMax = state.areaMax,
+                                rooms = state.rooms,
+                                formatPrice = ::formatFilterNumber,
+                            )
                         },
                     )
                 }
                 state.error?.let { error ->
-                    item { DfErrorBanner(error) }
+                    item {
+                        DfErrorBanner(
+                            error,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 if (state.query.isBlank()) {
                     item {
                         DfEmptyState(
                             title = "جستجو در همه فایل‌ها",
-                            subtitle = "عبارت مورد نظر را وارد کنید تا در تمام datasetها جستجو شود",
+                            subtitle = "عبارت مورد نظر را وارد کنید تا در تمام فایل‌ها جستجو شود",
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 } else if (state.isLoading && state.listings.isEmpty()) {
-                    item { DfCardListSkeleton(count = 6, itemHeight = 88.dp) }
+                    item {
+                        DfCardListSkeleton(
+                            count = 5,
+                            itemHeight = 280.dp,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 } else if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
                             title = "نتیجه‌ای یافت نشد",
                             subtitle = "عبارت یا فیلترها را تغییر دهید",
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 } else {
@@ -459,6 +443,7 @@ fun FilingSearchScreen(
                         SearchListingItem(
                             listing = listing,
                             onClick = { onListingClick(listing.token) },
+                            context = context,
                         )
                     }
                     if (state.hasMore) {
@@ -481,11 +466,27 @@ fun FilingSearchScreen(
 private fun SearchListingItem(
     listing: ListingDto,
     onClick: () -> Unit,
+    context: android.content.Context,
 ) {
     FilingListingCard(
         listing = listing,
         onClick = onClick,
         datasetLabel = listing.datasetName?.takeIf { it.isNotBlank() },
+        onOpenDivar = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
+            {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+            }
+        },
+        onShare = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
+            {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, link)
+                }
+                context.startActivity(Intent.createChooser(shareIntent, "اشتراک آگهی"))
+            }
+        },
+        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
     )
 }
 

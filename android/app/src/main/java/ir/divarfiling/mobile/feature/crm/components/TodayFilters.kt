@@ -31,6 +31,23 @@ object TodayFilters {
 
     fun canFilterByDone(today: TodayData): Boolean = doneEntries(today).isNotEmpty()
 
+    fun filterEntries(today: TodayData, tab: TodayFilterTab, query: String = ""): List<TodayTaskEntry> {
+        val base = filterEntries(today, tab)
+        if (query.isBlank()) return base
+        return base.filter { matchesQuery(it, query) }
+    }
+
+    private fun matchesQuery(entry: TodayTaskEntry, query: String): Boolean {
+        val q = query.trim()
+        if (q.isBlank()) return true
+        val item = entry.item
+        val contact = item.contact
+        return contact?.fullName?.contains(q, ignoreCase = true) == true ||
+            contact?.phone?.contains(q, ignoreCase = true) == true ||
+            item.reminder?.title?.contains(q, ignoreCase = true) == true ||
+            TodayTaskLabels.typeLabel(item.type).contains(q, ignoreCase = true)
+    }
+
     fun filterEntries(today: TodayData, tab: TodayFilterTab): List<TodayTaskEntry> {
         val all = allEntries(today)
         return when (tab) {

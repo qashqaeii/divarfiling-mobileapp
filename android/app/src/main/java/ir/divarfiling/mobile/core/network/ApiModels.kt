@@ -218,6 +218,12 @@ data class ListingDto(
     @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
     @SerialName("dataset_id") val datasetId: String? = null,
     @SerialName("dataset_name") val datasetName: String? = null,
+    @SerialName("price_per_sqm") val pricePerSqm: Int? = null,
+    @SerialName("year_built") val yearBuilt: String? = null,
+    val floor: String? = null,
+    @SerialName("transaction_type") val transactionType: String? = null,
+    @SerialName("feature_highlights") val featureHighlights: List<String> = emptyList(),
+    @SerialName("scraped_at") val scrapedAt: String? = null,
 )
 
 @Serializable
@@ -262,6 +268,8 @@ data class ExtractionFiltersDto(
 data class ExtractionItemDto(
     val token: String,
     val raw: JsonElement,
+    @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
+    @SerialName("image_urls") val imageUrls: List<String> = emptyList(),
 )
 
 @Serializable

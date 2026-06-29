@@ -29,7 +29,6 @@ import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import ir.divarfiling.mobile.feature.crm.components.ContactQuickLeadSheet
-import ir.divarfiling.mobile.feature.crm.components.TodayFilterSheet
 import ir.divarfiling.mobile.feature.crm.components.TodayNewTaskSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -39,13 +38,12 @@ import ir.divarfiling.mobile.feature.crm.components.ContactsSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
 import ir.divarfiling.mobile.feature.crm.components.ContactsStatsRow
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
-import ir.divarfiling.mobile.feature.crm.components.TodayDateSection
 import ir.divarfiling.mobile.feature.crm.components.TodayFilterChip
 import ir.divarfiling.mobile.feature.crm.components.TodayFilterTab
-import ir.divarfiling.mobile.feature.crm.components.TodayFilterTabsRow
 import ir.divarfiling.mobile.feature.crm.components.TodayFilters
 import ir.divarfiling.mobile.feature.crm.components.TodayHeader
 import ir.divarfiling.mobile.feature.crm.components.TodayNewTaskFab
+import ir.divarfiling.mobile.feature.crm.components.TodaySearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.TodayStatsRow
 import ir.divarfiling.mobile.feature.crm.components.TodayTaskCard
 import ir.divarfiling.mobile.feature.crm.components.CrmDealsIllustration
@@ -404,7 +402,7 @@ fun TodayScreen(
         TodayFilters.doneCount(today) > 0
 
     val displayedEntries = today?.let { data ->
-        TodayFilters.filterEntries(data, activeTab)
+        TodayFilters.filterEntries(data, activeTab, state.query)
     } ?: emptyList()
 
     Scaffold(
@@ -428,10 +426,7 @@ fun TodayScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    TodayHeader(
-                        onBack = onBack,
-                        onFilterClick = { viewModel.toggleFilterSheet(true) },
-                    )
+                    TodayHeader(onBack = onBack)
                 }
                 state.error?.let { error ->
                     item {
@@ -456,6 +451,7 @@ fun TodayScreen(
                             todayCount = TodayFilters.todayCount(today),
                             doneCount = TodayFilters.doneCount(today),
                             overdueCount = TodayFilters.overdueCount(today),
+                            selectedTab = activeTab,
                             onTodayClick = {
                                 showDoneSummary = false
                                 selectedTab = TodayFilterTab.All
@@ -476,14 +472,9 @@ fun TodayScreen(
                         )
                     }
                     item {
-                        TodayDateSection(
-                            dateLabel = today.date ?: "",
-                            totalCount = TodayFilters.todayCount(today),
-                            onDateClick = viewModel::refresh,
-                        )
-                    }
-                    item {
-                        TodayFilterTabsRow(
+                        TodaySearchFilterPanel(
+                            query = state.query,
+                            onQueryChange = viewModel::onQueryChange,
                             chips = filterChips,
                             selectedTab = activeTab,
                             onTabSelected = {
@@ -504,8 +495,12 @@ fun TodayScreen(
                     } else if (displayedEntries.isEmpty()) {
                         item {
                             DfEmptyState(
-                                title = "کاری برای امروز نیست",
-                                subtitle = "همه پیگیری‌ها انجام شده — عالی!",
+                                title = if (state.query.isNotBlank()) "نتیجه‌ای یافت نشد" else "کاری برای امروز نیست",
+                                subtitle = if (state.query.isNotBlank()) {
+                                    "عبارت جستجو یا فیلتر را تغییر دهید"
+                                } else {
+                                    "همه پیگیری‌ها انجام شده — عالی!"
+                                },
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
@@ -573,20 +568,6 @@ fun TodayScreen(
         }
     }
 
-    if (state.showFilterSheet) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleFilterSheet(false) }) {
-            TodayFilterSheet(
-                chips = filterChips,
-                selectedTab = activeTab,
-                onSelect = {
-                    showDoneSummary = false
-                    selectedTab = it
-                },
-                onDismiss = { viewModel.toggleFilterSheet(false) },
-            )
-        }
-    }
-
     if (state.showNewTaskSheet) {
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleNewTaskSheet(false) }) {
             TodayNewTaskSheet(
@@ -638,6 +619,42 @@ fun CrmHubScreen(
         ) {
             item {
                 CrmHubHeader(userName = state.userName)
+            }
+
+            item {
+                CrmQuickActionsBar(
+                    actions = listOf(
+                        CrmQuickAction(
+                            title = "فیلتر",
+                            icon = DfIcons.Filter,
+                            onClick = onQuickFilter,
+                            tint = DfColors.Purple,
+                            background = DfColors.PurpleContainer,
+                        ),
+                        CrmQuickAction(
+                            title = "یادداشت",
+                            icon = DfIcons.File,
+                            onClick = onQuickNote,
+                            tint = DfColors.Blue,
+                            background = DfColors.BlueLight,
+                        ),
+                        CrmQuickAction(
+                            title = "یادآور",
+                            icon = DfIcons.AlarmClock,
+                            onClick = onQuickReminder,
+                            tint = DfColors.Amber,
+                            background = DfColors.AmberLight,
+                        ),
+                        CrmQuickAction(
+                            title = "مخاطب",
+                            icon = DfIcons.UserPlus,
+                            onClick = onQuickContact,
+                            tint = DfColors.Green,
+                            background = DfColors.GreenLight,
+                        ),
+                    ),
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
             }
 
             if (state.isLoading) {
@@ -732,20 +749,6 @@ fun CrmHubScreen(
                     )
                 }
             }
-
-            item {
-                CrmQuickActionsBar(
-                    actions = listOf(
-                        CrmQuickAction("فیلتر پیشرفته", "جستجوی دقیق", DfIcons.Filter, onQuickFilter),
-                        CrmQuickAction("یادداشت سریع", "ثبت یادداشت", DfIcons.File, onQuickNote),
-                        CrmQuickAction("یادآور جدید", "تنظیم یادآور", DfIcons.AlarmClock, onQuickReminder),
-                        CrmQuickAction("مخاطب جدید", "افزودن سریع", DfIcons.UserPlus, onQuickContact),
-                    ),
-                    modifier = Modifier
-                        .padding(horizontal = AppSpacing.screenHorizontal)
-                        .padding(top = AppSpacing.xs),
-                )
-            }
         }
     }
 }
@@ -773,6 +776,16 @@ internal fun CrmHubScreenContentPreview() {
     ) {
         item { CrmHubHeader(userName = "حسین") }
         item {
+            CrmQuickActionsBar(
+                actions = listOf(
+                    CrmQuickAction("فیلتر", DfIcons.Filter, {}, tint = DfColors.Purple, background = DfColors.PurpleContainer),
+                    CrmQuickAction("یادداشت", DfIcons.File, {}, tint = DfColors.Blue, background = DfColors.BlueLight),
+                    CrmQuickAction("یادآور", DfIcons.AlarmClock, {}, tint = DfColors.Amber, background = DfColors.AmberLight),
+                    CrmQuickAction("مخاطب", DfIcons.UserPlus, {}, tint = DfColors.Green, background = DfColors.GreenLight),
+                ),
+            )
+        }
+        item {
             CrmHubFeatureCard(
                 title = "مخاطبین",
                 subtitle = "لیست کامل مشتریان و سرنخ‌های جدید",
@@ -792,16 +805,6 @@ internal fun CrmHubScreenContentPreview() {
                 },
             )
         }
-        item {
-            CrmQuickActionsBar(
-                actions = listOf(
-                    CrmQuickAction("فیلتر پیشرفته", "جستجوی دقیق", DfIcons.Filter) {},
-                    CrmQuickAction("یادآور جدید", "تنظیم یادآور", DfIcons.AlarmClock) {},
-                    CrmQuickAction("مخاطب جدید", "افزودن سریع", DfIcons.UserPlus) {},
-                    CrmQuickAction("یادداشت سریع", "ثبت یادداشت", DfIcons.File) {},
-                ),
-            )
-        }
     }
 }
 
@@ -814,11 +817,12 @@ private fun TodayScreenPreview() {
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
-            TodayHeader(onBack = {}, onFilterClick = {})
+            TodayHeader(onBack = {})
             TodayStatsRow(
                 todayCount = 33,
                 doneCount = 0,
                 overdueCount = 32,
+                selectedTab = TodayFilterTab.All,
                 onTodayClick = {},
                 onDoneClick = {},
                 onOverdueClick = {},

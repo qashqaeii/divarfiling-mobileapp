@@ -225,6 +225,7 @@ data class DealDetailUiState(
     val editTitle: String = "",
     val editAmount: String = "",
     val editNotes: String = "",
+    val editStage: String = "",
 )
 
 @HiltViewModel
@@ -255,6 +256,7 @@ class DealDetailViewModel @Inject constructor(
                         editTitle = result.data.title,
                         editAmount = result.data.amount?.toString().orEmpty(),
                         editNotes = result.data.notes.orEmpty(),
+                        editStage = result.data.stage.orEmpty(),
                     )
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -292,6 +294,7 @@ class DealDetailViewModel @Inject constructor(
                     title = state.editTitle.trim(),
                     amount = state.editAmount.trim().toLongOrNull(),
                     notes = state.editNotes,
+                    stage = state.editStage.takeIf { it.isNotBlank() },
                 ),
             )) {
                 is ApiResult.Success -> {
@@ -307,6 +310,7 @@ class DealDetailViewModel @Inject constructor(
     fun onEditTitleChange(v: String) = _uiState.update { it.copy(editTitle = v) }
     fun onEditAmountChange(v: String) = _uiState.update { it.copy(editAmount = v) }
     fun onEditNotesChange(v: String) = _uiState.update { it.copy(editNotes = v) }
+    fun onEditStageChange(v: String) = _uiState.update { it.copy(editStage = v) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 }
 
@@ -397,6 +401,18 @@ class PropertiesViewModel @Inject constructor(
     fun onPropertyTypeChange(type: String?) = _uiState.update { it.copy(propertyType = type) }
     fun search() = load()
     fun clearError() = _uiState.update { it.copy(error = null) }
+
+    fun clearFilters() {
+        _uiState.update {
+            it.copy(
+                query = "",
+                transactionStatus = null,
+                dealMode = null,
+                propertyType = null,
+            )
+        }
+        load()
+    }
 
     fun toggleCreate(show: Boolean) {
         _uiState.update {

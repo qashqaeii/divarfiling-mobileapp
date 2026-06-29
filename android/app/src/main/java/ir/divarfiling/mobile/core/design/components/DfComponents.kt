@@ -458,7 +458,9 @@ fun DfPullRefresh(
             onRefresh = onRefresh,
             modifier = Modifier.fillMaxSize(),
         ) {
-            content()
+            Box(modifier = Modifier.fillMaxSize()) {
+                content()
+            }
         }
     }
 }

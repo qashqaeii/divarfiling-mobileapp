@@ -8,15 +8,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -349,36 +350,53 @@ internal fun DfHubHeaderIconButton(
     onClick: () -> Unit,
     badgeCount: Int = 0,
 ) {
-    val badgeLabel = when {
-        badgeCount <= 0 -> null
-        badgeCount > 99 -> "99+"
-        badgeCount > 9 -> "9+"
-        else -> badgeCount.toString()
-    }
-
-    BadgedBox(
-        modifier = Modifier.padding(top = 4.dp, end = 4.dp),
-        badge = {
-            if (badgeLabel != null) {
-                Badge(
-                    containerColor = DfColors.Purple,
-                    contentColor = Color.White,
-                ) {
-                    Text(
-                        text = DateUtils.toPersianDigits(badgeLabel),
-                        style = AppTypography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                    )
-                }
-            }
-        },
-    ) {
+    Box(modifier = Modifier.padding(top = 4.dp, end = 4.dp)) {
         DfGlassIconButton(
             icon = icon,
             contentDescription = contentDescription,
             onClick = onClick,
             variant = DfGlassButtonVariant.Secondary,
+        )
+        if (badgeCount > 0) {
+            DfHeaderNotificationBadge(
+                count = badgeCount,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 6.dp, y = (-2).dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun DfHeaderNotificationBadge(
+    count: Int,
+    modifier: Modifier = Modifier,
+) {
+    val label = when {
+        count > 99 -> "99+"
+        else -> count.toString()
+    }
+    val isWide = label.length > 1
+    val shape = if (isWide) RoundedCornerShape(10.dp) else CircleShape
+
+    Box(
+        modifier = modifier
+            .defaultMinSize(
+                minWidth = if (isWide) 22.dp else 18.dp,
+                minHeight = 18.dp,
+            )
+            .clip(shape)
+            .background(DfColors.Purple)
+            .padding(horizontal = if (isWide) 5.dp else 0.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = DateUtils.toPersianDigits(label),
+            style = AppTypography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            maxLines = 1,
         )
     }
 }
@@ -401,7 +419,7 @@ private fun DfStandardPageHeaderPreview() {
                 subtitle = "مدیریت فایل‌های استخراج‌شده",
                 titleIcon = DfIcons.Folder,
                 userName = "حسین",
-                notificationCount = 9,
+                notificationCount = 20,
                 onNotificationsClick = {},
                 onMenuClick = {},
                 menuIcon = DfIcons.Menu,

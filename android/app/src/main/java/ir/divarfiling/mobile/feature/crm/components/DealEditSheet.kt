@@ -18,16 +18,19 @@ fun DealEditSheet(
     title: String,
     amount: String,
     notes: String,
+    stages: List<String>,
+    selectedStage: String,
     isSubmitting: Boolean,
     onTitleChange: (String) -> Unit,
     onAmountChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
+    onStageChange: (String) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     DfSheetScaffold(
         title = "ویرایش معامله",
-        subtitle = "عنوان، مبلغ و یادداشت فرصت فروش را به‌روز کنید",
+        subtitle = "عنوان، مبلغ، مرحله و یادداشت فرصت فروش را به‌روز کنید",
         icon = DfIcons.Handshake,
         iconContainerColor = DfColors.PurpleContainer,
         iconTint = DfColors.Purple,
@@ -42,7 +45,7 @@ fun DealEditSheet(
             )
         },
     ) {
-        DfSheetSection(title = "جزئیات معامله") {
+        DfSheetSection(title = "جزئیات") {
             OutlinedTextField(
                 value = title,
                 onValueChange = onTitleChange,
@@ -59,6 +62,18 @@ fun DealEditSheet(
                 singleLine = true,
                 enabled = !isSubmitting,
             )
+        }
+
+        DfSheetSection(title = "مرحله فروش") {
+            DealStageOptionList(
+                stages = stages,
+                selectedStage = selectedStage,
+                onStageSelect = onStageChange,
+                enabled = !isSubmitting,
+            )
+        }
+
+        DfSheetSection(title = "یادداشت") {
             OutlinedTextField(
                 value = notes,
                 onValueChange = onNotesChange,

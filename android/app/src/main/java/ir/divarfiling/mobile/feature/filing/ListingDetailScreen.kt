@@ -1,6 +1,5 @@
 package ir.divarfiling.mobile.feature.filing
 
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
@@ -12,25 +11,18 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.feature.crm.components.ListingSendSheet
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,10 +37,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.feature.crm.ContactPickerSheet
+import ir.divarfiling.mobile.core.filing.ListingImageUtils
+import ir.divarfiling.mobile.feature.filing.components.ListingDetailGallerySection
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailHeader
-import ir.divarfiling.mobile.feature.filing.components.ListingDetailTopBar
-import ir.divarfiling.mobile.feature.filing.components.ListingMapCard
-import ir.divarfiling.mobile.feature.filing.components.ListingMosaicGallery
+import ir.divarfiling.mobile.feature.filing.components.ListingLocationSection
 import ir.divarfiling.mobile.feature.filing.components.ListingQuickActionsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingSpecsCard
 
@@ -110,18 +102,6 @@ fun ListingDetailScreen(
                         },
                         onSetReminder = { viewModel.toggleContactPicker(true) },
                         onSaveAsPersonal = viewModel::saveAsPersonalProperty,
-                        onShare = {
-                            val message = ListingMessageFormatter.fromDetail(listing)
-                            context.startActivity(
-                                Intent.createChooser(
-                                    Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, message)
-                                    },
-                                    "اشتراک فایل",
-                                ),
-                            )
-                        },
                         onCopyLink = {
                             if (!listing.shareLink.isNullOrBlank()) {
                                 copyToClipboard(context, listing.shareLink!!)
@@ -137,27 +117,11 @@ fun ListingDetailScreen(
                         },
                         onNavigate = {
                             if (listing.latitude != null && listing.longitude != null) {
-                                val uri = Uri.parse("geo:${listing.latitude},${listing.longitude}")
+                                val uri = Uri.parse(
+                                    "geo:${listing.latitude},${listing.longitude}?q=${listing.latitude},${listing.longitude}",
+                                )
                                 context.startActivity(Intent(Intent.ACTION_VIEW, uri))
                             }
-                        },
-                        onCall = {
-                            listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
-                            } ?: viewModel.showMessage("لینک تماس در دسترس نیست")
-                        },
-                        onNote = { viewModel.toggleContactPicker(true) },
-                        onReport = {
-                            val message = "گزارش آگهی: ${listing.title.orEmpty()}\n${listing.shareLink.orEmpty()}"
-                            context.startActivity(
-                                Intent.createChooser(
-                                    Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, message)
-                                    },
-                                    "گزارش آگهی",
-                                ),
-                            )
                         },
                     )
                 }
@@ -197,28 +161,28 @@ private fun ListingDetailContent(
     onOpenDivar: (() -> Unit)?,
     onSetReminder: () -> Unit,
     onSaveAsPersonal: () -> Unit,
-    onShare: () -> Unit,
     onCopyLink: () -> Unit,
     onCopyAdCode: () -> Unit,
     onNavigate: () -> Unit,
-    onCall: () -> Unit,
-    onNote: () -> Unit,
-    onReport: () -> Unit,
 ) {
-    val galleryImages = buildList {
-        addAll(listing.images)
-        listing.thumbnailUrl?.let { if (it !in listing.images) add(it) }
-    }
+    val galleryImages = ListingImageUtils.buildGalleryUrls(listing)
     val location = listOfNotNull(listing.district, listing.city).joinToString("، ")
     val hasCoordinates = listing.latitude != null && listing.longitude != null
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
-        ) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+    ) {
             item {
-                ListingMosaicGallery(images = galleryImages)
+                ListingDetailGallerySection(
+                    images = galleryImages,
+                    isFavorite = isFavorite,
+                    onBack = onBack,
+                    onFavoriteToggle = onFavoriteToggle,
+                    onSaveAsPersonal = onSaveAsPersonal,
+                    onCopyLink = onCopyLink,
+                )
             }
 
             item {
@@ -232,9 +196,10 @@ private fun ListingDetailContent(
                 ListingQuickActionsRow(
                     onSendToContact = onSendToContact,
                     onWhatsAppShare = onWhatsAppShare,
-                    onOpenDivar = onOpenDivar ?: onShare,
+                    onOpenDivar = onOpenDivar,
                     onSetReminder = onSetReminder,
                     onSaveAsPersonal = onSaveAsPersonal,
+                    showSaveAsPersonal = false,
                 )
             }
 
@@ -245,29 +210,18 @@ private fun ListingDetailContent(
                 )
             }
 
-            if (hasCoordinates || location.isNotBlank()) {
+            if (location.isNotBlank() || hasCoordinates || onOpenDivar != null) {
                 item {
-                    ListingMapCard(
+                    ListingLocationSection(
                         locationLabel = location,
                         hasCoordinates = hasCoordinates,
                         onNavigate = onNavigate,
-                        onCall = onCall,
-                        onNote = onNote,
-                        onReport = onReport,
+                        onCopyLink = onCopyLink,
+                        onOpenDivar = onOpenDivar,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
             }
-        }
-
-        ListingDetailTopBar(
-            onBack = onBack,
-            onFavoriteToggle = onFavoriteToggle,
-            isFavorite = isFavorite,
-            onShare = onShare,
-            onCopyLink = onCopyLink,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 

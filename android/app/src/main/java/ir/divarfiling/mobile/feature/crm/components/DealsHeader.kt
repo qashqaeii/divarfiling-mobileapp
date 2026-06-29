@@ -18,7 +18,7 @@ fun DealsHeader(
 ) {
     DfHubPageHeader(
         title = "معاملات",
-        subtitle = "مدیریت معاملات و فرصت‌های فروش",
+        subtitle = "مدیریت معاملات",
         titleIcon = DfIcons.TrendingUp,
         userName = userName,
         notificationCount = notificationCount,

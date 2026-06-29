@@ -1,6 +1,5 @@
 package ir.divarfiling.mobile.feature.home.components
 
-import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -41,10 +41,12 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.components.DfAsyncImage
+import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.RecentFileItem
+
+private val RecentFileCardHeight = 216.dp
 
 private fun fileTitle(file: RecentFileItem): String {
     val district = file.district?.trim().orEmpty()
@@ -87,7 +89,7 @@ fun RecentListingsSection(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 items(3) {
-                    DfShimmerBox(modifier = Modifier.width(cardWidth).height(196.dp))
+                    DfShimmerBox(modifier = Modifier.width(cardWidth).height(RecentFileCardHeight))
                 }
             }
             return
@@ -160,7 +162,7 @@ private fun RecentFileCard(
         onClick = onClick,
         modifier = Modifier
             .width(cardWidth)
-            .height(196.dp),
+            .height(RecentFileCardHeight),
         shape = AppShapes.ListingCard,
         shadowElevation = AppElevations.card,
         color = DfColors.Surface,
@@ -171,24 +173,11 @@ private fun RecentFileCard(
                     .fillMaxWidth()
                     .height(108.dp),
             ) {
-                val thumb = ImageUrlFormatter.normalize(file.thumbnailUrl)
-                if (thumb != null) {
-                    DfAsyncImage(
-                        url = thumb,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(DfColors.PurpleLight, DfColors.BlueLight),
-                                ),
-                            ),
-                    )
-                }
+                DfListingImage(
+                    thumbnailUrl = file.thumbnailUrl,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
                 Box(modifier = Modifier.padding(8.dp)) {
                     Surface(
                         shape = AppShapes.IconContainer,
@@ -210,7 +199,8 @@ private fun RecentFileCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .weight(1f)
+                    .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(

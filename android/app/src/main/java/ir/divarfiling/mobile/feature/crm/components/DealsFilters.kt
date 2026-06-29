@@ -62,7 +62,9 @@ object DealsFilters {
     }
 
     fun progressPercent(deal: DealDto): Int =
-        deal.probability ?: defaultProbability(deal.stage)
+        deal.probability ?: stageProbability(deal.stage)
+
+    fun stageProbability(stage: String?): Int = defaultProbability(stage)
 
     fun formatCompactToman(value: Long): String =
         FormatUtils.formatPriceShort(value) + " تومان"

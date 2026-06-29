@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -125,6 +127,9 @@ fun DfSheetScaffold(
     footer: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val configuration = LocalConfiguration.current
+    val maxBodyHeight = (configuration.screenHeightDp * 0.52f).dp
+    val scrollState = rememberScrollState()
     Column(modifier = modifier.fillMaxWidth()) {
         DfSheetHeader(
             title = title,
@@ -137,10 +142,12 @@ fun DfSheetScaffold(
         val bodyModifier = Modifier
             .fillMaxWidth()
             .then(
-                if (scrollable) {
-                    Modifier.verticalScroll(rememberScrollState())
-                } else {
-                    Modifier
+                when {
+                    scrollable && footer != null -> Modifier
+                        .heightIn(max = maxBodyHeight)
+                        .verticalScroll(scrollState)
+                    scrollable -> Modifier.verticalScroll(scrollState)
+                    else -> Modifier
                 },
             )
             .padding(horizontal = AppSpacing.lg)

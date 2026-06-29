@@ -97,4 +97,35 @@ object PropertyFilters {
         "پیش‌نویس" -> DfColors.Amber
         else -> DfColors.TextMuted
     }
+
+    fun txStatusIcon(status: String?): ImageVector = when (status) {
+        "فعال" -> DfIcons.Zap
+        "در مذاکره" -> DfIcons.Handshake
+        "قرارداد" -> DfIcons.File
+        "فروخته‌شده", "اجاره‌رفته" -> DfIcons.CircleCheck
+        "بایگانی" -> DfIcons.Folder
+        else -> DfIcons.Tag
+    }
+
+    fun txStatusDescription(status: String?): String = when (status) {
+        "فعال" -> "فایل فعال و آماده معرفی"
+        "در مذاکره" -> "در حال مذاکره با مشتری"
+        "قرارداد" -> "قرارداد در حال انجام"
+        "فروخته‌شده" -> "معامله فروش تکمیل شد"
+        "اجاره‌رفته" -> "معامله اجاره تکمیل شد"
+        "بایگانی" -> "بایگانی شده — غیرفعال"
+        else -> "وضعیت معامله"
+    }
+
+    fun allSpecs(property: PropertyDto): List<Pair<String, String>> = buildList {
+        PropertyFilters.formatArea(property.area)?.let { add("متراژ" to it) }
+        property.rooms?.takeIf { it.isNotBlank() }?.let { add("اتاق" to it) }
+        PropertyFilters.formatFloor(property.floor, property.totalFloors)?.let { add("طبقه" to it) }
+        property.buildYear?.let { add("سال ساخت" to it.toString()) }
+        property.propertyType?.takeIf { it.isNotBlank() }?.let { add("نوع ملک" to it) }
+        property.dealMode?.takeIf { it.isNotBlank() }?.let { add("معامله" to it) }
+        val location = locationLabel(property)
+        if (location != "—") add("موقعیت" to location)
+        property.publishStatus?.takeIf { it.isNotBlank() }?.let { add("انتشار" to it) }
+    }
 }

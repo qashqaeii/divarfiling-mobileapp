@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
@@ -75,7 +74,7 @@ fun ContactListCard(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Top,
                 ) {
                     Text(
                         text = contact.fullName,
@@ -86,7 +85,13 @@ fun ContactListCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
-                    ContactStatusBadge(status = contact.status)
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        ContactStatusBadge(status = contact.status)
+                        ContactUpdatedLabel(updatedAt = contact.updatedAt)
+                    }
                 }
                 contact.phone?.let { phone ->
                     Text(
@@ -113,16 +118,6 @@ fun ContactListCard(
                             color = DfColors.Green,
                             background = DfColors.GreenLight,
                         )
-                    }
-                    contact.updatedAt?.let { updated ->
-                        DateUtils.formatJalaliDate(updated)?.let { jalali ->
-                            Text(
-                                text = jalali,
-                                style = AppTypography.labelSmall,
-                                color = DfColors.TextMuted,
-                                maxLines = 1,
-                            )
-                        }
                     }
                 }
             }
@@ -170,6 +165,55 @@ private fun ContactAvatar(
             fontWeight = FontWeight.Bold,
             color = Color.White,
         )
+    }
+}
+
+@Composable
+private fun ContactUpdatedLabel(updatedAt: String?) {
+    val (jalaliDate, jalaliTime) = ContactsFilters.splitUpdatedAt(updatedAt)
+    if (jalaliDate == "—") return
+    val relative = ContactsFilters.relativeUpdatedLabel(updatedAt)
+
+    Surface(shape = AppShapes.Chip, color = DfColors.SurfaceVariant) {
+        Row(
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = DfIcons.Calendar,
+                contentDescription = null,
+                tint = DfColors.Purple,
+                modifier = Modifier.size(11.dp),
+            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = relative ?: jalaliDate,
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfColors.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (relative != null) {
+                    Text(
+                        text = jalaliDate,
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                } else if (jalaliTime.isNotBlank()) {
+                    Text(
+                        text = jalaliTime,
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -100,6 +100,8 @@ fun ListingDetailHeader(
             style = AppTypography.pageTitle,
             fontWeight = FontWeight.Bold,
             color = DfColors.TextPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
 
         if (location.isNotBlank()) {

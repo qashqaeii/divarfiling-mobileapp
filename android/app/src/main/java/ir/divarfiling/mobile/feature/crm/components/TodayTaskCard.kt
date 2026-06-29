@@ -1,21 +1,20 @@
 package ir.divarfiling.mobile.feature.crm.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -43,7 +42,6 @@ import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.network.TodayItemDto
 import kotlin.math.absoluteValue
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayTaskCard(
     item: TodayItemDto,
@@ -63,151 +61,161 @@ fun TodayTaskCard(
     val dueLabel = TodayTaskLabels.dueLabel(item)
     val phone = item.contact?.phone
     val accent = taskAccentColor(contactName)
+    val statusColor = if (isOverdue) DfColors.OverdueAccent else DfColors.Purple
+    val statusBg = if (isOverdue) DfColors.RoseLight else DfColors.PurpleContainer
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
         color = DfColors.Surface,
-        shadowElevation = 3.dp,
+        shadowElevation = if (isOverdue) 4.dp else 2.dp,
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxHeight()
-                    .width(4.dp)
-                    .background(if (isOverdue) DfColors.OverdueAccent else DfColors.Purple),
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 4.dp)
-                    .padding(AppSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (isOverdue) {
+                        Modifier.border(1.dp, DfColors.OverdueAccent.copy(alpha = 0.25f), AppShapes.Card)
+                    } else {
+                        Modifier
+                    },
+                )
+                .padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(accent.copy(alpha = 0.9f), accent.copy(alpha = 0.55f)),
+                            ),
+                        ),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(accent, accent.copy(alpha = 0.7f)))),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                    Text(
+                        text = taskInitials(contactName),
+                        style = AppTypography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = contactName,
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (taskTitle != contactName) {
                         Text(
-                            text = taskInitials(contactName),
-                            style = AppTypography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                    }
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(3.dp),
-                    ) {
-                        Text(
-                            text = contactName,
-                            style = AppTypography.cardTitle,
-                            fontWeight = FontWeight.Bold,
-                            color = DfColors.TextPrimary,
+                            text = taskTitle,
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        if (taskTitle != contactName) {
-                            Text(
-                                text = taskTitle,
-                                style = AppTypography.labelSmall,
-                                color = DfColors.TextSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        phone?.let {
-                            Text(
-                                text = it,
-                                style = AppTypography.labelSmall,
-                                color = DfColors.TextMuted,
-                                maxLines = 1,
-                            )
-                        }
                     }
-                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TaskTypeBadge(label = typeLabel, isOverdue = isOverdue)
-                        dueLabel?.let {
+                    phone?.let {
+                        Text(
+                            text = it,
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextMuted,
+                            maxLines = 1,
+                        )
+                    }
+                }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    TaskTypeBadge(label = typeLabel, isOverdue = isOverdue)
+                    dueLabel?.let {
+                        Surface(shape = AppShapes.Chip, color = statusBg) {
                             Text(
                                 text = it,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = AppTypography.labelSmall,
-                                color = if (isOverdue) DfColors.OverdueAccent else DfColors.Purple,
-                                fontWeight = FontWeight.Medium,
+                                color = statusColor,
+                                fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
                             )
                         }
                     }
                 }
+            }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TodayActionButton(
-                        label = "تماس",
+            HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.18f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TodayQuickAction(
                         icon = DfIcons.Phone,
                         tint = DfColors.Purple,
+                        contentDescription = "تماس",
                         enabled = !isActionRunning,
                         onClick = onCall,
-                        modifier = Modifier.weight(1f),
                     )
-                    TodayActionButton(
-                        label = "واتساپ",
+                    TodayQuickAction(
                         icon = DfIcons.MessageCircle,
                         tint = DfColors.Green,
+                        contentDescription = "واتساپ",
                         enabled = !isActionRunning,
                         onClick = onWhatsApp,
-                        modifier = Modifier.weight(1f),
                     )
-                    TodayActionButton(
-                        label = "انجام",
+                    TodayQuickAction(
                         icon = DfIcons.CircleCheck,
                         tint = DfColors.Blue,
+                        contentDescription = "انجام",
                         enabled = !isActionRunning,
                         onClick = onComplete,
-                        modifier = Modifier.weight(1f),
                     )
-                    Box {
-                        IconButton(
-                            onClick = { showMenu = true },
-                            enabled = !isActionRunning,
-                            modifier = Modifier.size(36.dp),
-                        ) {
-                            Icon(
-                                imageVector = DfIcons.MoreVertical,
-                                contentDescription = "بیشتر",
-                                tint = DfColors.TextMuted,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("تعویق ۱ روز") },
-                                onClick = { showMenu = false; onPostpone(1) },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("تعویق ۳ روز") },
-                                onClick = { showMenu = false; onPostpone(3) },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("تعویق ۱ هفته") },
-                                onClick = { showMenu = false; onPostpone(7) },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("مشاهده مخاطب") },
-                                onClick = { showMenu = false; onViewContact() },
-                            )
-                        }
+                }
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        enabled = !isActionRunning,
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            imageVector = DfIcons.MoreVertical,
+                            contentDescription = "بیشتر",
+                            tint = DfColors.TextMuted,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("تعویق ۱ روز") },
+                            onClick = { showMenu = false; onPostpone(1) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("تعویق ۳ روز") },
+                            onClick = { showMenu = false; onPostpone(3) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("تعویق ۱ هفته") },
+                            onClick = { showMenu = false; onPostpone(7) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("مشاهده مخاطب") },
+                            onClick = { showMenu = false; onViewContact() },
+                        )
                     }
                 }
             }
@@ -230,33 +238,43 @@ private fun TaskTypeBadge(label: String, isOverdue: Boolean) {
         else -> DfColors.Purple
     }
     Surface(shape = AppShapes.Chip, color = bg) {
-        Text(
-            text = if (isOverdue) "معوق · $label" else label,
+        Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = AppTypography.labelSmall,
-            color = fg,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-        )
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(fg),
+            )
+            Text(
+                text = if (isOverdue) "معوق · $label" else label,
+                style = AppTypography.labelSmall,
+                color = fg,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
+        }
     }
 }
 
 @Composable
-private fun TodayActionButton(
-    label: String,
+private fun TodayQuickAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     tint: Color,
+    contentDescription: String,
     enabled: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
+    Box(
+        modifier = Modifier
+            .size(38.dp)
             .liquidGlassSurface(
-                shape = AppShapes.Chip,
-                variant = DfGlassButtonVariant.Accent,
-                accent = tint,
-                elevation = 4.dp,
+                shape = CircleShape,
+                variant = DfGlassButtonVariant.Secondary,
+                elevation = 2.dp,
                 enabled = enabled,
             )
             .clickable(
@@ -264,18 +282,14 @@ private fun TodayActionButton(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
-            )
-            .padding(horizontal = 8.dp, vertical = 9.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(13.dp))
-        Text(
-            text = label,
-            style = AppTypography.labelSmall,
-            color = tint,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(17.dp),
         )
     }
 }

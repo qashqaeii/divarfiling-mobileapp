@@ -1,7 +1,6 @@
 package ir.divarfiling.mobile.feature.crm
 
 import ir.divarfiling.mobile.R
-import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 
@@ -12,22 +11,23 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -39,8 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.NoteAdd
@@ -48,6 +46,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Share
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.feature.crm.components.ActivityLogSheet
+import ir.divarfiling.mobile.feature.crm.components.ContactActivityTimeline
 import ir.divarfiling.mobile.feature.crm.components.ContactNoteSheet
 import ir.divarfiling.mobile.feature.crm.components.ContactReminderSheet
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,39 +60,37 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfPillChip
 import ir.divarfiling.mobile.feature.crm.components.ContactEditSheet
-import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
-import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
-import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
+import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
+import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
-import ir.divarfiling.mobile.core.network.ActivityDto
+import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
-import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.LinkedListingDto
+import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.ReminderDto
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,6 +162,7 @@ fun ContactDetailScreen(
                     val detail = state.data!!
                     val contactInfo = detail.contact
                     LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
@@ -184,12 +182,18 @@ fun ContactDetailScreen(
                         item {
                             ContactProfileCard(
                                 name = contactInfo.fullName,
-                                phone = contactInfo.phone,
                                 status = contactInfo.status,
                                 customerType = contactInfo.customerType,
                                 priority = contactInfo.priority,
                                 budget = contactInfo.budget,
                                 notes = contactInfo.notes,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+
+                        item {
+                            ContactStatusSection(
+                                currentStatus = contactInfo.status,
                                 onStatusChange = viewModel::changeStatus,
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
@@ -201,7 +205,12 @@ fun ContactDetailScreen(
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             ) {
                                 item {
-                                    ContactActionChip(label = "تماس", icon = Icons.Default.Call) {
+                                    ContactQuickAction(
+                                        label = "تماس",
+                                        icon = Icons.Default.Call,
+                                        background = DfColors.BlueLight,
+                                        iconTint = DfColors.Blue,
+                                    ) {
                                         contactInfo.phone?.let { phone ->
                                             context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
                                             viewModel.logActivity("تماس", "تماس تلفنی")
@@ -209,10 +218,11 @@ fun ContactDetailScreen(
                                     }
                                 }
                                 item {
-                                    ContactActionChip(
+                                    ContactQuickAction(
                                         label = "واتساپ",
                                         iconRes = R.drawable.ic_whatsapp,
-                                        tint = DfColors.Green,
+                                        background = DfColors.GreenLight,
+                                        iconTint = DfColors.Green,
                                     ) {
                                         contactInfo.phone?.let { phone ->
                                             val wa = phone.removePrefix("0")
@@ -224,7 +234,12 @@ fun ContactDetailScreen(
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "پیامک", icon = Icons.Default.Message) {
+                                    ContactQuickAction(
+                                        label = "پیامک",
+                                        icon = Icons.Default.Message,
+                                        background = DfColors.AmberLight,
+                                        iconTint = DfColors.Amber,
+                                    ) {
                                         contactInfo.phone?.let { phone ->
                                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("smsto:$phone")))
                                             viewModel.logActivity("پیامک", "ارسال پیامک")
@@ -232,27 +247,52 @@ fun ContactDetailScreen(
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "ارسال فایل", icon = Icons.Default.Share) {
+                                    ContactQuickAction(
+                                        label = "فایل",
+                                        icon = Icons.Default.Share,
+                                        background = DfColors.PurpleContainer,
+                                        iconTint = DfColors.Purple,
+                                    ) {
                                         viewModel.toggleSendFilingSheet(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "مدرک", icon = Icons.Default.AttachFile) {
+                                    ContactQuickAction(
+                                        label = "مدرک",
+                                        icon = Icons.Default.AttachFile,
+                                        background = DfColors.SurfaceVariant,
+                                        iconTint = DfColors.TextSecondary,
+                                    ) {
                                         documentPicker.launch("*/*")
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "یادداشت", icon = Icons.Default.NoteAdd) {
+                                    ContactQuickAction(
+                                        label = "یادداشت",
+                                        icon = Icons.Default.NoteAdd,
+                                        background = DfColors.PurpleContainer,
+                                        iconTint = DfColors.Purple,
+                                    ) {
                                         viewModel.toggleNoteDialog(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "یادآور", icon = Icons.Default.Notifications) {
+                                    ContactQuickAction(
+                                        label = "یادآور",
+                                        icon = Icons.Default.Notifications,
+                                        background = DfColors.RoseLight,
+                                        iconTint = DfColors.OverdueAccent,
+                                    ) {
                                         viewModel.toggleReminderDialog(true)
                                     }
                                 }
                                 item {
-                                    ContactActionChip(label = "فعالیت", icon = Icons.Default.History) {
+                                    ContactQuickAction(
+                                        label = "فعالیت",
+                                        icon = Icons.Default.History,
+                                        background = DfColors.BlueLight,
+                                        iconTint = DfColors.Blue,
+                                    ) {
                                         viewModel.toggleActivitySheet(true)
                                     }
                                 }
@@ -333,7 +373,10 @@ fun ContactDetailScreen(
 
                         val activities = detail.activities
                         item {
-                            CollapsibleTimelineSection(activities = activities)
+                            ContactActivityTimeline(
+                                activities = activities,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
                         }
                     }
                 }
@@ -433,107 +476,205 @@ fun ContactDetailScreen(
 @Composable
 private fun ContactProfileCard(
     name: String,
-    phone: String?,
     status: String?,
     customerType: String?,
     priority: String?,
     budget: Long?,
     notes: String?,
-    onStatusChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val accent = contactAccentColor(name)
     DfPremiumCard(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(name, style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold)
-            phone?.let {
-                Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                status?.let { DfBadge(it) }
-                customerType?.let {
-                    DfBadge(it, color = DfColors.PurpleContainer, textColor = DfColors.Purple)
-                }
-                priority?.let {
-                    DfBadge(it, color = DfColors.AmberLight, textColor = DfColors.Amber)
-                }
-            }
-            budget?.let {
-                Text(
-                    "بودجه: ${FormatUtils.formatPriceToman(it)}",
-                    style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
-                )
-            }
-            notes?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = AppTypography.bodyDescription)
-            }
-            Text("تغییر سریع وضعیت", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                CrmConstants.STATUSES.forEach { s ->
-                    val selected = s == status
-                    TextButton(
-                        onClick = { if (!selected) onStatusChange(s) },
-                        enabled = !selected,
-                    ) {
-                        Text(
-                            s,
-                            style = AppTypography.labelSmall,
-                            color = if (selected) DfColors.Purple else DfColors.TextSecondary,
-                        )
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(accent.copy(alpha = 0.85f), accent.copy(alpha = 0.45f)),
+                            ),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = contactInitials(name),
+                        style = AppTypography.sectionTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    status?.let { ContactDetailStatusBadge(it) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        customerType?.let {
+                            ContactDetailMetaChip(it, DfColors.Purple, DfColors.PurpleContainer)
+                        }
+                        priority?.let {
+                            ContactDetailMetaChip(it, DfColors.Amber, DfColors.AmberLight)
+                        }
                     }
                 }
             }
+            budget?.let {
+                Surface(shape = AppShapes.Chip, color = DfColors.GreenLight) {
+                    Text(
+                        text = "بودجه: ${FormatUtils.formatPriceToman(it)}",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DfColors.Green,
+                    )
+                }
+            }
+            notes?.takeIf { it.isNotBlank() }?.let {
+                Surface(
+                    shape = AppShapes.Card,
+                    color = DfColors.SurfaceVariant.copy(alpha = 0.55f),
+                ) {
+                    Text(
+                        text = it,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        style = AppTypography.bodyDescription,
+                        color = DfColors.TextSecondary,
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ContactActionChip(
+private fun ContactStatusSection(
+    currentStatus: String?,
+    onStatusChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        Text(
+            text = "وضعیت مخاطب",
+            style = AppTypography.labelSmall,
+            color = DfColors.TextMuted,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            CrmConstants.STATUSES.forEach { status ->
+                DfPillChip(
+                    label = status,
+                    selected = status == currentStatus,
+                    onClick = { if (status != currentStatus) onStatusChange(status) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContactDetailStatusBadge(status: String) {
+    val (dotColor, textColor, bgColor) = contactStatusColors(status)
+    Surface(shape = AppShapes.Chip, color = bgColor) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(dotColor),
+            )
+            Text(
+                text = status,
+                style = AppTypography.labelSmall,
+                color = textColor,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ContactDetailMetaChip(text: String, color: Color, background: Color) {
+    Surface(shape = AppShapes.Chip, color = background) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = AppTypography.labelSmall,
+            color = color,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun ContactQuickAction(
     label: String,
     icon: ImageVector? = null,
     iconRes: Int? = null,
-    tint: Color = DfColors.Purple,
+    background: Color,
+    iconTint: Color,
     onClick: () -> Unit,
 ) {
-    ContactActionChipContent(label, onClick, tint) {
-        when {
-            iconRes != null -> Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(18.dp),
-            )
-            icon != null -> Icon(
-                icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ContactActionChipContent(
-    label: String,
-    onClick: () -> Unit,
-    tint: Color,
-    icon: @Composable () -> Unit,
-) {
-    DfPremiumCard(onClick = onClick) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier
+            .size(width = 76.dp, height = 84.dp)
+            .clip(AppShapes.Card)
+            .background(background)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .liquidGlassSurface(
+                    shape = CircleShape,
+                    variant = DfGlassButtonVariant.Secondary,
+                    elevation = 2.dp,
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            icon()
-            Text(label, style = AppTypography.labelSmall, color = tint)
+            when {
+                iconRes != null -> Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(18.dp),
+                )
+                icon != null -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
+        Text(
+            text = label,
+            style = AppTypography.labelSmall,
+            color = iconTint,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(top = 6.dp),
+        )
     }
 }
 
@@ -547,7 +688,14 @@ private fun ReminderCard(
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(reminder.title, style = AppTypography.cardTitle)
             reminder.dueAt?.let { due ->
-                Text(formatDateTime(due), style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                val (date, time) = ContactsFilters.splitUpdatedAt(due)
+                val relative = ContactsFilters.relativeUpdatedLabel(due)
+                Text(
+                    text = listOfNotNull(relative ?: date, time.takeIf { it.isNotBlank() })
+                        .joinToString(" · "),
+                    style = AppTypography.labelSmall,
+                    color = DfColors.TextMuted,
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onComplete) { Text("انجام شد") }
@@ -613,59 +761,6 @@ private fun LinkedListingCard(
 }
 
 @Composable
-private fun CollapsibleTimelineSection(activities: List<ActivityDto>) {
-    var expanded by remember { mutableStateOf(false) }
-    DfPremiumCard {
-        Column(Modifier.padding(horizontal = 4.dp, vertical = 6.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("تایم‌لاین فعالیت‌ها", style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        if (activities.isEmpty()) "فعالیتی ثبت نشده"
-                        else "${activities.size} فعالیت ثبت‌شده",
-                        style = AppTypography.bodyDescription,
-                        color = DfColors.TextMuted,
-                    )
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "بستن" else "باز کردن",
-                    tint = DfColors.Purple,
-                )
-            }
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (activities.isEmpty()) {
-                        DfEmptyState(
-                            title = "هنوز فعالیتی نیست",
-                            subtitle = "با تماس، یادداشت یا ثبت فعالیت، تایم‌لاین را شروع کنید",
-                        )
-                    } else {
-                        activities.forEach { activity ->
-                            ActivityTimelineItem(activity)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun DocumentCard(
     document: CustomerDocumentDto,
     onOpen: (String) -> Unit,
@@ -676,7 +771,13 @@ private fun DocumentCard(
             Text(document.title, style = AppTypography.cardTitle)
             document.docType?.takeIf { it.isNotBlank() }?.let { DfBadge(it) }
             document.uploadedAt?.let {
-                Text(formatDateTime(it), style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                val (date, time) = ContactsFilters.splitUpdatedAt(it)
+                Text(
+                    text = listOfNotNull(date.takeIf { d -> d != "—" }, time.takeIf { t -> t.isNotBlank() })
+                        .joinToString(" · "),
+                    style = AppTypography.labelSmall,
+                    color = DfColors.TextMuted,
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 document.fileUrl?.takeIf { it.isNotBlank() }?.let { url ->
@@ -688,29 +789,30 @@ private fun DocumentCard(
     }
 }
 
-@Composable
-private fun ActivityTimelineItem(activity: ActivityDto) {
-    DfPremiumCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    activity.title ?: activity.activityTypeLabel ?: activity.activityType ?: "فعالیت",
-                    style = AppTypography.cardTitle,
-                )
-                activity.content?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
-                }
-            }
-            activity.createdAt?.take(16)?.let {
-                Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-            }
-        }
+private fun contactInitials(name: String): String {
+    val parts = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    return when {
+        parts.isEmpty() -> "?"
+        parts.size == 1 -> parts[0].take(1)
+        else -> "${parts[0].take(1)}${parts[1].take(1)}"
     }
 }
 
+private fun contactAccentColor(name: String): Color {
+    val palette = listOf(
+        DfColors.Purple,
+        DfColors.Blue,
+        DfColors.Green,
+        DfColors.Amber,
+        DfColors.Rose,
+    )
+    return palette[name.hashCode().absoluteValue % palette.size]
+}
 
-private fun formatDateTime(iso: String): String =
-    DateUtils.formatJalaliDateTime(iso) ?: DateUtils.formatJalaliDate(iso) ?: iso.take(16)
+private fun contactStatusColors(status: String): Triple<Color, Color, Color> = when {
+    status.contains("پیگیری") -> Triple(DfColors.Amber, DfColors.Amber, DfColors.AmberLight)
+    status.contains("بازدید") -> Triple(DfColors.Green, DfColors.Green, DfColors.GreenLight)
+    status == "جدید" -> Triple(DfColors.Blue, DfColors.Blue, DfColors.BlueLight)
+    status.contains("قرارداد") -> Triple(DfColors.Purple, DfColors.Purple, DfColors.PurpleContainer)
+    else -> Triple(DfColors.TextMuted, DfColors.TextSecondary, DfColors.SurfaceVariant)
+}

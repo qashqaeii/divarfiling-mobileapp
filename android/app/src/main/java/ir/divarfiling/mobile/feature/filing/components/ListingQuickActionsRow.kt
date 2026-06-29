@@ -1,11 +1,16 @@
 package ir.divarfiling.mobile.feature.filing.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -19,13 +24,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.R
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 @Composable
 fun ListingQuickActionsRow(
@@ -34,106 +42,164 @@ fun ListingQuickActionsRow(
     onOpenDivar: (() -> Unit)?,
     onSetReminder: () -> Unit,
     onSaveAsPersonal: () -> Unit,
+    showSaveAsPersonal: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    val actions = buildList {
+        if (showSaveAsPersonal) {
+            add(
+                QuickActionSpec(
+                    label = "شخصی",
+                    icon = DfIcons.Building,
+                    tint = DfColors.Amber,
+                    background = DfColors.AmberLight,
+                    onClick = onSaveAsPersonal,
+                ),
+            )
+        }
+        add(
+            QuickActionSpec(
+                label = "ارسال",
+                icon = DfIcons.UserPlus,
+                tint = DfColors.Purple,
+                background = DfColors.PurpleContainer,
+                onClick = onSendToContact,
+            ),
+        )
+        add(
+            QuickActionSpec(
+                label = "واتساپ",
+                iconRes = R.drawable.ic_whatsapp,
+                tint = DfColors.Green,
+                background = DfColors.GreenLight,
+                onClick = onWhatsAppShare,
+            ),
+        )
+        onOpenDivar?.let { openDivar ->
+            add(
+                QuickActionSpec(
+                    label = "دیوار",
+                    icon = DfIcons.ExternalLink,
+                    tint = DfColors.Blue,
+                    background = DfColors.BlueLight,
+                    onClick = openDivar,
+                ),
+            )
+        }
+        add(
+            QuickActionSpec(
+                label = "یادآور",
+                icon = DfIcons.Bell,
+                tint = DfColors.PurpleDark,
+                background = DfColors.PurpleLight,
+                onClick = onSetReminder,
+            ),
+        )
+    }
+
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = AppSpacing.screenHorizontal),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        shape = AppShapes.Card,
+        color = DfColors.Surface,
+        shadowElevation = AppElevations.subtle,
     ) {
-        ListingQuickActionCard(
-            label = "فایل شخصی",
-            icon = DfIcons.Building,
-            background = DfColors.AmberLight,
-            iconTint = DfColors.Amber,
-            onClick = onSaveAsPersonal,
-            modifier = Modifier.weight(1f),
-        )
-        ListingQuickActionCard(
-            label = "ارسال به مخاطب",
-            icon = DfIcons.UserPlus,
-            background = DfColors.PurpleContainer,
-            iconTint = DfColors.Purple,
-            onClick = onSendToContact,
-            modifier = Modifier.weight(1f),
-        )
-        ListingQuickActionCard(
-            label = "اشتراک واتساپ",
-            iconRes = R.drawable.ic_whatsapp,
-            background = DfColors.GreenLight,
-            iconTint = DfColors.Green,
-            onClick = onWhatsAppShare,
-            modifier = Modifier.weight(1f),
-        )
-        if (onOpenDivar != null) {
-            ListingQuickActionCard(
-                label = "مشاهده در دیوار",
-                icon = DfIcons.ExternalLink,
-                background = DfColors.BlueLight,
-                iconTint = DfColors.Blue,
-                onClick = onOpenDivar,
-                modifier = Modifier.weight(1f),
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            actions.forEach { action ->
+                ListingQuickActionButton(
+                    label = action.label,
+                    icon = action.icon,
+                    iconRes = action.iconRes,
+                    tint = action.tint,
+                    background = action.background,
+                    onClick = action.onClick,
+                )
+            }
         }
-        ListingQuickActionCard(
-            label = "ثبت یادآور",
-            icon = DfIcons.Bell,
-            background = DfColors.PurpleLight,
-            iconTint = DfColors.PurpleDark,
-            onClick = onSetReminder,
-            modifier = Modifier.weight(1f),
+    }
+}
+
+private data class QuickActionSpec(
+    val label: String,
+    val tint: Color,
+    val background: Color,
+    val onClick: () -> Unit,
+    val icon: ImageVector? = null,
+    val iconRes: Int? = null,
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ListingQuickActionButton(
+    label: String,
+    tint: Color,
+    background: Color,
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+    iconRes: Int? = null,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.padding(horizontal = 2.dp),
+    ) {
+        Surface(
+            onClick = onClick,
+            shape = CircleShape,
+            color = background,
+            shadowElevation = 0.dp,
+            modifier = Modifier.size(52.dp),
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                when {
+                    icon != null -> Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = tint,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    iconRes != null -> Icon(
+                        painter = painterResource(iconRes),
+                        contentDescription = label,
+                        tint = tint,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+        }
+        Text(
+            text = label,
+            style = AppTypography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = DfColors.TextPrimary,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true, widthDp = 360)
 @Composable
-private fun ListingQuickActionCard(
-    label: String,
-    onClick: () -> Unit,
-    background: Color,
-    iconTint: Color,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    iconRes: Int? = null,
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = AppShapes.Card,
-        color = background,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            when {
-                icon != null -> Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp),
-                )
-                iconRes != null -> Icon(
-                    painter = painterResource(iconRes),
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Text(
-                text = label,
-                style = AppTypography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = DfColors.TextPrimary,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+private fun ListingQuickActionsRowPreview() {
+    DivarFilingTheme {
+        ListingQuickActionsRow(
+            onSendToContact = {},
+            onWhatsAppShare = {},
+            onOpenDivar = {},
+            onSetReminder = {},
+            onSaveAsPersonal = {},
+        )
     }
 }

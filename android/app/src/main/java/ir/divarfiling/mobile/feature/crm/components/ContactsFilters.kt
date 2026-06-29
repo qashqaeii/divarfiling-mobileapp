@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 import java.time.LocalDate
@@ -65,6 +66,33 @@ object ContactsFilters {
             contact.updatedAt?.startsWith(today) == true ||
                 parseDate(contact.updatedAt) == today
         }
+    }
+
+    fun splitUpdatedAt(updatedAt: String?): Pair<String, String> {
+        if (updatedAt.isNullOrBlank()) return "—" to ""
+        val formatted = DateUtils.formatJalaliDateTime(updatedAt)
+            ?: DateUtils.formatJalaliDate(updatedAt)
+        if (formatted != null) {
+            val parts = formatted.split(' ')
+            val date = parts.firstOrNull().orEmpty().ifBlank { "—" }
+            val time = parts.drop(1).joinToString(" ").trim()
+            return date to time
+        }
+        return "—" to ""
+    }
+
+    fun relativeUpdatedLabel(updatedAt: String?): String? {
+        val isoDate = parseDate(updatedAt) ?: return null
+        return runCatching {
+            val date = LocalDate.parse(isoDate)
+            val today = LocalDate.now()
+            when (val days = today.toEpochDay() - date.toEpochDay()) {
+                0L -> "امروز"
+                1L -> "دیروز"
+                in 2..6 -> "${DateUtils.toPersianDigits(days.toString())} روز پیش"
+                else -> null
+            }
+        }.getOrNull()
     }
 
     private fun parseDate(value: String?): String? {

@@ -56,8 +56,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var todayExpanded by remember { mutableStateOf(true) }
-    var notificationsExpanded by remember { mutableStateOf(true) }
+    var todayExpanded by remember { mutableStateOf(false) }
+    var notificationsExpanded by remember { mutableStateOf(false) }
 
     DfPullRefresh(
         isRefreshing = state.isRefreshing,
@@ -262,7 +262,7 @@ internal fun HomeScreenContentPreview() {
             HomeDashboardCard(
                 title = "کارهای امروز",
                 icon = DfIcons.ListTodo,
-                expanded = true,
+                expanded = false,
                 onToggle = {},
                 footerLabel = "مشاهده همه کارها (8)",
                 onFooterClick = {},

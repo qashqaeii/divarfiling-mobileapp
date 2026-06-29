@@ -28,7 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
@@ -36,7 +36,6 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 
@@ -82,16 +81,11 @@ fun FilingDatasetsSection(
 fun FilingDatasetCard(
     dataset: DatasetDto,
     onClick: () -> Unit,
-    onRefreshClick: () -> Unit,
-    isFavorite: Boolean = false,
-    onToggleFavorite: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val location = listOfNotNull(dataset.city, dataset.district).joinToString("، ")
     val format = dataset.fileFormat?.uppercase() ?: "JSON"
-    val filename = dataset.originalFilename ?: "${dataset.id}.${format.lowercase()}"
-    val thumb = ImageUrlFormatter.normalize(dataset.thumbnailUrl)
 
     Surface(
         onClick = onClick,
@@ -108,23 +102,13 @@ fun FilingDatasetCard(
                     .background(DfColors.SurfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
-                if (thumb != null) {
-                    AsyncImage(
-                        model = thumb,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Icon(
-                        imageVector = DfIcons.Building,
-                        contentDescription = null,
-                        tint = DfColors.TextMuted,
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
+                DfListingImage(
+                    thumbnailUrl = dataset.thumbnailUrl,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentScale = ContentScale.Crop,
+                )
             }
             Column(
                 modifier = Modifier.padding(AppSpacing.sm),
@@ -147,29 +131,16 @@ fun FilingDatasetCard(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Text(
-                            text = filename,
-                            style = AppTypography.labelSmall,
-                            color = DfColors.TextMuted,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         IconAction(DfIcons.Download, "باز کردن", onClick)
-                        IconAction(DfIcons.RotateCcw, "بروزرسانی", onRefreshClick)
+                        IconAction(DfIcons.File, "مشاهده فایل", onClick)
                         Box {
                             IconAction(DfIcons.MoreVertical, "بیشتر") { showMenu = true }
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 DropdownMenuItem(
                                     text = { Text("مشاهده آگهی‌ها") },
                                     onClick = { showMenu = false; onClick() },
-                                )
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(if (isFavorite) "حذف از علاقه‌مندی" else "افزودن به علاقه‌مندی")
-                                    },
-                                    onClick = { showMenu = false; onToggleFavorite() },
                                 )
                             }
                         }

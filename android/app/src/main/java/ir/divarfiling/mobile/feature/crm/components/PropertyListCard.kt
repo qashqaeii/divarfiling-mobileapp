@@ -5,13 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,7 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,7 +33,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.FormatUtils
+import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.network.PropertyDto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +47,7 @@ fun PropertyListCard(
     val (statusColor, statusBg) = PropertyFilters.txStatusColors(txStatus)
     val dealAccent = PropertyFilters.dealModeAccent(property)
     val location = PropertyFilters.locationLabel(property)
+    val cover = property.images.firstOrNull()
 
     Surface(
         onClick = onClick,
@@ -52,129 +56,142 @@ fun PropertyListCard(
         color = DfColors.Surface,
         shadowElevation = 3.dp,
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxHeight()
-                    .width(4.dp)
-                    .background(statusColor),
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(dealAccent, statusColor.copy(alpha = 0.55f)),
+                        ),
+                    ),
             )
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 4.dp)
                     .padding(AppSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.Top,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(AppShapes.IconContainer)
-                            .background(statusBg),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = PropertyFilters.propertyTypeIcon(property.propertyType),
-                            contentDescription = null,
-                            tint = statusColor,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
                     Row(
-                        modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        property.dealMode?.let { PropertyPill(text = it, color = dealAccent, bg = dealAccent.copy(alpha = 0.12f)) }
-                        PropertyPill(text = txStatus, color = statusColor, bg = statusBg)
-                    }
-                    property.publishStatus?.takeIf { it.isNotBlank() }?.let { pub ->
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(PropertyFilters.publishDotColor(pub)),
-                        )
-                    }
-                }
-
-                Text(
-                    text = property.title,
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-
-                if (location != "—") {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            imageVector = DfIcons.MapPin,
-                            contentDescription = null,
-                            tint = DfColors.TextMuted,
-                            modifier = Modifier.size(12.dp),
-                        )
-                        Text(
-                            text = location,
-                            style = AppTypography.labelSmall,
-                            color = DfColors.TextSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-
-                val metrics = buildList {
-                    PropertyFilters.formatArea(property.area)?.let { add(it) }
-                    property.rooms?.takeIf { it.isNotBlank() }?.let { add("$it اتاق") }
-                    PropertyFilters.formatFloor(property.floor, property.totalFloors)?.let { add(it) }
-                }
-                if (metrics.isNotEmpty()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        metrics.forEach { metric ->
-                            PropertyMetricChip(label = metric)
+                        property.dealMode?.let {
+                            PropertyBadge(text = it, color = dealAccent, bg = dealAccent.copy(alpha = 0.12f))
                         }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = PropertyFilters.priceSummary(property),
-                            style = AppTypography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = dealAccent,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        val priceLabel = PropertyFilters.priceLabel(property)
-                        if (priceLabel.isNotBlank()) {
-                            Text(
-                                text = priceLabel,
-                                style = AppTypography.labelSmall,
-                                color = DfColors.TextMuted,
+                        PropertyBadge(text = txStatus, color = statusColor, bg = statusBg)
+                        property.propertyType?.let {
+                            PropertyBadge(
+                                text = it,
+                                color = DfColors.TextSecondary,
+                                bg = DfColors.SurfaceVariant,
                             )
                         }
                     }
-                    PropertyFilters.jalaliUpdated(property)?.let { updated ->
-                        Text(
-                            text = updated,
-                            style = AppTypography.labelSmall,
-                            color = DfColors.TextMuted,
-                            maxLines = 1,
+
+                    Text(
+                        text = property.title,
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.TextPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    if (location != "—") {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = DfIcons.MapPin,
+                                contentDescription = null,
+                                tint = DfColors.TextMuted,
+                                modifier = Modifier.size(12.dp),
+                            )
+                            Text(
+                                text = location,
+                                style = AppTypography.labelSmall,
+                                color = DfColors.TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
+                    val metrics = buildList {
+                        PropertyFilters.formatArea(property.area)?.let { add(it) }
+                        property.rooms?.takeIf { it.isNotBlank() }?.let { add("$it اتاق") }
+                        PropertyFilters.formatFloor(property.floor, property.totalFloors)?.let { add(it) }
+                    }
+                    if (metrics.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            metrics.forEach { PropertyMetricChip(label = it) }
+                        }
+                    }
+
+                    HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.1f))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = PropertyFilters.priceSummary(property),
+                                style = AppTypography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = dealAccent,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            val priceLabel = PropertyFilters.priceLabel(property)
+                            if (priceLabel.isNotBlank()) {
+                                Text(
+                                    text = priceLabel,
+                                    style = AppTypography.labelSmall,
+                                    color = DfColors.TextMuted,
+                                )
+                            }
+                        }
+                        PropertyFilters.jalaliUpdated(property)?.let { updated ->
+                            Text(
+                                text = updated,
+                                style = AppTypography.labelSmall,
+                                color = DfColors.TextMuted,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(width = 96.dp, height = 96.dp)
+                        .clip(AppShapes.CardSmall),
+                ) {
+                    DfListingImage(
+                        thumbnailUrl = cover,
+                        images = property.images,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.Crop,
+                        shape = AppShapes.CardSmall,
+                    )
+                    property.publishStatus?.takeIf { it.isNotBlank() }?.let { pub ->
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(6.dp)
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(PropertyFilters.publishDotColor(pub)),
                         )
                     }
                 }
@@ -184,7 +201,7 @@ fun PropertyListCard(
 }
 
 @Composable
-private fun PropertyPill(text: String, color: Color, bg: Color) {
+private fun PropertyBadge(text: String, color: Color, bg: Color) {
     Surface(shape = AppShapes.Chip, color = bg) {
         Text(
             text = text,
@@ -200,7 +217,7 @@ private fun PropertyPill(text: String, color: Color, bg: Color) {
 
 @Composable
 private fun PropertyMetricChip(label: String) {
-    Surface(shape = AppShapes.Chip, color = DfColors.SurfaceVariant) {
+    Surface(shape = AppShapes.Chip, color = DfColors.SurfaceVariant.copy(alpha = 0.7f)) {
         Text(
             text = label,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

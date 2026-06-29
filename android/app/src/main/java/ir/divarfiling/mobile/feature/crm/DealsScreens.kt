@@ -2,40 +2,17 @@ package ir.divarfiling.mobile.feature.crm
 
 import ir.divarfiling.mobile.core.design.DfColors
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Icon
-import androidx.compose.ui.text.font.FontWeight
-import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.FormatUtils
-import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfExtendedFab
-import ir.divarfiling.mobile.core.design.components.DfFilterOption
-import ir.divarfiling.mobile.core.design.components.DfFilterChipSection
-import ir.divarfiling.mobile.core.design.components.DfSearchFilterPanel
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,24 +20,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
-import ir.divarfiling.mobile.core.design.components.DfPremiumCard
-import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
-import ir.divarfiling.mobile.core.design.components.DfPillChip
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
-import ir.divarfiling.mobile.core.network.DealDto
-import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.feature.crm.components.DealCreateSheet
 import ir.divarfiling.mobile.feature.crm.components.DealEditSheet
 import ir.divarfiling.mobile.feature.crm.components.DealListCard
@@ -71,6 +44,9 @@ import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.feature.crm.components.DealsPipelineBar
 import ir.divarfiling.mobile.feature.crm.components.DealsSortOrder
 import ir.divarfiling.mobile.feature.crm.components.DealsStatsRow
+import ir.divarfiling.mobile.feature.crm.components.DealDetailHeroCard
+import ir.divarfiling.mobile.feature.crm.components.DealDetailQuickActions
+import ir.divarfiling.mobile.feature.crm.components.DealStageSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,6 +149,7 @@ fun DealsScreen(
                         onResetFilters = {
                             ownerFilter = DealsFilters.ALL_OWNERS
                             sortLabel = DealsFilters.NEWEST
+                            viewModel.onQueryChange("")
                             viewModel.clearStageFilter()
                         },
                         query = state.query,
@@ -283,6 +260,7 @@ fun DealDetailScreen(
                 state.isLoading -> DfDetailSkeleton()
                 deal != null -> {
                     LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
@@ -295,65 +273,24 @@ fun DealDetailScreen(
                             )
                         }
                         item {
-                            DfPremiumCard(
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                                    deal.stage?.let { DfBadge(it) }
-                                    deal.amount?.let {
-                                        Text(
-                                            FormatUtils.formatPriceToman(it),
-                                            style = AppTypography.sectionTitle,
-                                            color = DfColors.Purple,
-                                        )
-                                    }
-                                    deal.commissionAmount?.let {
-                                        Text(
-                                            "کمیسیون: ${FormatUtils.formatPriceToman(it)}",
-                                            style = AppTypography.bodyDescription,
-                                        )
-                                    }
-                                    deal.customerName?.let {
-                                        TextButton(onClick = { deal.customerId?.let(onContactClick) }) {
-                                            Text("مخاطب: $it", style = AppTypography.bodyDescription)
-                                        }
-                                    }
-                                    deal.propertyTitle?.let {
-                                        Text("ملک: $it", style = AppTypography.bodyDescription)
-                                    }
-                                    deal.notes?.takeIf { it.isNotBlank() }?.let {
-                                        Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
-                                    }
-                                }
-                            }
-                        }
-                        item {
-                            Text(
-                                "تغییر مرحله",
-                                style = AppTypography.labelSmall,
-                                color = DfColors.TextMuted,
+                            DealDetailHeroCard(
+                                deal = deal,
+                                onContactClick = { deal.customerId?.let(onContactClick) },
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState())
-                                    .padding(horizontal = AppSpacing.screenHorizontal),
-                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                            ) {
-                                state.stages.forEach { stage ->
-                                    DfPillChip(
-                                        label = stage,
-                                        selected = deal.stage == stage,
-                                        onClick = { viewModel.changeStage(stage) },
-                                    )
-                                }
-                            }
                         }
                         item {
-                            DfPrimaryButton(
-                                "ویرایش",
-                                onClick = { viewModel.toggleEditSheet(true) },
+                            DealStageSection(
+                                stages = state.stages,
+                                currentStage = deal.stage,
+                                isSubmitting = state.isSubmitting,
+                                onStageSelect = viewModel::changeStage,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                        item {
+                            DealDetailQuickActions(
+                                onEdit = { viewModel.toggleEditSheet(true) },
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
@@ -369,10 +306,13 @@ fun DealDetailScreen(
                 title = state.editTitle,
                 amount = state.editAmount,
                 notes = state.editNotes,
+                stages = state.stages,
+                selectedStage = state.editStage.ifBlank { deal?.stage.orEmpty() },
                 isSubmitting = state.isSubmitting,
                 onTitleChange = viewModel::onEditTitleChange,
                 onAmountChange = viewModel::onEditAmountChange,
                 onNotesChange = viewModel::onEditNotesChange,
+                onStageChange = viewModel::onEditStageChange,
                 onSave = viewModel::saveEdit,
                 onDismiss = { viewModel.toggleEditSheet(false) },
             )

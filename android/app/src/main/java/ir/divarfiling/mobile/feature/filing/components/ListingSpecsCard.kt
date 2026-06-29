@@ -31,6 +31,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.core.network.ListingDetailDto
@@ -198,6 +199,11 @@ private fun buildListingSpecItems(listing: ListingDetailDto, expanded: Boolean):
         listing.advertiserType?.takeIf { it.isNotBlank() }?.let {
             ListingSpecItem("نوع آگهی‌دهنده", ListingAdvertiserUtils.badgeLabel(listing), DfIcons.Users)
         },
+        listing.scrapedAt?.takeIf { it.isNotBlank() }?.let { scraped ->
+            formatScrapedDate(scraped)?.let {
+                ListingSpecItem("تاریخ استخراج", it, DfIcons.Calendar)
+            }
+        },
     )
 
     if (!expanded) return items.take(4)
@@ -215,8 +221,8 @@ private fun buildListingSpecItems(listing: ListingDetailDto, expanded: Boolean):
         listing.pricePerSqm?.let {
             ListingSpecItem("قیمت هر متر", FormatUtils.formatPriceToman(it.toLong()), DfIcons.Tag)
         },
-        listing.scrapedAt?.takeIf { it.isNotBlank() }?.let {
-            ListingSpecItem("تاریخ استخراج", it.take(16), DfIcons.Calendar)
-        },
     )
 }
+
+private fun formatScrapedDate(iso: String): String? =
+    DateUtils.formatJalaliDateTime(iso) ?: DateUtils.formatJalaliDate(iso)

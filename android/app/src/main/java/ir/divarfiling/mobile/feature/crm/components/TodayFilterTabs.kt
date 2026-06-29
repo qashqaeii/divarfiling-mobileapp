@@ -14,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -71,25 +70,25 @@ private fun TodayFilterChipItem(
     Surface(
         onClick = onClick,
         shape = AppShapes.ButtonPill,
-        color = if (selected) DfColors.Purple else DfColors.Surface,
-        shadowElevation = if (selected) 0.dp else 1.dp,
+        color = if (selected) DfColors.PurpleContainer else DfColors.SurfaceVariant.copy(alpha = 0.65f),
+        shadowElevation = 0.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) Color.White else DfColors.TextMuted,
-                modifier = Modifier.size(14.dp),
+                tint = if (selected) DfColors.Purple else DfColors.TextMuted,
+                modifier = Modifier.size(13.dp),
             )
             Text(
                 text = label,
                 style = AppTypography.labelSmall,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) Color.White else DfColors.TextSecondary,
+                color = if (selected) DfColors.Purple else DfColors.TextSecondary,
                 maxLines = 1,
             )
         }
