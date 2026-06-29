@@ -1,37 +1,29 @@
 package ir.divarfiling.mobile.feature.extract.components
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -49,6 +41,7 @@ fun ExtractStatsCard(
 ) {
     val used = (dailyLimit - remainingToday).coerceIn(0, dailyLimit)
     val usagePercent = if (dailyLimit > 0) (used * 100f / dailyLimit).roundToInt() else 0
+    val progress = if (dailyLimit > 0) used.toFloat() / dailyLimit else 0f
     val accent = when {
         !canExtractNow -> DfColors.Rose
         usagePercent >= 80 -> DfColors.Amber
@@ -56,90 +49,100 @@ fun ExtractStatsCard(
     }
 
     ExtractSectionCard(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier.width(92.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
             ) {
-                UsageRing(percent = usagePercent, accent = accent)
-                Text(
-                    text = "باقی‌مانده امروز",
-                    style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                )
-                Text(
-                    text = "$remainingToday آگهی",
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.Purple,
-                    maxLines = 1,
-                )
-                Text(
-                    text = "از $dailyLimit آگهی مجاز",
-                    style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(1.dp)
-                    .padding(vertical = AppSpacing.xs),
-            ) {
-                Canvas(modifier = Modifier.fillMaxHeight().width(1.dp)) {
-                    drawLine(
-                        color = DfColors.Outline,
-                        start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                        end = androidx.compose.ui.geometry.Offset(0f, size.height),
-                        strokeWidth = 1.dp.toPx(),
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
+                    Text(
+                        text = "باقی‌مانده امروز",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = remainingToday.toString(),
+                            style = AppTypography.sectionTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = accent,
+                        )
+                        Text(
+                            text = "آگهی",
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextSecondary,
+                        )
+                    }
+                }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                ) {
+                    Text(
+                        text = "$usagePercent٪",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = accent,
+                    )
+                    Text(
+                        text = "از $dailyLimit",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
                     )
                 }
             }
 
-            Row(
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
                 modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = accent,
+                trackColor = DfColors.SurfaceVariant,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                StatColumn(
-                    icon = DfIcons.Calendar,
-                    iconTint = DfColors.Amber,
-                    label = "تاریخ آخرین استخراج",
+                StatTile(
+                    label = "آخرین استخراج",
                     value = lastExtractionLabel,
+                    background = DfColors.AmberLight,
+                    valueColor = DfColors.Amber,
+                    modifier = Modifier.weight(1f),
                 )
-                StatDivider()
-                StatColumn(
-                    icon = DfIcons.ClipboardList,
-                    iconTint = DfColors.Purple,
-                    label = "استخراج‌های امروز",
+                StatTile(
+                    label = "استخراج امروز",
                     value = extractionsToday.toString(),
+                    background = DfColors.PurpleContainer,
+                    valueColor = DfColors.Purple,
+                    modifier = Modifier.weight(1f),
                 )
-                StatDivider()
-                StatColumn(
-                    icon = DfIcons.CircleCheck,
-                    iconTint = DfColors.Green,
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                StatTile(
                     label = "استخراج موفق",
                     value = successfulCountLabel,
+                    background = DfColors.GreenLight,
+                    valueColor = DfColors.Green,
+                    modifier = Modifier.weight(1f),
                 )
-                StatDivider()
-                StatColumn(
-                    icon = DfIcons.Clock,
-                    iconTint = DfColors.Blue,
+                StatTile(
                     label = "میانگین زمان",
                     value = averageTimeLabel,
+                    background = DfColors.BlueLight,
+                    valueColor = DfColors.Blue,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -147,90 +150,36 @@ fun ExtractStatsCard(
 }
 
 @Composable
-private fun StatDivider() {
-    Box(
-        modifier = Modifier
-            .height(72.dp)
-            .width(1.dp)
-            .padding(vertical = AppSpacing.xs),
-    ) {
-        Canvas(modifier = Modifier.fillMaxHeight().width(1.dp)) {
-            drawLine(
-                color = DfColors.Outline,
-                start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                end = androidx.compose.ui.geometry.Offset(0f, size.height),
-                strokeWidth = 1.dp.toPx(),
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatColumn(
-    icon: ImageVector,
-    iconTint: Color,
+private fun StatTile(
     label: String,
     value: String,
+    background: Color,
+    valueColor: Color,
+    modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = Modifier
-            .width(88.dp)
-            .padding(horizontal = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+    Box(
+        modifier = modifier
+            .clip(AppShapes.Card)
+            .background(background.copy(alpha = 0.55f))
+            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = label,
-            style = AppTypography.labelSmall,
-            color = DfColors.TextMuted,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = value,
-            style = AppTypography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = DfColors.TextPrimary,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun UsageRing(percent: Int, accent: Color) {
-    val sweep = (percent.coerceIn(0, 100) / 100f) * 360f
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(64.dp)) {
-        Canvas(modifier = Modifier.size(64.dp)) {
-            drawArc(
-                color = DfColors.SurfaceVariant,
-                startAngle = -90f,
-                sweepAngle = 360f,
-                useCenter = false,
-                style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round),
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = label,
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            drawArc(
-                color = accent,
-                startAngle = -90f,
-                sweepAngle = sweep,
-                useCenter = false,
-                style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round),
+            Text(
+                text = value,
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.SemiBold,
+                color = valueColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
-        Text(
-            text = "$percent٪",
-            style = AppTypography.cardTitle,
-            fontWeight = FontWeight.Bold,
-            color = accent,
-        )
     }
 }
 
@@ -255,7 +204,7 @@ private fun ExtractStatsCardPreview() {
             remainingToday = 40,
             dailyLimit = 100,
             canExtractNow = true,
-            lastExtractionLabel = "امروز، 08:30",
+            lastExtractionLabel = "امروز",
             successfulCountLabel = "120",
             averageTimeLabel = "2.4 دقیقه",
             modifier = Modifier.padding(AppSpacing.screenHorizontal),

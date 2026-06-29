@@ -67,7 +67,7 @@ fun ExtractScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+            contentPadding = PaddingValues(bottom = AppSpacing.xxxl + AppSpacing.bottomNavHeight),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
             item {
@@ -377,7 +377,7 @@ internal fun ExtractScreenContentPreview() {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize(),
-        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+        contentPadding = PaddingValues(bottom = AppSpacing.xxxl + AppSpacing.bottomNavHeight),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
     ) {
         item {
