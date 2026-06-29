@@ -105,7 +105,7 @@ object DivarImageExtractor {
                         key.contains("webp", ignoreCase = true) ||
                         key.contains("thumbnail", ignoreCase = true)
                     ) {
-                        value.jsonPrimitive.contentOrNull()?.takeIf(::isLikelyImageUrl)?.let(urls::add)
+                        value.primitiveContentOrNull()?.takeIf(::isLikelyImageUrl)?.let(urls::add)
                     }
                     collectUrlsRecursive(value, urls, depth + 1)
                 }
@@ -114,7 +114,7 @@ object DivarImageExtractor {
         }
     }
 
-    private fun JsonElement.jsonPrimitive.contentOrNull(): String? =
+    private fun JsonElement.primitiveContentOrNull(): String? =
         runCatching { jsonPrimitive.content }.getOrNull()
 
     private fun isLikelyImageUrl(value: String): Boolean {
