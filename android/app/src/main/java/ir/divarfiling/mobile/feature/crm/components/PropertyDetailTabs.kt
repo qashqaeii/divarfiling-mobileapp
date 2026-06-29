@@ -494,8 +494,12 @@ private fun PropertyDossierPanel(
             title = "زمان‌بندی",
             icon = DfIcons.Calendar,
             rows = buildList {
-                property.createdAt?.let { add("ثبت" to DateUtils.formatJalaliDateTime(it)) }
-                property.updatedAt?.let { add("بروزرسانی" to DateUtils.formatJalaliDateTime(it)) }
+                property.createdAt?.let { ts ->
+                    DateUtils.formatJalaliDateTime(ts)?.let { add("ثبت" to it) }
+                }
+                property.updatedAt?.let { ts ->
+                    DateUtils.formatJalaliDateTime(ts)?.let { add("بروزرسانی" to it) }
+                }
                 if (property.images.isNotEmpty()) add("تصاویر" to "${property.images.size} عدد")
             },
         )
@@ -781,12 +785,14 @@ private fun PropertyDocumentCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(document.title, style = AppTypography.cardTitle)
-                document.uploadedAt?.let {
-                    Text(
-                        DateUtils.formatJalaliDateTime(it),
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
-                    )
+                document.uploadedAt?.let { uploadedAt ->
+                    DateUtils.formatJalaliDateTime(uploadedAt)?.let { formatted ->
+                        Text(
+                            formatted,
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextMuted,
+                        )
+                    }
                 }
             }
             if (canDelete) {
@@ -815,8 +821,10 @@ private fun PropertyDetailSummarySidebar(
             PropertySpecRow("وضعیت", property.transactionStatus ?: "فعال")
             PropertySpecRow("انتشار", property.publishStatus ?: "—")
             PropertySpecRow("مخاطبین", contactCount.toString())
-            property.createdAt?.let {
-                PropertySpecRow("ثبت", DateUtils.formatJalaliDateTime(it))
+            property.createdAt?.let { createdAt ->
+                DateUtils.formatJalaliDateTime(createdAt)?.let { formatted ->
+                    PropertySpecRow("ثبت", formatted)
+                }
             }
         }
     }
