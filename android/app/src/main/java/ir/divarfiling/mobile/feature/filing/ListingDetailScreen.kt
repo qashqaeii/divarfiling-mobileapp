@@ -26,9 +26,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -42,7 +40,7 @@ import ir.divarfiling.mobile.feature.filing.components.ListingDetailGallerySecti
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailHeader
 import ir.divarfiling.mobile.feature.filing.components.ListingEditSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingLocationSection
-import ir.divarfiling.mobile.feature.filing.components.ListingOwnerPhoneCard
+import ir.divarfiling.mobile.feature.filing.components.ListingOwnerPhoneSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingQuickActionsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingSpecsCard
 
@@ -93,17 +91,9 @@ fun ListingDetailScreen(
                 listing != null -> {
                     ListingDetailContent(
                         listing = listing,
-                        ownerPhone = state.ownerPhoneDraft,
-                        isSavingPhone = state.isSavingPhone,
                         onBack = onBack,
                         onEdit = viewModel::openEditSheet,
-                        onOwnerPhoneChange = viewModel::onOwnerPhoneChange,
-                        onSaveOwnerPhone = viewModel::saveOwnerPhone,
-                        onCallOwner = { phone ->
-                            runCatching {
-                                context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
-                            }
-                        },
+                        onOwnerPhone = viewModel::openOwnerPhoneSheet,
                         onSendToContact = { viewModel.toggleContactPicker(true) },
                         onWhatsAppShare = { openWhatsApp(context, ListingMessageFormatter.fromDetail(listing)) },
                         onOpenDivar = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
@@ -158,6 +148,19 @@ fun ListingDetailScreen(
         }
     }
 
+    if (state.showOwnerPhoneSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissOwnerPhoneSheet) {
+            ListingOwnerPhoneSheet(
+                phone = state.ownerPhoneDraft,
+                isSaving = state.isSavingPhone,
+                onPhoneChange = viewModel::onOwnerPhoneChange,
+                onSave = viewModel::saveOwnerPhone,
+                onCall = { phone -> dialPhone(context, phone) },
+                onDismiss = viewModel::dismissOwnerPhoneSheet,
+            )
+        }
+    }
+
     if (state.showEditSheet && listing != null) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissEditSheet) {
             val form = state.editForm
@@ -188,6 +191,9 @@ fun ListingDetailScreen(
                 onCityChange = { viewModel.onEditFormChange { f -> f.copy(city = it) } },
                 onDescriptionChange = { viewModel.onEditFormChange { f -> f.copy(description = it) } },
                 onOwnerPhoneChange = { viewModel.onEditFormChange { f -> f.copy(ownerPhone = it) } },
+                onCallOwner = form.ownerPhone.trim().takeIf { it.isNotBlank() }?.let { phone ->
+                    { dialPhone(context, phone) }
+                },
                 onSave = viewModel::saveEdit,
                 onDismiss = viewModel::dismissEditSheet,
             )
@@ -198,13 +204,9 @@ fun ListingDetailScreen(
 @Composable
 private fun ListingDetailContent(
     listing: ListingDetailDto,
-    ownerPhone: String,
-    isSavingPhone: Boolean,
     onBack: () -> Unit,
     onEdit: () -> Unit,
-    onOwnerPhoneChange: (String) -> Unit,
-    onSaveOwnerPhone: () -> Unit,
-    onCallOwner: (String) -> Unit,
+    onOwnerPhone: () -> Unit,
     onSendToContact: () -> Unit,
     onWhatsAppShare: () -> Unit,
     onOpenDivar: (() -> Unit)?,
@@ -234,17 +236,6 @@ private fun ListingDetailContent(
             }
 
             item {
-                ListingOwnerPhoneCard(
-                    phone = ownerPhone,
-                    isSaving = isSavingPhone,
-                    onPhoneChange = onOwnerPhoneChange,
-                    onSave = onSaveOwnerPhone,
-                    onCall = onCallOwner,
-                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                )
-            }
-
-            item {
                 ListingDetailHeader(
                     listing = listing,
                     onCopyAdCode = onCopyAdCode,
@@ -254,6 +245,7 @@ private fun ListingDetailContent(
             item {
                 ListingQuickActionsRow(
                     onSendToContact = onSendToContact,
+                    onOwnerPhone = onOwnerPhone,
                     onWhatsAppShare = onWhatsAppShare,
                     onOpenDivar = onOpenDivar,
                     onSetReminder = onSetReminder,
@@ -281,6 +273,12 @@ private fun ListingDetailContent(
                     )
                 }
             }
+    }
+}
+
+private fun dialPhone(context: Context, phone: String) {
+    runCatching {
+        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
     }
 }
 

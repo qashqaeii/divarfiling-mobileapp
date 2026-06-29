@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.filing.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -9,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
@@ -44,10 +46,12 @@ fun ListingEditSheet(
     onCityChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onOwnerPhoneChange: (String) -> Unit,
+    onCallOwner: (() -> Unit)?,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val isRent = listing.rent != null || listing.deposit != null
+    val hasOwnerPhone = ownerPhone.isNotBlank()
 
     DfSheetScaffold(
         title = "ویرایش آگهی",
@@ -64,6 +68,13 @@ fun ListingEditSheet(
             )
         },
     ) {
+        if (hasOwnerPhone && onCallOwner != null) {
+            ListingOwnerCallBanner(
+                phone = ownerPhone,
+                onCall = onCallOwner,
+                modifier = Modifier.padding(bottom = AppSpacing.sm),
+            )
+        }
         DfSheetSection(title = "اطلاعات اصلی") {
             OutlinedTextField(
                 value = title,

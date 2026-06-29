@@ -47,6 +47,7 @@ data class ListingDetailUiState(
     val showContactPicker: Boolean = false,
     val showSendDialog: Boolean = false,
     val showEditSheet: Boolean = false,
+    val showOwnerPhoneSheet: Boolean = false,
     val editForm: ListingEditForm = ListingEditForm(),
     val sendNote: String = "",
     val pendingContactId: Long? = null,
@@ -96,6 +97,13 @@ class ListingDetailViewModel @Inject constructor(
 
     fun onOwnerPhoneChange(phone: String) = _uiState.update { it.copy(ownerPhoneDraft = phone) }
 
+    fun openOwnerPhoneSheet() {
+        val phone = _uiState.value.listing?.ownerPhone.orEmpty()
+        _uiState.update { it.copy(showOwnerPhoneSheet = true, ownerPhoneDraft = phone) }
+    }
+
+    fun dismissOwnerPhoneSheet() = _uiState.update { it.copy(showOwnerPhoneSheet = false) }
+
     fun saveOwnerPhone() {
         val phone = _uiState.value.ownerPhoneDraft.trim()
         viewModelScope.launch {
@@ -106,6 +114,7 @@ class ListingDetailViewModel @Inject constructor(
                         listing = result.data,
                         ownerPhoneDraft = result.data.ownerPhone.orEmpty(),
                         isSavingPhone = false,
+                        showOwnerPhoneSheet = false,
                         successMessage = "شماره تماس ذخیره شد",
                     )
                 }
