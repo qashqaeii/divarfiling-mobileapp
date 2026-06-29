@@ -28,7 +28,8 @@ class ExportRepository @Inject constructor(
     ): ApiResult<File> = withContext(Dispatchers.IO) {
         try {
             val base = BuildConfig.API_BASE_URL.trimEnd('/')
-            val urlBuilder = "$base/$path".trimStart('/').let { "$base/$it" }
+            val normalizedPath = path.trim().trimStart('/')
+            val urlBuilder = "$base/$normalizedPath"
                 .toHttpUrlOrNull()
                 ?.newBuilder()
                 ?: return@withContext ApiResult.Error("آدرس نامعتبر")
