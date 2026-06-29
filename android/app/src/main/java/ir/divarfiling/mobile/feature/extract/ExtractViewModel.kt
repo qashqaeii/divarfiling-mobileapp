@@ -68,6 +68,7 @@ data class ExtractUiState(
     val scheduleIntervalHours: Double = 6.0,
     val gateMessage: String? = null,
     val placeQuery: String = "",
+    val searchQuery: String = "",
     val placeSuggestions: List<PlaceSearchResult> = emptyList(),
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
@@ -231,6 +232,7 @@ class ExtractViewModel @Inject constructor(
     fun onYearMinChange(v: String) = _uiState.update { it.copy(yearMin = v) }
     fun onYearMaxChange(v: String) = _uiState.update { it.copy(yearMax = v) }
     fun onRoomsChange(v: String) = _uiState.update { it.copy(rooms = v) }
+    fun onSearchQueryChange(v: String) = _uiState.update { it.copy(searchQuery = v) }
 
     fun onScheduleIntervalSelect(hours: Double) {
         _uiState.update { it.copy(scheduleIntervalHours = hours) }
@@ -307,6 +309,7 @@ class ExtractViewModel @Inject constructor(
             sort = state.sort,
             maxItems = state.maxItems,
             outputNameHint = null,
+            searchQuery = state.searchQuery.trim().takeIf { it.isNotEmpty() },
             advanced = ExtractAdvancedFilters(
                 priceMin = state.priceMin.toLongOrNull(),
                 priceMax = state.priceMax.toLongOrNull(),

@@ -143,6 +143,7 @@ class ExtractionRepository @Inject constructor(
                         yearMax = safeFilters.advanced.yearMax,
                         rooms = safeFilters.advanced.rooms,
                         advertiserFilter = safeFilters.advanced.advertiserFilter,
+                        searchQuery = safeFilters.searchQuery?.trim()?.takeIf { it.isNotEmpty() },
                     ),
                     startedAt = startedAt,
                     finishedAt = finishedAt,

@@ -18,6 +18,7 @@ object ExtractScheduleMapper {
             sort = dto.sort,
             maxItems = dto.maxItems,
             outputNameHint = dto.outputNameHint,
+            searchQuery = dto.searchQuery?.trim()?.takeIf { it.isNotEmpty() },
             advanced = ExtractAdvancedFilters(
                 priceMin = dto.priceMin,
                 priceMax = dto.priceMax,
@@ -48,6 +49,7 @@ object ExtractScheduleMapper {
             outputNameHint = filters.outputNameHint,
             sort = filters.sort,
             maxItems = filters.maxItems,
+            searchQuery = filters.searchQuery?.trim()?.takeIf { it.isNotEmpty() },
             priceMin = filters.advanced.priceMin,
             priceMax = filters.advanced.priceMax,
             depositMin = filters.advanced.depositMin,

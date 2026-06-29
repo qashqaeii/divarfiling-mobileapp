@@ -29,5 +29,6 @@ data class ExtractFilters(
     val sort: String = "sort_date",
     val maxItems: Int = 50,
     val outputNameHint: String? = null,
+    val searchQuery: String? = null,
     val advanced: ExtractAdvancedFilters = ExtractAdvancedFilters(),
 )

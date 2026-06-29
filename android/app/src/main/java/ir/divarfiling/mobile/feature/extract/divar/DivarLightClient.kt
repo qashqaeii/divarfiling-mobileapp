@@ -300,6 +300,25 @@ class DivarLightClient @Inject constructor(
             applyAdvancedFilters(filters)
         }
 
+        val searchQuery = filters.searchQuery?.trim().orEmpty()
+
+        val searchData = buildJsonObject {
+            put("form_data", buildJsonObject { put("data", formData) })
+            put("server_payload", buildJsonObject {
+                put("@type", "type.googleapis.com/widgets.SearchData.ServerPayload")
+                put("additional_form_data", buildJsonObject {
+                    put("data", buildJsonObject {
+                        put("sort", buildJsonObject {
+                            put("str", buildJsonObject { put("value", filters.sort) })
+                        })
+                    })
+                })
+            })
+            if (searchQuery.isNotBlank()) {
+                put("query", searchQuery)
+            }
+        }
+
         val basePayload = buildJsonObject {
             put("city_ids", buildJsonArray { add(filters.cityId) })
             put("pagination_data", buildJsonObject {
@@ -315,19 +334,14 @@ class DivarLightClient @Inject constructor(
             put("map_state", buildJsonObject {
                 put("camera_info", buildJsonObject { put("bbox", buildJsonObject {}) })
             })
-            put("search_data", buildJsonObject {
-                put("form_data", buildJsonObject { put("data", formData) })
-                put("server_payload", buildJsonObject {
-                    put("@type", "type.googleapis.com/widgets.SearchData.ServerPayload")
-                    put("additional_form_data", buildJsonObject {
-                        put("data", buildJsonObject {
-                            put("sort", buildJsonObject {
-                                put("str", buildJsonObject { put("value", filters.sort) })
-                            })
-                        })
-                    })
-                })
-            })
+            put("search_data", searchData)
+        }
+
+        if (searchQuery.isNotBlank()) {
+            return buildJsonObject {
+                basePayload.forEach { (k, v) -> put(k, v) }
+                put("source_view", "SEARCH_BAR_QUERY_SUGGESTION")
+            }
         }
 
         if (!ExtractCategories.needsCategoryViewFlags(filters.category)) {

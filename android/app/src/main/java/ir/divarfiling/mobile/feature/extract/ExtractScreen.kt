@@ -142,6 +142,7 @@ fun ExtractScreen(
                     onSortChange = viewModel::onSortChange,
                     onAdvertiserFilterChange = viewModel::onAdvertiserFilterChange,
                     onMaxItemsChange = viewModel::onMaxItemsChange,
+                    onSearchQueryChange = viewModel::onSearchQueryChange,
                     advancedFilters = {
                         AdvancedFilters(state, canExtract, viewModel)
                     },

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +47,7 @@ fun ExtractFiltersCard(
     onSortChange: (String) -> Unit,
     onAdvertiserFilterChange: (String) -> Unit,
     onMaxItemsChange: (Int) -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     advancedFilters: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -64,9 +66,33 @@ fun ExtractFiltersCard(
     }
     val advertiserLabel = ExtractCategories.advertiserOptions
         .firstOrNull { it.first == state.advertiserFilter }?.second ?: "همه آگهی‌ها"
+    val searchSummary = state.searchQuery.trim().ifBlank { "بدون جستجو" }
 
     ExtractSectionCard(modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            OutlinedTextField(
+                value = state.searchQuery,
+                onValueChange = onSearchQueryChange,
+                label = { Text("جستجو در آگهی‌ها (اختیاری)") },
+                placeholder = { Text("مثلاً معاوضه، پارکینگ، نوساز…") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = enabled,
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = DfIcons.Search,
+                        contentDescription = null,
+                        tint = DfColors.Purple,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+            )
+            Text(
+                text = "در همان دسته‌بندی انتخاب‌شده جستجو می‌کند؛ خالی = همه آگهی‌های دسته.",
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -108,6 +134,23 @@ fun ExtractFiltersCard(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
                     ExtractFilterTile(
+                        label = "جستجو",
+                        value = searchSummary,
+                        icon = DfIcons.Search,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ExtractFilterTile(
+                        label = "نوع آگهی‌دهنده",
+                        value = advertiserLabel,
+                        icon = DfIcons.Users,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                ) {
+                    ExtractFilterTile(
                         label = "نوع معامله",
                         value = state.transactionType,
                         icon = DfIcons.Home,
@@ -124,12 +167,6 @@ fun ExtractFiltersCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
-                    ExtractFilterTile(
-                        label = "نوع آگهی‌دهنده",
-                        value = advertiserLabel,
-                        icon = DfIcons.Users,
-                        modifier = Modifier.weight(1f),
-                    )
                     ExtractFilterTile(
                         label = "متراژ (متر)",
                         value = areaValue,

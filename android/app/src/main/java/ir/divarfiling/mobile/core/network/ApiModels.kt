@@ -261,6 +261,7 @@ data class ExtractionFiltersDto(
     @SerialName("category_label") val categoryLabel: String? = null,
     @SerialName("transaction_type_label") val transactionTypeLabel: String? = null,
     @SerialName("output_name_hint") val outputNameHint: String? = null,
+    @SerialName("search_query") val searchQuery: String? = null,
     @SerialName("source_client") val sourceClient: String = "android_light",
 )
 
