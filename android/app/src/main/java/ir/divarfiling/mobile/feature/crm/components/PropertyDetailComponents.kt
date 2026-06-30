@@ -484,10 +484,6 @@ private fun specIcon(label: String): ImageVector = when {
     label.contains("ساخت") -> DfIcons.Calendar
     label.contains("موقعیت") -> DfIcons.MapPin
     label.contains("نوع") -> DfIcons.Home
-    label.contains("وضعیت") -> DfIcons.Zap
-    label.contains("پارکینگ") -> DfIcons.Car
-    label.contains("انباری") -> DfIcons.Folder
-    label.contains("آسانسور") -> DfIcons.Building
     else -> DfIcons.Tag
 }
 
