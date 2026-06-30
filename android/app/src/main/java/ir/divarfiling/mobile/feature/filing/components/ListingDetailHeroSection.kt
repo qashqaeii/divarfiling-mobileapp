@@ -27,6 +27,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 
 @Composable
 fun ListingDetailHeroSection(
@@ -75,7 +77,7 @@ fun ListingDetailHeroSection(
             )
             HeroActionChip(
                 label = "فایل شخصی",
-                icon = DfIcons.Building,
+                iconRes = DfDecorIcons.Building,
                 tint = DfColors.Amber,
                 background = DfColors.AmberLight,
                 onClick = onSaveAsPersonal,
@@ -83,7 +85,7 @@ fun ListingDetailHeroSection(
             )
             HeroActionChip(
                 label = "کپی لینک",
-                icon = DfIcons.Copy,
+                iconRes = DfDecorIcons.Copy,
                 tint = DfColors.Blue,
                 background = DfColors.BlueLight,
                 onClick = onCopyLink,
@@ -127,11 +129,12 @@ private fun HeroIconButton(
 @Composable
 private fun HeroActionChip(
     label: String,
-    icon: ImageVector,
     tint: Color,
     background: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    iconRes: Int? = null,
 ) {
     Surface(
         onClick = onClick,
@@ -147,12 +150,15 @@ private fun HeroActionChip(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = tint,
-                modifier = Modifier.size(18.dp),
-            )
+            when {
+                iconRes != null -> DfDecorImage(resId = iconRes, size = 18.dp)
+                icon != null -> Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = tint,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
             Text(
                 text = label,
                 style = AppTypography.labelSmall,

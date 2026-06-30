@@ -158,7 +158,7 @@ fun HomeScreen(
                 item {
                     HomeDashboardCard(
                         title = "کارهای امروز",
-                        icon = DfIcons.ListTodo,
+                        iconRes = DfDecorIcons.ListTodo,
                         expanded = todayExpanded,
                         onToggle = { todayExpanded = !todayExpanded },
                         footerLabel = "مشاهده همه کارها (${state.stats.todayTasksTotal.coerceAtLeast(state.todayTasks.size)})",
@@ -174,7 +174,7 @@ fun HomeScreen(
                     item {
                         HomeDashboardCard(
                             title = "اعلان‌ها",
-                            icon = DfIcons.Bell,
+                            iconRes = DfDecorIcons.Bell,
                             expanded = notificationsExpanded,
                             onToggle = { notificationsExpanded = !notificationsExpanded },
                             footerLabel = "مشاهده همه اعلان‌ها (${state.notificationBadgeCount.coerceAtLeast(state.notifications.size)})",
@@ -271,7 +271,7 @@ internal fun HomeScreenContentPreview() {
         item {
             HomeDashboardCard(
                 title = "کارهای امروز",
-                icon = DfIcons.ListTodo,
+                iconRes = DfDecorIcons.ListTodo,
                 expanded = false,
                 onToggle = {},
                 footerLabel = "مشاهده همه کارها (8)",

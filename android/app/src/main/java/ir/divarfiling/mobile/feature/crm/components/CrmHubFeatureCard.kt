@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,12 +30,15 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 
 data class CrmHubStatChip(
     val label: String,
     val value: String,
-    val icon: ImageVector,
+    val icon: ImageVector? = null,
+    @DrawableRes val iconRes: Int? = null,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,12 +46,13 @@ data class CrmHubStatChip(
 fun CrmHubFeatureCard(
     title: String,
     subtitle: String,
-    icon: ImageVector,
     tint: Color,
     background: Color,
     stats: List<CrmHubStatChip>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
     illustration: @Composable () -> Unit,
 ) {
     Surface(
@@ -71,69 +76,72 @@ fun CrmHubFeatureCard(
                 ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = AppSpacing.xs),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap)) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                            verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = AppSpacing.xs),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(background, AppShapes.IconContainer),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .background(background, AppShapes.IconContainer),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
+                            when {
+                                iconRes != null -> DfDecorImage(resId = iconRes, size = 18.dp)
+                                icon != null -> Icon(
                                     imageVector = icon,
                                     contentDescription = null,
                                     tint = tint,
                                     modifier = Modifier.size(16.dp),
                                 )
                             }
-                            Text(
-                                text = title,
-                                style = AppTypography.cardTitle,
-                                fontWeight = FontWeight.Bold,
-                                color = DfColors.TextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
                         }
                         Text(
-                            text = subtitle,
-                            style = AppTypography.bodyDescription,
-                            color = DfColors.TextSecondary,
-                            maxLines = 2,
+                            text = title,
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = DfColors.TextPrimary,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    Text(
+                        text = subtitle,
+                        style = AppTypography.bodyDescription,
+                        color = DfColors.TextSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
-                    if (stats.isNotEmpty()) {
-                        Surface(
-                            shape = AppShapes.ButtonPill,
-                            color = background,
-                            shadowElevation = AppElevations.none,
-                            modifier = Modifier.padding(top = AppSpacing.sm),
+                if (stats.isNotEmpty()) {
+                    Surface(
+                        shape = AppShapes.ButtonPill,
+                        color = background,
+                        shadowElevation = AppElevations.none,
+                        modifier = Modifier.padding(top = AppSpacing.sm),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                stats.forEach { stat ->
-                                    CrmHubStatItem(stat = stat, tint = tint)
-                                }
+                            stats.forEach { stat ->
+                                CrmHubStatItem(stat = stat, tint = tint)
                             }
                         }
                     }
                 }
+            }
 
             Box(contentAlignment = Alignment.Center) {
                 illustration()
@@ -151,12 +159,15 @@ private fun CrmHubStatItem(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = stat.icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(12.dp),
-        )
+        when {
+            stat.iconRes != null -> DfDecorImage(resId = stat.iconRes, size = 12.dp)
+            stat.icon != null -> Icon(
+                imageVector = stat.icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(12.dp),
+            )
+        }
         Text(
             text = "${stat.label} ${stat.value}",
             style = AppTypography.labelSmall,
@@ -183,12 +194,12 @@ private fun CrmHubFeatureCardPreview() {
         CrmHubFeatureCard(
             title = "مخاطبین",
             subtitle = "لیست کامل مشتریان و سرنخ‌های جدید",
-            icon = DfIcons.Users,
+            iconRes = DfDecorIcons.Users,
             tint = DfColors.Purple,
             background = DfColors.PurpleContainer,
             stats = listOf(
-                CrmHubStatChip("مخاطبین", "248", DfIcons.Users),
-                CrmHubStatChip("سرنخ‌های جدید", "32", DfIcons.UserPlus),
+                CrmHubStatChip("مخاطبین", "248", iconRes = DfDecorIcons.Users),
+                CrmHubStatChip("سرنخ‌های جدید", "32", icon = DfIcons.UserPlus),
             ),
             onClick = {},
             illustration = {

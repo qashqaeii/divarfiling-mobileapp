@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.core.design.components
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -265,8 +266,8 @@ private fun DfHeaderToolbar(
         onBack?.let { DfHubBackButton(onClick = it) }
         userName?.let { DfHubUserAvatar(it) }
         onNotificationsClick?.let {
-            DfHubHeaderIconButton(
-                icon = DfIcons.Bell,
+            DfHubHeaderDecorIconButton(
+                resId = DfDecorIcons.Bell,
                 contentDescription = "اعلان‌ها",
                 onClick = it,
                 badgeCount = notificationCount,
@@ -352,6 +353,39 @@ private fun DfHubBackButton(onClick: () -> Unit) {
         contentDescription = "بازگشت",
         onClick = onClick,
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun DfHubHeaderDecorIconButton(
+    @DrawableRes resId: Int,
+    contentDescription: String,
+    onClick: () -> Unit,
+    badgeCount: Int = 0,
+) {
+    Box(modifier = Modifier.padding(top = 4.dp, end = 4.dp)) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .liquidGlassSurface(shape = AppShapes.IconContainer, variant = DfGlassButtonVariant.Secondary)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            DfDecorImage(
+                resId = resId,
+                size = 22.dp,
+                contentDescription = contentDescription,
+            )
+        }
+        if (badgeCount > 0) {
+            DfHeaderNotificationBadge(
+                count = badgeCount,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 6.dp, y = (-2).dp),
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -62,6 +62,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.DfGlassCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -315,17 +317,18 @@ private fun LoginFeatureChips() {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs, Alignment.CenterHorizontally),
     ) {
-        LoginFeatureChip(icon = DfIcons.Folder, label = "فایلینگ", tint = DfColors.Purple)
-        LoginFeatureChip(icon = DfIcons.Users, label = "CRM", tint = DfColors.Blue)
-        LoginFeatureChip(icon = DfIcons.Sparkles, label = "استخراج", tint = DfColors.Green)
+        LoginFeatureChip(iconRes = DfDecorIcons.Folder, label = "فایلینگ", tint = DfColors.Purple)
+        LoginFeatureChip(iconRes = DfDecorIcons.Users, label = "CRM", tint = DfColors.Blue)
+        LoginFeatureChip(iconRes = DfDecorIcons.Rocket, label = "استخراج", tint = DfColors.Green)
     }
 }
 
 @Composable
 private fun LoginFeatureChip(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     tint: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    iconRes: Int? = null,
 ) {
     Row(
         modifier = Modifier
@@ -339,12 +342,15 @@ private fun LoginFeatureChip(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(16.dp),
-        )
+        when {
+            iconRes != null -> DfDecorImage(resId = iconRes, size = 16.dp)
+            icon != null -> Icon(
+                icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(16.dp),
+            )
+        }
         Text(
             text = label,
             style = AppTypography.labelSmall,

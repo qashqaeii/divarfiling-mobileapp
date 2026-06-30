@@ -661,7 +661,7 @@ fun CrmHubScreen(
                     actions = listOf(
                         CrmQuickAction(
                             title = "فیلتر",
-                            icon = DfIcons.Filter,
+                            iconRes = DfDecorIcons.Filter,
                             onClick = onQuickFilter,
                             tint = DfColors.Purple,
                             background = DfColors.PurpleContainer,
@@ -703,12 +703,12 @@ fun CrmHubScreen(
                     CrmHubFeatureCard(
                         title = "مخاطبین",
                         subtitle = "لیست کامل مشتریان و سرنخ‌های جدید",
-                        icon = DfIcons.Users,
+                        iconRes = DfDecorIcons.Users,
                         tint = DfColors.Purple,
                         background = DfColors.PurpleContainer,
                         stats = listOf(
-                            CrmHubStatChip("مخاطبین", state.contactsCount.toString(), DfIcons.Users),
-                            CrmHubStatChip("سرنخ‌های جدید", state.newLeadsCount.toString(), DfIcons.UserPlus),
+                            CrmHubStatChip("مخاطبین", state.contactsCount.toString(), iconRes = DfDecorIcons.Users),
+                            CrmHubStatChip("سرنخ‌های جدید", state.newLeadsCount.toString(), icon = DfIcons.UserPlus),
                         ),
                         onClick = onContacts,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -724,12 +724,12 @@ fun CrmHubScreen(
                     CrmHubFeatureCard(
                         title = "کارهای امروز",
                         subtitle = "پیگیری‌های امروز و معوق",
-                        icon = DfIcons.Calendar,
+                        iconRes = DfDecorIcons.ListTodo,
                         tint = DfColors.Blue,
                         background = DfColors.BlueLight,
                         stats = listOf(
-                            CrmHubStatChip("کارهای امروز", state.todayTasksCount.toString(), DfIcons.ListTodo),
-                            CrmHubStatChip("معوق", state.overdueCount.toString(), DfIcons.Clock),
+                            CrmHubStatChip("کارهای امروز", state.todayTasksCount.toString(), iconRes = DfDecorIcons.ListTodo),
+                            CrmHubStatChip("معوق", state.overdueCount.toString(), icon = DfIcons.Clock),
                         ),
                         onClick = onToday,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -745,12 +745,12 @@ fun CrmHubScreen(
                     CrmHubFeatureCard(
                         title = "معاملات",
                         subtitle = "پایپ‌لاین فروش و اجاره",
-                        icon = DfIcons.Handshake,
+                        iconRes = DfDecorIcons.Handshake,
                         tint = DfColors.Green,
                         background = DfColors.GreenLight,
                         stats = listOf(
-                            CrmHubStatChip("معاملات فعال", state.activeDealsCount.toString(), DfIcons.Handshake),
-                            CrmHubStatChip("ارزش کل", dealsValueLabel, DfIcons.BarChart),
+                            CrmHubStatChip("معاملات فعال", state.activeDealsCount.toString(), iconRes = DfDecorIcons.Handshake),
+                            CrmHubStatChip("ارزش کل", dealsValueLabel, iconRes = DfDecorIcons.BarChart),
                         ),
                         onClick = onDeals,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -766,12 +766,12 @@ fun CrmHubScreen(
                     CrmHubFeatureCard(
                         title = "فایل‌های شخصی",
                         subtitle = "مدیریت فایل‌های ملکی و پرونده‌ها",
-                        icon = DfIcons.Building,
+                        iconRes = DfDecorIcons.Building,
                         tint = DfColors.Amber,
                         background = DfColors.AmberLight,
                         stats = listOf(
-                            CrmHubStatChip("ملک‌های ثبت‌شده", state.propertiesCount.toString(), DfIcons.Building),
-                            CrmHubStatChip("پرونده‌های باز", state.openCasesCount.toString(), DfIcons.Folder),
+                            CrmHubStatChip("ملک‌های ثبت‌شده", state.propertiesCount.toString(), iconRes = DfDecorIcons.Building),
+                            CrmHubStatChip("پرونده‌های باز", state.openCasesCount.toString(), iconRes = DfDecorIcons.Folder),
                         ),
                         onClick = onProperties,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -813,7 +813,7 @@ internal fun CrmHubScreenContentPreview() {
         item {
             CrmQuickActionsBar(
                 actions = listOf(
-                    CrmQuickAction("فیلتر", icon = DfIcons.Filter, onClick = {}, tint = DfColors.Purple, background = DfColors.PurpleContainer),
+                    CrmQuickAction("فیلتر", iconRes = DfDecorIcons.Filter, onClick = {}, tint = DfColors.Purple, background = DfColors.PurpleContainer),
                     CrmQuickAction("یادداشت", iconRes = DfDecorIcons.StickyNote, onClick = {}, tint = DfColors.Blue, background = DfColors.BlueLight),
                     CrmQuickAction("یادآور", iconRes = DfDecorIcons.Upload, onClick = {}, tint = DfColors.Amber, background = DfColors.AmberLight),
                     CrmQuickAction("مخاطب", iconRes = DfDecorIcons.ClipboardList, onClick = {}, tint = DfColors.Green, background = DfColors.GreenLight),
@@ -824,12 +824,12 @@ internal fun CrmHubScreenContentPreview() {
             CrmHubFeatureCard(
                 title = "مخاطبین",
                 subtitle = "لیست کامل مشتریان و سرنخ‌های جدید",
-                icon = DfIcons.Users,
+                iconRes = DfDecorIcons.Users,
                 tint = DfColors.Purple,
                 background = DfColors.PurpleContainer,
                 stats = listOf(
-                    CrmHubStatChip("مخاطبین", "248", DfIcons.Users),
-                    CrmHubStatChip("سرنخ‌های جدید", "32", DfIcons.UserPlus),
+                    CrmHubStatChip("مخاطبین", "248", iconRes = DfDecorIcons.Users),
+                    CrmHubStatChip("سرنخ‌های جدید", "32", icon = DfIcons.UserPlus),
                 ),
                 onClick = {},
                 illustration = {

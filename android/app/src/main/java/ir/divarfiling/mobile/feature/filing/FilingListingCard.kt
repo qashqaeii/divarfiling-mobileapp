@@ -37,7 +37,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
-import ir.divarfiling.mobile.core.filing.ListingAmenityUtils
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.filing.ListingPriceUtils
 import ir.divarfiling.mobile.core.network.ListingDto
 
@@ -217,7 +217,11 @@ fun FilingListingCard(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         amenities.forEach { amenity ->
-                            ListingAmenityChip(amenity.label, amenity.icon)
+                            ListingAmenityChip(
+                                label = amenity.label,
+                                icon = amenity.icon,
+                                iconRes = amenity.iconRes,
+                            )
                         }
                     }
                 }
@@ -284,7 +288,8 @@ private fun ListingTag(
 @Composable
 private fun ListingAmenityChip(
     label: String,
-    icon: ImageVector,
+    icon: ImageVector? = null,
+    iconRes: Int? = null,
 ) {
     Surface(shape = AppShapes.Chip, color = DfColors.SurfaceVariant) {
         Row(
@@ -292,12 +297,15 @@ private fun ListingAmenityChip(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = DfColors.Purple,
-                modifier = Modifier.size(12.dp),
-            )
+            when {
+                iconRes != null -> DfDecorImage(resId = iconRes, size = 12.dp)
+                icon != null -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
             Text(
                 text = label,
                 style = AppTypography.labelSmall,

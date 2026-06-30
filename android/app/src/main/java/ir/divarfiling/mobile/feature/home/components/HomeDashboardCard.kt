@@ -37,16 +37,19 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import androidx.annotation.DrawableRes
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 
 @Composable
 fun HomeDashboardCard(
     title: String,
-    icon: ImageVector,
     expanded: Boolean,
     onToggle: () -> Unit,
     footerLabel: String,
     onFooterClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
     content: @Composable () -> Unit,
 ) {
     val chevronRotation by animateFloatAsState(
@@ -93,12 +96,18 @@ fun HomeDashboardCard(
                                 .background(DfColors.PurpleContainer, AppShapes.IconContainer),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = DfColors.Purple,
-                                modifier = Modifier.size(18.dp),
-                            )
+                            when {
+                                iconRes != null -> DfDecorImage(
+                                    resId = iconRes,
+                                    size = 20.dp,
+                                )
+                                icon != null -> Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = DfColors.Purple,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         }
                         Text(
                             text = title,

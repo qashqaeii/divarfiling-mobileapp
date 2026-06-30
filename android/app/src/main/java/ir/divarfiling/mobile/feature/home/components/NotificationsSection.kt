@@ -24,8 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.feature.home.HomeNotificationItem
 import ir.divarfiling.mobile.feature.home.HomeNotificationType
 
@@ -40,7 +39,7 @@ fun NotificationsSection(
 
     HomeDashboardCard(
         title = "اعلان‌ها",
-        icon = DfIcons.Bell,
+        iconRes = DfDecorIcons.Bell,
         expanded = true,
         onToggle = {},
         footerLabel = "مشاهده همه اعلان‌ها (${notifications.size})",

@@ -506,17 +506,17 @@ fun PropertyDetailAmenities(
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 PropertyAmenityChip(
                     label = "پارکینگ",
-                    icon = DfIcons.Car,
+                    iconRes = DfDecorIcons.Car,
                     hasFeature = property.hasParking,
                 )
                 PropertyAmenityChip(
                     label = "انباری",
-                    icon = DfIcons.Folder,
+                    iconRes = DfDecorIcons.Storage,
                     hasFeature = property.hasStorage,
                 )
                 PropertyAmenityChip(
                     label = "آسانسور",
-                    icon = DfIcons.Building,
+                    iconRes = DfDecorIcons.Elevator,
                     hasFeature = property.hasElevator,
                 )
             }
@@ -525,7 +525,12 @@ fun PropertyDetailAmenities(
 }
 
 @Composable
-private fun PropertyAmenityChip(label: String, icon: ImageVector, hasFeature: Boolean) {
+private fun PropertyAmenityChip(
+    label: String,
+    hasFeature: Boolean,
+    icon: ImageVector? = null,
+    iconRes: Int? = null,
+) {
     val color = if (hasFeature) DfColors.Green else DfColors.TextMuted
     val bg = if (hasFeature) DfColors.GreenLight else DfColors.SurfaceVariant
     Surface(shape = AppShapes.Chip, color = bg) {
@@ -534,7 +539,10 @@ private fun PropertyAmenityChip(label: String, icon: ImageVector, hasFeature: Bo
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
+            when {
+                iconRes != null -> DfDecorImage(resId = iconRes, size = 14.dp)
+                icon != null -> Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
+            }
             Column {
                 Text(label, style = AppTypography.labelSmall, color = color, fontWeight = FontWeight.Medium)
                 Text(
@@ -561,12 +569,12 @@ fun PropertyDetailQuickActions(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        PropertyQuickAction(label = "ویرایش", icon = DfIcons.File, bg = DfColors.PurpleContainer, tint = DfColors.Purple, onClick = onEdit, modifier = Modifier.weight(1f))
+        PropertyQuickAction(label = "ویرایش", iconRes = DfDecorIcons.FileEdit, bg = DfColors.PurpleContainer, tint = DfColors.Purple, onClick = onEdit, modifier = Modifier.weight(1f))
         PropertyQuickAction(label = "اشتراک", iconRes = DfDecorIcons.Share2, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onShare, modifier = Modifier.weight(1f))
         PropertyQuickAction(label = "واتساپ", iconRes = R.drawable.ic_whatsapp, tintIconRes = true, bg = DfColors.GreenLight, tint = DfColors.Green, onClick = onWhatsApp, modifier = Modifier.weight(1f))
-        PropertyQuickAction(label = "کپی", icon = DfIcons.Copy, bg = DfColors.AmberLight, tint = DfColors.Amber, onClick = onCopyLink, modifier = Modifier.weight(1f))
+        PropertyQuickAction(label = "کپی", iconRes = DfDecorIcons.Copy, bg = DfColors.AmberLight, tint = DfColors.Amber, onClick = onCopyLink, modifier = Modifier.weight(1f))
         if (onOpenLink != null) {
-            PropertyQuickAction(label = "دیوار", icon = DfIcons.ExternalLink, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onOpenLink, modifier = Modifier.weight(1f))
+            PropertyQuickAction(label = "دیوار", iconRes = DfDecorIcons.ExternalLink, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onOpenLink, modifier = Modifier.weight(1f))
         }
     }
 }

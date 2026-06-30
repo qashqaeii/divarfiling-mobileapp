@@ -79,7 +79,7 @@ fun ListingLocationSection(
                 }
                 LocationActionButton(
                     label = "کپی لینک",
-                    icon = DfIcons.Copy,
+                    iconRes = DfDecorIcons.Copy,
                     tint = DfColors.Purple,
                     background = DfColors.PurpleContainer,
                     onClick = onCopyLink,
@@ -88,7 +88,7 @@ fun ListingLocationSection(
                 onOpenDivar?.let { openDivar ->
                     LocationActionButton(
                         label = "دیوار",
-                        icon = DfIcons.ExternalLink,
+                        iconRes = DfDecorIcons.ExternalLink,
                         tint = DfColors.Blue,
                         background = DfColors.BlueLight,
                         onClick = openDivar,
@@ -104,11 +104,12 @@ fun ListingLocationSection(
 @Composable
 private fun LocationActionButton(
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
     tint: Color,
     background: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    iconRes: Int? = null,
 ) {
     Surface(
         onClick = onClick,
@@ -123,12 +124,15 @@ private fun LocationActionButton(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = tint,
-                modifier = Modifier.size(16.dp),
-            )
+            when {
+                iconRes != null -> DfDecorImage(resId = iconRes, size = 16.dp)
+                icon != null -> Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = tint,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
             Text(
                 text = label,
                 modifier = Modifier.padding(start = 4.dp),

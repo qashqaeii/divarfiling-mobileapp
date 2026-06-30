@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.core.design.components
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -33,12 +34,14 @@ fun DfDetailPageHeader(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     titleIcon: ImageVector? = null,
+    @DrawableRes titleIconRes: Int? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     DfStandardPageHeader(
         title = title,
         subtitle = subtitle.orEmpty(),
         titleIcon = titleIcon,
+        titleIconRes = titleIconRes,
         onBack = onBack,
         modifier = modifier,
         toolbarContent = actions,

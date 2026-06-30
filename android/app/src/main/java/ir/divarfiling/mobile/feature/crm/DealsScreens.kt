@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -268,7 +268,7 @@ fun DealDetailScreen(
                             DfDetailPageHeader(
                                 title = deal.title,
                                 subtitle = deal.stage,
-                                titleIcon = DfIcons.Handshake,
+                                titleIconRes = DfDecorIcons.Handshake,
                                 onBack = onBack,
                             )
                         }

@@ -64,17 +64,13 @@ fun FilingStatsRow(
             value = String.format(Locale.US, "%.1f GB", estimatedSizeGb),
             label = "فضای استفاده‌شده",
             title = "حجم کل",
-            icon = DfIcons.Database,
-            background = DfColors.BlueLight,
-            iconTint = DfColors.Blue,
+            iconRes = DfDecorIcons.Database,
         )
         FilingStatCard(
             value = numberFormat.format(datasetsThisMonth),
             label = "دیتاست‌های ایجادشده",
             title = "ماه جاری",
-            icon = DfIcons.Calendar,
-            background = DfColors.AmberLight,
-            iconTint = DfColors.Amber,
+            iconRes = DfDecorIcons.Calendar,
         )
     }
 }

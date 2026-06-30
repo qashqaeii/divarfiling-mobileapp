@@ -82,6 +82,7 @@ import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
@@ -150,7 +151,7 @@ fun ContactDetailScreen(
                         DfDetailPageHeader(
                             title = "جزئیات مخاطب",
                             onBack = onBack,
-                            titleIcon = DfIcons.User,
+                            titleIconRes = DfDecorIcons.User,
                         )
                         DfErrorBanner(
                             state.error!!,
@@ -170,7 +171,7 @@ fun ContactDetailScreen(
                             DfDetailPageHeader(
                                 title = contactInfo.fullName,
                                 subtitle = contactInfo.phone,
-                                titleIcon = DfIcons.User,
+                                titleIconRes = DfDecorIcons.User,
                                 onBack = onBack,
                                 actions = {
                                     IconButton(onClick = { viewModel.toggleEditSheet(true) }) {

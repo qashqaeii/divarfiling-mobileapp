@@ -26,7 +26,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.FormatUtils
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.core.filing.ListingSpecUtils
 import ir.divarfiling.mobile.core.network.ListingDetailDto
@@ -88,11 +89,10 @@ fun ListingDetailHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
                 IconButton(onClick = onCopyAdCode, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        imageVector = DfIcons.Copy,
+                    DfDecorImage(
+                        resId = DfDecorIcons.Copy,
+                        size = 14.dp,
                         contentDescription = "کپی کد",
-                        tint = DfColors.TextMuted,
-                        modifier = Modifier.size(14.dp),
                     )
                 }
             }
@@ -151,9 +151,9 @@ private fun ListingCoreAmenityRow(
     hasElevator: Boolean?,
 ) {
     val chips = listOf(
-        Triple("پارکینگ", hasParking, DfIcons.Car),
-        Triple("انباری", hasStorage, DfIcons.Folder),
-        Triple("آسانسور", hasElevator, DfIcons.Building),
+        Triple("پارکینگ", hasParking, DfDecorIcons.Car),
+        Triple("انباری", hasStorage, DfDecorIcons.Storage),
+        Triple("آسانسور", hasElevator, DfDecorIcons.Elevator),
     ).filter { (_, value, _) -> value != null }
     if (chips.isEmpty()) return
 
@@ -163,11 +163,11 @@ private fun ListingCoreAmenityRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        chips.forEach { (label, value, icon) ->
+        chips.forEach { (label, value, iconRes) ->
             CoreAmenityChip(
                 label = label,
                 value = value!!,
-                icon = icon,
+                iconRes = iconRes,
             )
         }
     }
@@ -177,7 +177,7 @@ private fun ListingCoreAmenityRow(
 private fun CoreAmenityChip(
     label: String,
     value: Boolean,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconRes: Int,
 ) {
     val positive = value
     val color = if (positive) DfColors.Green else DfColors.TextMuted
@@ -188,7 +188,7 @@ private fun CoreAmenityChip(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
+            DfDecorImage(resId = iconRes, size = 14.dp)
             Text(
                 text = "$label: ${ListingSpecUtils.boolFeatureLabel(value)}",
                 style = AppTypography.labelSmall,

@@ -37,6 +37,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
@@ -89,7 +90,7 @@ fun ExtractSchedulesScreen(
                         DfHubPageHeader(
                             title = "زمان‌بندی استخراج",
                             subtitle = "اجرای خودکار فیلترهای ذخیره‌شده",
-                            titleIcon = DfIcons.Timer,
+                            titleIconRes = DfDecorIcons.Timer,
                             onBack = onBack,
                         )
                         ScheduleEmptyIllustration(
@@ -111,7 +112,7 @@ fun ExtractSchedulesScreen(
                             DfHubPageHeader(
                                 title = "زمان‌بندی استخراج",
                                 subtitle = "اجرای خودکار فیلترهای ذخیره‌شده",
-                                titleIcon = DfIcons.Timer,
+                                titleIconRes = DfDecorIcons.Timer,
                                 onBack = onBack,
                             )
                         }

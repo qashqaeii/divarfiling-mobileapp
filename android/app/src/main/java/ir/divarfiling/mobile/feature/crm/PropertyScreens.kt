@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
@@ -122,7 +123,7 @@ fun PropertiesScreen(
                     DfHubPageHeader(
                         title = "فایل‌های شخصی",
                         subtitle = "مدیریت فایل‌های ملکی و وضعیت معاملات",
-                        titleIcon = DfIcons.Building,
+                        titleIconRes = DfDecorIcons.Building,
                         userName = state.userName,
                         notificationCount = state.notificationBadgeCount,
                         onNotificationsClick = onNavigateNotifications,

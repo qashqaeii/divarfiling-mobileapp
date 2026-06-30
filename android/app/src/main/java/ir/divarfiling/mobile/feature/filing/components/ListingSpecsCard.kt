@@ -5,7 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.Arrangement
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,7 +43,8 @@ import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 data class ListingSpecItem(
     val label: String,
     val value: String,
-    val icon: ImageVector,
+    val icon: ImageVector? = null,
+    @DrawableRes val iconRes: Int? = null,
 )
 
 @Composable
@@ -165,65 +166,72 @@ private fun SpecCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Icon(
-                imageVector = item.icon,
-                contentDescription = null,
-                tint = DfColors.Purple,
-                modifier = Modifier
-                    .padding(start = AppSpacing.xxs)
-                    .size(16.dp),
-            )
+            when {
+                item.iconRes != null -> DfDecorImage(
+                    resId = item.iconRes,
+                    size = 16.dp,
+                    modifier = Modifier.padding(start = AppSpacing.xxs),
+                )
+                item.icon != null -> Icon(
+                    imageVector = item.icon,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier
+                        .padding(start = AppSpacing.xxs)
+                        .size(16.dp),
+                )
+            }
         }
     }
 }
 
 private fun buildListingSpecItems(listing: ListingDetailDto, expanded: Boolean): List<ListingSpecItem> {
     val coreItems = listOf(
-        ListingSpecItem("وضعیت", ListingSpecUtils.statusLabel(listing), DfIcons.Zap),
-        ListingSpecItem("پارکینگ", ListingSpecUtils.boolFeatureLabel(listing.hasParking), DfIcons.Car),
-        ListingSpecItem("انباری", ListingSpecUtils.boolFeatureLabel(listing.hasStorage), DfIcons.Folder),
-        ListingSpecItem("آسانسور", ListingSpecUtils.boolFeatureLabel(listing.hasElevator), DfIcons.Building),
+        ListingSpecItem("وضعیت", ListingSpecUtils.statusLabel(listing), iconRes = DfDecorIcons.Zap),
+        ListingSpecItem("پارکینگ", ListingSpecUtils.boolFeatureLabel(listing.hasParking), iconRes = DfDecorIcons.Car),
+        ListingSpecItem("انباری", ListingSpecUtils.boolFeatureLabel(listing.hasStorage), iconRes = DfDecorIcons.Storage),
+        ListingSpecItem("آسانسور", ListingSpecUtils.boolFeatureLabel(listing.hasElevator), iconRes = DfDecorIcons.Elevator),
     )
     val detailItems = listOfNotNull(
         listing.area?.let {
-            ListingSpecItem("متراژ", FormatUtils.formatArea(it), DfIcons.Ruler)
+            ListingSpecItem("متراژ", FormatUtils.formatArea(it), iconRes = DfDecorIcons.Ruler)
         },
         listing.businessType?.takeIf { it.isNotBlank() }?.let {
-            ListingSpecItem("نوع ملک", it, DfIcons.Home)
+            ListingSpecItem("نوع ملک", it, iconRes = DfDecorIcons.Building)
         },
         listing.rooms?.let {
-            ListingSpecItem("اتاق", FormatUtils.formatRooms(it), DfIcons.Bed)
+            ListingSpecItem("اتاق", FormatUtils.formatRooms(it), icon = DfIcons.Bed)
         },
         listing.totalFloors?.takeIf { it.isNotBlank() }?.let {
-            ListingSpecItem("طبقات ساختمان", "$it طبقه", DfIcons.Building)
+            ListingSpecItem("طبقات ساختمان", "$it طبقه", iconRes = DfDecorIcons.Building)
         },
         listing.yearBuilt?.takeIf { it.isNotBlank() }?.let {
-            ListingSpecItem("سال ساخت", it, DfIcons.Calendar)
+            ListingSpecItem("سال ساخت", it, iconRes = DfDecorIcons.Calendar)
         },
         listing.floor?.takeIf { it.isNotBlank() }?.let {
-            ListingSpecItem("طبقه", it, DfIcons.Building)
+            ListingSpecItem("طبقه", it, iconRes = DfDecorIcons.Building)
         },
         listing.advertiserType?.takeIf { it.isNotBlank() }?.let {
-            ListingSpecItem("نوع آگهی‌دهنده", ListingAdvertiserUtils.badgeLabel(listing), DfIcons.Users)
+            ListingSpecItem("نوع آگهی‌دهنده", ListingAdvertiserUtils.badgeLabel(listing), iconRes = DfDecorIcons.Users)
         },
         listing.scrapedAt?.takeIf { it.isNotBlank() }?.let { scraped ->
             formatScrapedDate(scraped)?.let {
-                ListingSpecItem("تاریخ استخراج", it, DfIcons.Calendar)
+                ListingSpecItem("تاریخ استخراج", it, iconRes = DfDecorIcons.Calendar)
             }
         },
     )
     val priceItems = listOfNotNull(
         listing.price?.takeIf { it > 0 }?.let {
-            ListingSpecItem("قیمت کل", FormatUtils.formatPriceToman(it), DfIcons.Tag)
+            ListingSpecItem("قیمت کل", FormatUtils.formatPriceToman(it), iconRes = DfDecorIcons.Tag)
         },
         listing.deposit?.takeIf { it > 0 }?.let {
-            ListingSpecItem("ودیعه", FormatUtils.formatPriceShort(it), DfIcons.Tag)
+            ListingSpecItem("ودیعه", FormatUtils.formatPriceShort(it), iconRes = DfDecorIcons.Tag)
         },
         listing.rent?.takeIf { it > 0 }?.let {
-            ListingSpecItem("اجاره", FormatUtils.formatPriceShort(it), DfIcons.Tag)
+            ListingSpecItem("اجاره", FormatUtils.formatPriceShort(it), iconRes = DfDecorIcons.Tag)
         },
         listing.pricePerSqm?.let {
-            ListingSpecItem("قیمت هر متر", FormatUtils.formatPriceToman(it), DfIcons.Tag)
+            ListingSpecItem("قیمت هر متر", FormatUtils.formatPriceToman(it), iconRes = DfDecorIcons.Tag)
         },
     )
 

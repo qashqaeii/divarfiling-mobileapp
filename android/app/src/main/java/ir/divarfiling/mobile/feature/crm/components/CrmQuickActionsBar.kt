@@ -123,7 +123,7 @@ private fun CrmQuickActionsBarPreview() {
     DivarFilingTheme {
         CrmQuickActionsBar(
             actions = listOf(
-                CrmQuickAction("فیلتر", icon = DfIcons.Filter, onClick = {}, tint = DfColors.Purple, background = DfColors.PurpleContainer),
+                CrmQuickAction("فیلتر", iconRes = DfDecorIcons.Filter, onClick = {}, tint = DfColors.Purple, background = DfColors.PurpleContainer),
                 CrmQuickAction("یادداشت", iconRes = DfDecorIcons.StickyNote, onClick = {}, tint = DfColors.Blue, background = DfColors.BlueLight),
                 CrmQuickAction("یادآور", iconRes = DfDecorIcons.Upload, onClick = {}, tint = DfColors.Amber, background = DfColors.AmberLight),
                 CrmQuickAction("مخاطب", iconRes = DfDecorIcons.ClipboardList, onClick = {}, tint = DfColors.Green, background = DfColors.GreenLight),

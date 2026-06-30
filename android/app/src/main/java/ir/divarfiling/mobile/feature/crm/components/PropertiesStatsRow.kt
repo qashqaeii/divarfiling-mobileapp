@@ -59,8 +59,7 @@ fun PropertiesStatsRow(
         PropertiesStatCell(
             value = numberFormat.format(totalCount),
             label = "کل",
-            icon = DfIcons.Building,
-            tint = DfColors.Purple,
+            iconRes = DfDecorIcons.Building,
             modifier = Modifier.weight(1f),
         )
         PropertiesStatDivider()
@@ -74,16 +73,14 @@ fun PropertiesStatsRow(
         PropertiesStatCell(
             value = numberFormat.format(rentCount),
             label = "اجاره",
-            icon = DfIcons.Tag,
-            tint = DfColors.Blue,
+            iconRes = DfDecorIcons.Tag,
             modifier = Modifier.weight(1f),
         )
         PropertiesStatDivider()
         PropertiesStatCell(
             value = numberFormat.format(activeCount),
             label = "فعال",
-            icon = DfIcons.Zap,
-            tint = DfColors.Green,
+            iconRes = DfDecorIcons.Zap,
             modifier = Modifier.weight(1f),
         )
     }

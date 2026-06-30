@@ -1,6 +1,6 @@
 package ir.divarfiling.mobile.feature.settings
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +42,8 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.DfShapes
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
@@ -246,10 +248,11 @@ fun SettingsSectionTitle(title: String, subtitle: String? = null, modifier: Modi
 fun NotificationPrefRow(
     title: String,
     subtitle: String,
-    icon: ImageVector,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     enabled: Boolean = true,
+    icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
 ) {
     Row(
         modifier = Modifier
@@ -265,7 +268,10 @@ fun NotificationPrefRow(
                 .background(DfColors.PurpleContainer),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(20.dp))
+            when {
+                iconRes != null -> DfDecorImage(resId = iconRes, size = 22.dp)
+                icon != null -> Icon(icon, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(20.dp))
+            }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)

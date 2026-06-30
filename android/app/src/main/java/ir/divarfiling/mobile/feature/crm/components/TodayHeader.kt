@@ -3,8 +3,7 @@ package ir.divarfiling.mobile.feature.crm.components
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfStandardPageHeader
 
 @Composable
@@ -15,7 +14,7 @@ fun TodayHeader(
     DfStandardPageHeader(
         title = "امروز",
         subtitle = "تماس، پیگیری و یادآورهای برنامه‌ریزی‌شده",
-        titleIcon = DfIcons.ListTodo,
+        titleIconRes = DfDecorIcons.ListTodo,
         onBack = onBack,
         modifier = modifier,
     )

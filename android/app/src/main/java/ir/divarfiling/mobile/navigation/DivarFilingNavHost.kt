@@ -21,8 +21,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import android.net.Uri
-import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfBottomNavigation
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfNavItem
 import ir.divarfiling.mobile.feature.auth.LoginScreen
 import ir.divarfiling.mobile.feature.crm.ContactDetailScreen
@@ -113,11 +113,11 @@ fun DivarFilingNavHost(
                 }
             }
             val bottomItems = listOf(
-                DfNavItem(Routes.FILING, "فایلینگ", DfIcons.Folder),
-                DfNavItem(Routes.CRM, "CRM", DfIcons.Users),
-                DfNavItem(Routes.HOME, "میزکار", DfIcons.Home, isCenter = true),
-                DfNavItem(Routes.CRM_TODAY, "امروز", DfIcons.Handshake),
-                DfNavItem(Routes.SETTINGS, "تنظیمات", DfIcons.Settings),
+                DfNavItem(Routes.FILING, "فایلینگ", iconRes = DfDecorIcons.Folder),
+                DfNavItem(Routes.CRM, "CRM", iconRes = DfDecorIcons.Users),
+                DfNavItem(Routes.HOME, "میزکار", iconRes = DfDecorIcons.House, isCenter = true),
+                DfNavItem(Routes.CRM_TODAY, "امروز", iconRes = DfDecorIcons.Handshake),
+                DfNavItem(Routes.SETTINGS, "تنظیمات", iconRes = DfDecorIcons.Settings),
             )
             val navBackStack by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStack?.destination?.route

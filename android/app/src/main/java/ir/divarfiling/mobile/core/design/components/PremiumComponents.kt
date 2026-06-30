@@ -35,6 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -55,11 +57,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DfAnimation
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
+import ir.divarfiling.mobile.core.design.components.DfDecorSize
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
+import ir.divarfiling.mobile.core.design.components.DfDecorSize
 
 data class DfNavItem(
     val route: String,
     val label: String,
-    val icon: ImageVector,
+    val icon: ImageVector? = null,
+    @DrawableRes val iconRes: Int? = null,
     val isCenter: Boolean = false,
     val badge: Int? = null,
 )
@@ -148,12 +157,20 @@ private fun DfCenterNavItem(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.label,
-                tint = Color.White,
-                modifier = Modifier.size(24.dp),
-            )
+            if (item.iconRes != null) {
+                DfDecorImage(
+                    resId = item.iconRes,
+                    size = DfDecorSize.NavCenter,
+                    contentDescription = item.label,
+                )
+            } else {
+                Icon(
+                    imageVector = item.icon!!,
+                    contentDescription = item.label,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
         }
         Text(
             text = item.label,
@@ -191,12 +208,21 @@ private fun DfSideNavItem(
             .padding(horizontal = AppSpacing.xxs, vertical = AppSpacing.xxs),
     ) {
         Box {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.label,
-                tint = tint,
-                modifier = Modifier.size(22.dp),
-            )
+            if (item.iconRes != null) {
+                DfDecorImage(
+                    resId = item.iconRes,
+                    size = DfDecorSize.NavSide,
+                    contentDescription = item.label,
+                    alpha = if (selected) 1f else 0.5f,
+                )
+            } else {
+                Icon(
+                    imageVector = item.icon!!,
+                    contentDescription = item.label,
+                    tint = tint,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
             item.badge?.takeIf { it > 0 }?.let { count ->
                 Box(
                     modifier = Modifier
@@ -397,11 +423,11 @@ private fun DfBottomNavigationPreview() {
     DivarFilingTheme {
         DfBottomNavigation(
             items = listOf(
-                DfNavItem("filing", "فایلینگ", DfIcons.Folder),
-                DfNavItem("crm", "CRM", DfIcons.Users),
-                DfNavItem("home", "میزکار", DfIcons.Home, isCenter = true),
-                DfNavItem("today", "امروز", DfIcons.Handshake),
-                DfNavItem("settings", "تنظیمات", DfIcons.Settings),
+                DfNavItem("filing", "فایلینگ", iconRes = DfDecorIcons.Folder),
+                DfNavItem("crm", "CRM", iconRes = DfDecorIcons.Users),
+                DfNavItem("home", "میزکار", iconRes = DfDecorIcons.House, isCenter = true),
+                DfNavItem("today", "امروز", iconRes = DfDecorIcons.Handshake),
+                DfNavItem("settings", "تنظیمات", iconRes = DfDecorIcons.Settings),
             ),
             selectedRoute = "home",
             onItemClick = {},

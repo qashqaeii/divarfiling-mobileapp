@@ -73,7 +73,7 @@ fun ListingQuickActionsRow(
         add(
             QuickActionSpec(
                 label = "تلفن مالک",
-                icon = DfIcons.Phone,
+                iconRes = DfDecorIcons.Phone,
                 tint = DfColors.Green,
                 background = DfColors.GreenLight,
                 onClick = onOwnerPhone,
@@ -93,7 +93,7 @@ fun ListingQuickActionsRow(
             add(
                 QuickActionSpec(
                     label = "دیوار",
-                    icon = DfIcons.ExternalLink,
+                    iconRes = DfDecorIcons.ExternalLink,
                     tint = DfColors.Blue,
                     background = DfColors.BlueLight,
                     onClick = openDivar,
@@ -103,7 +103,7 @@ fun ListingQuickActionsRow(
         add(
             QuickActionSpec(
                 label = "یادآور",
-                icon = DfIcons.Bell,
+                iconRes = DfDecorIcons.Bell,
                 tint = DfColors.PurpleDark,
                 background = DfColors.PurpleLight,
                 onClick = onSetReminder,

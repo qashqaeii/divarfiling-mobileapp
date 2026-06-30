@@ -33,8 +33,7 @@ import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -102,7 +101,7 @@ fun SettingsScreen(
                     DfHubPageHeader(
                         title = "تنظیمات",
                         subtitle = "پروفایل، اعلان‌ها و امنیت",
-                        titleIcon = DfIcons.Settings,
+                        titleIconRes = DfDecorIcons.Settings,
                         userName = state.user?.fullName?.substringBefore(" ") ?: "کاربر",
                         notificationCount = state.notificationBadgeCount,
                         onNotificationsClick = onNavigateNotifications,
@@ -140,7 +139,7 @@ fun SettingsScreen(
                             NotificationPrefRow(
                                 title = "یادآور CRM",
                                 subtitle = "تماس، بازدید و پیگیری‌های سررسید",
-                                icon = DfIcons.Bell,
+                                iconRes = DfDecorIcons.Bell,
                                 checked = state.notificationPrefs.crmReminders,
                                 onCheckedChange = { v ->
                                     viewModel.updatePref { it.copy(crmReminders = v) }
@@ -150,7 +149,7 @@ fun SettingsScreen(
                             NotificationPrefRow(
                                 title = "کارهای امروز",
                                 subtitle = "خلاصه صبحگاهی کارهای روز",
-                                icon = DfIcons.Calendar,
+                                iconRes = DfDecorIcons.Calendar,
                                 checked = state.notificationPrefs.todayDigest,
                                 onCheckedChange = { v ->
                                     viewModel.updatePref { it.copy(todayDigest = v) }
@@ -160,7 +159,7 @@ fun SettingsScreen(
                             NotificationPrefRow(
                                 title = "پیگیری معوق",
                                 subtitle = "هشدار مشتریان عقب‌افتاده",
-                                icon = DfIcons.Phone,
+                                iconRes = DfDecorIcons.Phone,
                                 checked = state.notificationPrefs.overdueFollowup,
                                 onCheckedChange = { v ->
                                     viewModel.updatePref { it.copy(overdueFollowup = v) }
@@ -171,7 +170,7 @@ fun SettingsScreen(
                             NotificationPrefRow(
                                 title = "فایل جدید",
                                 subtitle = "dataset تازه از ویندوز یا موبایل",
-                                icon = DfIcons.Folder,
+                                iconRes = DfDecorIcons.Folder,
                                 checked = state.notificationPrefs.newDataset,
                                 onCheckedChange = { v ->
                                     viewModel.updatePref { it.copy(newDataset = v) }
@@ -212,7 +211,7 @@ fun SettingsScreen(
                             NotificationPrefRow(
                                 title = "زمان‌بندی استخراج",
                                 subtitle = "یادآور اجرای schedule روی دستگاه",
-                                icon = DfIcons.Smartphone,
+                                iconRes = DfDecorIcons.Timer,
                                 checked = state.notificationPrefs.extractScheduleDue,
                                 onCheckedChange = { v ->
                                     viewModel.updatePref { it.copy(extractScheduleDue = v) }

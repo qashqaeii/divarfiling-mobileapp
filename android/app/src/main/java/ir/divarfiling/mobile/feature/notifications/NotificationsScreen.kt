@@ -37,6 +37,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
@@ -99,7 +100,7 @@ fun NotificationsScreen(
                                     "اعلان‌ها"
                                 },
                                 subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
-                                titleIcon = DfIcons.Bell,
+                                titleIconRes = DfDecorIcons.Bell,
                                 onBack = onBack,
                             )
                         }

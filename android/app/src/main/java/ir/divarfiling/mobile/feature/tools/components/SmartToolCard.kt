@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -22,7 +21,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,6 +32,8 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.feature.tools.SmartTool
 import ir.divarfiling.mobile.feature.tools.SmartToolId
 import ir.divarfiling.mobile.feature.tools.smartToolsCatalog
@@ -128,65 +128,27 @@ fun SmartToolIllustration(
     toolId: SmartToolId,
     modifier: Modifier = Modifier,
 ) {
-    when (toolId) {
-        SmartToolId.RentCommission -> ToolIllustrationStack(
-            modifier = modifier,
-            tint = DfColors.Purple,
-            background = DfColors.PurpleContainer,
-            primaryIcon = DfIcons.Calculator,
-            secondaryIcon = DfIcons.Percent,
-            accent = Color(0xFF8B5CF6),
-        )
-        SmartToolId.DepositConvert -> ToolIllustrationStack(
-            modifier = modifier,
-            tint = DfColors.Blue,
-            background = DfColors.BlueLight,
-            primaryIcon = DfIcons.Building,
-            secondaryIcon = DfIcons.RotateCcw,
-            accent = Color(0xFF3B82F6),
-        )
-        SmartToolId.Compare -> ToolIllustrationStack(
-            modifier = modifier,
-            tint = DfColors.Green,
-            background = DfColors.GreenLight,
-            primaryIcon = DfIcons.Scale,
-            secondaryIcon = DfIcons.LayoutGrid,
-            accent = Color(0xFF059669),
-        )
-        SmartToolId.AreaPrice -> ToolIllustrationStack(
-            modifier = modifier,
-            tint = DfColors.Amber,
-            background = DfColors.AmberLight,
-            primaryIcon = DfIcons.Ruler,
-            secondaryIcon = DfIcons.BarChart,
-            accent = Color(0xFFD97706),
-        )
-        SmartToolId.Discount -> ToolIllustrationStack(
-            modifier = modifier,
-            tint = DfColors.Pink,
-            background = DfColors.PinkLight,
-            primaryIcon = DfIcons.Tag,
-            secondaryIcon = DfIcons.Percent,
-            accent = Color(0xFFDB2777),
-        )
-        SmartToolId.SalesCommission -> ToolIllustrationStack(
-            modifier = modifier,
-            tint = Color(0xFF0D9488),
-            background = Color(0xFFCCFBF1),
-            primaryIcon = DfIcons.Coins,
-            secondaryIcon = DfIcons.TrendingUp,
-            accent = Color(0xFF14B8A6),
-        )
+    val (tint, background, iconRes) = when (toolId) {
+        SmartToolId.RentCommission -> Triple(DfColors.Purple, DfColors.PurpleContainer, DfDecorIcons.Calculator)
+        SmartToolId.DepositConvert -> Triple(DfColors.Blue, DfColors.BlueLight, DfDecorIcons.RotateCcw)
+        SmartToolId.Compare -> Triple(DfColors.Green, DfColors.GreenLight, DfDecorIcons.Scale)
+        SmartToolId.AreaPrice -> Triple(DfColors.Amber, DfColors.AmberLight, DfDecorIcons.BarChart)
+        SmartToolId.Discount -> Triple(DfColors.Pink, DfColors.PinkLight, DfDecorIcons.Percent)
+        SmartToolId.SalesCommission -> Triple(Color(0xFF0D9488), Color(0xFFCCFBF1), DfDecorIcons.Calculator)
     }
+    ToolIllustrationBox(
+        modifier = modifier,
+        tint = tint,
+        background = background,
+        iconRes = iconRes,
+    )
 }
 
 @Composable
-private fun ToolIllustrationStack(
+private fun ToolIllustrationBox(
     tint: Color,
     background: Color,
-    primaryIcon: ImageVector,
-    secondaryIcon: ImageVector,
-    accent: Color,
+    iconRes: Int,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -201,50 +163,18 @@ private fun ToolIllustrationStack(
         )
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(52.dp)
                 .shadow(4.dp, RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))
                 .background(
                     Brush.verticalGradient(
-                        listOf(
-                            background,
-                            Color.White,
-                        ),
+                        listOf(background, Color.White),
                     ),
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = primaryIcon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(24.dp),
-            )
+            DfDecorImage(resId = iconRes, size = 36.dp)
         }
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = (-2).dp, y = 4.dp)
-                .size(20.dp)
-                .clip(RoundedCornerShape(7.dp))
-                .background(background),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = secondaryIcon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(11.dp),
-            )
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = 4.dp, y = (-4).dp)
-                .size(14.dp)
-                .clip(CircleShape)
-                .background(accent.copy(alpha = 0.25f)),
-        )
     }
 }
 

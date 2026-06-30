@@ -308,7 +308,7 @@ fun ListingsScreen(
                     DfHubPageHeader(
                         title = state.datasetName ?: "آگهی‌های فایل",
                         subtitle = "آگهی‌های استخراج‌شده از دیوار",
-                        titleIcon = DfIcons.Building,
+                        titleIconRes = DfDecorIcons.Building,
                         onBack = onBack,
                     )
                 }
@@ -467,7 +467,7 @@ fun FilingSearchScreen(
                     DfHubPageHeader(
                         title = "جستجوی فایلینگ",
                         subtitle = "جستجو در همه فایل‌های استخراج‌شده",
-                        titleIcon = DfIcons.Search,
+                        titleIconRes = DfDecorIcons.Search,
                         onBack = onBack,
                     )
                 }

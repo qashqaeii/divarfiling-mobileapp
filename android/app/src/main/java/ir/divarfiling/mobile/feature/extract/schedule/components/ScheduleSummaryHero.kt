@@ -23,7 +23,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfGlassCard
 import ir.divarfiling.mobile.core.network.ExtractionScheduleDto
 
@@ -70,11 +71,9 @@ fun ScheduleSummaryHero(
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = DfIcons.Timer,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp),
+                    DfDecorImage(
+                        resId = DfDecorIcons.Timer,
+                        size = 22.dp,
                     )
                 }
             }

@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppElevations
@@ -23,6 +26,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -45,23 +49,20 @@ fun DealsStatsRow(
         DealsStatCard(
             value = numberFormat.format(activeCount),
             label = "فعال معامله",
-            icon = DfIcons.Zap,
+            iconRes = DfDecorIcons.Zap,
             background = DfColors.AmberLight,
-            iconTint = DfColors.Amber,
         )
         DealsStatCard(
             value = pipelineValueLabel,
             label = "ارزش pipeline",
-            icon = DfIcons.BarChart,
+            iconRes = DfDecorIcons.BarChart,
             background = DfColors.BlueLight,
-            iconTint = DfColors.Blue,
         )
         DealsStatCard(
             value = weightedForecastLabel,
             label = "پیش‌بینی وزنی",
-            icon = DfIcons.Scale,
+            iconRes = DfDecorIcons.Scale,
             background = DfColors.PurpleContainer,
-            iconTint = DfColors.Purple,
         )
         DealsStatCard(
             value = closedCommissionLabel,
@@ -84,9 +85,11 @@ fun DealsStatsRow(
 private fun DealsStatCard(
     value: String,
     label: String,
-    icon: ImageVector,
     background: Color,
-    iconTint: Color,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
+    iconTint: Color = DfColors.Purple,
 ) {
     Surface(
         shape = AppShapes.Card,
@@ -111,12 +114,20 @@ private fun DealsStatCard(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(16.dp),
-                    )
+                    when {
+                        iconRes != null -> Image(
+                            painter = painterResource(iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            contentScale = ContentScale.Fit,
+                        )
+                        icon != null -> Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
                 }
             }
             Column(
