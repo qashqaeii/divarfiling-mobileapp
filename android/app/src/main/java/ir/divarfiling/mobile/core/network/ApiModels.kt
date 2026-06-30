@@ -225,6 +225,10 @@ data class ListingDto(
     @SerialName("transaction_type") val transactionType: String? = null,
     @SerialName("feature_highlights") val featureHighlights: List<String> = emptyList(),
     @SerialName("scraped_at") val scrapedAt: String? = null,
+    @SerialName("unit_status") val unitStatus: String? = null,
+    @SerialName("has_parking") val hasParking: Boolean? = null,
+    @SerialName("has_storage") val hasStorage: Boolean? = null,
+    @SerialName("has_elevator") val hasElevator: Boolean? = null,
 )
 
 @Serializable

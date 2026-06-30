@@ -12,8 +12,12 @@ data class ListingAmenity(
 
 object ListingAmenityUtils {
 
-    fun buildAmenities(listing: ListingDto, limit: Int = 6): List<ListingAmenity> {
+    fun buildAmenities(listing: ListingDto, limit: Int = 8): List<ListingAmenity> {
         val items = linkedSetOf<ListingAmenity>()
+
+        addCoreAmenity(items, "پارکینگ", listing.hasParking, DfIcons.Car)
+        addCoreAmenity(items, "انباری", listing.hasStorage, DfIcons.Folder)
+        addCoreAmenity(items, "آسانسور", listing.hasElevator, DfIcons.Layers)
 
         listing.area?.let {
             items.add(ListingAmenity(FormatUtils.formatArea(it), DfIcons.Ruler))
@@ -36,6 +40,16 @@ object ListingAmenityUtils {
         }
 
         return items.take(limit)
+    }
+
+    private fun addCoreAmenity(
+        items: MutableSet<ListingAmenity>,
+        name: String,
+        value: Boolean?,
+        icon: ImageVector,
+    ) {
+        val label = ListingSpecUtils.boolAmenityChipLabel(name, value) ?: return
+        items.add(ListingAmenity(label, icon))
     }
 
     private fun String.toAmenity(): ListingAmenity {

@@ -1,6 +1,8 @@
 package ir.divarfiling.mobile.feature.filing.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +28,7 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
+import ir.divarfiling.mobile.core.filing.ListingSpecUtils
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 
 @Composable
@@ -132,6 +135,67 @@ fun ListingDetailHeader(
             floor = floorLabel,
             propertyType = propertyType,
         )
+
+        ListingCoreAmenityRow(
+            hasParking = listing.hasParking,
+            hasStorage = listing.hasStorage,
+            hasElevator = listing.hasElevator,
+        )
+    }
+}
+
+@Composable
+private fun ListingCoreAmenityRow(
+    hasParking: Boolean?,
+    hasStorage: Boolean?,
+    hasElevator: Boolean?,
+) {
+    val chips = listOf(
+        Triple("پارکینگ", hasParking, DfIcons.Car),
+        Triple("انباری", hasStorage, DfIcons.Folder),
+        Triple("آسانسور", hasElevator, DfIcons.Building),
+    ).filter { (_, value, _) -> value != null }
+    if (chips.isEmpty()) return
+
+    @OptIn(ExperimentalLayoutApi::class)
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        chips.forEach { (label, value, icon) ->
+            CoreAmenityChip(
+                label = label,
+                value = value!!,
+                icon = icon,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CoreAmenityChip(
+    label: String,
+    value: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+) {
+    val positive = value
+    val color = if (positive) DfColors.Green else DfColors.TextMuted
+    val bg = if (positive) DfColors.GreenLight else DfColors.SurfaceVariant
+    Surface(shape = AppShapes.Chip, color = bg) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
+            Text(
+                text = "$label: ${ListingSpecUtils.boolFeatureLabel(value)}",
+                style = AppTypography.labelSmall,
+                color = color,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 
