@@ -23,6 +23,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfGlassCard

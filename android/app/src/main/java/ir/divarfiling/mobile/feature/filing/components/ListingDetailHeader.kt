@@ -28,6 +28,7 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
+import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.core.filing.ListingSpecUtils
 import ir.divarfiling.mobile.core.network.ListingDetailDto

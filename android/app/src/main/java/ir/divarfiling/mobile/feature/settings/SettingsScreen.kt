@@ -33,6 +33,8 @@ import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader

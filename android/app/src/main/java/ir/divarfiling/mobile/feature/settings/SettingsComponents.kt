@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.settings
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

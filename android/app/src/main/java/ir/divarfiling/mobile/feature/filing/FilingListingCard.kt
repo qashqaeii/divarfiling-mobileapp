@@ -38,6 +38,7 @@ import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
+import ir.divarfiling.mobile.core.filing.ListingAmenityUtils
 import ir.divarfiling.mobile.core.filing.ListingPriceUtils
 import ir.divarfiling.mobile.core.network.ListingDto
 

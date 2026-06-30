@@ -65,12 +65,14 @@ fun FilingStatsRow(
             label = "فضای استفاده‌شده",
             title = "حجم کل",
             iconRes = DfDecorIcons.Database,
+            background = DfColors.BlueLight,
         )
         FilingStatCard(
             value = numberFormat.format(datasetsThisMonth),
             label = "دیتاست‌های ایجادشده",
             title = "ماه جاری",
             iconRes = DfDecorIcons.Calendar,
+            background = DfColors.AmberLight,
         )
     }
 }

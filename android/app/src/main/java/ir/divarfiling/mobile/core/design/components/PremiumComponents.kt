@@ -57,12 +57,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DfAnimation
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
-import ir.divarfiling.mobile.core.design.components.DfDecorImage
-import ir.divarfiling.mobile.core.design.components.DfDecorSize
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
-import ir.divarfiling.mobile.core.design.components.DfDecorImage
-import ir.divarfiling.mobile.core.design.components.DfDecorSize
 
 data class DfNavItem(
     val route: String,
