@@ -3,8 +3,9 @@ package ir.divarfiling.mobile.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.feature.crm.components.TodayTaskLabels
 import ir.divarfiling.mobile.core.datastore.SessionStore
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.NotificationDto
 import ir.divarfiling.mobile.core.network.TodayItemDto
@@ -18,8 +19,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -187,17 +186,12 @@ class HomeViewModel @Inject constructor(
                 id = reminder?.id?.toString() ?: contact?.id?.toString() ?: index.toString(),
                 contactId = contact?.id,
                 reminderId = reminder?.id,
-                time = formatTaskTime(reminder?.dueAt),
+                time = TodayTaskLabels.dueLabel(item) ?: "—",
                 title = reminder?.title ?: contact?.fullName ?: "کار امروز",
                 subtitle = contact?.customerType ?: contact?.phone ?: "—",
                 type = type,
             )
         }
-
-    private fun formatTaskTime(dueAt: String?): String {
-        if (dueAt.isNullOrBlank()) return "—"
-        return dueAt.substringAfter("T").take(5).ifBlank { dueAt.take(5) }
-    }
 
     private fun NotificationDto.toHomeNotification(): HomeNotificationItem {
         val notifType = when (type?.lowercase()) {
@@ -211,26 +205,10 @@ class HomeViewModel @Inject constructor(
         return HomeNotificationItem(
             id = id.toString(),
             title = title,
-            timeAgo = formatTimeAgo(createdAt),
+            timeAgo = DateUtils.formatRelativeTimeAgo(createdAt),
             type = notifType,
             deepLink = deepLink,
             body = body,
         )
-    }
-
-    private fun formatTimeAgo(iso: String?): String {
-        if (iso.isNullOrBlank()) return "اخیراً"
-        return try {
-            val date = LocalDate.parse(iso.take(10), DateTimeFormatter.ISO_LOCAL_DATE)
-            val days = LocalDate.now().toEpochDay() - date.toEpochDay()
-            when {
-                days <= 0 -> "امروز"
-                days == 1L -> "دیروز"
-                days < 7 -> "$days روز پیش"
-                else -> DateUtils.formatJalaliDate(iso) ?: iso.take(10)
-            }
-        } catch (_: Exception) {
-            "اخیراً"
-        }
     }
 }

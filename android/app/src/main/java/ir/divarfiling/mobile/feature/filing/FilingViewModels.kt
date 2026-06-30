@@ -33,6 +33,10 @@ data class DatasetsUiState(
     val showExportSheet: Boolean = false,
     val exportTarget: DatasetDto? = null,
     val exportMessage: String? = null,
+    val showDeleteSheet: Boolean = false,
+    val deleteTarget: DatasetDto? = null,
+    val isDeleting: Boolean = false,
+    val deleteMessage: String? = null,
     val error: String? = null,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
@@ -117,6 +121,40 @@ class DatasetsViewModel @Inject constructor(
     }
 
     fun clearExportMessage() = _uiState.update { it.copy(exportMessage = null) }
+
+    fun openDeleteSheet(dataset: DatasetDto) {
+        _uiState.update { it.copy(showDeleteSheet = true, deleteTarget = dataset, error = null) }
+    }
+
+    fun dismissDeleteSheet() {
+        if (_uiState.value.isDeleting) return
+        _uiState.update { it.copy(showDeleteSheet = false, deleteTarget = null) }
+    }
+
+    fun clearDeleteMessage() = _uiState.update { it.copy(deleteMessage = null) }
+
+    fun confirmDeleteDataset() {
+        val target = _uiState.value.deleteTarget ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeleting = true, error = null) }
+            when (val result = filingRepository.deleteDataset(target.id)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            datasets = it.datasets.filter { ds -> ds.id != target.id },
+                            isDeleting = false,
+                            showDeleteSheet = false,
+                            deleteTarget = null,
+                            deleteMessage = "فایل «${target.name}» حذف شد",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isDeleting = false, error = result.message)
+                }
+            }
+        }
+    }
 
     fun exportDataset(context: Context, format: ExportFormat) {
         val target = _uiState.value.exportTarget ?: return

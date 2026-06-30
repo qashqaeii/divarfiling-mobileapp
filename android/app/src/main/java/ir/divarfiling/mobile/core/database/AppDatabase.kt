@@ -108,6 +108,9 @@ interface DatasetCacheDao {
 
     @Query("DELETE FROM cached_datasets")
     suspend fun clear()
+
+    @Query("DELETE FROM cached_datasets WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
 
 @Dao

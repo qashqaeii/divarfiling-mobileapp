@@ -86,6 +86,7 @@ fun FilingDatasetCard(
     dataset: DatasetDto,
     onClick: () -> Unit,
     onExport: () -> Unit = {},
+    onDelete: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -162,6 +163,10 @@ fun FilingDatasetCard(
                                 DropdownMenuItem(
                                     text = { Text("خروجی Excel / JSON") },
                                     onClick = { showMenu = false; onExport() },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("حذف فایل", color = DfColors.OverdueAccent) },
+                                    onClick = { showMenu = false; onDelete() },
                                 )
                             }
                         }

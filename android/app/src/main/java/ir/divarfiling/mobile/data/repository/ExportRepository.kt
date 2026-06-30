@@ -55,8 +55,14 @@ class ExportRepository @Inject constructor(
             }
 
             client.newCall(requestBuilder.build()).execute().use { response ->
-                if (!response.isSuccessful) {
-                    return@withContext ApiResult.Error("خطا در دریافت فایل (${response.code})")
+        if (!response.isSuccessful) {
+                    val code = response.code
+                    val message = when (code) {
+                        403 -> "لایسنس فعال برای خروجی فایل نیاز است"
+                        404 -> "فایل یافت نشد یا حذف شده است"
+                        else -> "خطا در دریافت فایل ($code)"
+                    }
+                    return@withContext ApiResult.Error(message)
                 }
                 val body = response.body ?: return@withContext ApiResult.Error("پاسخ خالی")
                 val fileName = response.header("Content-Disposition")

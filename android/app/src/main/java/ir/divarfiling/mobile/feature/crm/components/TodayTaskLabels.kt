@@ -14,8 +14,14 @@ object TodayTaskLabels {
     }
 
     fun dueLabel(item: TodayItemDto): String? {
-        item.reminder?.dueAt?.let { return DateUtils.formatJalaliDateTime(it) ?: DateUtils.formatJalaliDate(it) }
+        item.reminder?.dueAt?.let { return formatDueDateTime(it) }
+        item.contact?.nextFollowUpAt?.let { return formatDueDateTime(it) }
         return null
+    }
+
+    fun formatDueDateTime(value: String?): String? {
+        if (value.isNullOrBlank()) return null
+        return DateUtils.formatJalaliDateTime(value) ?: DateUtils.formatJalaliDate(value)
     }
 
     fun titleLabel(item: TodayItemDto): String =

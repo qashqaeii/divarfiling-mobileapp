@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
@@ -95,10 +96,14 @@ fun DatasetsScreen(
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
-    LaunchedEffect(state.exportMessage, state.error) {
+    LaunchedEffect(state.exportMessage, state.deleteMessage, state.error) {
         state.exportMessage?.let {
             snackbar.showSnackbar(it)
             viewModel.clearExportMessage()
+        }
+        state.deleteMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearDeleteMessage()
         }
         state.error?.let { snackbar.showSnackbar(it) }
     }
@@ -191,6 +196,7 @@ fun DatasetsScreen(
                                         dataset = dataset,
                                         onClick = { onDatasetClick(dataset.id) },
                                         onExport = { viewModel.openExportSheet(dataset) },
+                                        onDelete = { viewModel.openDeleteSheet(dataset) },
                                     )
                                 }
                             }
@@ -220,6 +226,22 @@ fun DatasetsScreen(
                 isExporting = state.isExporting,
                 onSelect = { format -> viewModel.exportDataset(context, format) },
                 onDismiss = viewModel::dismissExportSheet,
+            )
+        }
+    }
+
+    if (state.showDeleteSheet) {
+        val target = state.deleteTarget
+        if (target != null) {
+            DfConfirmBottomSheet(
+                title = "حذف فایل",
+                message = "فایل «${target.name}» و ${target.itemCount} آگهی وابسته حذف می‌شود. این عمل قابل بازگشت نیست.",
+                confirmText = "حذف فایل",
+                cancelText = "انصراف",
+                destructive = true,
+                isSubmitting = state.isDeleting,
+                onConfirm = viewModel::confirmDeleteDataset,
+                onDismiss = viewModel::dismissDeleteSheet,
             )
         }
     }

@@ -201,10 +201,10 @@ private fun buildQuickActions(
     onNavigateCrm: () -> Unit,
     onNavigateToday: () -> Unit,
 ): List<QuickAction> = listOf(
-    QuickAction("یادآور جدید", DfColors.Pink, DfColors.PinkLight, onNavigateToday, iconRes = DfDecorIcons.StickyNote),
-    QuickAction("مخاطب جدید", DfColors.Amber, DfColors.AmberLight, onNavigateContacts, iconRes = DfDecorIcons.Upload),
-    QuickAction("فایل‌ها", DfColors.Blue, DfColors.BlueLight, onNavigateFiling, iconRes = DfDecorIcons.Layers),
-    QuickAction("مخاطبین", DfColors.Purple, DfColors.PurpleContainer, onNavigateCrm, iconRes = DfDecorIcons.ClipboardList),
+    QuickAction("یادآور جدید", DfColors.Pink, onNavigateToday, iconRes = DfDecorIcons.StickyNote),
+    QuickAction("مخاطب جدید", DfColors.Amber, onNavigateContacts, iconRes = DfDecorIcons.Upload),
+    QuickAction("فایل‌ها", DfColors.Blue, onNavigateFiling, iconRes = DfDecorIcons.Layers),
+    QuickAction("مخاطبین", DfColors.Purple, onNavigateCrm, iconRes = DfDecorIcons.ClipboardList),
 )
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")

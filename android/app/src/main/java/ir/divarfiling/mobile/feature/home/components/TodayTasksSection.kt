@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -124,12 +124,12 @@ private fun TodayTaskRow(task: HomeTaskItem) {
 
         Text(
             text = task.time,
-            style = AppTypography.timeLabel,
+            style = AppTypography.labelSmall,
             color = DfColors.TextMuted,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.width(44.dp),
+            textAlign = TextAlign.End,
+            modifier = Modifier.widthIn(max = 96.dp),
         )
     }
 }

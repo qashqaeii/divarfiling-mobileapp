@@ -49,6 +49,19 @@ class FilingRepository @Inject constructor(
         }
     }
 
+    suspend fun deleteDataset(datasetId: String): ApiResult<Unit> {
+        return try {
+            val response = api.deleteDataset(datasetId)
+            if (!response.ok) {
+                return ApiResult.Error(response.error ?: "حذف فایل ناموفق بود")
+            }
+            datasetCache.deleteById(datasetId)
+            ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
     suspend fun getListings(
         datasetId: String,
         query: String? = null,

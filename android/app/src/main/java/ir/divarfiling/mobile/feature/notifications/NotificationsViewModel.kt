@@ -13,8 +13,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 data class NotificationsUiState(
@@ -135,26 +133,11 @@ class NotificationsViewModel @Inject constructor(
             id = id,
             title = title,
             body = body.orEmpty(),
-            timeAgo = formatTimeAgo(createdAt),
+            timeAgo = DateUtils.formatRelativeTimeAgo(createdAt),
             type = notifType,
             isRead = isRead,
             deepLink = deepLink,
         )
     }
 
-    private fun formatTimeAgo(iso: String?): String {
-        if (iso.isNullOrBlank()) return "اخیراً"
-        return try {
-            val date = LocalDate.parse(iso.take(10), DateTimeFormatter.ISO_LOCAL_DATE)
-            val days = LocalDate.now().toEpochDay() - date.toEpochDay()
-            when {
-                days <= 0 -> "امروز"
-                days == 1L -> "دیروز"
-                days < 7 -> "$days روز پیش"
-                else -> DateUtils.formatJalaliDate(iso) ?: iso.take(10)
-            }
-        } catch (_: Exception) {
-            iso.take(10)
-        }
-    }
 }

@@ -222,6 +222,9 @@ interface MobileApi {
     @GET("filing/datasets/{id}")
     suspend fun getDataset(@Path("id") datasetId: String): ApiEnvelope
 
+    @DELETE("filing/datasets/{id}")
+    suspend fun deleteDataset(@Path("id") datasetId: String): ApiEnvelope
+
     @GET("filing/datasets/{id}/listings")
     suspend fun getListings(
         @Path("id") datasetId: String,

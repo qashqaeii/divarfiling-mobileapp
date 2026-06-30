@@ -19,7 +19,6 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfScreenBackground
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,12 +62,6 @@ fun NotificationPermissionGate(
                         showOnboarding = false
                     }
                 },
-                onSkip = {
-                    scope.launch {
-                        sessionStore.setNotificationOnboardingSeen()
-                        showOnboarding = false
-                    }
-                },
             )
         }
         false -> content()
@@ -78,7 +71,6 @@ fun NotificationPermissionGate(
 @Composable
 private fun NotificationOnboardingScreen(
     onEnable: () -> Unit,
-    onSkip: () -> Unit,
 ) {
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -143,13 +135,10 @@ private fun NotificationOnboardingScreen(
             }
             Spacer(Modifier.height(32.dp))
             DfPrimaryButton(
-                text = "فعال‌سازی اعلان‌ها",
+                text = "تایید",
                 onClick = ::requestPermission,
                 modifier = Modifier.fillMaxWidth(),
             )
-            TextButton(onClick = onSkip) {
-                Text("بعداً", color = DfColors.TextMuted)
-            }
         }
     }
 }

@@ -1,8 +1,12 @@
 package ir.divarfiling.mobile.core.design
 
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 object DateUtils {
 
@@ -52,6 +56,49 @@ object DateUtils {
     fun formatRelativeFa(value: String?): String {
         val formatted = formatJalaliDateTime(value) ?: formatJalaliDate(value)
         return formatted ?: "—"
+    }
+
+    /** زمان نسبی فارسی: «۱ دقیقه پیش»، «۸ ساعت پیش»، «دیروز»، «۲۰ روز پیش» */
+    fun formatRelativeTimeAgo(value: String?): String {
+        if (value.isNullOrBlank()) return "اخیراً"
+        val zone = ZoneId.systemDefault()
+        val now = Instant.now()
+        val then = parseToInstant(value, zone) ?: return "اخیراً"
+        if (then.isAfter(now)) return "همین الان"
+
+        val zonedNow = now.atZone(zone)
+        val zonedThen = then.atZone(zone)
+        val daysBetween = ChronoUnit.DAYS.between(zonedThen.toLocalDate(), zonedNow.toLocalDate())
+
+        when {
+            daysBetween >= 30 -> return formatJalaliDate(value) ?: "—"
+            daysBetween >= 2 -> return "${toPersianDigits(daysBetween.toString())} روز پیش"
+            daysBetween == 1L -> return "دیروز"
+        }
+
+        val duration = Duration.between(then, now)
+        val minutes = duration.toMinutes()
+        val hours = duration.toHours()
+        return when {
+            minutes < 1 -> "لحظاتی پیش"
+            minutes < 60 -> "${toPersianDigits(minutes.toString())} دقیقه پیش"
+            else -> "${toPersianDigits(hours.toString())} ساعت پیش"
+        }
+    }
+
+    private fun parseToInstant(value: String, zone: ZoneId): Instant? {
+        val trimmed = value.trim()
+        return runCatching { Instant.parse(trimmed) }.getOrNull()
+            ?: runCatching {
+                LocalDateTime.parse(trimmed, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    .atZone(zone)
+                    .toInstant()
+            }.getOrNull()
+            ?: runCatching {
+                LocalDate.parse(trimmed.take(10), DateTimeFormatter.ISO_LOCAL_DATE)
+                    .atStartOfDay(zone)
+                    .toInstant()
+            }.getOrNull()
     }
 
     fun todayJalaliLabel(): String {

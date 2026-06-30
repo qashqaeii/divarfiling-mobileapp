@@ -134,6 +134,7 @@ data class ContactDto(
     val priority: String? = null,
     val budget: Long? = null,
     val notes: String? = null,
+    @SerialName("next_follow_up_at") val nextFollowUpAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
 )
 
