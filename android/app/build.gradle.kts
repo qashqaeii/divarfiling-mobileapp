@@ -52,9 +52,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = signingConfigs.findByName("release")?.takeIf {
-                it.storeFile?.exists() == true
-            } ?: signingConfigs.getByName("debug")
+            val releaseSigning = signingConfigs.findByName("release")
+            signingConfig = releaseSigning?.takeIf { it.storeFile?.exists() == true }
+                ?: error(
+                    "Release signing not configured. Set ANDROID_KEYSTORE_PATH, " +
+                        "ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and ANDROID_KEY_PASSWORD.",
+                )
         }
     }
 

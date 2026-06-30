@@ -23,6 +23,7 @@ Thumbs.db
 # Secrets
 *.jks
 *.keystore
+keystore-signing.local.txt
 **/secrets.properties
 # Firebase service account — هرگز commit نشود
 *-firebase-adminsdk-*.json

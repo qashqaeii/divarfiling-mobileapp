@@ -28,7 +28,18 @@
 
 ## CI / ساخت Release
 
-متغیرهای محیطی برای امضای release در GitHub Actions:
+Workflow فقط **`app-release.apk` امضا‌شده** می‌سازد (دیگر debug artifact ندارد).
+
+Secrets در GitHub → Settings → Secrets and variables → Actions:
+
+| Secret | توضیح |
+|--------|--------|
+| `ANDROID_KEYSTORE_BASE64` | فایل keystore به صورت base64 |
+| `ANDROID_KEYSTORE_PASSWORD` | رمز keystore |
+| `ANDROID_KEY_ALIAS` | alias کلید |
+| `ANDROID_KEY_PASSWORD` | رمز کلید |
+
+متغیرهای محیطی برای ساخت محلی release:
 
 - `ANDROID_KEYSTORE_PATH`
 - `ANDROID_KEYSTORE_PASSWORD`

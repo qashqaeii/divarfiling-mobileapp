@@ -283,7 +283,7 @@ Workflow: `.github/workflows/build-apk.yml`
 
 - Trigger: `push` / `pull_request` روی `main`/`master` + `workflow_dispatch`
 - مسیر کار: `android/`
-- مراحل: `lintDebug` → `assembleDebug` → artifact `divar-filing-debug-apk`
+- مراحل: `lintRelease` → `assembleRelease` → artifact `divar-filing-release-apk`
 
 جزئیات دانلود APK در [README.md](../README.md#build-apk-with-github-actions).
 

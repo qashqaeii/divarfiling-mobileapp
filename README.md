@@ -29,27 +29,53 @@ Django (مرکز)  ◄──  Windows (استخراج حرفه‌ای)
 
 ## اجرای محلی
 
+**توسعه (دیباگ):**
 ```bash
 cd android
 ./gradlew assembleDebug
 ```
 
-خروجی: `app/build/outputs/apk/debug/app-debug.apk`
+**Release امضا‌شده (مثل CI):**
+```bash
+export ANDROID_KEYSTORE_PATH=/path/to/divarfiling-release.keystore
+export ANDROID_KEYSTORE_PASSWORD=...
+export ANDROID_KEY_ALIAS=divarfiling
+export ANDROID_KEY_PASSWORD=...
+./gradlew assembleRelease
+```
+
+خروجی release: `app/build/outputs/apk/release/app-release.apk`
 
 نیازمند: JDK 17، Android SDK (API 35)
 
 ## Build APK with GitHub Actions
 
-با هر `push` یا `pull_request` روی branch اصلی (`main` / `master`) — در صورت تغییر فایل‌های داخل `android/` — workflow **Build APK** اجرا می‌شود.
+با هر `push` روی branch اصلی (`main` / `master`) — در صورت تغییر فایل‌های داخل `android/` — workflow **Build APK** یک **`app-release.apk` امضا‌شده** می‌سازد.
+
+روی **pull request** فقط lint اجرا می‌شود (بدون artifact).
 
 همچنین می‌توانید دستی اجرا کنید: **Actions → Build APK → Run workflow**
+
+### Secrets لازم در GitHub
+
+| Secret | توضیح |
+|--------|--------|
+| `ANDROID_KEYSTORE_BASE64` | فایل `.keystore` به صورت base64 |
+| `ANDROID_KEYSTORE_PASSWORD` | رمز keystore |
+| `ANDROID_KEY_ALIAS` | نام alias (مثلاً `divarfiling`) |
+| `ANDROID_KEY_PASSWORD` | رمز کلید |
+
+ساخت base64 از keystore (PowerShell):
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("divarfiling-release.keystore"))
+```
 
 ### دانلود APK
 
 1. GitHub → **Actions**
 2. workflow **Build APK**
-3. آخرین **Run** موفق
-4. بخش **Artifacts** → `divar-filing-debug-apk`
+3. آخرین **Run** موفق (job `release`)
+4. بخش **Artifacts** → `divar-filing-release-apk`
 
 ## قابلیت‌های فعلی اپ
 
