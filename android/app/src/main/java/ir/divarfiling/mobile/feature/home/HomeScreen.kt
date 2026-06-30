@@ -42,7 +42,6 @@ import ir.divarfiling.mobile.feature.home.components.RecentListingsSection
 import ir.divarfiling.mobile.feature.home.components.StatsSection
 import ir.divarfiling.mobile.feature.home.components.SyncStatusBanner
 import ir.divarfiling.mobile.feature.home.components.TodayTasksSectionContent
-import android.net.Uri
 import ir.divarfiling.mobile.navigation.DeepLinkParser
 import ir.divarfiling.mobile.navigation.DeepLinkTarget
 
