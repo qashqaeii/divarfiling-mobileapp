@@ -45,6 +45,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfShapes
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
+import ir.divarfiling.mobile.core.design.components.DfGlassButton
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
@@ -128,6 +129,7 @@ fun SettingsHeroCard(
 fun LicenseInsightCard(
     license: LicenseState,
     onRenew: (() -> Unit)? = null,
+    onOpenDashboard: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val progress by animateFloatAsState(
@@ -162,6 +164,13 @@ fun LicenseInsightCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("وضعیت لایسنس", fontWeight = FontWeight.SemiBold)
                     Text(license.licenseLabel, color = DfColors.TextSecondary)
+                    if (!license.valid) {
+                        Text(
+                            "پس از خرید با همین حساب وارد اپ شوید. هر لایسنس: یک ویندوز + یک اندروید.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = DfColors.TextMuted,
+                        )
+                    }
                     Text(
                         license.expiryHeadline,
                         style = MaterialTheme.typography.titleMedium,
@@ -186,8 +195,16 @@ fun LicenseInsightCard(
             FeatureChips(license)
             if (onRenew != null && (!license.valid || license.expiringSoon)) {
                 DfPrimaryButton(
-                    text = if (license.valid) "تمدید لایسنس" else "فعال‌سازی لایسنس",
+                    text = if (license.valid) "تمدید لایسنس" else "خرید / فعال‌سازی لایسنس",
                     onClick = onRenew,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (onOpenDashboard != null && !license.valid) {
+                DfGlassButton(
+                    text = "مشاهده کلید در داشبورد",
+                    onClick = onOpenDashboard,
+                    icon = DfIcons.ExternalLink,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

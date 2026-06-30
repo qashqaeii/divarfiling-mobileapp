@@ -29,6 +29,7 @@ import android.net.Uri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.BuildConfig
+import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
@@ -119,7 +120,8 @@ fun SettingsScreen(
                 item {
                     LicenseInsightCard(
                         license = state.license,
-                        onRenew = { openWeb("https://divarfiling.ir/shop/") },
+                        onRenew = { openWeb(AppLinks.SHOP_BOT) },
+                        onOpenDashboard = { openWeb(AppLinks.DASHBOARD_LICENSES) },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

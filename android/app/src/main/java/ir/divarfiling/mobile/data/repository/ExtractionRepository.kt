@@ -50,9 +50,14 @@ class ExtractionRepository @Inject constructor(
     fun gateFromLicense(license: LicenseState): ExtractGateResult {
         return when {
             !license.valid ->
-                ExtractGateDenied("برای استخراج فایل نیاز به لایسنس فعال دارید.")
+                ExtractGateDenied(
+                    "برای استخراج و فایلینگ، لایسنس فعال لازم است. " +
+                        "پس از خرید با همین حساب وارد اپ شوید؛ برای ویندوز کلید را از داشبورد در ربات وارد کنید.",
+                )
             !license.lightExtractEnabled ->
-                ExtractGateDenied("پلن شما شامل استخراج موبایل نیست. از نرم‌افزار ویندوز استفاده کنید.")
+                ExtractGateDenied(
+                    "پلن شما شامل استخراج موبایل نیست. لایسنس را در داشبورد بررسی کنید یا با پشتیبانی تماس بگیرید.",
+                )
             else -> ExtractGateResult.Allowed
         }
     }

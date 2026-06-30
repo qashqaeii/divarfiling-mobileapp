@@ -45,6 +45,7 @@ fun QuickExtractCard(
     maxItems: Int,
     enabled: Boolean,
     onStartClick: () -> Unit,
+    onActivateLicense: () -> Unit = onStartClick,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -53,8 +54,7 @@ fun QuickExtractCard(
             .padding(horizontal = AppSpacing.screenHorizontal),
         shape = AppShapes.Hero,
         shadowElevation = AppElevations.floating,
-        onClick = { if (enabled) onStartClick() },
-        enabled = enabled,
+        onClick = { if (enabled) onStartClick() else onActivateLicense() },
     ) {
         Box(
             modifier = Modifier
@@ -96,7 +96,7 @@ fun QuickExtractCard(
                         text = if (enabled) {
                             "ربات فعال است و آماده استخراج آگهی‌های جدید"
                         } else {
-                            "برای استخراج، لایسنس فعال لازم است"
+                            "پس از خرید با همین حساب وارد شوید — ویندوز + اندروید"
                         },
                         style = AppTypography.bodyDescription,
                         color = Color.White.copy(alpha = 0.88f),
@@ -104,8 +104,7 @@ fun QuickExtractCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Surface(
-                        onClick = onStartClick,
-                        enabled = enabled,
+                        onClick = { if (enabled) onStartClick() else onActivateLicense() },
                         shape = AppShapes.ButtonPill,
                         color = Color.White,
                         shadowElevation = AppElevations.subtle,
@@ -120,13 +119,13 @@ fun QuickExtractCard(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                imageVector = DfIcons.Play,
+                                imageVector = if (enabled) DfIcons.Play else DfIcons.Sparkles,
                                 contentDescription = null,
                                 tint = DfColors.Purple,
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = "شروع استخراج",
+                                text = if (enabled) "شروع استخراج" else "فعال‌سازی لایسنس",
                                 style = AppTypography.bodyDescription,
                                 fontWeight = FontWeight.SemiBold,
                                 color = DfColors.Purple,

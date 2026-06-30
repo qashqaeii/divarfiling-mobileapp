@@ -18,7 +18,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import android.content.Intent
+import android.net.Uri
+import ir.divarfiling.mobile.core.AppLinks
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,6 +61,10 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    fun openShop() {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.SHOP_BOT)))
+    }
     var todayExpanded by remember { mutableStateOf(false) }
     var notificationsExpanded by remember { mutableStateOf(false) }
 
@@ -106,6 +114,7 @@ fun HomeScreen(
                         maxItems = state.maxExtractItems,
                         enabled = state.canExtract,
                         onStartClick = onNavigateExtract,
+                        onActivateLicense = ::openShop,
                     )
                 }
                 item {
@@ -126,6 +135,7 @@ fun HomeScreen(
                         maxItems = state.maxExtractItems,
                         enabled = state.canExtract,
                         onStartClick = onNavigateExtract,
+                        onActivateLicense = ::openShop,
                     )
                 }
                 item {

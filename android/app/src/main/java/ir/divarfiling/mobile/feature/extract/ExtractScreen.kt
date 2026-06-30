@@ -17,7 +17,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import android.content.Intent
+import android.net.Uri
+import ir.divarfiling.mobile.core.AppLinks
+import ir.divarfiling.mobile.core.design.components.LicenseGateBanner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -51,6 +56,10 @@ fun ExtractScreen(
     viewModel: ExtractViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    fun openWeb(url: String) {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
     val canExtract = state.license.canUseLightExtract && state.gateMessage == null
     val tx = ExtractCategories.transactionTypes.firstOrNull { it.label == state.transactionType }
     val subcategories = tx?.subcategories.orEmpty()
@@ -180,10 +189,11 @@ fun ExtractScreen(
 
             state.gateMessage?.let { gate ->
                 item {
-                    Text(
-                        gate,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
+                    LicenseGateBanner(
+                        message = gate,
+                        onBuyLicense = { openWeb(AppLinks.SHOP_BOT) },
+                        onOpenDashboard = { openWeb(AppLinks.DASHBOARD_LICENSES) },
+                        onRefresh = viewModel::refreshGate,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
