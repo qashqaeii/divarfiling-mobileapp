@@ -117,6 +117,8 @@ object PropertyFilters {
         else -> "وضعیت معامله"
     }
 
+    fun boolFeatureLabel(has: Boolean): String = if (has) "دارد" else "ندارد"
+
     fun allSpecs(property: PropertyDto): List<Pair<String, String>> = buildList {
         PropertyFilters.formatArea(property.area)?.let { add("متراژ" to it) }
         property.rooms?.takeIf { it.isNotBlank() }?.let { add("اتاق" to it) }
@@ -124,6 +126,10 @@ object PropertyFilters {
         property.buildYear?.let { add("سال ساخت" to it.toString()) }
         property.propertyType?.takeIf { it.isNotBlank() }?.let { add("نوع ملک" to it) }
         property.dealMode?.takeIf { it.isNotBlank() }?.let { add("معامله" to it) }
+        add("وضعیت" to (property.transactionStatus ?: "فعال"))
+        add("پارکینگ" to boolFeatureLabel(property.hasParking))
+        add("انباری" to boolFeatureLabel(property.hasStorage))
+        add("آسانسور" to boolFeatureLabel(property.hasElevator))
         val location = locationLabel(property)
         if (location != "—") add("موقعیت" to location)
         property.publishStatus?.takeIf { it.isNotBlank() }?.let { add("انتشار" to it) }

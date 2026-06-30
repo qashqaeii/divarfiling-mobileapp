@@ -36,6 +36,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
+import ir.divarfiling.mobile.core.filing.ListingSpecUtils
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 
@@ -177,7 +178,13 @@ private fun SpecCard(
 }
 
 private fun buildListingSpecItems(listing: ListingDetailDto, expanded: Boolean): List<ListingSpecItem> {
-    val items = listOfNotNull(
+    val coreItems = listOf(
+        ListingSpecItem("وضعیت", ListingSpecUtils.statusLabel(listing), DfIcons.Zap),
+        ListingSpecItem("پارکینگ", ListingSpecUtils.boolFeatureLabel(listing.hasParking), DfIcons.Car),
+        ListingSpecItem("انباری", ListingSpecUtils.boolFeatureLabel(listing.hasStorage), DfIcons.Folder),
+        ListingSpecItem("آسانسور", ListingSpecUtils.boolFeatureLabel(listing.hasElevator), DfIcons.Building),
+    )
+    val detailItems = listOfNotNull(
         listing.area?.let {
             ListingSpecItem("متراژ", FormatUtils.formatArea(it), DfIcons.Ruler)
         },
@@ -205,10 +212,7 @@ private fun buildListingSpecItems(listing: ListingDetailDto, expanded: Boolean):
             }
         },
     )
-
-    if (!expanded) return items.take(4)
-
-    return items + listOfNotNull(
+    val priceItems = listOfNotNull(
         listing.price?.takeIf { it > 0 }?.let {
             ListingSpecItem("قیمت کل", FormatUtils.formatPriceToman(it), DfIcons.Tag)
         },
@@ -222,6 +226,12 @@ private fun buildListingSpecItems(listing: ListingDetailDto, expanded: Boolean):
             ListingSpecItem("قیمت هر متر", FormatUtils.formatPriceToman(it), DfIcons.Tag)
         },
     )
+
+    return if (expanded) {
+        coreItems + detailItems + priceItems
+    } else {
+        coreItems + detailItems.take(4)
+    }
 }
 
 private fun formatScrapedDate(iso: String): String? =

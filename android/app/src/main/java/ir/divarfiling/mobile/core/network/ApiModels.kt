@@ -690,6 +690,10 @@ data class ListingDetailDto(
     @SerialName("dataset_id") val datasetId: String? = null,
     @SerialName("is_expired") val isExpired: Boolean = false,
     @SerialName("owner_phone") val ownerPhone: String? = null,
+    @SerialName("unit_status") val unitStatus: String? = null,
+    @SerialName("has_parking") val hasParking: Boolean? = null,
+    @SerialName("has_storage") val hasStorage: Boolean? = null,
+    @SerialName("has_elevator") val hasElevator: Boolean? = null,
 )
 
 @Serializable

@@ -469,9 +469,9 @@ private fun PropertyDossierPanel(
                 property.rooms?.takeIf { it.isNotBlank() }?.let { add("اتاق" to it) }
                 PropertyFilters.formatFloor(property.floor, property.totalFloors)?.let { add("طبقه" to it) }
                 property.buildYear?.let { add("سال ساخت" to it.toString()) }
-                add("پارکینگ" to if (property.hasParking) "دارد" else "—")
-                add("انباری" to if (property.hasStorage) "دارد" else "—")
-                add("آسانسور" to if (property.hasElevator) "دارد" else "—")
+                add("پارکینگ" to PropertyFilters.boolFeatureLabel(property.hasParking))
+                add("انباری" to PropertyFilters.boolFeatureLabel(property.hasStorage))
+                add("آسانسور" to PropertyFilters.boolFeatureLabel(property.hasElevator))
             },
         )
         PropertyDossierGroup(

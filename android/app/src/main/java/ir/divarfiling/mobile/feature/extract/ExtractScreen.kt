@@ -129,18 +129,6 @@ fun ExtractScreen(
             }
 
             item {
-                ExtractScheduleCard(
-                    selectedHours = state.scheduleIntervalHours,
-                    enabled = canExtract && !state.isRunning,
-                    onSelect = viewModel::onScheduleIntervalSelect,
-                    onOpenSchedules = onOpenSchedules,
-                    onCreateSchedule = viewModel::createSchedule,
-                    canCreateSchedule = canExtract && !state.isRunning,
-                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                )
-            }
-
-            item {
                 ExtractFiltersCard(
                     state = state,
                     subcategories = subcategories,
@@ -185,6 +173,18 @@ fun ExtractScreen(
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
+            }
+
+            item {
+                ExtractScheduleCard(
+                    selectedHours = state.scheduleIntervalHours,
+                    enabled = canExtract && !state.isRunning,
+                    onSelect = viewModel::onScheduleIntervalSelect,
+                    onOpenSchedules = onOpenSchedules,
+                    onCreateSchedule = viewModel::createSchedule,
+                    canCreateSchedule = canExtract && !state.isRunning,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
             }
 
             state.gateMessage?.let { gate ->

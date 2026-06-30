@@ -110,13 +110,11 @@ fun PropertyDetailContent(
             )
         }
 
-        if (property.hasParking || property.hasStorage || property.hasElevator) {
-            item {
-                PropertyDetailAmenities(
-                    property = property,
-                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                )
-            }
+        item {
+            PropertyDetailAmenities(
+                property = property,
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+            )
         }
 
         item {
@@ -486,6 +484,10 @@ private fun specIcon(label: String): ImageVector = when {
     label.contains("ساخت") -> DfIcons.Calendar
     label.contains("موقعیت") -> DfIcons.MapPin
     label.contains("نوع") -> DfIcons.Home
+    label.contains("وضعیت") -> DfIcons.Zap
+    label.contains("پارکینگ") -> DfIcons.Car
+    label.contains("انباری") -> DfIcons.Folder
+    label.contains("آسانسور") -> DfIcons.Building
     else -> DfIcons.Tag
 }
 
@@ -506,24 +508,46 @@ fun PropertyDetailAmenities(
         ) {
             Text("امکانات", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                if (property.hasParking) PropertyAmenityChip("پارکینگ", DfIcons.Car)
-                if (property.hasStorage) PropertyAmenityChip("انباری", DfIcons.Folder)
-                if (property.hasElevator) PropertyAmenityChip("آسانسور", DfIcons.Building)
+                PropertyAmenityChip(
+                    label = "پارکینگ",
+                    icon = DfIcons.Car,
+                    hasFeature = property.hasParking,
+                )
+                PropertyAmenityChip(
+                    label = "انباری",
+                    icon = DfIcons.Folder,
+                    hasFeature = property.hasStorage,
+                )
+                PropertyAmenityChip(
+                    label = "آسانسور",
+                    icon = DfIcons.Building,
+                    hasFeature = property.hasElevator,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun PropertyAmenityChip(label: String, icon: ImageVector) {
-    Surface(shape = AppShapes.Chip, color = DfColors.GreenLight) {
+private fun PropertyAmenityChip(label: String, icon: ImageVector, hasFeature: Boolean) {
+    val color = if (hasFeature) DfColors.Green else DfColors.TextMuted
+    val bg = if (hasFeature) DfColors.GreenLight else DfColors.SurfaceVariant
+    Surface(shape = AppShapes.Chip, color = bg) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, null, tint = DfColors.Green, modifier = Modifier.size(14.dp))
-            Text(label, style = AppTypography.labelSmall, color = DfColors.Green, fontWeight = FontWeight.Medium)
+            Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
+            Column {
+                Text(label, style = AppTypography.labelSmall, color = color, fontWeight = FontWeight.Medium)
+                Text(
+                    PropertyFilters.boolFeatureLabel(hasFeature),
+                    style = AppTypography.labelSmall,
+                    color = color,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
     }
 }
