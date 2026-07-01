@@ -42,6 +42,7 @@ class FcmRegistrar @Inject constructor(
             title = "خوش اومدی!",
             body = "اعلان‌ها روشن شد. از این به بعد یادآور تماس، استخراج و کارهای امروزت رو بهت خبر می‌دم.",
             deepLink = "divarfiling://home",
+            notificationType = "welcome",
         )
     }
 

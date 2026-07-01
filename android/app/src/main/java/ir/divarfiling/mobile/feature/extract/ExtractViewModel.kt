@@ -306,6 +306,7 @@ class ExtractViewModel @Inject constructor(
                         title = title,
                         body = body,
                         deepLink = ScheduleNotificationCopy.DEEP_LINK,
+                        notificationType = "extract_schedule_created",
                     )
                     _uiState.update { it.copy(message = body) }
                 }

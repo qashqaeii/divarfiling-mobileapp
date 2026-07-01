@@ -34,12 +34,17 @@ class DivarFilingMessagingService : FirebaseMessagingService() {
         val body = message.notification?.body
             ?: message.data["body"]
             ?: ""
+        if (action == "run_schedule" && body.isBlank() && message.notification == null) {
+            return
+        }
         val deepLink = message.data["deep_link"]
+        val notificationType = message.data["type"]
         notificationHelper.showNotification(
             id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt(),
             title = title,
             body = body,
             deepLink = deepLink,
+            notificationType = notificationType,
         )
     }
 }
