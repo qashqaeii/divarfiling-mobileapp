@@ -49,6 +49,7 @@ class SessionStore @Inject constructor(
         val ACCESS_EXPIRES_AT = longPreferencesKey("access_expires_at")
         val LAST_LICENSE_CHECK_AT = longPreferencesKey("last_license_check_at")
         val NOTIFICATION_ONBOARDING_SEEN = booleanPreferencesKey("notification_onboarding_seen")
+        val FCM_WELCOME_SHOWN = booleanPreferencesKey("fcm_welcome_shown")
         val LAST_SYNC_AT = stringPreferencesKey("last_sync_at")
     }
 
@@ -104,6 +105,7 @@ class SessionStore @Inject constructor(
             prefs[Keys.DEVICE_ID] = deviceId
             prefs[Keys.USER_JSON] = json.encodeToString(user)
             prefs[Keys.USER_ID] = user.id
+            prefs.remove(Keys.FCM_WELCOME_SHOWN)
             applyLicense(prefs, license)
         }
     }
@@ -182,6 +184,16 @@ class SessionStore @Inject constructor(
     suspend fun setNotificationOnboardingSeen() {
         dataStore.edit { prefs ->
             prefs[Keys.NOTIFICATION_ONBOARDING_SEEN] = true
+        }
+    }
+
+    suspend fun hasShownFcmWelcome(): Boolean {
+        return dataStore.data.first()[Keys.FCM_WELCOME_SHOWN] == true
+    }
+
+    suspend fun setFcmWelcomeShown() {
+        dataStore.edit { prefs ->
+            prefs[Keys.FCM_WELCOME_SHOWN] = true
         }
     }
 
