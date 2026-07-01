@@ -36,12 +36,11 @@ class FcmRegistrar @Inject constructor(
     }
 
     private suspend fun showLocalWelcomeIfNeeded() {
-        if (sessionStore.hasShownFcmWelcome()) return
-        sessionStore.setFcmWelcomeShown()
+        if (!sessionStore.claimFcmWelcomeShown()) return
         notificationHelper.showNotification(
             id = WELCOME_NOTIFICATION_ID,
-            title = "به فایلینگ دیوار خوش آمدید",
-            body = "اعلان‌ها فعال شد. یادآورها و استخراج‌ها از اینجا به شما می‌رسد.",
+            title = "خوش اومدی!",
+            body = "اعلان‌ها روشن شد. از این به بعد یادآور تماس، استخراج و کارهای امروزت رو بهت خبر می‌دم.",
             deepLink = "divarfiling://home",
         )
     }

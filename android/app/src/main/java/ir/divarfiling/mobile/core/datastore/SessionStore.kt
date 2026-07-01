@@ -187,14 +187,15 @@ class SessionStore @Inject constructor(
         }
     }
 
-    suspend fun hasShownFcmWelcome(): Boolean {
-        return dataStore.data.first()[Keys.FCM_WELCOME_SHOWN] == true
-    }
-
-    suspend fun setFcmWelcomeShown() {
+    suspend fun claimFcmWelcomeShown(): Boolean {
+        var claimed = false
         dataStore.edit { prefs ->
-            prefs[Keys.FCM_WELCOME_SHOWN] = true
+            if (prefs[Keys.FCM_WELCOME_SHOWN] != true) {
+                prefs[Keys.FCM_WELCOME_SHOWN] = true
+                claimed = true
+            }
         }
+        return claimed
     }
 
     suspend fun getLastSyncAt(): String? = dataStore.data.first()[Keys.LAST_SYNC_AT]
