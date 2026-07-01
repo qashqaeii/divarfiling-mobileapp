@@ -65,6 +65,15 @@ fun ExtractSchedulesScreen(
         }
     }
 
+    val hasRunningSchedule = state.schedules.any { it.lastStatus == "running" }
+    LaunchedEffect(hasRunningSchedule) {
+        if (!hasRunningSchedule) return@LaunchedEffect
+        while (true) {
+            kotlinx.coroutines.delay(5_000)
+            viewModel.refresh()
+        }
+    }
+
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },

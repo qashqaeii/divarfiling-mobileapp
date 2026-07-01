@@ -48,20 +48,21 @@ class ExtractScheduleWorker(
         for (scheduleId in scheduleIds) {
             when (val start = scheduleRepository.startRun(scheduleId)) {
                 is ApiResult.Success -> {
+                    val runId = start.data.run.id
                     val filters = ExtractScheduleMapper.toExtractFilters(start.data.filters)
                     when (
                         val result = extractionRepository.runLightExtraction(
                             filters = filters,
                             onProgress = { _, _ -> },
                             isCancelled = { false },
-                            runId = start.data.run.id,
+                            runId = runId,
                             scheduleId = scheduleId,
                         )
                     ) {
                         is ApiResult.Success -> Unit
                         is ApiResult.Error -> {
                             hadFailure = true
-                            scheduleRepository.failRun(start.data.run.id, result.message)
+                            scheduleRepository.failRun(runId, result.message)
                         }
                     }
                 }

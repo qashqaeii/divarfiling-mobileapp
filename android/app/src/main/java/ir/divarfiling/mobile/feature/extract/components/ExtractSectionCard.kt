@@ -43,8 +43,9 @@ fun ExtractSectionCard(
 @Composable
 fun ExtractSectionTitle(
     title: String,
-    icon: ImageVector,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    iconRes: Int? = null,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -57,12 +58,18 @@ fun ExtractSectionTitle(
             modifier = Modifier.size(32.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = DfColors.Purple,
-                    modifier = Modifier.size(16.dp),
-                )
+                when {
+                    iconRes != null -> ir.divarfiling.mobile.core.design.components.DfDecorImage(
+                        resId = iconRes,
+                        size = 18.dp,
+                    )
+                    icon != null -> Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = DfColors.Purple,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
         }
         Text(

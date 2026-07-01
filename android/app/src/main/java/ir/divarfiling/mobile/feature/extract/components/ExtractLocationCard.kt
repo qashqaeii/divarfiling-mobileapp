@@ -36,6 +36,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.places.PlaceOption
 import ir.divarfiling.mobile.core.places.PlaceSearchResult
@@ -63,7 +65,7 @@ fun ExtractLocationCard(
 
     ExtractSectionCard(modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-            ExtractSectionTitle(title = "انتخاب موقعیت", icon = DfIcons.MapPin)
+            ExtractSectionTitle(title = "انتخاب موقعیت", iconRes = DfDecorIcons.MapPin)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -133,11 +135,9 @@ fun ExtractLocationCard(
                     modifier = Modifier.size(48.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = DfIcons.LocateFixed,
-                            contentDescription = null,
-                            tint = DfColors.Purple,
-                            modifier = Modifier.size(20.dp),
+                        DfDecorImage(
+                            resId = DfDecorIcons.MapPin,
+                            size = 28.dp,
                         )
                     }
                 }
@@ -194,10 +194,7 @@ fun ExtractLocationCard(
                         )
                     }
                     districtName?.takeIf { it.isNotBlank() }?.let { district ->
-                        LocationSelectedRow(
-                            label = "منطقه $district",
-                            icon = DfIcons.MapPin,
-                        )
+                        LocationSelectedRow(label = "منطقه $district", useMapPin = true)
                     }
                     Text(
                         text = if (showManualPicker) "بستن انتخاب دستی" else "انتخاب دستی استان و شهر",
@@ -254,7 +251,8 @@ fun ExtractLocationCard(
 @Composable
 private fun LocationSelectedRow(
     label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    useMapPin: Boolean = false,
 ) {
     Row(
         modifier = Modifier
@@ -270,12 +268,15 @@ private fun LocationSelectedRow(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.weight(1f),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = DfColors.Purple,
-                modifier = Modifier.size(16.dp),
-            )
+            when {
+                useMapPin -> DfDecorImage(resId = DfDecorIcons.MapPin, size = 18.dp)
+                icon != null -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
             Text(
                 text = label,
                 style = AppTypography.bodyDescription,

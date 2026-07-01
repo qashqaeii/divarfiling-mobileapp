@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.divarfiling.mobile.core.design.DossierShareOptions
 import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.export.ExportShareHelper
 import ir.divarfiling.mobile.core.network.ContactDto
@@ -638,6 +639,12 @@ data class PropertyDetailUiState(
     val editAddress: String = "",
     val editNotes: String = "",
     val inlineNotes: String = "",
+    val showShareSheet: Boolean = false,
+    val shareNote: String = "",
+    val shareIncludeLink: Boolean = false,
+    val shareIncludeAddress: Boolean = false,
+    val shareIncludeNotes: Boolean = false,
+    val shareIncludeAmenities: Boolean = true,
 )
 
 enum class PropertyDetailTab(val label: String) {
@@ -774,6 +781,25 @@ class PropertyDetailViewModel @Inject constructor(
 
     fun toggleEditSheet(show: Boolean) = _uiState.update { it.copy(showEditSheet = show) }
     fun toggleDeleteDialog(show: Boolean) = _uiState.update { it.copy(showDeleteDialog = show) }
+    fun toggleShareSheet(show: Boolean) = _uiState.update { it.copy(showShareSheet = show) }
+    fun onShareNoteChange(value: String) = _uiState.update { it.copy(shareNote = value) }
+    fun onShareIncludeLinkChange(value: Boolean) = _uiState.update { it.copy(shareIncludeLink = value) }
+    fun onShareIncludeAddressChange(value: Boolean) = _uiState.update { it.copy(shareIncludeAddress = value) }
+    fun onShareIncludeNotesChange(value: Boolean) = _uiState.update { it.copy(shareIncludeNotes = value) }
+    fun onShareIncludeAmenitiesChange(value: Boolean) = _uiState.update { it.copy(shareIncludeAmenities = value) }
+
+    fun propertyShareOptions(): DossierShareOptions {
+        val state = _uiState.value
+        return DossierShareOptions(
+            customNote = state.shareNote,
+            includeDivarLink = state.shareIncludeLink,
+            includeAddress = state.shareIncludeAddress,
+            includeInternalNotes = state.shareIncludeNotes,
+            includeAmenities = state.shareIncludeAmenities,
+            footer = DossierShareOptions.PERSONAL_FOOTER,
+        )
+    }
+
     fun toggleLinkContactSheet(show: Boolean) = _uiState.update {
         it.copy(showLinkContactSheet = show, linkContactId = if (!show) "" else it.linkContactId)
     }

@@ -58,7 +58,35 @@ object DateUtils {
         return formatted ?: "—"
     }
 
-    /** زمان نسبی فارسی: «۱ دقیقه پیش»، «۸ ساعت پیش»، «دیروز»، «۲۰ روز پیش» */
+    /** زمان نسبی آینده: «۱۲ دقیقه دیگر»، «۲ ساعت دیگر»، «فردا» */
+    fun formatRelativeTimeUntil(value: String?): String? {
+        if (value.isNullOrBlank()) return null
+        val zone = ZoneId.systemDefault()
+        val now = Instant.now()
+        val then = parseToInstant(value, zone) ?: return null
+        if (!then.isAfter(now)) return null
+
+        val zonedNow = now.atZone(zone)
+        val zonedThen = then.atZone(zone)
+        val daysBetween = ChronoUnit.DAYS.between(zonedNow.toLocalDate(), zonedThen.toLocalDate())
+
+        when {
+            daysBetween >= 30 -> return formatJalaliDateTime(value) ?: formatJalaliDate(value)
+            daysBetween >= 2 -> return "${toPersianDigits(daysBetween.toString())} روز دیگر"
+            daysBetween == 1L -> return "فردا"
+        }
+
+        val duration = Duration.between(now, then)
+        val minutes = duration.toMinutes()
+        val hours = duration.toHours()
+        return when {
+            minutes < 1 -> "به‌زودی"
+            minutes < 60 -> "${toPersianDigits(minutes.toString())} دقیقه دیگر"
+            else -> "${toPersianDigits(hours.toString())} ساعت دیگر"
+        }
+    }
+
+    /** زمان نسبی گذشته: «۱ دقیقه پیش»، «۸ ساعت پیش»، «دیروز»، «۲۰ روز پیش» */
     fun formatRelativeTimeAgo(value: String?): String {
         if (value.isNullOrBlank()) return "اخیراً"
         val zone = ZoneId.systemDefault()
@@ -84,6 +112,15 @@ object DateUtils {
             minutes < 60 -> "${toPersianDigits(minutes.toString())} دقیقه پیش"
             else -> "${toPersianDigits(hours.toString())} ساعت پیش"
         }
+    }
+
+    fun daysUntilExpiry(value: String?): Int? {
+        if (value.isNullOrBlank()) return null
+        val zone = ZoneId.systemDefault()
+        val now = Instant.now()
+        val expiry = parseToInstant(value, zone) ?: return null
+        val days = ChronoUnit.DAYS.between(now.atZone(zone).toLocalDate(), expiry.atZone(zone).toLocalDate())
+        return days.toInt()
     }
 
     private fun parseToInstant(value: String, zone: ZoneId): Instant? {

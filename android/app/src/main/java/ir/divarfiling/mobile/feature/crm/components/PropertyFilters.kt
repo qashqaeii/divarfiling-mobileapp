@@ -119,6 +119,8 @@ object PropertyFilters {
 
     fun boolFeatureLabel(has: Boolean): String = if (has) "دارد" else "ندارد"
 
+    fun boolFeatureLabel(has: Boolean?): String = PropertyAmenityResolver.label(has)
+
     fun allSpecs(property: PropertyDto): List<Pair<String, String>> = buildList {
         PropertyFilters.formatArea(property.area)?.let { add("متراژ" to it) }
         property.rooms?.takeIf { it.isNotBlank() }?.let { add("اتاق" to it) }

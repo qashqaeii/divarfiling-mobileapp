@@ -130,7 +130,11 @@ fun SettingsScreen(
                 item {
                     SettingsSectionTitle(
                         title = "اعلان‌ها",
-                        subtitle = if (state.isSavingPrefs) "در حال ذخیره…" else "کنترل دقیق رویدادهای Push",
+                        subtitle = if (state.isSavingPrefs) {
+                            "در حال ذخیره…"
+                        } else {
+                            "انتخاب کنید چه اعلان‌هایی روی گوشی‌تان نمایش داده شود"
+                        },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

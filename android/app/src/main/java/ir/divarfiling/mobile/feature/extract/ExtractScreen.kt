@@ -42,6 +42,7 @@ import ir.divarfiling.mobile.feature.extract.components.ExtractStartButton
 import ir.divarfiling.mobile.feature.extract.components.ExtractStatsCard
 import ir.divarfiling.mobile.feature.extract.components.extractPhaseFromProgress
 import ir.divarfiling.mobile.feature.extract.components.formatAverageTimeLabel
+import ir.divarfiling.mobile.feature.extract.components.formatSuccessfulCountLabel
 import ir.divarfiling.mobile.feature.extract.components.formatLastExtractionLabel
 import ir.divarfiling.mobile.feature.extract.components.rememberDebouncedQuery
 
@@ -99,9 +100,16 @@ fun ExtractScreen(
                         lastExtractionLabel = formatLastExtractionLabel(
                             extractionsToday = state.extractionsToday ?: 0,
                             hasRecentUpload = state.lastUploadStats != null,
+                            lastExtractionAtMs = state.lastExtractionAtMs,
                         ),
-                        successfulCountLabel = state.lastUploadStats?.ingestedCount?.toString() ?: "—",
-                        averageTimeLabel = formatAverageTimeLabel(state.lastExtractionDurationMinutes),
+                        successfulCountLabel = formatSuccessfulCountLabel(
+                            persistedCount = state.lastSuccessfulIngestedCount,
+                            sessionCount = state.lastUploadStats?.ingestedCount,
+                        ),
+                        averageTimeLabel = formatAverageTimeLabel(
+                            sessionMinutes = state.lastExtractionDurationMinutes,
+                            persistedAverageMinutes = state.averageExtractionDurationMinutes,
+                        ),
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

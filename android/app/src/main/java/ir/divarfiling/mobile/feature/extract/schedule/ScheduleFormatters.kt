@@ -46,6 +46,13 @@ internal fun scheduleDateTimeLabel(iso: String): String =
 internal fun scheduleRelativeLabel(iso: String?): String? =
     iso?.let { DateUtils.formatRelativeTimeAgo(it) }
 
+internal fun scheduleNextRunLabel(iso: String?): String? {
+    if (iso.isNullOrBlank()) return null
+    return DateUtils.formatRelativeTimeUntil(iso)
+        ?: DateUtils.formatRelativeTimeAgo(iso).takeIf { it != "همین الان" }
+        ?: "سررسید شده"
+}
+
 internal data class ScheduleStatusStyle(
     val label: String,
     val color: Color,

@@ -29,7 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.DossierShareFormatter
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.share.DossierShareActions
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
@@ -376,14 +379,8 @@ fun ListingsScreen(
                                     )
                                 }
                             },
-                            onShare = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
-                                {
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, link)
-                                    }
-                                    context.startActivity(Intent.createChooser(shareIntent, "اشتراک آگهی"))
-                                }
+                            onShare = {
+                                shareListingDossier(context, listing)
                             },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
@@ -562,15 +559,7 @@ private fun SearchListingItem(
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
             }
         },
-        onShare = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
-            {
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, link)
-                }
-                context.startActivity(Intent.createChooser(shareIntent, "اشتراک آگهی"))
-            }
-        },
+        onShare = { shareListingDossier(context, listing) },
         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
     )
 }
@@ -581,4 +570,9 @@ private fun formatFilterNumber(value: Long): String {
         value >= 1_000_000 -> "${value / 1_000_000} میلیون"
         else -> value.toString()
     }
+}
+
+private fun shareListingDossier(context: android.content.Context, listing: ListingDto) {
+    val message = DossierShareFormatter.fromListing(listing)
+    DossierShareActions.shareText(context, message, "اشتراک پرونده")
 }

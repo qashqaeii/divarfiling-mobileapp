@@ -1,6 +1,10 @@
 package ir.divarfiling.mobile.feature.filing
 
-import ir.divarfiling.mobile.core.design.ListingMessageFormatter
+import ir.divarfiling.mobile.core.design.DossierShareOptions
+import ir.divarfiling.mobile.core.design.DossierShareFormatter
+import ir.divarfiling.mobile.core.design.DossierShareKind
+import ir.divarfiling.mobile.core.design.components.DossierShareSheet
+import ir.divarfiling.mobile.core.share.DossierShareActions
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -95,7 +99,8 @@ fun ListingDetailScreen(
                         onEdit = viewModel::openEditSheet,
                         onOwnerPhone = viewModel::openOwnerPhoneSheet,
                         onSendToContact = { viewModel.toggleContactPicker(true) },
-                        onWhatsAppShare = { openWhatsApp(context, ListingMessageFormatter.fromDetail(listing)) },
+                        onShare = { viewModel.toggleShareSheet(true) },
+                        onWhatsAppShare = { viewModel.toggleShareSheet(true) },
                         onOpenDivar = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
                             { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
                         },
@@ -128,6 +133,38 @@ fun ListingDetailScreen(
         }
     }
 
+    if (state.showShareSheet && listing != null) {
+        val shareOptions = viewModel.listingShareOptions()
+        val preview = DossierShareFormatter.fromDetail(listing, shareOptions)
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleShareSheet(false) }) {
+            DossierShareSheet(
+                previewText = preview,
+                kind = DossierShareKind.FILING,
+                note = state.shareNote,
+                includeDivarLink = state.shareIncludeLink,
+                includeAddress = false,
+                includeInternalNotes = false,
+                includeAmenities = state.shareIncludeAmenities,
+                onNoteChange = viewModel::onShareNoteChange,
+                onIncludeDivarLinkChange = viewModel::onShareIncludeLinkChange,
+                onIncludeAddressChange = {},
+                onIncludeInternalNotesChange = {},
+                onIncludeAmenitiesChange = viewModel::onShareIncludeAmenitiesChange,
+                onShare = { DossierShareActions.shareText(context, preview) },
+                onWhatsApp = { DossierShareActions.openWhatsApp(context, preview) },
+                onCopy = {
+                    DossierShareActions.copyToClipboard(context, preview)
+                    viewModel.showMessage("متن پیام کپی شد")
+                },
+                onSendToContact = {
+                    viewModel.toggleShareSheet(false)
+                    viewModel.toggleContactPicker(true)
+                },
+                onDismiss = { viewModel.toggleShareSheet(false) },
+            )
+        }
+    }
+
     if (state.showContactPicker) {
         ContactPickerSheet(
             onDismiss = { viewModel.toggleContactPicker(false) },
@@ -135,10 +172,14 @@ fun ListingDetailScreen(
         )
     }
 
-    if (state.showSendDialog) {
+    if (state.showSendDialog && listing != null) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissSendDialog) {
             ListingSendSheet(
                 note = state.sendNote,
+                previewText = DossierShareFormatter.fromDetail(
+                    listing,
+                    DossierShareOptions(customNote = state.sendNote),
+                ),
                 isSubmitting = state.isLinking,
                 onNoteChange = viewModel::onSendNoteChange,
                 onSend = { viewModel.sendToContact(false) },
@@ -208,6 +249,7 @@ private fun ListingDetailContent(
     onEdit: () -> Unit,
     onOwnerPhone: () -> Unit,
     onSendToContact: () -> Unit,
+    onShare: () -> Unit,
     onWhatsAppShare: () -> Unit,
     onOpenDivar: (() -> Unit)?,
     onSetReminder: () -> Unit,
@@ -245,6 +287,7 @@ private fun ListingDetailContent(
             item {
                 ListingQuickActionsRow(
                     onSendToContact = onSendToContact,
+                    onShare = onShare,
                     onOwnerPhone = onOwnerPhone,
                     onWhatsAppShare = onWhatsAppShare,
                     onOpenDivar = onOpenDivar,

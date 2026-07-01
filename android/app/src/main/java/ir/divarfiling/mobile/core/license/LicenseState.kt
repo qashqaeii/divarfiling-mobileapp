@@ -1,5 +1,8 @@
 package ir.divarfiling.mobile.core.license
 
+import ir.divarfiling.mobile.core.design.DateUtils
+import kotlin.math.roundToInt
+
 data class LicenseState(
     val valid: Boolean = false,
     val plan: String? = null,
@@ -22,24 +25,41 @@ data class LicenseState(
         }
 
     val expiryHeadline: String
-        get() = when {
-            !valid -> "نیاز به تمدید"
-            daysRemaining == null -> "بدون تاریخ انقضا"
-            daysRemaining <= 0 -> "منقضی شده"
-            daysRemaining == 1 -> "۱ روز تا انقضا"
-            daysRemaining <= 7 -> "$daysRemaining روز تا انقضا"
-            else -> "$daysRemaining روز باقی‌مانده"
+        get() {
+            val days = resolvedDaysRemaining
+            return when {
+                !valid -> "نیاز به تمدید"
+                days == null -> "بدون تاریخ انقضا"
+                days <= 0 -> "منقضی شده"
+                days == 1 -> "۱ روز تا انقضا"
+                days <= 7 -> "$days روز تا انقضا"
+                else -> "$days روز باقی‌مانده"
+            }
         }
 
-    /** ۰..۱ — برای نوار پیشرفت لایسنس (فرض دوره ۳۶۵ روزه) */
+    /** ۰..۱ — سهم زمان باقی‌مانده تا انقضا */
     val expiryProgress: Float
         get() {
-            val days = daysRemaining ?: return if (valid) 1f else 0f
-            return (days / 365f).coerceIn(0f, 1f)
+            val days = resolvedDaysRemaining ?: return if (valid) 1f else 0f
+            if (days <= 0) return 0f
+            val fullScaleDays = 90
+            return (days / fullScaleDays.toFloat()).coerceIn(0f, 1f)
+        }
+
+    val expiryProgressPercent: Int
+        get() = (expiryProgress * 100).roundToInt().coerceIn(0, 100)
+
+    private val resolvedDaysRemaining: Int?
+        get() {
+            daysRemaining?.let { return it }
+            return DateUtils.daysUntilExpiry(expiresAt)
         }
 
     val expiryTintHealthy: Boolean
-        get() = valid && (daysRemaining == null || daysRemaining > 14)
+        get() {
+            val days = resolvedDaysRemaining
+            return valid && (days == null || days > 14)
+        }
 }
 
 object ExtractLightLimits {

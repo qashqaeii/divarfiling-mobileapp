@@ -9,6 +9,7 @@ import ir.divarfiling.mobile.core.network.ExtractionRunDto
 import ir.divarfiling.mobile.core.network.ExtractionScheduleDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.ExtractionScheduleRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -95,6 +96,12 @@ class ExtractSchedulesViewModel @Inject constructor(
     fun runNow(scheduleId: Long) {
         ScheduleWorkManager.enqueueDueRuns(context, scheduleId)
         _uiState.update { it.copy(successMessage = "اجرای استخراج در پس‌زمینه شروع شد") }
+        viewModelScope.launch {
+            delay(2_000)
+            load()
+            delay(8_000)
+            load()
+        }
     }
 
     fun loadRuns(scheduleId: Long) {

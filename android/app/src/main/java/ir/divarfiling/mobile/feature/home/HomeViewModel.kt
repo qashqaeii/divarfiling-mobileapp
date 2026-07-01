@@ -109,6 +109,8 @@ class HomeViewModel @Inject constructor(
                             plan = it.plan,
                             expiresAt = it.expiresAt,
                             features = it.features,
+                            daysRemaining = it.daysRemaining,
+                            expiringSoon = it.expiringSoon,
                         )
                     }
                     val remainingTasks = (stats.todayTasksTotal - stats.todayTasksDone).coerceAtLeast(0)
@@ -147,7 +149,7 @@ class HomeViewModel @Inject constructor(
                                     district = ds.district,
                                     transactionType = ds.transactionType,
                                     itemCount = ds.itemCount,
-                                    createdAt = ds.createdAt?.take(10),
+                                    createdAt = ds.createdAt,
                                     thumbnailUrl = ds.thumbnailUrl,
                                 )
                             },
@@ -159,7 +161,11 @@ class HomeViewModel @Inject constructor(
                                     valid = it.valid,
                                     plan = it.plan,
                                     lightExtractEnabled = it.features?.lightExtract == true,
+                                    crmEnabled = it.features?.crmMobile == true,
+                                    filingEnabled = it.features?.filingView == true,
                                     expiresAt = it.expiresAt,
+                                    daysRemaining = it.daysRemaining,
+                                    expiringSoon = it.expiringSoon,
                                 )
                             } ?: state.license,
                         )

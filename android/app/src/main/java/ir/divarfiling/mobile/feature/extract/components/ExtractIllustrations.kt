@@ -17,6 +17,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
+import ir.divarfiling.mobile.core.design.components.DfDecorSize
 
 @Composable
 fun ExtractHeroIllustration(modifier: Modifier = Modifier) {
@@ -101,25 +104,34 @@ fun ExtractHeroIllustration(modifier: Modifier = Modifier) {
 @Composable
 fun ExtractMapIllustration(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .size(width = 88.dp, height = 96.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(DfColors.PurpleContainer.copy(alpha = 0.45f)),
+        modifier = modifier.size(width = 96.dp, height = 108.dp),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(Color.White.copy(alpha = 0.55f)),
+                .size(width = 88.dp, height = 96.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            DfColors.BlueLight.copy(alpha = 0.85f),
+                            DfColors.PurpleContainer.copy(alpha = 0.7f),
+                        ),
+                    ),
+                ),
         )
-        Icon(
-            imageVector = DfIcons.MapPin,
-            contentDescription = null,
-            tint = DfColors.Purple,
+        Box(
             modifier = Modifier
-                .size(36.dp)
-                .shadow(4.dp, CircleShape),
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.42f)),
+        )
+        DfDecorImage(
+            resId = DfDecorIcons.MapPin,
+            size = DfDecorSize.Hero,
+            modifier = Modifier
+                .shadow(10.dp, CircleShape)
+                .offset(y = (-4).dp),
         )
     }
 }

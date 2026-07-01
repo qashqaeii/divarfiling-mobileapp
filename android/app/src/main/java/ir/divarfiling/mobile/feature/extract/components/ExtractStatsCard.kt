@@ -25,6 +25,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.DateUtils
+import java.time.Instant
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -183,16 +185,43 @@ private fun StatTile(
     }
 }
 
-fun formatLastExtractionLabel(extractionsToday: Int, hasRecentUpload: Boolean): String =
-    when {
+fun formatLastExtractionLabel(
+    extractionsToday: Int,
+    hasRecentUpload: Boolean,
+    lastExtractionAtMs: Long? = null,
+): String {
+    lastExtractionAtMs?.takeIf { it > 0 }?.let { atMs ->
+        val relative = DateUtils.formatRelativeTimeAgo(Instant.ofEpochMilli(atMs).toString())
+        if (relative != "اخیراً") return relative
+        return "امروز"
+    }
+    return when {
         hasRecentUpload -> "امروز"
         extractionsToday > 0 -> "امروز"
         else -> "—"
     }
+}
 
-fun formatAverageTimeLabel(minutes: Double?): String {
+fun formatSuccessfulCountLabel(
+    persistedCount: Int?,
+    sessionCount: Int?,
+): String {
+    val count = sessionCount ?: persistedCount
+    return count?.takeIf { it > 0 }?.toString() ?: "—"
+}
+
+fun formatAverageTimeLabel(
+    sessionMinutes: Double?,
+    persistedAverageMinutes: Double?,
+): String {
+    val minutes = sessionMinutes?.takeIf { it > 0 } ?: persistedAverageMinutes?.takeIf { it > 0 }
     if (minutes == null || minutes <= 0) return "—"
-    return String.format(Locale("fa", "IR"), "%.1f دقیقه", minutes)
+    if (minutes < 1) {
+        val seconds = (minutes * 60).roundToInt().coerceAtLeast(1)
+        return "${DateUtils.toPersianDigits(seconds.toString())} ثانیه"
+    }
+    val formatted = String.format(Locale.US, "%.1f", minutes)
+    return "${DateUtils.toPersianDigits(formatted)} دقیقه"
 }
 
 @Preview(showBackground = true, widthDp = 360)

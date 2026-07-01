@@ -12,7 +12,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +26,8 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfGlassButton
+import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 
 data class ScheduleChipOption(
     val label: String,
@@ -93,27 +94,22 @@ fun ExtractScheduleCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                TextButton(onClick = onOpenSchedules) {
-                    Text(
-                        text = "مدیریت زمان‌بندی‌ها",
-                        style = AppTypography.labelSmall,
-                        color = DfColors.Purple,
-                    )
-                }
-                TextButton(
+                DfGlassButton(
+                    text = "مدیریت",
+                    onClick = onOpenSchedules,
+                    icon = DfIcons.Clock,
+                    modifier = Modifier.weight(1f),
+                )
+                DfGlassButton(
+                    text = "ذخیره",
                     onClick = onCreateSchedule,
+                    icon = DfIcons.Check,
+                    variant = DfGlassButtonVariant.Primary,
                     enabled = canCreateSchedule,
-                ) {
-                    Text(
-                        text = "ذخیره زمان‌بندی",
-                        style = AppTypography.labelSmall,
-                        color = DfColors.Purple,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }

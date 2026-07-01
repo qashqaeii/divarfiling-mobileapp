@@ -58,9 +58,9 @@ object ExtractCategories {
     )
 
     val advertiserOptions = listOf(
-        "all" to "همه آگهی‌ها (شخصی + مشاور)",
-        "personal" to "فقط شخصی (بدون مشاور)",
-        "consultant" to "فقط مشاور / آژانس",
+        "all" to "همه آگهی‌ها",
+        "personal" to "شخصی",
+        "consultant" to "مشاور",
     )
 
     fun slugFor(transactionLabel: String, subcategoryLabel: String): String? =

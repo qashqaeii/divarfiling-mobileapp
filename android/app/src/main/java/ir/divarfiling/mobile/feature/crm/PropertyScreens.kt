@@ -34,7 +34,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.DossierShareKind
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DossierShareSheet
+import ir.divarfiling.mobile.core.share.DossierShareActions
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
@@ -312,12 +315,8 @@ fun PropertyDetailScreen(
                         onBack = onBack,
                         onTabSelect = viewModel::selectTab,
                         onEdit = { viewModel.toggleEditSheet(true) },
-                        onShare = {
-                            sharePropertyText(context, PropertyShareFormatter.buildShareText(property))
-                        },
-                        onWhatsApp = {
-                            openWhatsApp(context, PropertyShareFormatter.buildShareText(property))
-                        },
+                        onShare = { viewModel.toggleShareSheet(true) },
+                        onWhatsApp = { viewModel.toggleShareSheet(true) },
                         onCopyLink = {
                             val text = property.link?.takeIf { it.isNotBlank() } ?: property.token.orEmpty()
                             if (text.isNotBlank()) {
@@ -339,6 +338,38 @@ fun PropertyDetailScreen(
                     )
                 }
             }
+        }
+    }
+
+    if (state.showShareSheet && property != null) {
+        val shareOptions = viewModel.propertyShareOptions()
+        val preview = PropertyShareFormatter.buildShareText(property, shareOptions)
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleShareSheet(false) }) {
+            DossierShareSheet(
+                previewText = preview,
+                kind = DossierShareKind.PERSONAL,
+                note = state.shareNote,
+                includeDivarLink = state.shareIncludeLink,
+                includeAddress = state.shareIncludeAddress,
+                includeInternalNotes = state.shareIncludeNotes,
+                includeAmenities = state.shareIncludeAmenities,
+                onNoteChange = viewModel::onShareNoteChange,
+                onIncludeDivarLinkChange = viewModel::onShareIncludeLinkChange,
+                onIncludeAddressChange = viewModel::onShareIncludeAddressChange,
+                onIncludeInternalNotesChange = viewModel::onShareIncludeNotesChange,
+                onIncludeAmenitiesChange = viewModel::onShareIncludeAmenitiesChange,
+                onShare = {
+                    DossierShareActions.shareText(context, preview)
+                },
+                onWhatsApp = {
+                    DossierShareActions.openWhatsApp(context, preview)
+                },
+                onCopy = {
+                    DossierShareActions.copyToClipboard(context, preview)
+                    scope.launch { snackbar.showSnackbar("متن پیام کپی شد") }
+                },
+                onDismiss = { viewModel.toggleShareSheet(false) },
+            )
         }
     }
 
@@ -405,23 +436,6 @@ fun PropertyDetailScreen(
             )
         }
     }
-}
-
-private fun sharePropertyText(context: Context, message: String) {
-    context.startActivity(
-        Intent.createChooser(
-            Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, message)
-            },
-            "اشتراک فایل شخصی",
-        ),
-    )
-}
-
-private fun openWhatsApp(context: Context, message: String) {
-    val uri = Uri.parse("https://wa.me/?text=${Uri.encode(message)}")
-    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
 }
 
 private fun copyToClipboard(context: Context, text: String) {

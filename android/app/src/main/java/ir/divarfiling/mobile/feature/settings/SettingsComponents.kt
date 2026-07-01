@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
@@ -183,6 +184,23 @@ fun LicenseInsightCard(
                 }
                 Icon(DfIcons.Sparkles, contentDescription = null, tint = accent, modifier = Modifier.size(28.dp))
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "زمان باقی‌مانده",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DfColors.TextMuted,
+                )
+                Text(
+                    "${license.expiryProgressPercent}٪",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accent,
+                )
+            }
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
@@ -193,7 +211,12 @@ fun LicenseInsightCard(
                 trackColor = Color.White.copy(alpha = 0.65f),
             )
             license.expiresAt?.takeIf { it.isNotBlank() }?.let {
-                Text("انقضا: ${it.take(10)}", style = MaterialTheme.typography.bodySmall, color = DfColors.TextMuted)
+                val formatted = DateUtils.formatJalaliDateTime(it)
+                Text(
+                    "انقضا: ${formatted ?: it}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DfColors.TextMuted,
+                )
             }
             FeatureChips(license)
             if (onRenew != null && (!license.valid || license.expiringSoon)) {

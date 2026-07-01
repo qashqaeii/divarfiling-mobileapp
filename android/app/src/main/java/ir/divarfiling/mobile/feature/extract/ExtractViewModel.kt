@@ -2,7 +2,9 @@ package ir.divarfiling.mobile.feature.extract
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.core.license.ExtractLightLimits
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.datastore.ExtractPreferences
@@ -20,6 +22,7 @@ import ir.divarfiling.mobile.data.repository.ExtractionScheduleRepository
 import ir.divarfiling.mobile.feature.extract.divar.ExtractAdvancedFilters
 import ir.divarfiling.mobile.feature.extract.divar.ExtractFilters
 import ir.divarfiling.mobile.feature.extract.divar.OutputNameHint
+import ir.divarfiling.mobile.feature.extract.schedule.ScheduleWorkManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -73,6 +76,9 @@ data class ExtractUiState(
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
     val lastExtractionDurationMinutes: Double? = null,
+    val lastSuccessfulIngestedCount: Int? = null,
+    val averageExtractionDurationMinutes: Double? = null,
+    val lastExtractionAtMs: Long? = null,
 ) {
     val categorySlug: String
         get() = ExtractCategories.slugFor(transactionType, subcategoryLabel).orEmpty()
@@ -90,6 +96,7 @@ class ExtractViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
     authRepository: AuthRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ExtractUiState())
     val uiState: StateFlow<ExtractUiState> = _uiState.asStateFlow()
@@ -127,7 +134,16 @@ class ExtractViewModel @Inject constructor(
         viewModelScope.launch { loadPlaces() }
         viewModelScope.launch {
             val savedInterval = extractPreferences.getScheduleIntervalHours()
-            _uiState.update { it.copy(scheduleIntervalHours = savedInterval) }
+            val sessionStats = extractPreferences.getSessionStats()
+            _uiState.update {
+                it.copy(
+                    scheduleIntervalHours = savedInterval,
+                    lastSuccessfulIngestedCount = sessionStats.lastSuccessfulCount.takeIf { c -> c > 0 },
+                    averageExtractionDurationMinutes = sessionStats.averageDurationMinutes
+                        .takeIf { avg -> avg > 0 },
+                    lastExtractionAtMs = sessionStats.lastExtractionAtMs.takeIf { ts -> ts > 0 },
+                )
+            }
         }
         viewModelScope.launch {
             extractionRepository.getLimits()?.let { limits ->
@@ -278,8 +294,12 @@ class ExtractViewModel @Inject constructor(
                 filters = buildFiltersFromState(state),
                 intervalHours = state.scheduleIntervalHours,
             )) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(message = "زمان‌بندی «${result.data.title}» ذخیره شد")
+                is ApiResult.Success -> {
+                    ScheduleWorkManager.registerPeriodicPolling(appContext)
+                    ScheduleWorkManager.enqueueDueRuns(appContext, result.data.id)
+                    _uiState.update {
+                        it.copy(message = "زمان‌بندی «${result.data.title}» ذخیره شد")
+                    }
                 }
                 is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
             }
@@ -360,16 +380,29 @@ class ExtractViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val stats = result.data
                     val mergeNote = if (stats.datasetMerged) " (ادغام با فایلینگ موجود)" else ""
-                    val durationMinutes = extractionStartedAt?.let { started ->
-                        (System.currentTimeMillis() - started).coerceAtLeast(0) / 60_000.0
+                    val durationMs = extractionStartedAt?.let { started ->
+                        (System.currentTimeMillis() - started).coerceAtLeast(0)
+                    } ?: 0L
+                    val durationMinutes = durationMs / 60_000.0
+                    if (stats.ingestedCount > 0) {
+                        extractPreferences.recordSuccessfulExtraction(
+                            ingestedCount = stats.ingestedCount,
+                            durationMinutes = durationMinutes.coerceAtLeast(0.05),
+                        )
                     }
+                    val sessionStats = extractPreferences.getSessionStats()
                     _uiState.update {
                         it.copy(
                             isRunning = false,
                             message = "آپلود موفق — ${stats.ingestedCount} آگهی پردازش شد$mergeNote",
                             lastDatasetId = stats.datasetId,
                             lastUploadStats = stats,
-                            lastExtractionDurationMinutes = durationMinutes,
+                            lastExtractionDurationMinutes = durationMinutes.takeIf { it > 0 },
+                            lastSuccessfulIngestedCount = sessionStats.lastSuccessfulCount
+                                .takeIf { count -> count > 0 },
+                            averageExtractionDurationMinutes = sessionStats.averageDurationMinutes
+                                .takeIf { avg -> avg > 0 },
+                            lastExtractionAtMs = sessionStats.lastExtractionAtMs.takeIf { ts -> ts > 0 },
                         )
                     }
                 }

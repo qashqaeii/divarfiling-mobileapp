@@ -491,7 +491,11 @@ private fun specIcon(label: String): ImageVector = when {
 fun PropertyDetailAmenities(
     property: PropertyDto,
     modifier: Modifier = Modifier,
+    profile: ir.divarfiling.mobile.core.network.ListingFeatureProfileDto? = null,
 ) {
+    val parking = PropertyAmenityResolver.effectiveParking(property, profile)
+    val storage = PropertyAmenityResolver.effectiveStorage(property, profile)
+    val elevator = PropertyAmenityResolver.effectiveElevator(property, profile)
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
@@ -507,17 +511,17 @@ fun PropertyDetailAmenities(
                 PropertyAmenityChip(
                     label = "پارکینگ",
                     iconRes = DfDecorIcons.Car,
-                    hasFeature = property.hasParking,
+                    hasFeature = parking,
                 )
                 PropertyAmenityChip(
                     label = "انباری",
                     iconRes = DfDecorIcons.Storage,
-                    hasFeature = property.hasStorage,
+                    hasFeature = storage,
                 )
                 PropertyAmenityChip(
                     label = "آسانسور",
                     iconRes = DfDecorIcons.Elevator,
-                    hasFeature = property.hasElevator,
+                    hasFeature = elevator,
                 )
             }
         }
@@ -527,12 +531,21 @@ fun PropertyDetailAmenities(
 @Composable
 private fun PropertyAmenityChip(
     label: String,
-    hasFeature: Boolean,
+    hasFeature: Boolean?,
     icon: ImageVector? = null,
     iconRes: Int? = null,
 ) {
-    val color = if (hasFeature) DfColors.Green else DfColors.TextMuted
-    val bg = if (hasFeature) DfColors.GreenLight else DfColors.SurfaceVariant
+    val isYes = hasFeature == true
+    val color = when (hasFeature) {
+        true -> DfColors.Green
+        false -> DfColors.TextMuted
+        null -> DfColors.Amber
+    }
+    val bg = when (hasFeature) {
+        true -> DfColors.GreenLight
+        false -> DfColors.SurfaceVariant
+        null -> DfColors.AmberLight
+    }
     Surface(shape = AppShapes.Chip, color = bg) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -546,7 +559,7 @@ private fun PropertyAmenityChip(
             Column {
                 Text(label, style = AppTypography.labelSmall, color = color, fontWeight = FontWeight.Medium)
                 Text(
-                    PropertyFilters.boolFeatureLabel(hasFeature),
+                    PropertyAmenityResolver.label(hasFeature),
                     style = AppTypography.labelSmall,
                     color = color,
                     fontWeight = FontWeight.Bold,

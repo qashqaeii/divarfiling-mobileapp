@@ -45,6 +45,8 @@ import ir.divarfiling.mobile.feature.extract.schedule.scheduleDateTimeLabel
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleIntervalAccent
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleIntervalIcon
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleIntervalLabel
+import ir.divarfiling.mobile.feature.extract.schedule.scheduleNextRunLabel
+import ir.divarfiling.mobile.feature.extract.schedule.scheduleNextRunLabel
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleRelativeLabel
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleStatusStyle
 
@@ -238,11 +240,13 @@ fun ScheduleCard(
 private fun ScheduleFilterChips(schedule: ExtractionScheduleDto) {
     val chips = buildList {
         schedule.filters.cityName?.takeIf { it.isNotBlank() }?.let { add(it to DfIcons.MapPin) }
+        schedule.filters.districtNames
+            ?.filter { it.isNotBlank() }
+            ?.joinToString("، ")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { add(it to DfIcons.Compass) }
         schedule.filters.categoryLabel?.takeIf { it.isNotBlank() }?.let { add(it to DfIcons.Tag) }
         schedule.filters.transactionTypeLabel?.takeIf { it.isNotBlank() }?.let { add(it to DfIcons.Filter) }
-        schedule.filters.districtNames?.firstOrNull()?.takeIf { it.isNotBlank() }?.let {
-            add(it to DfIcons.Compass)
-        }
     }
     if (chips.isEmpty()) return
 
@@ -250,7 +254,7 @@ private fun ScheduleFilterChips(schedule: ExtractionScheduleDto) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        chips.take(3).forEach { (label, icon) ->
+        chips.take(4).forEach { (label, icon) ->
             Surface(
                 shape = AppShapes.Chip,
                 color = DfColors.SurfaceVariant,
@@ -281,6 +285,7 @@ private fun ScheduleFilterChips(schedule: ExtractionScheduleDto) {
 
 @Composable
 private fun ScheduleTimelinePanel(schedule: ExtractionScheduleDto) {
+    val isRunning = schedule.lastStatus == "running"
     Surface(
         shape = AppShapes.Card,
         color = DfColors.PurpleContainer.copy(alpha = 0.45f),
@@ -291,16 +296,26 @@ private fun ScheduleTimelinePanel(schedule: ExtractionScheduleDto) {
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            schedule.nextRunAt?.takeIf { schedule.isEnabled }?.let { nextRun ->
+            if (isRunning) {
                 ScheduleTimelineRow(
-                    icon = DfIcons.AlarmClock,
-                    title = "اجرای بعدی",
-                    relative = scheduleRelativeLabel(nextRun),
-                    absolute = scheduleDateTimeLabel(nextRun),
-                    accent = DfColors.Purple,
+                    icon = DfIcons.RefreshCw,
+                    title = "وضعیت",
+                    relative = "در حال اجرا…",
+                    absolute = schedule.lastRunAt?.let(::scheduleDateTimeLabel) ?: "شروع شده",
+                    accent = DfColors.Blue,
                 )
+            } else {
+                schedule.nextRunAt?.takeIf { schedule.isEnabled }?.let { nextRun ->
+                    ScheduleTimelineRow(
+                        icon = DfIcons.AlarmClock,
+                        title = "اجرای بعدی",
+                        relative = scheduleNextRunLabel(nextRun),
+                        absolute = scheduleDateTimeLabel(nextRun),
+                        accent = DfColors.Purple,
+                    )
+                }
             }
-            schedule.lastRunAt?.let { lastRun ->
+            schedule.lastRunAt?.takeIf { !isRunning }?.let { lastRun ->
                 ScheduleTimelineRow(
                     icon = DfIcons.RefreshCw,
                     title = "آخرین اجرا",
@@ -309,7 +324,7 @@ private fun ScheduleTimelinePanel(schedule: ExtractionScheduleDto) {
                     accent = DfColors.TextMuted,
                 )
             }
-            if (schedule.nextRunAt.isNullOrBlank() && schedule.lastRunAt.isNullOrBlank()) {
+            if (!isRunning && schedule.nextRunAt.isNullOrBlank() && schedule.lastRunAt.isNullOrBlank()) {
                 Text(
                     text = "هنوز اجرایی ثبت نشده",
                     style = AppTypography.labelSmall,

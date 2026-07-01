@@ -4,7 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import ir.divarfiling.mobile.core.design.ListingMessageFormatter
+import ir.divarfiling.mobile.core.design.DossierShareFormatter
+import ir.divarfiling.mobile.core.design.DossierShareOptions
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
@@ -54,6 +55,11 @@ data class ListingDetailUiState(
     val error: String? = null,
     val successMessage: String? = null,
     val pendingWhatsAppShare: String? = null,
+    val showShareSheet: Boolean = false,
+    val shareNote: String = "",
+    val shareIncludeLink: Boolean = false,
+    val shareIncludeAddress: Boolean = false,
+    val shareIncludeAmenities: Boolean = true,
 )
 
 @HiltViewModel
@@ -206,6 +212,20 @@ class ListingDetailViewModel @Inject constructor(
 
     fun onSendNoteChange(note: String) = _uiState.update { it.copy(sendNote = note) }
 
+    fun toggleShareSheet(show: Boolean) = _uiState.update { it.copy(showShareSheet = show) }
+    fun onShareNoteChange(note: String) = _uiState.update { it.copy(shareNote = note) }
+    fun onShareIncludeLinkChange(value: Boolean) = _uiState.update { it.copy(shareIncludeLink = value) }
+    fun onShareIncludeAmenitiesChange(value: Boolean) = _uiState.update { it.copy(shareIncludeAmenities = value) }
+
+    fun listingShareOptions(): DossierShareOptions {
+        val state = _uiState.value
+        return DossierShareOptions(
+            customNote = state.shareNote,
+            includeDivarLink = state.shareIncludeLink,
+            includeAmenities = state.shareIncludeAmenities,
+        )
+    }
+
     fun dismissSendDialog() {
         _uiState.update { it.copy(showSendDialog = false, pendingContactId = null, sendNote = "") }
     }
@@ -214,7 +234,10 @@ class ListingDetailViewModel @Inject constructor(
         val listing = _uiState.value.listing ?: return
         val contactId = _uiState.value.pendingContactId ?: return
         val note = _uiState.value.sendNote.trim()
-        val shareMessage = ListingMessageFormatter.fromDetail(listing, note)
+        val shareMessage = DossierShareFormatter.fromDetail(
+            listing,
+            DossierShareOptions(customNote = note),
+        )
         viewModelScope.launch {
             _uiState.update { it.copy(isLinking = true) }
             when (val result = crmRepository.sendListing(
@@ -258,6 +281,14 @@ class ListingDetailViewModel @Inject constructor(
             listing.rent != null || listing.deposit != null -> "رهن و اجاره"
             else -> "فروش"
         }
+        val buildYear = listing.yearBuilt
+            ?.filter { it.isDigit() }
+            ?.take(4)
+            ?.toIntOrNull()
+        val images = buildList {
+            listing.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { add(it) }
+            addAll(listing.images.filter { it.isNotBlank() })
+        }.distinct()
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingProperty = true) }
             when (val result = dealsRepository.createProperty(
@@ -270,6 +301,13 @@ class ListingDetailViewModel @Inject constructor(
                     deposit = listing.deposit,
                     rent = listing.rent,
                     area = listing.area?.toDouble(),
+                    rooms = listing.rooms?.toString().orEmpty(),
+                    floor = listing.floor?.filter { it.isDigit() }?.toIntOrNull(),
+                    buildYear = buildYear,
+                    hasParking = listing.hasParking,
+                    hasStorage = listing.hasStorage,
+                    hasElevator = listing.hasElevator,
+                    images = images,
                     token = listing.token,
                     link = listing.shareLink.orEmpty(),
                 ),

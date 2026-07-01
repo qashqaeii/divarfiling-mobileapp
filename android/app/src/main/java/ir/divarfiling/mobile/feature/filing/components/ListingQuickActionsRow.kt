@@ -41,6 +41,7 @@ import ir.divarfiling.mobile.core.design.DivarFilingTheme
 @Composable
 fun ListingQuickActionsRow(
     onSendToContact: () -> Unit,
+    onShare: () -> Unit,
     onOwnerPhone: () -> Unit,
     onWhatsAppShare: () -> Unit,
     onOpenDivar: (() -> Unit)?,
@@ -63,8 +64,17 @@ fun ListingQuickActionsRow(
         }
         add(
             QuickActionSpec(
-                label = "ارسال",
+                label = "اشتراک",
                 iconRes = DfDecorIcons.Share2,
+                tint = DfColors.Blue,
+                background = DfColors.BlueLight,
+                onClick = onShare,
+            ),
+        )
+        add(
+            QuickActionSpec(
+                label = "ارسال",
+                icon = DfIcons.UserPlus,
                 tint = DfColors.Purple,
                 background = DfColors.PurpleContainer,
                 onClick = onSendToContact,
@@ -219,6 +229,7 @@ private fun ListingQuickActionsRowPreview() {
     DivarFilingTheme {
         ListingQuickActionsRow(
             onSendToContact = {},
+            onShare = {},
             onOwnerPhone = {},
             onWhatsAppShare = {},
             onOpenDivar = {},

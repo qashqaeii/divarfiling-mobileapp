@@ -134,7 +134,7 @@ fun PropertyDetailTabbedContent(
         item {
             when (selectedTab) {
                 PropertyDetailTab.OVERVIEW -> PropertyDossierPanel(
-                    property = property,
+                    detail = detail,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
                 PropertyDetailTab.CONTACTS -> PropertyContactsPanel(
@@ -185,8 +185,7 @@ fun PropertyDetailTabbedContent(
             }
             item {
                 PropertyDetailSummarySidebar(
-                    property = property,
-                    contactCount = detail.contactCount,
+                    detail = detail,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
@@ -434,9 +433,15 @@ private fun PropertyDetailTabBar(
 
 @Composable
 private fun PropertyDossierPanel(
-    property: PropertyDto,
+    detail: PropertyDetailData,
     modifier: Modifier = Modifier,
 ) {
+    val property = detail.property
+    val profile = detail.featureProfile
+    val parking = PropertyAmenityResolver.effectiveParking(property, profile)
+    val storage = PropertyAmenityResolver.effectiveStorage(property, profile)
+    val elevator = PropertyAmenityResolver.effectiveElevator(property, profile)
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)) {
         Text(
             text = "پرونده کامل ملک",
@@ -444,10 +449,17 @@ private fun PropertyDossierPanel(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "تمام اطلاعات ثبت‌شده برای معرفی و پیگیری",
+            text = "اطلاعات ثبت‌شده برای معرفی، پیگیری و ارائه به مشتری",
             style = AppTypography.bodyDescription,
             color = DfColors.TextMuted,
         )
+
+        PropertyAmenitiesPanel(
+            parking = parking,
+            storage = storage,
+            elevator = elevator,
+        )
+
         PropertyDossierGroup(
             title = "معامله و قیمت",
             iconRes = DfDecorIcons.Coins,
@@ -469,9 +481,9 @@ private fun PropertyDossierPanel(
                 property.rooms?.takeIf { it.isNotBlank() }?.let { add("اتاق" to it) }
                 PropertyFilters.formatFloor(property.floor, property.totalFloors)?.let { add("طبقه" to it) }
                 property.buildYear?.let { add("سال ساخت" to it.toString()) }
-                add("پارکینگ" to PropertyFilters.boolFeatureLabel(property.hasParking))
-                add("انباری" to PropertyFilters.boolFeatureLabel(property.hasStorage))
-                add("آسانسور" to PropertyFilters.boolFeatureLabel(property.hasElevator))
+                add("پارکینگ" to PropertyAmenityResolver.label(parking))
+                add("انباری" to PropertyAmenityResolver.label(storage))
+                add("آسانسور" to PropertyAmenityResolver.label(elevator))
             },
         )
         PropertyDossierGroup(
@@ -508,6 +520,80 @@ private fun PropertyDossierPanel(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PropertyAmenitiesPanel(
+    parking: Boolean?,
+    storage: Boolean?,
+    elevator: Boolean?,
+) {
+    DfPremiumCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DfDecorImage(resId = DfDecorIcons.Car, size = 16.dp)
+                Text("امکانات کلیدی", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                PropertyAmenityTile("پارکینگ", DfDecorIcons.Car, parking, Modifier.weight(1f))
+                PropertyAmenityTile("انباری", DfDecorIcons.Storage, storage, Modifier.weight(1f))
+                PropertyAmenityTile("آسانسور", DfDecorIcons.Elevator, elevator, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PropertyAmenityTile(
+    label: String,
+    iconRes: Int,
+    value: Boolean?,
+    modifier: Modifier = Modifier,
+) {
+    val isYes = value == true
+    val isNo = value == false
+    val color = when {
+        isYes -> DfColors.Green
+        isNo -> DfColors.TextMuted
+        else -> DfColors.Amber
+    }
+    val bg = when {
+        isYes -> DfColors.GreenLight
+        isNo -> DfColors.SurfaceVariant
+        else -> DfColors.AmberLight
+    }
+    Surface(
+        modifier = modifier,
+        shape = AppShapes.CardSmall,
+        color = bg,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            DfDecorImage(resId = iconRes, size = 18.dp)
+            Text(label, style = AppTypography.labelSmall, color = DfColors.TextSecondary, maxLines = 1)
+            Text(
+                PropertyAmenityResolver.label(value),
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = color,
+            )
+        }
+    }
+}
+
 @Composable
 private fun PropertyDossierGroup(
     title: String,
@@ -533,19 +619,27 @@ private fun PropertyDossierGroup(
                 Text(title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
             }
             rows.forEach { (label, value) ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                Surface(
+                    shape = AppShapes.CardSmall,
+                    color = DfColors.SurfaceVariant.copy(alpha = 0.45f),
                 ) {
-                    Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-                    Text(
-                        value,
-                        style = AppTypography.labelLarge,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f, fill = false),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                        Text(
+                            value,
+                            style = AppTypography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
@@ -624,9 +718,22 @@ private fun PropertySpecsPanel(
     detail: PropertyDetailData,
     modifier: Modifier = Modifier,
 ) {
+    val property = detail.property
     val profile = detail.featureProfile
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)) {
         Text("مشخصات آگهی منبع", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+        Text(
+            "جزئیات استخراج‌شده از آگهی دیوار متصل به این فایل",
+            style = AppTypography.bodyDescription,
+            color = DfColors.TextMuted,
+        )
+
+        PropertyAmenitiesPanel(
+            parking = PropertyAmenityResolver.effectiveParking(property, profile),
+            storage = PropertyAmenityResolver.effectiveStorage(property, profile),
+            elevator = PropertyAmenityResolver.effectiveElevator(property, profile),
+        )
+
         if (profile == null || !profile.hasDetails) {
             if (detail.listingHighlights.isEmpty()) {
                 DfEmptyState(
@@ -634,17 +741,35 @@ private fun PropertySpecsPanel(
                     subtitle = "این فایل به آگهی دیوار متصل نیست یا ویژگی ثبت نشده",
                 )
             } else {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    detail.listingHighlights.forEach { DfBadge(it) }
+                DfPremiumCard {
+                    Column(
+                        modifier = Modifier.padding(AppSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("برچسب‌های آگهی", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            detail.listingHighlights.forEach { DfBadge(it) }
+                        }
+                    }
                 }
             }
             return
         }
-        profile.core.filter { !it.value.isNullOrBlank() && it.value != "—" }.forEach { item ->
-            PropertySpecRow(item.label ?: item.key.orEmpty(), item.value.orEmpty())
+        if (profile.core.isNotEmpty()) {
+            DfPremiumCard {
+                Column(
+                    modifier = Modifier.padding(AppSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("مشخصات اصلی", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+                    profile.core.filter { !it.value.isNullOrBlank() && it.value != "—" }.forEach { item ->
+                        PropertySpecRow(item.label ?: item.key.orEmpty(), item.value.orEmpty())
+                    }
+                }
+            }
         }
         profile.groups.forEach { group ->
             PropertyFeatureGroupCard(group)
@@ -657,24 +782,45 @@ private fun PropertyFeatureGroupCard(group: ListingFeatureGroupDto) {
     DfPremiumCard {
         Column(
             modifier = Modifier.padding(AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(group.title ?: "جزئیات", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
             group.items.forEach { item ->
-                PropertySpecRow(item.label ?: item.key.orEmpty(), item.value.orEmpty())
+                Surface(
+                    shape = AppShapes.CardSmall,
+                    color = DfColors.SurfaceVariant.copy(alpha = 0.4f),
+                ) {
+                    PropertySpecRow(
+                        label = item.label ?: item.key.orEmpty(),
+                        value = item.value.orEmpty(),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PropertySpecRow(label: String, value: String) {
+private fun PropertySpecRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-        Text(value, style = AppTypography.labelLarge, fontWeight = FontWeight.Medium)
+        Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted, modifier = Modifier.weight(0.42f))
+        Text(
+            value,
+            style = AppTypography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(0.58f),
+            maxLines = 4,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -831,10 +977,11 @@ private fun PropertyDocumentCard(
 
 @Composable
 private fun PropertyDetailSummarySidebar(
-    property: PropertyDto,
-    contactCount: Int,
+    detail: PropertyDetailData,
     modifier: Modifier = Modifier,
 ) {
+    val property = detail.property
+    val profile = detail.featureProfile
     DfPremiumCard(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(AppSpacing.sm),
@@ -845,7 +992,15 @@ private fun PropertyDetailSummarySidebar(
             PropertySpecRow("معامله", property.dealMode ?: "—")
             PropertySpecRow("وضعیت", property.transactionStatus ?: "فعال")
             PropertySpecRow("انتشار", property.publishStatus ?: "—")
-            PropertySpecRow("مخاطبین", contactCount.toString())
+            PropertySpecRow("مخاطبین", detail.contactCount.toString())
+            PropertySpecRow(
+                "امکانات",
+                listOfNotNull(
+                    PropertyAmenityResolver.effectiveParking(property, profile).takeIf { it == true }?.let { "پارکینگ" },
+                    PropertyAmenityResolver.effectiveStorage(property, profile).takeIf { it == true }?.let { "انباری" },
+                    PropertyAmenityResolver.effectiveElevator(property, profile).takeIf { it == true }?.let { "آسانسور" },
+                ).joinToString(" · ").ifBlank { "—" },
+            )
             property.createdAt?.let { createdAt ->
                 DateUtils.formatJalaliDateTime(createdAt)?.let { formatted ->
                     PropertySpecRow("ثبت", formatted)

@@ -6,14 +6,17 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
@@ -39,7 +43,7 @@ import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.network.ContactDto
 import kotlin.math.absoluteValue
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ContactListCard(
     contact: ContactDto,
@@ -49,62 +53,82 @@ fun ContactListCard(
     modifier: Modifier = Modifier,
 ) {
     val accent = contactAccentColor(contact.fullName)
+    val statusStyle = statusColors(contact.status)
+    val followUpLabel = contact.nextFollowUpAt?.let { next ->
+        DateUtils.formatRelativeTimeUntil(next)
+            ?: DateUtils.formatJalaliDateTime(next)
+    }
+
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
         color = DfColors.Surface,
-        shadowElevation = 2.dp,
+        shadowElevation = 3.dp,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-        ) {
-            ContactAvatar(
-                name = contact.fullName,
-                accent = accent,
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(statusStyle.first, statusStyle.first.copy(alpha = 0.35f)),
+                        ),
+                    ),
             )
+
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(AppSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Text(
-                        text = contact.fullName,
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = DfColors.TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        ContactStatusBadge(status = contact.status)
-                        ContactUpdatedLabel(updatedAt = contact.updatedAt)
-                    }
-                }
-                contact.phone?.let { phone ->
-                    Text(
-                        text = phone,
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ContactAvatar(name = contact.fullName, accent = accent)
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Text(
+                            text = contact.fullName,
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = DfColors.TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        contact.phone?.let { phone ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = DfIcons.Phone,
+                                    contentDescription = null,
+                                    tint = DfColors.TextMuted,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Text(
+                                    text = phone,
+                                    style = AppTypography.labelSmall,
+                                    color = DfColors.TextSecondary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                    ContactStatusBadge(status = contact.status)
+                }
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     contact.customerType?.takeIf { it.isNotBlank() }?.let { type ->
                         ContactMetaChip(text = type, color = DfColors.Purple, background = DfColors.PurpleContainer)
@@ -119,24 +143,60 @@ fun ContactListCard(
                             background = DfColors.GreenLight,
                         )
                     }
+                    contact.source?.takeIf { it.isNotBlank() }?.let { source ->
+                        ContactMetaChip(text = source, color = DfColors.Blue, background = DfColors.BlueLight)
+                    }
                 }
-            }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                ContactQuickAction(
-                    icon = DfIcons.Phone,
-                    tint = DfColors.Purple,
-                    contentDescription = "تماس",
-                    onClick = onCallClick,
-                )
-                ContactQuickAction(
-                    icon = DfIcons.MessageCircle,
-                    tint = DfColors.Green,
-                    contentDescription = "واتساپ",
-                    onClick = onWhatsAppClick,
-                )
+
+                HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.12f))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        followUpLabel?.let { label ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = DfIcons.Clock,
+                                    contentDescription = null,
+                                    tint = DfColors.Amber,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Text(
+                                    text = "پیگیری: $label",
+                                    style = AppTypography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = DfColors.Amber,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        ContactUpdatedLabel(updatedAt = contact.updatedAt)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        ContactQuickAction(
+                            icon = DfIcons.Phone,
+                            tint = DfColors.Purple,
+                            contentDescription = "تماس",
+                            onClick = onCallClick,
+                        )
+                        ContactQuickAction(
+                            icon = DfIcons.MessageCircle,
+                            tint = DfColors.Green,
+                            contentDescription = "واتساپ",
+                            onClick = onWhatsAppClick,
+                        )
+                    }
+                }
             }
         }
     }
@@ -150,7 +210,7 @@ private fun ContactAvatar(
 ) {
     Box(
         modifier = modifier
-            .size(46.dp)
+            .size(50.dp)
             .clip(CircleShape)
             .background(
                 Brush.linearGradient(
@@ -173,47 +233,30 @@ private fun ContactUpdatedLabel(updatedAt: String?) {
     val (jalaliDate, jalaliTime) = ContactsFilters.splitUpdatedAt(updatedAt)
     if (jalaliDate == "—") return
     val relative = ContactsFilters.relativeUpdatedLabel(updatedAt)
+    val display = when {
+        relative != null && jalaliTime.isNotBlank() -> "$relative · $jalaliTime"
+        relative != null -> relative
+        jalaliTime.isNotBlank() -> "$jalaliDate · $jalaliTime"
+        else -> jalaliDate
+    }
 
-    Surface(shape = AppShapes.Chip, color = DfColors.SurfaceVariant) {
-        Row(
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = DfIcons.Calendar,
-                contentDescription = null,
-                tint = DfColors.Purple,
-                modifier = Modifier.size(11.dp),
-            )
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = relative ?: jalaliDate,
-                    style = AppTypography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DfColors.TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (relative != null) {
-                    Text(
-                        text = jalaliDate,
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                } else if (jalaliTime.isNotBlank()) {
-                    Text(
-                        text = jalaliTime,
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = DfIcons.Calendar,
+            contentDescription = null,
+            tint = DfColors.TextMuted,
+            modifier = Modifier.size(12.dp),
+        )
+        Text(
+            text = "آخرین فعالیت: $display",
+            style = AppTypography.labelSmall,
+            color = DfColors.TextMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -223,10 +266,10 @@ private fun ContactMetaChip(
     color: Color,
     background: Color,
 ) {
-    Surface(shape = AppShapes.Chip, color = background) {
+    Surface(shape = AppShapes.Chip, color = background.copy(alpha = 0.85f)) {
         Text(
             text = text,
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = AppTypography.labelSmall,
             color = color,
             fontWeight = FontWeight.Medium,
@@ -245,7 +288,7 @@ private fun ContactQuickAction(
 ) {
     Box(
         modifier = Modifier
-            .size(34.dp)
+            .size(36.dp)
             .liquidGlassSurface(
                 shape = CircleShape,
                 variant = DfGlassButtonVariant.Secondary,
@@ -262,7 +305,7 @@ private fun ContactQuickAction(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = tint,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(17.dp),
         )
     }
 }
@@ -273,13 +316,13 @@ private fun ContactStatusBadge(status: String?) {
     val (dotColor, textColor, bgColor) = statusColors(status)
     Surface(shape = AppShapes.Chip, color = bgColor) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(6.dp)
+                    .size(7.dp)
                     .clip(CircleShape)
                     .background(dotColor),
             )
@@ -328,21 +371,40 @@ private fun statusColors(status: String): Triple<Color, Color, Color> = when {
 @Composable
 private fun ContactListCardPreview() {
     DivarFilingTheme {
-        ContactListCard(
-            contact = ContactDto(
-                id = 1,
-                fullName = "علی رضایی",
-                phone = "۰۹۱۲۱۲۳۴۵۶۷",
-                customerType = "خریدار",
-                status = "در حال پیگیری",
-                priority = "بالا",
-                budget = 5_000_000_000,
-                updatedAt = "2026-06-28T10:00:00Z",
-            ),
-            onClick = {},
-            onCallClick = {},
-            onWhatsAppClick = {},
-            modifier = Modifier.padding(AppSpacing.screenHorizontal),
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            ContactListCard(
+                contact = ContactDto(
+                    id = 1,
+                    fullName = "علی رضایی",
+                    phone = "۰۹۱۲۱۲۳۴۵۶۷",
+                    customerType = "خریدار",
+                    status = "در حال پیگیری",
+                    priority = "بالا",
+                    budget = 5_000_000_000,
+                    source = "دیوار",
+                    nextFollowUpAt = "2026-07-02T10:00:00Z",
+                    updatedAt = "2026-06-28T10:00:00Z",
+                ),
+                onClick = {},
+                onCallClick = {},
+                onWhatsAppClick = {},
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+            )
+            ContactListCard(
+                contact = ContactDto(
+                    id = 2,
+                    fullName = "مریم احمدی",
+                    phone = "۰۹۳۵۱۱۱۲۲۳۳",
+                    customerType = "فروشنده",
+                    status = "جدید",
+                    priority = "متوسط",
+                    updatedAt = "2026-07-01T08:30:00Z",
+                ),
+                onClick = {},
+                onCallClick = {},
+                onWhatsAppClick = {},
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+            )
+        }
     }
 }
