@@ -5,6 +5,8 @@ import ir.divarfiling.mobile.core.database.DatasetCacheDao
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.network.ListingPublicShareDto
+import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.ListingUpdateRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
@@ -112,6 +114,19 @@ class FilingRepository @Inject constructor(
         return try {
             val response = api.updateListing(token, request)
             if (!response.ok) return ApiResult.Error(response.error ?: "خطا در ذخیره آگهی")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun updateListingPublicShare(
+        token: String,
+        request: ListingPublicShareUpdateRequest,
+    ): ApiResult<ListingPublicShareDto> {
+        return try {
+            val response = api.updateListingPublicShare(token, request)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در ذخیره اشتراک")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")

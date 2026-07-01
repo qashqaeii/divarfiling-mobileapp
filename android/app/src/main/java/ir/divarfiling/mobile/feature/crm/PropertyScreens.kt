@@ -318,10 +318,16 @@ fun PropertyDetailScreen(
                         onShare = { viewModel.toggleShareSheet(true) },
                         onWhatsApp = { viewModel.toggleShareSheet(true) },
                         onCopyLink = {
-                            val text = property.link?.takeIf { it.isNotBlank() } ?: property.token.orEmpty()
-                            if (text.isNotBlank()) {
-                                copyToClipboard(context, text)
-                                scope.launch { snackbar.showSnackbar("کپی شد") }
+                            val publicUrl = detail.publicShare?.shareUrl?.takeIf { it.isNotBlank() }
+                            if (publicUrl != null) {
+                                copyToClipboard(context, publicUrl)
+                                scope.launch { snackbar.showSnackbar("لینک صفحه عمومی کپی شد") }
+                            } else {
+                                val text = property.link?.takeIf { it.isNotBlank() } ?: property.token.orEmpty()
+                                if (text.isNotBlank()) {
+                                    copyToClipboard(context, text)
+                                    scope.launch { snackbar.showSnackbar("کپی شد") }
+                                }
                             }
                         },
                         onOpenLink = property.link?.takeIf { it.isNotBlank() }?.let { link ->
@@ -344,12 +350,17 @@ fun PropertyDetailScreen(
     if (state.showShareSheet && property != null) {
         val shareOptions = viewModel.propertyShareOptions()
         val preview = PropertyShareFormatter.buildShareText(property, shareOptions)
+        val publicShare = detail?.publicShare
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleShareSheet(false) }) {
             DossierShareSheet(
                 previewText = preview,
                 kind = DossierShareKind.PERSONAL,
                 note = state.shareNote,
                 includeDivarLink = state.shareIncludeLink,
+                publicShareUrl = publicShare?.shareUrl,
+                publicShareViewCount = publicShare?.viewCount ?: 0,
+                includePublicPageLink = state.shareIncludePublicPage,
+                onIncludePublicPageLinkChange = viewModel::onShareIncludePublicPageChange,
                 includeAddress = state.shareIncludeAddress,
                 includeInternalNotes = state.shareIncludeNotes,
                 includeAmenities = state.shareIncludeAmenities,
@@ -367,6 +378,17 @@ fun PropertyDetailScreen(
                 onCopy = {
                     DossierShareActions.copyToClipboard(context, preview)
                     scope.launch { snackbar.showSnackbar("متن پیام کپی شد") }
+                },
+                onCopyPublicLink = publicShare?.shareUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    {
+                        copyToClipboard(context, url)
+                        scope.launch { snackbar.showSnackbar("لینک صفحه عمومی کپی شد") }
+                    }
+                },
+                onOpenPublicPreview = publicShare?.shareUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    }
                 },
                 onDismiss = { viewModel.toggleShareSheet(false) },
             )

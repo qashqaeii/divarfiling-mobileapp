@@ -191,6 +191,15 @@ interface MobileApi {
     @DELETE("crm/properties/{id}")
     suspend fun deleteProperty(@Path("id") propertyId: Long): ApiEnvelope
 
+    @GET("crm/properties/{id}/public-share")
+    suspend fun getPropertyPublicShare(@Path("id") propertyId: Long): ApiEnvelope
+
+    @PATCH("crm/properties/{id}/public-share")
+    suspend fun updatePropertyPublicShare(
+        @Path("id") propertyId: Long,
+        @Body body: ListingPublicShareUpdateRequest,
+    ): ApiEnvelope
+
     @POST("crm/properties/{id}/contacts")
     suspend fun linkPropertyContact(
         @Path("id") propertyId: Long,
@@ -245,6 +254,15 @@ interface MobileApi {
     suspend fun updateListing(
         @Path("token") token: String,
         @Body body: ListingUpdateRequest,
+    ): ApiEnvelope
+
+    @GET("filing/listings/{token}/public-share")
+    suspend fun getListingPublicShare(@Path("token") token: String): ApiEnvelope
+
+    @PATCH("filing/listings/{token}/public-share")
+    suspend fun updateListingPublicShare(
+        @Path("token") token: String,
+        @Body body: ListingPublicShareUpdateRequest,
     ): ApiEnvelope
 
     @GET("filing/search")

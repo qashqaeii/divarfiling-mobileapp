@@ -645,6 +645,7 @@ data class PropertyDetailUiState(
     val shareIncludeAddress: Boolean = false,
     val shareIncludeNotes: Boolean = false,
     val shareIncludeAmenities: Boolean = true,
+    val shareIncludePublicPage: Boolean = true,
 )
 
 enum class PropertyDetailTab(val label: String) {
@@ -787,15 +788,19 @@ class PropertyDetailViewModel @Inject constructor(
     fun onShareIncludeAddressChange(value: Boolean) = _uiState.update { it.copy(shareIncludeAddress = value) }
     fun onShareIncludeNotesChange(value: Boolean) = _uiState.update { it.copy(shareIncludeNotes = value) }
     fun onShareIncludeAmenitiesChange(value: Boolean) = _uiState.update { it.copy(shareIncludeAmenities = value) }
+    fun onShareIncludePublicPageChange(value: Boolean) = _uiState.update { it.copy(shareIncludePublicPage = value) }
 
     fun propertyShareOptions(): DossierShareOptions {
         val state = _uiState.value
+        val publicUrl = state.detail?.publicShare?.shareUrl.orEmpty()
         return DossierShareOptions(
             customNote = state.shareNote,
             includeDivarLink = state.shareIncludeLink,
             includeAddress = state.shareIncludeAddress,
             includeInternalNotes = state.shareIncludeNotes,
             includeAmenities = state.shareIncludeAmenities,
+            includePublicPageLink = state.shareIncludePublicPage && publicUrl.isNotBlank(),
+            publicPageUrl = publicUrl,
             footer = DossierShareOptions.PERSONAL_FOOTER,
         )
     }

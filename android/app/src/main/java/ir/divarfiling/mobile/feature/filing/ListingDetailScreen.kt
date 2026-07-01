@@ -107,7 +107,11 @@ fun ListingDetailScreen(
                         onSetReminder = { viewModel.toggleContactPicker(true) },
                         onSaveAsPersonal = viewModel::saveAsPersonalProperty,
                         onCopyLink = {
-                            if (!listing.shareLink.isNullOrBlank()) {
+                            val publicUrl = listing.publicShare?.shareUrl?.takeIf { it.isNotBlank() }
+                            if (publicUrl != null) {
+                                copyToClipboard(context, publicUrl)
+                                viewModel.showMessage("لینک صفحه عمومی کپی شد")
+                            } else if (!listing.shareLink.isNullOrBlank()) {
                                 copyToClipboard(context, listing.shareLink!!)
                                 viewModel.showMessage("لینک آگهی کپی شد")
                             } else {
@@ -136,12 +140,17 @@ fun ListingDetailScreen(
     if (state.showShareSheet && listing != null) {
         val shareOptions = viewModel.listingShareOptions()
         val preview = DossierShareFormatter.fromDetail(listing, shareOptions)
+        val publicShare = listing.publicShare
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleShareSheet(false) }) {
             DossierShareSheet(
                 previewText = preview,
                 kind = DossierShareKind.FILING,
                 note = state.shareNote,
                 includeDivarLink = state.shareIncludeLink,
+                publicShareUrl = publicShare?.shareUrl,
+                publicShareViewCount = publicShare?.viewCount ?: 0,
+                includePublicPageLink = state.shareIncludePublicPage,
+                onIncludePublicPageLinkChange = viewModel::onShareIncludePublicPageChange,
                 includeAddress = false,
                 includeInternalNotes = false,
                 includeAmenities = state.shareIncludeAmenities,
@@ -155,6 +164,17 @@ fun ListingDetailScreen(
                 onCopy = {
                     DossierShareActions.copyToClipboard(context, preview)
                     viewModel.showMessage("متن پیام کپی شد")
+                },
+                onCopyPublicLink = publicShare?.shareUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    {
+                        copyToClipboard(context, url)
+                        viewModel.showMessage("لینک صفحه عمومی کپی شد")
+                    }
+                },
+                onOpenPublicPreview = publicShare?.shareUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    }
                 },
                 onSendToContact = {
                     viewModel.toggleShareSheet(false)
@@ -174,11 +194,15 @@ fun ListingDetailScreen(
 
     if (state.showSendDialog && listing != null) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissSendDialog) {
-            ListingSendSheet(
+                ListingSendSheet(
                 note = state.sendNote,
                 previewText = DossierShareFormatter.fromDetail(
                     listing,
-                    DossierShareOptions(customNote = state.sendNote),
+                    DossierShareOptions(
+                        customNote = state.sendNote,
+                        includePublicPageLink = true,
+                        publicPageUrl = listing.publicShare?.shareUrl.orEmpty(),
+                    ),
                 ),
                 isSubmitting = state.isLinking,
                 onNoteChange = viewModel::onSendNoteChange,

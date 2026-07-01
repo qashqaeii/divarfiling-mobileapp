@@ -13,6 +13,8 @@ import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
 import ir.divarfiling.mobile.core.network.PropertyContactLinkDto
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
+import ir.divarfiling.mobile.core.network.ListingPublicShareDto
+import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
@@ -164,6 +166,13 @@ class DealsRepository @Inject constructor(
 
     suspend fun updatePropertyStatus(propertyId: Long, status: String): ApiResult<PropertyDto> = single {
         api.updatePropertyStatus(propertyId, PropertyStatusRequest(status))
+    }
+
+    suspend fun updatePropertyPublicShare(
+        propertyId: Long,
+        request: ListingPublicShareUpdateRequest,
+    ): ApiResult<ListingPublicShareDto> = single {
+        api.updatePropertyPublicShare(propertyId, request)
     }
 
     suspend fun deleteProperty(propertyId: Long): ApiResult<Unit> = try {

@@ -7,6 +7,8 @@ import ir.divarfiling.mobile.core.network.PropertyDto
 data class DossierShareOptions(
     val customNote: String = "",
     val includeDivarLink: Boolean = false,
+    val includePublicPageLink: Boolean = true,
+    val publicPageUrl: String = "",
     val includeAddress: Boolean = false,
     val includeInternalNotes: Boolean = false,
     val includeAmenities: Boolean = true,
@@ -202,6 +204,13 @@ object DossierShareFormatter {
         }
 
         options.customNote.trim().takeIf { it.isNotBlank() }?.let { lines += "\n✍️ $it" }
+
+        if (options.includePublicPageLink) {
+            options.publicPageUrl.trim().takeIf { it.isNotBlank() }?.let {
+                lines += "\n🌐 مشاهده جزئیات کامل ملک:"
+                lines += it
+            }
+        }
 
         if (options.includeDivarLink) {
             link?.trim()?.takeIf { it.isNotBlank() }?.let { lines += "\n🔗 $it" }

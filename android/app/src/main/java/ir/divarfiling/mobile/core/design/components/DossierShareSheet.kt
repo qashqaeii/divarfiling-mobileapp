@@ -33,6 +33,10 @@ fun DossierShareSheet(
     kind: DossierShareKind,
     note: String,
     includeDivarLink: Boolean,
+    publicShareUrl: String? = null,
+    publicShareViewCount: Int = 0,
+    includePublicPageLink: Boolean = true,
+    onIncludePublicPageLinkChange: ((Boolean) -> Unit)? = null,
     includeAddress: Boolean,
     includeInternalNotes: Boolean,
     includeAmenities: Boolean,
@@ -44,6 +48,8 @@ fun DossierShareSheet(
     onShare: () -> Unit,
     onWhatsApp: () -> Unit,
     onCopy: () -> Unit,
+    onCopyPublicLink: (() -> Unit)? = null,
+    onOpenPublicPreview: (() -> Unit)? = null,
     onSendToContact: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
@@ -88,6 +94,63 @@ fun DossierShareSheet(
         }
 
         DfSheetSection(title = "تنظیمات پیام") {
+            if (!publicShareUrl.isNullOrBlank()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.Card,
+                    color = DfColors.BlueLight.copy(alpha = 0.35f),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            "لینک صفحه عمومی",
+                            style = AppTypography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            publicShareUrl,
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextMuted,
+                        )
+                        if (publicShareViewCount > 0) {
+                            Text(
+                                "$publicShareViewCount بازدید",
+                                style = AppTypography.labelSmall,
+                                color = DfColors.TextMuted,
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            onCopyPublicLink?.let { copyLink ->
+                                DfGlassButton(
+                                    text = "کپی لینک",
+                                    onClick = copyLink,
+                                    icon = DfIcons.Copy,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            onOpenPublicPreview?.let { openPreview ->
+                                DfGlassButton(
+                                    text = "پیش‌نمایش",
+                                    onClick = openPreview,
+                                    icon = DfIcons.ExternalLink,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
+                }
+                onIncludePublicPageLinkChange?.let { onChange ->
+                    ShareToggleRow(
+                        title = "لینک صفحه عمومی در پیام",
+                        subtitle = "صفحه حرفه‌ای با اطلاعات شما برای مشتری",
+                        checked = includePublicPageLink,
+                        onCheckedChange = onChange,
+                    )
+                }
+            }
+
             OutlinedTextField(
                 value = note,
                 onValueChange = onNoteChange,

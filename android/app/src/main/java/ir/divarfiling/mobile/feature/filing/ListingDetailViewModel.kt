@@ -58,6 +58,7 @@ data class ListingDetailUiState(
     val showShareSheet: Boolean = false,
     val shareNote: String = "",
     val shareIncludeLink: Boolean = false,
+    val shareIncludePublicPage: Boolean = true,
     val shareIncludeAddress: Boolean = false,
     val shareIncludeAmenities: Boolean = true,
 )
@@ -215,13 +216,17 @@ class ListingDetailViewModel @Inject constructor(
     fun toggleShareSheet(show: Boolean) = _uiState.update { it.copy(showShareSheet = show) }
     fun onShareNoteChange(note: String) = _uiState.update { it.copy(shareNote = note) }
     fun onShareIncludeLinkChange(value: Boolean) = _uiState.update { it.copy(shareIncludeLink = value) }
+    fun onShareIncludePublicPageChange(value: Boolean) = _uiState.update { it.copy(shareIncludePublicPage = value) }
     fun onShareIncludeAmenitiesChange(value: Boolean) = _uiState.update { it.copy(shareIncludeAmenities = value) }
 
     fun listingShareOptions(): DossierShareOptions {
         val state = _uiState.value
+        val publicUrl = state.listing?.publicShare?.shareUrl.orEmpty()
         return DossierShareOptions(
             customNote = state.shareNote,
             includeDivarLink = state.shareIncludeLink,
+            includePublicPageLink = state.shareIncludePublicPage && publicUrl.isNotBlank(),
+            publicPageUrl = publicUrl,
             includeAmenities = state.shareIncludeAmenities,
         )
     }
@@ -236,7 +241,11 @@ class ListingDetailViewModel @Inject constructor(
         val note = _uiState.value.sendNote.trim()
         val shareMessage = DossierShareFormatter.fromDetail(
             listing,
-            DossierShareOptions(customNote = note),
+            DossierShareOptions(
+                customNote = note,
+                includePublicPageLink = true,
+                publicPageUrl = listing.publicShare?.shareUrl.orEmpty(),
+            ),
         )
         viewModelScope.launch {
             _uiState.update { it.copy(isLinking = true) }

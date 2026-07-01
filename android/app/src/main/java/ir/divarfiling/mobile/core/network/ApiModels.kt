@@ -658,6 +658,7 @@ data class PropertyDetailData(
     @SerialName("can_edit") val canEdit: Boolean = true,
     @SerialName("mask_sensitive") val maskSensitive: Boolean = false,
     @SerialName("contact_count") val contactCount: Int = 0,
+    @SerialName("public_share") val publicShare: ListingPublicShareDto? = null,
 )
 
 @Serializable
@@ -677,6 +678,31 @@ data class DealPipelineColumnDto(
 @Serializable
 data class DealStagesData(
     val stages: List<String> = emptyList(),
+)
+
+@Serializable
+data class ListingPublicShareDto(
+    @SerialName("share_url") val shareUrl: String = "",
+    @SerialName("share_token") val shareToken: String = "",
+    @SerialName("view_count") val viewCount: Int = 0,
+    @SerialName("is_active") val isActive: Boolean = true,
+    @SerialName("consultant_name") val consultantName: String = "",
+    @SerialName("consultant_phone") val consultantPhone: String = "",
+    @SerialName("welcome_message") val welcomeMessage: String = "",
+    @SerialName("show_divar_link") val showDivarLink: Boolean = false,
+    @SerialName("show_full_address") val showFullAddress: Boolean = false,
+    @SerialName("show_internal_notes") val showInternalNotes: Boolean = false,
+)
+
+@Serializable
+data class ListingPublicShareUpdateRequest(
+    @SerialName("consultant_name") val consultantName: String? = null,
+    @SerialName("consultant_phone") val consultantPhone: String? = null,
+    @SerialName("welcome_message") val welcomeMessage: String? = null,
+    @SerialName("show_divar_link") val showDivarLink: Boolean? = null,
+    @SerialName("show_full_address") val showFullAddress: Boolean? = null,
+    @SerialName("show_internal_notes") val showInternalNotes: Boolean? = null,
+    @SerialName("is_active") val isActive: Boolean? = null,
 )
 
 @Serializable
@@ -712,6 +738,7 @@ data class ListingDetailDto(
     @SerialName("has_parking") val hasParking: Boolean? = null,
     @SerialName("has_storage") val hasStorage: Boolean? = null,
     @SerialName("has_elevator") val hasElevator: Boolean? = null,
+    @SerialName("public_share") val publicShare: ListingPublicShareDto? = null,
 )
 
 @Serializable
