@@ -1,9 +1,10 @@
 package ir.divarfiling.mobile.core.fcm
 
+import android.util.Log
+import ir.divarfiling.mobile.BuildConfig
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.network.DeviceFcmPatchRequest
 import ir.divarfiling.mobile.core.network.MobileApi
-import ir.divarfiling.mobile.core.util.DeviceIdProvider
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,7 +13,6 @@ import javax.inject.Singleton
 class FcmRegistrar @Inject constructor(
     private val api: MobileApi,
     private val sessionStore: SessionStore,
-    private val deviceIdProvider: DeviceIdProvider,
 ) {
     suspend fun uploadToken(token: String) {
         if (token.isBlank()) return
@@ -20,8 +20,17 @@ class FcmRegistrar @Inject constructor(
         if (!loggedIn) return
         try {
             api.updateDeviceFcm(DeviceFcmPatchRequest(fcmToken = token))
-        } catch (_: Exception) {
-            // best-effort; token will retry on next login
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "FCM token uploaded (${token.take(12)}…)")
+            }
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.w(TAG, "FCM token upload failed", e)
+            }
         }
+    }
+
+    private companion object {
+        const val TAG = "FcmRegistrar"
     }
 }

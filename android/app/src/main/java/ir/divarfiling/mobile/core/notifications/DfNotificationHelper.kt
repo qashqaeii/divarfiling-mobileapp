@@ -44,7 +44,7 @@ class DfNotificationHelper @Inject constructor(
             .setContentText(body)
             .setAutoCancel(true)
             .setContentIntent(pending)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
         val notificationManager = NotificationManagerCompat.from(context)
         if (!notificationManager.areNotificationsEnabled()) return
@@ -65,8 +65,11 @@ class DfNotificationHelper @Inject constructor(
         val channel = NotificationChannel(
             CHANNEL_ID,
             "اعلان‌های دیوار فایلینگ",
-            NotificationManager.IMPORTANCE_DEFAULT,
-        )
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = "یادآور CRM، استخراج و کارهای امروز"
+            enableVibration(true)
+        }
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(channel)
     }

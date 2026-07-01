@@ -33,11 +33,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dagger.hilt.android.EntryPointAccessors
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.fcm.FcmEntryPoint
 import kotlinx.coroutines.launch
 
 @Composable
@@ -45,18 +48,19 @@ fun NotificationPermissionGate(
     sessionStore: SessionStore,
     content: @Composable () -> Unit,
 ) {
-    var showOnboarding by remember { mutableStateOf<Boolean?>(null) }
+    val isLoggedIn by sessionStore.isLoggedIn.collectAsStateWithLifecycle(initialValue = false)
+    var showOnboarding by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        showOnboarding = !sessionStore.hasSeenNotificationOnboarding()
+    LaunchedEffect(isLoggedIn) {
+        showOnboarding = isLoggedIn && !sessionStore.hasSeenNotificationOnboarding()
     }
 
-    when (showOnboarding) {
-        null -> Unit
-        true -> {
+    when {
+        !isLoggedIn -> content()
+        showOnboarding -> {
             NotificationOnboardingScreen(
-                onEnable = {
+                onFinished = {
                     scope.launch {
                         sessionStore.setNotificationOnboardingSeen()
                         showOnboarding = false
@@ -64,22 +68,34 @@ fun NotificationPermissionGate(
                 },
             )
         }
-        false -> content()
+        else -> content()
     }
 }
 
 @Composable
 private fun NotificationOnboardingScreen(
-    onEnable: () -> Unit,
+    onFinished: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val fcmTokenSync = remember {
+        EntryPointAccessors.fromApplication(context, FcmEntryPoint::class.java).fcmTokenSync()
+    }
+
+    suspend fun finishOnboarding() {
+        fcmTokenSync.syncNow()
+        onFinished()
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { onEnable() }
+    ) {
+        scope.launch { finishOnboarding() }
+    }
 
     fun requestPermission() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            onEnable()
+            scope.launch { finishOnboarding() }
             return
         }
         val granted = ContextCompat.checkSelfPermission(
@@ -87,7 +103,7 @@ private fun NotificationOnboardingScreen(
             Manifest.permission.POST_NOTIFICATIONS,
         ) == PackageManager.PERMISSION_GRANTED
         if (granted) {
-            onEnable()
+            scope.launch { finishOnboarding() }
         } else {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }

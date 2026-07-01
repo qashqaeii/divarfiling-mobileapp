@@ -14,8 +14,8 @@ import ir.divarfiling.mobile.core.network.UserDto
 import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
 import ir.divarfiling.mobile.core.util.DeviceIdProvider
-import ir.divarfiling.mobile.core.fcm.FcmRegistrar
 import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
+import ir.divarfiling.mobile.core.fcm.FcmTokenSync
 import ir.divarfiling.mobile.core.security.LocalDataWiper
 import ir.divarfiling.mobile.core.sync.BackgroundWorkManager
 import kotlinx.serialization.json.Json
@@ -34,7 +34,7 @@ class AuthRepository @Inject constructor(
     private val deviceIdProvider: DeviceIdProvider,
     private val licenseRepository: LicenseRepository,
     private val fcmTokenProvider: FcmTokenProvider,
-    private val fcmRegistrar: FcmRegistrar,
+    private val fcmTokenSync: FcmTokenSync,
     private val localDataWiper: LocalDataWiper,
     private val json: Json,
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
@@ -81,9 +81,7 @@ class AuthRepository @Inject constructor(
                     fcmToken = fcmToken,
                 ),
             )
-            if (fcmToken.isNotBlank()) {
-                fcmRegistrar.uploadToken(fcmToken)
-            }
+            fcmTokenSync.syncNow()
             val license = response.parseData<DeviceRegisterData>(json)?.license
             sessionStore.saveLicense(license)
             license
