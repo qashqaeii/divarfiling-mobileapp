@@ -53,7 +53,7 @@ fun ContactListCard(
     modifier: Modifier = Modifier,
 ) {
     val accent = contactAccentColor(contact.fullName)
-    val statusStyle = statusColors(contact.status)
+    val statusStyle = statusColors(contact.status.orEmpty())
     val followUpLabel = contact.nextFollowUpAt?.let { next ->
         DateUtils.formatRelativeTimeUntil(next)
             ?: DateUtils.formatJalaliDateTime(next)
