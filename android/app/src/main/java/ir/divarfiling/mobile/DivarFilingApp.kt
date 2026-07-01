@@ -36,7 +36,7 @@ class DivarFilingApp : Application(), ImageLoaderFactory {
                 EntryPointAccessors.fromApplication(
                     this@DivarFilingApp,
                     FcmEntryPoint::class.java,
-                ).fcmTokenSync().syncNow()
+                ).fcmTokenSync().syncWithRetry()
             }
         }
     }

@@ -83,7 +83,7 @@ private fun NotificationOnboardingScreen(
     }
 
     suspend fun finishOnboarding() {
-        fcmTokenSync.syncNow()
+        fcmTokenSync.syncWithRetry()
         onFinished()
     }
 

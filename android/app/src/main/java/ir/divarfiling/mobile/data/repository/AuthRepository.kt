@@ -81,7 +81,7 @@ class AuthRepository @Inject constructor(
                     fcmToken = fcmToken,
                 ),
             )
-            fcmTokenSync.syncNow()
+            fcmTokenSync.syncWithRetry()
             val license = response.parseData<DeviceRegisterData>(json)?.license
             sessionStore.saveLicense(license)
             license

@@ -13,19 +13,22 @@ class FcmRegistrar @Inject constructor(
     private val api: MobileApi,
     private val sessionStore: SessionStore,
 ) {
-    suspend fun uploadToken(token: String) {
-        if (token.isBlank()) return
+    suspend fun uploadToken(token: String): Boolean {
+        if (token.isBlank()) return false
         val loggedIn = sessionStore.isLoggedIn.first()
-        if (!loggedIn) return
-        try {
+        if (!loggedIn) return false
+        return try {
             val response = api.updateDeviceFcm(DeviceFcmPatchRequest(fcmToken = token))
             if (!response.ok) {
                 Log.w(TAG, "FCM token upload rejected: ${response.error ?: response.code}")
-                return
+                false
+            } else {
+                Log.i(TAG, "FCM token uploaded (${token.take(12)}…)")
+                true
             }
-            Log.i(TAG, "FCM token uploaded (${token.take(12)}…)")
         } catch (e: Exception) {
             Log.w(TAG, "FCM token upload failed", e)
+            false
         }
     }
 
