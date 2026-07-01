@@ -40,6 +40,9 @@ fun ListingDetailHeader(
     modifier: Modifier = Modifier,
 ) {
     val isConsultant = ListingAdvertiserUtils.isConsultant(listing)
+    val signalLabel = ListingAdvertiserUtils.signalBadgeLabel(listing)
+    val isGenuinePersonal = ListingAdvertiserUtils.isGenuinePersonal(listing)
+    val isDisguisedConsultant = ListingAdvertiserUtils.isDisguisedConsultant(listing)
     val location = listOfNotNull(listing.district, listing.city).joinToString("، ")
     val priceLabel = when {
         listing.price != null && listing.price > 0 -> FormatUtils.formatPriceToman(listing.price)
@@ -63,7 +66,7 @@ fun ListingDetailHeader(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
@@ -78,9 +81,31 @@ fun ListingDetailHeader(
                     color = if (isConsultant) DfColors.Amber else DfColors.Green,
                 )
             }
+            signalLabel?.let { label ->
+                val signalColor = when {
+                    isGenuinePersonal -> DfColors.PurpleDark
+                    isDisguisedConsultant -> DfColors.Rose
+                    else -> DfColors.TextSecondary
+                }
+                val signalBg = when {
+                    isGenuinePersonal -> DfColors.PurpleContainer
+                    isDisguisedConsultant -> DfColors.RoseLight
+                    else -> DfColors.SurfaceVariant
+                }
+                Surface(shape = AppShapes.Chip, color = signalBg) {
+                    Text(
+                        text = label,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = signalColor,
+                    )
+                }
+            }
             Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
                     text = "کد آگهی: ${listing.token.takeLast(8)}",

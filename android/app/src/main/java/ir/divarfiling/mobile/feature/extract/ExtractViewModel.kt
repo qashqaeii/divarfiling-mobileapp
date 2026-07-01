@@ -388,6 +388,13 @@ class ExtractViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val stats = result.data
                     val mergeNote = if (stats.datasetMerged) " (ادغام با فایلینگ موجود)" else ""
+                    val ownerNote = when {
+                        stats.genuinePersonalCount > 0 ->
+                            " — ${stats.genuinePersonalCount} مالک واقعی!"
+                        stats.disguisedConsultantCount > 0 ->
+                            " — ${stats.disguisedConsultantCount} مشاور پنهان شناسایی شد"
+                        else -> ""
+                    }
                     val durationMs = extractionStartedAt?.let { started ->
                         (System.currentTimeMillis() - started).coerceAtLeast(0)
                     } ?: 0L
@@ -402,7 +409,7 @@ class ExtractViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isRunning = false,
-                            message = "آپلود موفق — ${stats.ingestedCount} آگهی پردازش شد$mergeNote",
+                            message = "آپلود موفق — ${stats.ingestedCount} آگهی پردازش شد$mergeNote$ownerNote",
                             lastDatasetId = stats.datasetId,
                             lastUploadStats = stats,
                             lastExtractionDurationMinutes = durationMinutes.takeIf { it > 0 },

@@ -358,6 +358,12 @@ private fun IngestStatsCard(stats: ir.divarfiling.mobile.core.network.Extraction
             IngestStatRow("پردازش‌شده", stats.ingestedCount)
             IngestStatRow("جدید", stats.createdCount)
             IngestStatRow("به‌روزرسانی", stats.updatedCount)
+            if (stats.genuinePersonalCount > 0) {
+                IngestStatRow("مالک واقعی", stats.genuinePersonalCount)
+            }
+            if (stats.disguisedConsultantCount > 0) {
+                IngestStatRow("مشاور پنهان", stats.disguisedConsultantCount)
+            }
             if (stats.duplicateCount > 0) {
                 IngestStatRow("تکراری/ردشده", stats.duplicateCount + stats.skippedCount)
             } else if (stats.skippedCount > 0) {

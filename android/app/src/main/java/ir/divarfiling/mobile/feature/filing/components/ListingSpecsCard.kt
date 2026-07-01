@@ -215,6 +215,9 @@ private fun buildListingSpecItems(listing: ListingDetailDto, expanded: Boolean):
         listing.advertiserType?.takeIf { it.isNotBlank() }?.let {
             ListingSpecItem("نوع آگهی‌دهنده", ListingAdvertiserUtils.badgeLabel(listing), iconRes = DfDecorIcons.Users)
         },
+        ListingAdvertiserUtils.signalBadgeLabel(listing)?.let { label ->
+            ListingSpecItem("سیگنال آگهی", label, iconRes = DfDecorIcons.Users)
+        },
         listing.scrapedAt?.takeIf { it.isNotBlank() }?.let { scraped ->
             formatScrapedDate(scraped)?.let {
                 ListingSpecItem("تاریخ استخراج", it, iconRes = DfDecorIcons.Calendar)

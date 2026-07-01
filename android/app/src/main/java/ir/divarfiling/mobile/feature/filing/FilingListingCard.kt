@@ -53,6 +53,9 @@ fun FilingListingCard(
     modifier: Modifier = Modifier,
 ) {
     val isConsultant = ListingAdvertiserUtils.isConsultant(listing)
+    val isGenuinePersonal = ListingAdvertiserUtils.isGenuinePersonal(listing)
+    val isDisguisedConsultant = ListingAdvertiserUtils.isDisguisedConsultant(listing)
+    val signalLabel = ListingAdvertiserUtils.signalBadgeLabel(listing)
     val txLabel = ListingPriceUtils.transactionLabel(listing)
     val txColor = if (ListingPriceUtils.isRental(listing)) DfColors.Blue else DfColors.Pink
     val txBg = if (ListingPriceUtils.isRental(listing)) DfColors.BlueLight else DfColors.PinkLight
@@ -109,6 +112,23 @@ fun FilingListingCard(
                         color = advColor,
                         background = advBg.copy(alpha = 0.92f),
                     )
+                    signalLabel?.let { label ->
+                        val signalColor = when {
+                            isGenuinePersonal -> DfColors.PurpleDark
+                            isDisguisedConsultant -> DfColors.Rose
+                            else -> DfColors.TextSecondary
+                        }
+                        val signalBg = when {
+                            isGenuinePersonal -> DfColors.PurpleContainer
+                            isDisguisedConsultant -> DfColors.RoseLight
+                            else -> DfColors.SurfaceVariant
+                        }
+                        ListingTag(
+                            text = label,
+                            color = signalColor,
+                            background = signalBg.copy(alpha = 0.92f),
+                        )
+                    }
                     ListingTag(text = txLabel, color = txColor, background = txBg.copy(alpha = 0.92f))
                     datasetLabel?.takeIf { it.isNotBlank() }?.let {
                         ListingTag(

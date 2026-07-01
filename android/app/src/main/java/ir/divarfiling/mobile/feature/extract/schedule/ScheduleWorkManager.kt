@@ -39,9 +39,10 @@ object ScheduleWorkManager {
             .setInputData(input)
             .build()
         val workName = scheduleId?.let { "extract_schedule_run_$it" } ?: "extract_schedule_run_all"
+        // REPLACE: explicit run-now / new schedule must not be dropped while prior work is queued.
         WorkManager.getInstance(context).enqueueUniqueWork(
             workName,
-            ExistingWorkPolicy.KEEP,
+            ExistingWorkPolicy.REPLACE,
             request,
         )
     }
