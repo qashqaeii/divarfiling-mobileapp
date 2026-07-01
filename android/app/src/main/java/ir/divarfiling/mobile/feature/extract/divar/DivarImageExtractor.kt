@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.feature.extract.divar
 
 import ir.divarfiling.mobile.core.image.DivarImageUrlUtils
 import ir.divarfiling.mobile.core.image.ImageUrlFormatter
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
