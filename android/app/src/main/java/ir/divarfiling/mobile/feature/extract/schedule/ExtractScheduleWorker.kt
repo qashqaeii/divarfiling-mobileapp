@@ -46,27 +46,29 @@ class ExtractScheduleWorker(
 
         var hadFailure = false
         for (scheduleId in scheduleIds) {
-            when (val start = scheduleRepository.startRun(scheduleId)) {
-                is ApiResult.Success -> {
-                    val runId = start.data.run.id
-                    val filters = ExtractScheduleMapper.toExtractFilters(start.data.filters)
-                    when (
-                        val result = extractionRepository.runLightExtraction(
-                            filters = filters,
-                            onProgress = { _, _ -> },
-                            isCancelled = { false },
-                            runId = runId,
-                            scheduleId = scheduleId,
-                        )
-                    ) {
-                        is ApiResult.Success -> Unit
-                        is ApiResult.Error -> {
-                            hadFailure = true
-                            scheduleRepository.failRun(runId, result.message)
-                        }
-                    }
+            val start = scheduleRepository.startRun(scheduleId)
+            if (start is ApiResult.Error) {
+                hadFailure = true
+                continue
+            }
+            val startData = (start as ApiResult.Success).data
+            val runId = startData.run.id
+            val filters = ExtractScheduleMapper.toExtractFilters(startData.filters)
+            when (
+                val result = extractionRepository.runLightExtraction(
+                    filters = filters,
+                    onProgress = { _, _ -> },
+                    isCancelled = { isStopped },
+                    runId = runId,
+                    scheduleId = scheduleId,
+                )
+            ) {
+                is ApiResult.Success -> Unit
+                is ApiResult.Error -> {
+                    if (result.code == "RUN_ALREADY_FINISHED") continue
+                    hadFailure = true
+                    scheduleRepository.failRun(runId, result.message)
                 }
-                is ApiResult.Error -> hadFailure = true
             }
         }
         return if (hadFailure) Result.retry() else Result.success()

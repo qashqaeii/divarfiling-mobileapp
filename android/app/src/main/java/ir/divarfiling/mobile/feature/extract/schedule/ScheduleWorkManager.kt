@@ -41,7 +41,7 @@ object ScheduleWorkManager {
         val workName = scheduleId?.let { "extract_schedule_run_$it" } ?: "extract_schedule_run_all"
         WorkManager.getInstance(context).enqueueUniqueWork(
             workName,
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             request,
         )
     }

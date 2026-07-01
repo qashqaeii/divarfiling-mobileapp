@@ -22,6 +22,8 @@ import ir.divarfiling.mobile.data.repository.ExtractionScheduleRepository
 import ir.divarfiling.mobile.feature.extract.divar.ExtractAdvancedFilters
 import ir.divarfiling.mobile.feature.extract.divar.ExtractFilters
 import ir.divarfiling.mobile.feature.extract.divar.OutputNameHint
+import ir.divarfiling.mobile.core.notifications.DfNotificationHelper
+import ir.divarfiling.mobile.feature.extract.schedule.ScheduleNotificationCopy
 import ir.divarfiling.mobile.feature.extract.schedule.ScheduleWorkManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,6 +98,7 @@ class ExtractViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
     authRepository: AuthRepository,
+    private val notificationHelper: DfNotificationHelper,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ExtractUiState())
@@ -297,9 +300,14 @@ class ExtractViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     ScheduleWorkManager.registerPeriodicPolling(appContext)
                     ScheduleWorkManager.enqueueDueRuns(appContext, result.data.id)
-                    _uiState.update {
-                        it.copy(message = "زمان‌بندی «${result.data.title}» ذخیره شد")
-                    }
+                    val (title, body) = ScheduleNotificationCopy.createdMessage(result.data)
+                    notificationHelper.showNotification(
+                        id = ScheduleNotificationCopy.NOTIFICATION_ID_BASE + result.data.id.toInt(),
+                        title = title,
+                        body = body,
+                        deepLink = ScheduleNotificationCopy.DEEP_LINK,
+                    )
+                    _uiState.update { it.copy(message = body) }
                 }
                 is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
             }

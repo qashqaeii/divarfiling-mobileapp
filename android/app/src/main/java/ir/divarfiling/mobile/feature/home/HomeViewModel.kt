@@ -202,6 +202,7 @@ class HomeViewModel @Inject constructor(
     private fun NotificationDto.toHomeNotification(): HomeNotificationItem {
         val notifType = when (type?.lowercase()) {
             "extract_complete", "new_dataset" -> HomeNotificationType.ExtractSuccess
+            "extract_schedule_created", "extract_schedule_due" -> HomeNotificationType.ExtractSuccess
             "price_drop" -> HomeNotificationType.PriceDrop
             "customer_match" -> HomeNotificationType.NewMatch
             "license_expiry" -> HomeNotificationType.License
