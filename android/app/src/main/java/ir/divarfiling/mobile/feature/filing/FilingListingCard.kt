@@ -52,15 +52,10 @@ fun FilingListingCard(
     datasetLabel: String? = null,
     modifier: Modifier = Modifier,
 ) {
-    val isConsultant = ListingAdvertiserUtils.isConsultant(listing)
-    val isGenuinePersonal = ListingAdvertiserUtils.isGenuinePersonal(listing)
-    val isDisguisedConsultant = ListingAdvertiserUtils.isDisguisedConsultant(listing)
-    val signalLabel = ListingAdvertiserUtils.signalBadgeLabel(listing)
+    val advertiserBadge = ListingAdvertiserUtils.badgeStyle(listing)
     val txLabel = ListingPriceUtils.transactionLabel(listing)
     val txColor = if (ListingPriceUtils.isRental(listing)) DfColors.Blue else DfColors.Pink
     val txBg = if (ListingPriceUtils.isRental(listing)) DfColors.BlueLight else DfColors.PinkLight
-    val advColor = if (isConsultant) DfColors.Amber else DfColors.Green
-    val advBg = if (isConsultant) DfColors.AmberLight else DfColors.GreenLight
     val location = listOfNotNull(listing.district, listing.city).filter { it.isNotBlank() }.joinToString("، ")
     val amenities = ListingAmenityUtils.buildAmenities(listing)
     val primaryPrice = ListingPriceUtils.primaryPriceLine(listing)
@@ -108,27 +103,10 @@ fun FilingListingCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     ListingTag(
-                        text = ListingAdvertiserUtils.badgeLabel(listing),
-                        color = advColor,
-                        background = advBg.copy(alpha = 0.92f),
+                        text = advertiserBadge.label,
+                        color = advertiserBadge.color,
+                        background = advertiserBadge.background.copy(alpha = 0.92f),
                     )
-                    signalLabel?.let { label ->
-                        val signalColor = when {
-                            isGenuinePersonal -> DfColors.PurpleDark
-                            isDisguisedConsultant -> DfColors.Rose
-                            else -> DfColors.TextSecondary
-                        }
-                        val signalBg = when {
-                            isGenuinePersonal -> DfColors.PurpleContainer
-                            isDisguisedConsultant -> DfColors.RoseLight
-                            else -> DfColors.SurfaceVariant
-                        }
-                        ListingTag(
-                            text = label,
-                            color = signalColor,
-                            background = signalBg.copy(alpha = 0.92f),
-                        )
-                    }
                     ListingTag(text = txLabel, color = txColor, background = txBg.copy(alpha = 0.92f))
                     datasetLabel?.takeIf { it.isNotBlank() }?.let {
                         ListingTag(

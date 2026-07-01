@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.core.filing
 
+import androidx.compose.ui.graphics.Color
+import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingDto
 
@@ -11,6 +13,12 @@ object ListingAdvertiserUtils {
     private val consultantKeywords = setOf(
         "premium-panel", "premium_panel", "premium", "business", "consultant",
         "agency", "بنگاه", "مشاور", "آژانس", "مشاور املاک",
+    )
+
+    data class AdvertiserBadge(
+        val label: String,
+        val color: Color,
+        val background: Color,
     )
 
     fun isConsultant(advertiserType: String?, businessType: String?): Boolean {
@@ -57,15 +65,28 @@ object ListingAdvertiserUtils {
         else -> 1
     }
 
-    fun badgeLabel(listing: ListingDto): String = when {
-        isConsultant(listing) -> "مشاور"
-        else -> "شخصی"
+    fun displayLabel(listing: ListingDto): String =
+        displayLabel(listing.advertiserSignal, listing.advertiserSignalLabel, listing.advertiserType, listing.businessType)
+
+    fun displayLabel(listing: ListingDetailDto): String =
+        displayLabel(listing.advertiserSignal, listing.advertiserSignalLabel, listing.advertiserType, listing.businessType)
+
+    fun displayLabel(
+        signal: String?,
+        serverLabel: String? = null,
+        advertiserType: String? = null,
+        businessType: String? = null,
+    ): String {
+        signalBadgeLabel(signal, serverLabel)?.let { return it }
+        return when {
+            isConsultant(advertiserType, businessType) -> "مشاور"
+            else -> "شخصی"
+        }
     }
 
-    fun badgeLabel(listing: ListingDetailDto): String = when {
-        isConsultant(listing) -> "مشاور"
-        else -> "شخصی"
-    }
+    fun badgeLabel(listing: ListingDto): String = displayLabel(listing)
+
+    fun badgeLabel(listing: ListingDetailDto): String = displayLabel(listing)
 
     fun signalBadgeLabel(listing: ListingDto): String? =
         signalBadgeLabel(listing.advertiserSignal, listing.advertiserSignalLabel)
@@ -78,7 +99,30 @@ object ListingAdvertiserUtils {
         return when (signal?.trim()) {
             SIGNAL_GENUINE_PERSONAL -> "مالک واقعی"
             SIGNAL_DISGUISED -> "مشاور پنهان"
+            SIGNAL_CONSULTANT -> "مشاور"
             else -> null
         }
+    }
+
+    fun badgeStyle(listing: ListingDto): AdvertiserBadge {
+        val label = displayLabel(listing)
+        val (color, background) = when {
+            isGenuinePersonal(listing) -> DfColors.PurpleDark to DfColors.PurpleContainer
+            isDisguisedConsultant(listing) -> DfColors.Rose to DfColors.RoseLight
+            isConsultant(listing) -> DfColors.Amber to DfColors.AmberLight
+            else -> DfColors.Green to DfColors.GreenLight
+        }
+        return AdvertiserBadge(label = label, color = color, background = background)
+    }
+
+    fun badgeStyle(listing: ListingDetailDto): AdvertiserBadge {
+        val label = displayLabel(listing)
+        val (color, background) = when {
+            isGenuinePersonal(listing) -> DfColors.PurpleDark to DfColors.PurpleContainer
+            isDisguisedConsultant(listing) -> DfColors.Rose to DfColors.RoseLight
+            isConsultant(listing) -> DfColors.Amber to DfColors.AmberLight
+            else -> DfColors.Green to DfColors.GreenLight
+        }
+        return AdvertiserBadge(label = label, color = color, background = background)
     }
 }

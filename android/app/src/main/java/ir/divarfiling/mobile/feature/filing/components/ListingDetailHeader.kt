@@ -39,10 +39,7 @@ fun ListingDetailHeader(
     onCopyAdCode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isConsultant = ListingAdvertiserUtils.isConsultant(listing)
-    val signalLabel = ListingAdvertiserUtils.signalBadgeLabel(listing)
-    val isGenuinePersonal = ListingAdvertiserUtils.isGenuinePersonal(listing)
-    val isDisguisedConsultant = ListingAdvertiserUtils.isDisguisedConsultant(listing)
+    val advertiserBadge = ListingAdvertiserUtils.badgeStyle(listing)
     val location = listOfNotNull(listing.district, listing.city).joinToString("، ")
     val priceLabel = when {
         listing.price != null && listing.price > 0 -> FormatUtils.formatPriceToman(listing.price)
@@ -71,36 +68,15 @@ fun ListingDetailHeader(
         ) {
             Surface(
                 shape = AppShapes.Chip,
-                color = if (isConsultant) DfColors.AmberLight else DfColors.GreenLight,
+                color = advertiserBadge.background,
             ) {
                 Text(
-                    text = ListingAdvertiserUtils.badgeLabel(listing),
+                    text = advertiserBadge.label,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                     style = AppTypography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isConsultant) DfColors.Amber else DfColors.Green,
+                    color = advertiserBadge.color,
                 )
-            }
-            signalLabel?.let { label ->
-                val signalColor = when {
-                    isGenuinePersonal -> DfColors.PurpleDark
-                    isDisguisedConsultant -> DfColors.Rose
-                    else -> DfColors.TextSecondary
-                }
-                val signalBg = when {
-                    isGenuinePersonal -> DfColors.PurpleContainer
-                    isDisguisedConsultant -> DfColors.RoseLight
-                    else -> DfColors.SurfaceVariant
-                }
-                Surface(shape = AppShapes.Chip, color = signalBg) {
-                    Text(
-                        text = label,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        style = AppTypography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = signalColor,
-                    )
-                }
             }
             Row(
                 modifier = Modifier.weight(1f),
