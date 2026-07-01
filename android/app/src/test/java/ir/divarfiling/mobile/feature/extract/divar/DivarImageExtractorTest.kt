@@ -82,7 +82,7 @@ class DivarImageExtractorTest {
             "https://postimage01.divarcdn.com/static/photo/neda/webp_post/zXBkW8ICNLRYcdh_T4pifQ/becf62b6-1b74-4669-92cd-9577deb4b2e4.webp",
             urls.first(),
         )
-        assertEquals(2, urls.size)
+        assertEquals(1, urls.size)
     }
 
     @Test

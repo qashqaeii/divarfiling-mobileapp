@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.extract.divar
 
-import kotlinx.serialization.json.JsonElement
+import ir.divarfiling.mobile.core.image.DivarImageUrlUtils
+import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -27,7 +28,9 @@ object DivarImageExtractor {
         if (urls.isEmpty()) {
             collectUrlsRecursive(root, urls, depth = 0)
         }
-        return urls.map { normalizeDivarImageUrl(it) }.filter { it.isNotBlank() }
+        return DivarImageUrlUtils.deduplicate(
+            urls.map { normalizeDivarImageUrl(it) }.filter { it.isNotBlank() },
+        )
     }
 
     fun firstImageUrl(detail: JsonElement): String? = extractImageUrls(detail).firstOrNull()
@@ -83,13 +86,16 @@ object DivarImageExtractor {
 
     private fun addUrlFromObject(obj: JsonObject, urls: LinkedHashSet<String>) {
         obj["image"]?.jsonObject?.let { image ->
-            listOf("url", "webp_url", "thumbnail_url", "thumbnail").forEach { key ->
-                image[key]?.jsonPrimitive?.content?.takeIf(::isLikelyImageUrl)?.let(urls::add)
-            }
+            pickBestImageUrl(image)?.let(urls::add)
         }
-        listOf("image_url", "webp_url", "thumbnail_url", "thumbnail", "url").forEach { key ->
-            obj[key]?.jsonPrimitive?.content?.takeIf(::isLikelyImageUrl)?.let(urls::add)
+        pickBestImageUrl(obj)?.let(urls::add)
+    }
+
+    private fun pickBestImageUrl(obj: JsonObject): String? {
+        listOf("url", "webp_url", "image_url", "thumbnail_url", "thumbnail").forEach { key ->
+            obj[key]?.jsonPrimitive?.content?.takeIf(::isLikelyImageUrl)?.let { return normalizeDivarImageUrl(it) }
         }
+        return null
     }
 
     private fun collectUrlsRecursive(
