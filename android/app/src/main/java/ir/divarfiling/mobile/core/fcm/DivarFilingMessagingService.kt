@@ -39,8 +39,12 @@ class DivarFilingMessagingService : FirebaseMessagingService() {
         }
         val deepLink = message.data["deep_link"]
         val notificationType = message.data["type"]
+        val notificationId = when (notificationType) {
+            "customer_match" -> DfNotificationHelper.CUSTOMER_MATCH_NOTIFICATION_ID
+            else -> (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+        }
         notificationHelper.showNotification(
-            id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt(),
+            id = notificationId,
             title = title,
             body = body,
             deepLink = deepLink,

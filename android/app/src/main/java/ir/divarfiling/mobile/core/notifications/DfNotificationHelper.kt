@@ -49,7 +49,7 @@ class DfNotificationHelper @Inject constructor(
             .setBigContentTitle(title)
             .bigText(body.ifBlank { title })
             .setSummaryText(summary)
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_divarfiling)
             .setLargeIcon(largeIconBitmap)
             .setColor(ContextCompat.getColor(context, R.color.notification_brand))
@@ -61,7 +61,10 @@ class DfNotificationHelper @Inject constructor(
             .setContentIntent(pending)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .build()
+        if (notificationType == "customer_match") {
+            builder.setGroup(CUSTOMER_MATCH_GROUP_KEY)
+        }
+        val notification = builder.build()
         val notificationManager = NotificationManagerCompat.from(context)
         if (!notificationManager.areNotificationsEnabled()) return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -92,6 +95,7 @@ class DfNotificationHelper @Inject constructor(
             "reminder_visit" -> "یادآور بازدید · فایلینگ دیوار"
             "today_digest" -> "برنامه امروز · فایلینگ دیوار"
             "new_dataset" -> "فایل جدید · فایلینگ دیوار"
+            "customer_match" -> "تطبیق ملک · فایلینگ دیوار"
             "welcome" -> "فایلینگ دیوار"
             else -> "فایلینگ دیوار"
         }
@@ -115,5 +119,7 @@ class DfNotificationHelper @Inject constructor(
 
     companion object {
         const val CHANNEL_ID = "divar_filing_alerts"
+        const val CUSTOMER_MATCH_GROUP_KEY = "customer_match"
+        const val CUSTOMER_MATCH_NOTIFICATION_ID = 41001
     }
 }
