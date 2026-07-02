@@ -10,6 +10,7 @@ import ir.divarfiling.mobile.core.network.ContactMatchesData
 import ir.divarfiling.mobile.core.network.ContactUpdateRequest
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest
+import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.network.PropertyMatchDto
@@ -519,10 +520,7 @@ class ContactDetailViewModel @Inject constructor(
     fun onActivityTypeChange(v: String) = _uiState.update { it.copy(selectedActivityType = v) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 
-    private fun parseMoneyInput(raw: String): Long? {
-        val digits = raw.filter { it.isDigit() }
-        return digits.toLongOrNull()
-    }
+    private fun parseMoneyInput(raw: String): Long? = FormatUtils.parseLocalizedLong(raw)
 
     private fun millisToIso(millis: Long): String {
         return Instant.ofEpochMilli(millis)

@@ -409,5 +409,5 @@ private fun buildSecondaryActions(
     })
     add(ContactQuickActionItem("فعالیت", DfColors.Blue, icon = Icons.Default.History) {
         viewModel.toggleActivitySheet(true)
-    }
+    })
 }

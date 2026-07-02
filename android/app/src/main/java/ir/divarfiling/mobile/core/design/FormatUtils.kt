@@ -18,4 +18,18 @@ object FormatUtils {
 
     fun formatRooms(rooms: Int?): String =
         rooms?.let { if (it == 0) "بدون اتاق" else "$it خواب" } ?: "—"
+
+    /** Parses money/area inputs that may use Persian (۰-۹) or Arabic (٠-٩) digits. */
+    fun parseLocalizedLong(raw: String): Long? {
+        val digits = buildString {
+            raw.forEach { ch ->
+                when (ch) {
+                    in '0'..'9' -> append(ch)
+                    in '۰'..'۹' -> append(ch - '۰')
+                    in '٠'..'٩' -> append(ch - '٠')
+                }
+            }
+        }
+        return digits.takeIf { it.isNotEmpty() }?.toLongOrNull()
+    }
 }
