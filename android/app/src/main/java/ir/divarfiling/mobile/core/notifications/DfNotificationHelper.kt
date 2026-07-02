@@ -80,10 +80,10 @@ class DfNotificationHelper @Inject constructor(
     }
 
     private fun buildLargeIcon(): Bitmap {
-        val drawable = ContextCompat.getDrawable(context, R.drawable.ic_notification_large)
+        val drawable = ContextCompat.getDrawable(context, R.drawable.logo_divarfiling)
             ?: ContextCompat.getDrawable(context, R.mipmap.ic_launcher)
             ?: return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-        return drawable.toBitmap(width = 128, height = 128)
+        return drawable.toBitmap(width = 256, height = 256)
     }
 
     private fun typeSummary(notificationType: String?): String {
