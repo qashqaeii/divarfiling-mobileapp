@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import ir.divarfiling.mobile.feature.crm.components.ContactEditBuilderState
 import ir.divarfiling.mobile.feature.crm.components.ContactEditMoneyState
 import ir.divarfiling.mobile.feature.crm.components.ContactEditPrefsState
 import javax.inject.Inject
@@ -53,6 +54,7 @@ data class ContactDetailUiState(
     val editPriority: String = "",
     val editMoney: ContactEditMoneyState = ContactEditMoneyState(),
     val editPrefs: ContactEditPrefsState = ContactEditPrefsState(),
+    val editBuilder: ContactEditBuilderState = ContactEditBuilderState(),
     val editNotes: String = "",
     val activityContent: String = "",
     val selectedActivityType: String = "پیگیری",
@@ -116,11 +118,22 @@ class ContactDetailViewModel @Inject constructor(
                                 rentMax = contact.rentMax?.toString().orEmpty(),
                             ),
                             editPrefs = ContactEditPrefsState(
-                                propertyType = contact.propertyType.orEmpty(),
+                                propertyType = contact.propertyType.orEmpty().ifBlank {
+                                    if (contact.customerType == "سازنده") "آپارتمان" else ""
+                                },
                                 rooms = contact.rooms.orEmpty(),
                                 minArea = contact.minArea?.toString().orEmpty(),
                                 maxArea = contact.maxArea?.toString().orEmpty(),
                                 areas = contact.areas.orEmpty(),
+                            ),
+                            editBuilder = ContactEditBuilderState(
+                                buyBudgetMin = contact.builderBuyBudgetMin?.toString().orEmpty(),
+                                buyBudgetMax = contact.builderBuyBudgetMax?.toString().orEmpty(),
+                                buyMinArea = contact.builderBuyMinArea?.toString().orEmpty(),
+                                buyMaxArea = contact.builderBuyMaxArea?.toString().orEmpty(),
+                                buyAreas = contact.builderBuyAreas.orEmpty(),
+                                buyPropertyTypes = contact.builderBuyPropertyTypes.orEmpty()
+                                    .ifBlank { "ویلا, کلنگی, زمین" },
                             ),
                             editNotes = contact.notes.orEmpty(),
                         )
@@ -241,6 +254,7 @@ class ContactDetailViewModel @Inject constructor(
             val state = _uiState.value
             val money = state.editMoney
             val prefs = state.editPrefs
+            val builder = state.editBuilder
             when (crmRepository.updateContact(
                 contactId,
                 ContactUpdateRequest(
@@ -256,11 +270,19 @@ class ContactDetailViewModel @Inject constructor(
                     depositMax = parseMoneyInput(money.depositMax),
                     rentMin = parseMoneyInput(money.rentMin),
                     rentMax = parseMoneyInput(money.rentMax),
-                    propertyType = prefs.propertyType.ifBlank { "" },
+                    propertyType = prefs.propertyType.ifBlank {
+                        if (state.editCustomerType == "سازنده") "آپارتمان" else ""
+                    },
                     rooms = prefs.rooms.ifBlank { "" },
                     minArea = parseMoneyInput(prefs.minArea)?.toInt(),
                     maxArea = parseMoneyInput(prefs.maxArea)?.toInt(),
                     areas = prefs.areas.ifBlank { "" },
+                    builderBuyBudgetMin = parseMoneyInput(builder.buyBudgetMin),
+                    builderBuyBudgetMax = parseMoneyInput(builder.buyBudgetMax),
+                    builderBuyMinArea = parseMoneyInput(builder.buyMinArea)?.toInt(),
+                    builderBuyMaxArea = parseMoneyInput(builder.buyMaxArea)?.toInt(),
+                    builderBuyAreas = builder.buyAreas.ifBlank { "" },
+                    builderBuyPropertyTypes = builder.buyPropertyTypes.ifBlank { "" },
                 ),
             )) {
                 is ApiResult.Success -> {
@@ -515,6 +537,12 @@ class ContactDetailViewModel @Inject constructor(
     fun onEditMinAreaChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(minArea = v)) }
     fun onEditMaxAreaChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(maxArea = v)) }
     fun onEditAreasChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(areas = v)) }
+    fun onEditBuilderBuyBudgetMinChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyBudgetMin = v)) }
+    fun onEditBuilderBuyBudgetMaxChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyBudgetMax = v)) }
+    fun onEditBuilderBuyMinAreaChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyMinArea = v)) }
+    fun onEditBuilderBuyMaxAreaChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyMaxArea = v)) }
+    fun onEditBuilderBuyAreasChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyAreas = v)) }
+    fun onEditBuilderBuyTypesChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyPropertyTypes = v)) }
     fun onEditNotesChange(v: String) = _uiState.update { it.copy(editNotes = v) }
     fun onActivityContentChange(v: String) = _uiState.update { it.copy(activityContent = v) }
     fun onActivityTypeChange(v: String) = _uiState.update { it.copy(selectedActivityType = v) }

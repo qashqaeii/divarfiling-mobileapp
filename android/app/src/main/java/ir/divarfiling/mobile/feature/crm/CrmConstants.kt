@@ -12,6 +12,7 @@ object CrmConstants {
     val CUSTOMER_TYPES = listOf(
         "خریدار",
         "فروشنده",
+        "سازنده",
         "مالک",
         "مستاجر",
         "موجر",
@@ -56,6 +57,7 @@ object CrmConstants {
         "متقاضی اجاره",
         "سرنخ",
         "سرمایه‌گذار",
+        "سازنده",
     )
 
     fun isMatchEligible(customerType: String?): Boolean =

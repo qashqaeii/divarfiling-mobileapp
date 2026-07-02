@@ -5,6 +5,7 @@ enum class MoneyMode {
     Rent,
     Both,
     Flexible,
+    Builder,
 }
 
 data class TypeProfile(
@@ -31,6 +32,11 @@ object CrmTypeProfiles {
             moneyMode = MoneyMode.Budget,
             budgetLabels = "قیمت فروش از" to "قیمت فروش تا",
             sectionHint = "قیمت فروش ملک",
+        ),
+        "سازنده" to TypeProfile(
+            moneyMode = MoneyMode.Builder,
+            budgetLabels = "قیمت واحد از" to "قیمت واحد تا",
+            sectionHint = "محدوده قیمت آپارتمان‌های فروش",
         ),
         "مالک" to TypeProfile(
             moneyMode = MoneyMode.Both,
@@ -81,8 +87,10 @@ object CrmTypeProfiles {
         profiles[customerType] ?: profiles.getValue("سرنخ")
 
     fun showsBudget(mode: MoneyMode): Boolean =
-        mode == MoneyMode.Budget || mode == MoneyMode.Both || mode == MoneyMode.Flexible
+        mode == MoneyMode.Budget || mode == MoneyMode.Both || mode == MoneyMode.Flexible || mode == MoneyMode.Builder
 
     fun showsRent(mode: MoneyMode): Boolean =
         mode == MoneyMode.Rent || mode == MoneyMode.Both || mode == MoneyMode.Flexible
+
+    fun showsBuilderBuy(mode: MoneyMode): Boolean = mode == MoneyMode.Builder
 }

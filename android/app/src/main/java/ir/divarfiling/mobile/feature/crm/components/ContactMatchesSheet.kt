@@ -48,8 +48,10 @@ fun ContactMatchesSheet(
     if (!visible) return
 
     val allMatches = remember(matches) {
-        (matches?.crmMatches.orEmpty() + matches?.divarMatches.orEmpty())
-            .sortedByDescending { it.score }
+        val grouped = matches?.matchGroups.orEmpty()
+            .flatMap { it.crmMatches + it.divarMatches }
+        val flat = matches?.crmMatches.orEmpty() + matches?.divarMatches.orEmpty()
+        (if (grouped.isNotEmpty()) grouped else flat).sortedByDescending { it.score }
     }
     var selected by remember(allMatches) { mutableStateOf(emptySet<String>()) }
 
@@ -70,7 +72,11 @@ fun ContactMatchesSheet(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                "بر اساس بودجه، محله و متراژ مخاطب",
+                if (matches?.isBuilder == true) {
+                    "پیشنهاد دوگانه — تأمین پروژه و بازار آپارتمان"
+                } else {
+                    "بر اساس بودجه، محله و متراژ مخاطب"
+                },
                 style = AppTypography.labelSmall,
                 color = DfColors.TextSecondary,
             )
@@ -214,6 +220,9 @@ private fun MatchRow(
                 ).joinToString(" · ")
                 if (meta.isNotBlank()) {
                     Text(meta, style = AppTypography.labelSmall, color = DfColors.TextSecondary)
+                }
+                match.intentLabel?.takeIf { it.isNotBlank() }?.let { label ->
+                    DfBadge(text = label, color = DfColors.Blue)
                 }
                 if (match.reasons.isNotEmpty()) {
                     Text(

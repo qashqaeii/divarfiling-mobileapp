@@ -244,7 +244,14 @@ fun ContactDetailInsightStrip(
     }
     val profile = CrmTypeProfiles.profileFor(contact.customerType)
     val financialTiles = buildList {
-        if (CrmTypeProfiles.showsBudget(profile.moneyMode)) {
+        if (contact.isBuilder || contact.customerType == "سازنده") {
+            formatMoneyRange(contact.budgetMin, contact.budgetMax)?.let { range ->
+                add(FinancialInsightTile("فروش آپارتمان", range, DfColors.Green))
+            }
+            formatMoneyRange(contact.builderBuyBudgetMin, contact.builderBuyBudgetMax)?.let { range ->
+                add(FinancialInsightTile("خرید پروژه", range, DfColors.Blue))
+            }
+        } else if (CrmTypeProfiles.showsBudget(profile.moneyMode)) {
             formatMoneyRange(contact.budgetMin, contact.budgetMax)?.let { range ->
                 add(FinancialInsightTile(profile.budgetLabels.first.substringBefore(' '), range, DfColors.Green))
             }

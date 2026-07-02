@@ -148,6 +148,13 @@ data class ContactDto(
     @SerialName("next_follow_up_at") val nextFollowUpAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
     @SerialName("match_eligible") val matchEligible: Boolean = false,
+    @SerialName("is_builder") val isBuilder: Boolean = false,
+    @SerialName("builder_buy_property_types") val builderBuyPropertyTypes: String? = null,
+    @SerialName("builder_buy_budget_min") val builderBuyBudgetMin: Long? = null,
+    @SerialName("builder_buy_budget_max") val builderBuyBudgetMax: Long? = null,
+    @SerialName("builder_buy_areas") val builderBuyAreas: String? = null,
+    @SerialName("builder_buy_min_area") val builderBuyMinArea: Int? = null,
+    @SerialName("builder_buy_max_area") val builderBuyMaxArea: Int? = null,
 )
 
 @Serializable
@@ -164,14 +171,29 @@ data class PropertyMatchDto(
     val token: String? = null,
     @SerialName("property_id") val propertyId: Long? = null,
     @SerialName("listing_id") val listingId: Long? = null,
+    @SerialName("property_type") val propertyType: String? = null,
+    @SerialName("match_intent") val matchIntent: String? = null,
+    @SerialName("intent_label") val intentLabel: String? = null,
     val reasons: List<String> = emptyList(),
+)
+
+@Serializable
+data class ContactMatchGroupDto(
+    val id: String = "",
+    val title: String = "",
+    val hint: String? = null,
+    @SerialName("crm_matches") val crmMatches: List<PropertyMatchDto> = emptyList(),
+    @SerialName("divar_matches") val divarMatches: List<PropertyMatchDto> = emptyList(),
+    @SerialName("total_count") val totalCount: Int = 0,
 )
 
 @Serializable
 data class ContactMatchesData(
     val eligible: Boolean = false,
     val message: String? = null,
+    @SerialName("is_builder") val isBuilder: Boolean = false,
     @SerialName("divar_locked") val divarLocked: Boolean = false,
+    @SerialName("match_groups") val matchGroups: List<ContactMatchGroupDto> = emptyList(),
     @SerialName("crm_matches") val crmMatches: List<PropertyMatchDto> = emptyList(),
     @SerialName("divar_matches") val divarMatches: List<PropertyMatchDto> = emptyList(),
     @SerialName("total_count") val totalCount: Int = 0,
@@ -882,6 +904,12 @@ data class ContactUpdateRequest(
     @SerialName("max_area") val maxArea: Int? = null,
     val rooms: String? = null,
     val areas: String? = null,
+    @SerialName("builder_buy_property_types") val builderBuyPropertyTypes: String? = null,
+    @SerialName("builder_buy_budget_min") val builderBuyBudgetMin: Long? = null,
+    @SerialName("builder_buy_budget_max") val builderBuyBudgetMax: Long? = null,
+    @SerialName("builder_buy_areas") val builderBuyAreas: String? = null,
+    @SerialName("builder_buy_min_area") val builderBuyMinArea: Int? = null,
+    @SerialName("builder_buy_max_area") val builderBuyMaxArea: Int? = null,
 )
 
 @Serializable

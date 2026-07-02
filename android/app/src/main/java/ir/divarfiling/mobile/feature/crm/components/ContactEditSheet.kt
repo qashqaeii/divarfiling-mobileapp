@@ -36,6 +36,15 @@ data class ContactEditPrefsState(
     val areas: String = "",
 )
 
+data class ContactEditBuilderState(
+    val buyBudgetMin: String = "",
+    val buyBudgetMax: String = "",
+    val buyMinArea: String = "",
+    val buyMaxArea: String = "",
+    val buyAreas: String = "",
+    val buyPropertyTypes: String = "ویلا, کلنگی, زمین",
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactEditSheet(
@@ -46,6 +55,7 @@ fun ContactEditSheet(
     priority: String,
     money: ContactEditMoneyState,
     prefs: ContactEditPrefsState,
+    builder: ContactEditBuilderState = ContactEditBuilderState(),
     notes: String,
     isSubmitting: Boolean,
     onNameChange: (String) -> Unit,
@@ -64,6 +74,12 @@ fun ContactEditSheet(
     onMinAreaChange: (String) -> Unit,
     onMaxAreaChange: (String) -> Unit,
     onAreasChange: (String) -> Unit,
+    onBuilderBuyBudgetMinChange: (String) -> Unit = {},
+    onBuilderBuyBudgetMaxChange: (String) -> Unit = {},
+    onBuilderBuyMinAreaChange: (String) -> Unit = {},
+    onBuilderBuyMaxAreaChange: (String) -> Unit = {},
+    onBuilderBuyAreasChange: (String) -> Unit = {},
+    onBuilderBuyTypesChange: (String) -> Unit = {},
     onNotesChange: (String) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
@@ -73,6 +89,7 @@ fun ContactEditSheet(
     }
     val showBudget = CrmTypeProfiles.showsBudget(profile.moneyMode)
     val showRent = CrmTypeProfiles.showsRent(profile.moneyMode)
+    val showBuilderBuy = CrmTypeProfiles.showsBuilderBuy(profile.moneyMode)
 
     DfSheetScaffold(
         title = "ویرایش مخاطب",
@@ -129,7 +146,7 @@ fun ContactEditSheet(
             )
         }
 
-        DfSheetSection(title = "اطلاعات مالی") {
+        DfSheetSection(title = if (showBuilderBuy) "خط فروش — آپارتمان" else "اطلاعات مالی") {
             Text(
                 text = profile.sectionHint,
                 style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
@@ -168,7 +185,50 @@ fun ContactEditSheet(
             }
         }
 
-        DfSheetSection(title = "ترجیحات ملک") {
+        if (showBuilderBuy) {
+            DfSheetSection(title = "تأمین پروژه — خرید زمین و کلنگی") {
+                Text(
+                    text = "بودجه و منطقه خرید ویلا، کلنگی و زمین برای توسعه پروژه",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                    color = DfColors.TextMuted,
+                )
+                ContactMoneyRangeRow(
+                    minValue = builder.buyBudgetMin,
+                    maxValue = builder.buyBudgetMax,
+                    minLabel = "بودجه خرید از",
+                    maxLabel = "بودجه خرید تا",
+                    enabled = !isSubmitting,
+                    onMinChange = onBuilderBuyBudgetMinChange,
+                    onMaxChange = onBuilderBuyBudgetMaxChange,
+                )
+                ContactMoneyRangeRow(
+                    minValue = builder.buyMinArea,
+                    maxValue = builder.buyMaxArea,
+                    minLabel = "متراژ خرید از",
+                    maxLabel = "متراژ خرید تا",
+                    enabled = !isSubmitting,
+                    onMinChange = onBuilderBuyMinAreaChange,
+                    onMaxChange = onBuilderBuyMaxAreaChange,
+                )
+                OutlinedTextField(
+                    value = builder.buyAreas,
+                    onValueChange = onBuilderBuyAreasChange,
+                    label = { Text("محله‌های هدف خرید") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSubmitting,
+                )
+                OutlinedTextField(
+                    value = builder.buyPropertyTypes,
+                    onValueChange = onBuilderBuyTypesChange,
+                    label = { Text("انواع ملک هدف خرید") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSubmitting,
+                    placeholder = { Text("ویلا, کلنگی, زمین") },
+                )
+            }
+        }
+
+        DfSheetSection(title = if (showBuilderBuy) "مشخصات واحد فروش" else "ترجیحات ملک") {
             DfDropdown(
                 label = "نوع ملک",
                 value = prefs.propertyType.ifBlank { "—" },
@@ -197,7 +257,7 @@ fun ContactEditSheet(
             OutlinedTextField(
                 value = prefs.areas,
                 onValueChange = onAreasChange,
-                label = { Text("محله‌های مورد نظر") },
+                label = { Text(if (showBuilderBuy) "محله‌های فروش / پروژه" else "محله‌های مورد نظر") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 enabled = !isSubmitting,
