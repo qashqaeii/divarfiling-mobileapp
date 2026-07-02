@@ -344,8 +344,8 @@ fun ContactDetailScreen(
         isSubmitting = state.isSubmitting,
         contactPhone = contact?.phone,
         onDismiss = { viewModel.toggleMatchesSheet(false) },
-        onSuggest = { selected ->
-            viewModel.suggestMatches(selected, shareViaWhatsApp = contact?.phone != null)
+        onSuggest = { selected, viaWhatsApp ->
+            viewModel.suggestMatches(selected, shareViaWhatsApp = viaWhatsApp)
         },
     )
 }

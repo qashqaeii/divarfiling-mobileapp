@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,7 +12,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,7 +43,7 @@ fun ContactMatchesSheet(
     isSubmitting: Boolean,
     contactPhone: String?,
     onDismiss: () -> Unit,
-    onSuggest: (List<PropertyMatchDto>) -> Unit,
+    onSuggest: (List<PropertyMatchDto>, shareViaWhatsApp: Boolean) -> Unit,
 ) {
     if (!visible) return
 
@@ -113,11 +113,19 @@ fun ContactMatchesSheet(
                     )
                 }
                 else -> {
-                    if (matches?.crmMatches?.isNotEmpty() == true) {
-                        DfSectionHeader("فایل‌های شخصی", matches.crmMatches.size)
+                    val crmCount = allMatches.count { it.source == "crm" }
+                    val divarCount = allMatches.count { it.source == "divar" }
+                    if (crmCount > 0) {
+                        DfSectionHeader("فایل‌های شخصی", crmCount)
                     }
+                    if (divarCount > 0) {
+                        DfSectionHeader("فایلینگ دیوار", divarCount)
+                    }
+
                     LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 360.dp),
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
                         items(allMatches, key = { matchKey(it) }) { match ->
@@ -132,40 +140,74 @@ fun ContactMatchesSheet(
                         }
                     }
 
-                    HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.15f))
-
-                    Row(
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
+                        shape = AppShapes.Card,
+                        color = DfColors.SurfaceVariant.copy(alpha = 0.55f),
+                        tonalElevation = 2.dp,
                     ) {
-                        OutlinedButton(
-                            onClick = {
-                                selected = if (selected.size == allMatches.size) {
-                                    emptySet()
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(AppSpacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                        ) {
+                            Text(
+                                text = if (selected.isEmpty()) {
+                                    "ملک‌های مناسب را انتخاب کنید"
                                 } else {
-                                    allMatches.map { matchKey(it) }.toSet()
+                                    "${selected.size} ملک انتخاب شده"
+                                },
+                                style = AppTypography.labelSmall,
+                                color = DfColors.TextSecondary,
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        selected = if (selected.size == allMatches.size) {
+                                            emptySet()
+                                        } else {
+                                            allMatches.map { matchKey(it) }.toSet()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !isSubmitting,
+                                ) {
+                                    Text(if (selected.size == allMatches.size) "لغو انتخاب" else "انتخاب همه")
                                 }
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(if (selected.size == allMatches.size) "لغو انتخاب" else "انتخاب همه")
-                        }
-                        Button(
-                            onClick = {
-                                val picked = allMatches.filter { matchKey(it) in selected }
-                                onSuggest(picked)
-                            },
-                            enabled = selected.isNotEmpty() && !isSubmitting,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            if (isSubmitting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.padding(end = 8.dp),
-                                    strokeWidth = 2.dp,
-                                )
+                                Button(
+                                    onClick = {
+                                        val picked = allMatches.filter { matchKey(it) in selected }
+                                        onSuggest(picked, false)
+                                    },
+                                    enabled = selected.isNotEmpty() && !isSubmitting,
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    if (isSubmitting) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.padding(end = 8.dp),
+                                            strokeWidth = 2.dp,
+                                        )
+                                    }
+                                    Text("ثبت پیشنهاد")
+                                }
                             }
-                            Text("ثبت پیشنهاد (${selected.size})")
+                            if (!contactPhone.isNullOrBlank()) {
+                                Button(
+                                    onClick = {
+                                        val picked = allMatches.filter { matchKey(it) in selected }
+                                        onSuggest(picked, true)
+                                    },
+                                    enabled = selected.isNotEmpty() && !isSubmitting,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("ثبت و ارسال واتساپ")
+                                }
+                            }
                         }
                     }
                 }
