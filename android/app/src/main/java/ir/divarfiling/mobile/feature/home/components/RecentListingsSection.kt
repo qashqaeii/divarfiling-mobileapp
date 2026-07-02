@@ -154,7 +154,7 @@ private fun RecentFileCard(
     }
     val badgeColor = if (badgeLabel == "اجاره") DfColors.Blue else DfColors.Pink
     val badgeIcon = if (badgeLabel == "اجاره") DfIcons.Building else DfIcons.Home
-    val displayDate = DateUtils.formatJalaliDateTime(file.createdAt)
+    val displayDate = DateUtils.formatForDisplay(file.createdAt).takeIf { it != "—" }
     val estimatedSizeMb = ((file.itemCount * 0.48f).coerceAtLeast(8f)).toInt()
 
     Surface(

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -57,33 +58,27 @@ fun ContactActivityTimeline(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(AppShapes.IconContainer)
-                        .background(DfColors.PurpleContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = null,
-                        tint = DfColors.Purple,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "تایم‌لاین فعالیت‌ها",
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = if (activities.isEmpty()) {
-                            "هنوز فعالیتی ثبت نشده"
-                        } else {
-                            "${activities.size} رویداد"
-                        },
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
-                    )
+                        .size(width = 3.dp, height = 16.dp)
+                        .clip(AppShapes.Chip)
+                        .background(DfColors.Purple),
+                )
+                Text(
+                    text = "تاریخچه فعالیت",
+                    style = AppTypography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = DfColors.TextPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+                if (activities.isNotEmpty()) {
+                    Surface(shape = AppShapes.Chip, color = DfColors.PurpleContainer) {
+                        Text(
+                            text = DateUtils.toPersianDigits(activities.size.toString()),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = AppTypography.labelSmall,
+                            color = DfColors.Purple,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
             }
 

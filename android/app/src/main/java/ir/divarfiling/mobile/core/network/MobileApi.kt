@@ -107,6 +107,15 @@ interface MobileApi {
         @Body body: SendListingRequest,
     ): ApiEnvelope
 
+    @GET("crm/contacts/{id}/matches")
+    suspend fun getContactMatches(@Path("id") contactId: Long): ApiEnvelope
+
+    @POST("crm/contacts/{id}/suggest")
+    suspend fun suggestContactMatches(
+        @Path("id") contactId: Long,
+        @Body body: ContactSuggestRequest,
+    ): ApiEnvelope
+
     @GET("crm/contacts/{id}/documents")
     suspend fun getContactDocuments(@Path("id") contactId: Long): ApiEnvelope
 

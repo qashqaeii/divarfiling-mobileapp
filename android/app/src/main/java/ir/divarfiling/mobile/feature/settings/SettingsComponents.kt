@@ -211,9 +211,9 @@ fun LicenseInsightCard(
                 trackColor = Color.White.copy(alpha = 0.65f),
             )
             license.expiresAt?.takeIf { it.isNotBlank() }?.let {
-                val formatted = DateUtils.formatJalaliDateTime(it)
+                val formatted = DateUtils.formatForDisplay(it)
                 Text(
-                    "انقضا: ${formatted ?: it}",
+                    "انقضا: $formatted",
                     style = MaterialTheme.typography.bodySmall,
                     color = DfColors.TextMuted,
                 )

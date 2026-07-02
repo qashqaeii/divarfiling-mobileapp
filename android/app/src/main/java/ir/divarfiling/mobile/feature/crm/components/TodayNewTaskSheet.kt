@@ -19,7 +19,6 @@ import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.network.ContactDto
-import java.time.Instant
 import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,7 +105,5 @@ fun TodayNewTaskSheet(
     }
 }
 
-private fun formatDueLabel(millis: Long): String {
-    val iso = Instant.ofEpochMilli(millis).toString()
-    return DateUtils.formatJalaliDateTime(iso) ?: DateUtils.todayJalaliLabel()
-}
+private fun formatDueLabel(millis: Long): String =
+    DateUtils.formatJalaliDateTimeFromMillis(millis)

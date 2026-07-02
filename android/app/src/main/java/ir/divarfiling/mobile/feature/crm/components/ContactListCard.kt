@@ -41,6 +41,7 @@ import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.network.ContactDto
+import ir.divarfiling.mobile.feature.crm.CrmConstants
 import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -50,6 +51,7 @@ fun ContactListCard(
     onClick: () -> Unit,
     onCallClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
+    onSuggestClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val accent = contactAccentColor(contact.fullName)
@@ -183,6 +185,14 @@ fun ContactListCard(
                         ContactUpdatedLabel(updatedAt = contact.updatedAt)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (CrmConstants.isMatchEligible(contact.customerType) && onSuggestClick != null) {
+                            ContactQuickAction(
+                                icon = DfIcons.WandSparkles,
+                                tint = DfColors.Green,
+                                contentDescription = "پیشنهاد ملک",
+                                onClick = onSuggestClick,
+                            )
+                        }
                         ContactQuickAction(
                             icon = DfIcons.Phone,
                             tint = DfColors.Purple,

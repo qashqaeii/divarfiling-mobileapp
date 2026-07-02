@@ -112,6 +112,7 @@ import ir.divarfiling.mobile.core.network.TodayItemDto
 fun ContactsScreen(
     onBack: () -> Unit = {},
     onContactClick: (Long) -> Unit = {},
+    onContactSuggest: (Long) -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
     viewModel: ContactsViewModel = hiltViewModel(),
@@ -285,6 +286,11 @@ fun ContactsScreen(
                         ContactListCard(
                             contact = contact,
                             onClick = { onContactClick(contact.id) },
+                            onSuggestClick = if (CrmConstants.isMatchEligible(contact.customerType)) {
+                                { onContactSuggest(contact.id) }
+                            } else {
+                                null
+                            },
                             onCallClick = {
                                 contact.phone?.let { phone ->
                                     runCatching {

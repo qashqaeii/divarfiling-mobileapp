@@ -9,6 +9,7 @@ fun NavHostController.navigateDeepLink(target: DeepLinkTarget) {
         is DeepLinkTarget.ListingDetail -> navigate(Routes.listingDetail(target.token))
         DeepLinkTarget.Crm -> navigate(Routes.CRM)
         is DeepLinkTarget.ContactDetail -> navigate(Routes.contactDetail(target.contactId))
+        is DeepLinkTarget.ContactMatches -> navigate(Routes.contactDetail(target.contactId, openMatches = true))
         DeepLinkTarget.Today -> navigate(Routes.CRM_TODAY)
         DeepLinkTarget.Extract -> navigate(Routes.EXTRACT)
         DeepLinkTarget.ExtractSchedules -> navigate(Routes.EXTRACT_SCHEDULES)

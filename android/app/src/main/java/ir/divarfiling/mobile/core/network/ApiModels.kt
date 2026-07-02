@@ -133,9 +133,60 @@ data class ContactDto(
     val source: String? = null,
     val priority: String? = null,
     val budget: Long? = null,
+    @SerialName("budget_min") val budgetMin: Long? = null,
+    @SerialName("budget_max") val budgetMax: Long? = null,
+    @SerialName("deposit_min") val depositMin: Long? = null,
+    @SerialName("deposit_max") val depositMax: Long? = null,
+    @SerialName("rent_min") val rentMin: Long? = null,
+    @SerialName("rent_max") val rentMax: Long? = null,
+    @SerialName("property_type") val propertyType: String? = null,
+    @SerialName("min_area") val minArea: Int? = null,
+    @SerialName("max_area") val maxArea: Int? = null,
+    val rooms: String? = null,
+    val areas: String? = null,
     val notes: String? = null,
     @SerialName("next_follow_up_at") val nextFollowUpAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("match_eligible") val matchEligible: Boolean = false,
+)
+
+@Serializable
+data class PropertyMatchDto(
+    val source: String,
+    val score: Int = 0,
+    val title: String? = null,
+    @SerialName("price_label") val priceLabel: String? = null,
+    val neighborhood: String? = null,
+    val city: String? = null,
+    val area: Double? = null,
+    val rooms: String? = null,
+    val link: String? = null,
+    val token: String? = null,
+    @SerialName("property_id") val propertyId: Long? = null,
+    @SerialName("listing_id") val listingId: Long? = null,
+    val reasons: List<String> = emptyList(),
+)
+
+@Serializable
+data class ContactMatchesData(
+    val eligible: Boolean = false,
+    val message: String? = null,
+    @SerialName("divar_locked") val divarLocked: Boolean = false,
+    @SerialName("crm_matches") val crmMatches: List<PropertyMatchDto> = emptyList(),
+    @SerialName("divar_matches") val divarMatches: List<PropertyMatchDto> = emptyList(),
+    @SerialName("total_count") val totalCount: Int = 0,
+)
+
+@Serializable
+data class ContactSuggestRequest(
+    val matches: List<PropertyMatchDto>,
+    val note: String? = null,
+)
+
+@Serializable
+data class ContactSuggestResponse(
+    @SerialName("suggested_count") val suggestedCount: Int = 0,
+    @SerialName("whatsapp_text") val whatsappText: String? = null,
 )
 
 @Serializable
@@ -820,6 +871,17 @@ data class ContactUpdateRequest(
     val priority: String? = null,
     val notes: String? = null,
     val budget: Long? = null,
+    @SerialName("budget_min") val budgetMin: Long? = null,
+    @SerialName("budget_max") val budgetMax: Long? = null,
+    @SerialName("deposit_min") val depositMin: Long? = null,
+    @SerialName("deposit_max") val depositMax: Long? = null,
+    @SerialName("rent_min") val rentMin: Long? = null,
+    @SerialName("rent_max") val rentMax: Long? = null,
+    @SerialName("property_type") val propertyType: String? = null,
+    @SerialName("min_area") val minArea: Int? = null,
+    @SerialName("max_area") val maxArea: Int? = null,
+    val rooms: String? = null,
+    val areas: String? = null,
 )
 
 @Serializable

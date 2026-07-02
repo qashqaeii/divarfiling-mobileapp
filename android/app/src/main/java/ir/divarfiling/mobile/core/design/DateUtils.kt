@@ -53,9 +53,12 @@ object DateUtils {
         }
     }
 
+    fun formatForDisplay(value: String?): String =
+        formatJalaliDateTime(value) ?: formatJalaliDate(value) ?: "—"
+
     fun formatRelativeFa(value: String?): String {
-        val formatted = formatJalaliDateTime(value) ?: formatJalaliDate(value)
-        return formatted ?: "—"
+        val formatted = formatForDisplay(value)
+        return if (formatted == "—") "اخیراً" else formatted
     }
 
     /** زمان نسبی آینده: «۱۲ دقیقه دیگر»، «۲ ساعت دیگر»، «فردا» */
@@ -146,6 +149,105 @@ object DateUtils {
 
     fun formatJalali(year: Int, month: Int, day: Int): String =
         "%04d/%02d/%02d".format(year, month, day)
+
+    fun formatJalaliDateTimeFromMillis(
+        millis: Long,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String {
+        val zoned = Instant.ofEpochMilli(millis).atZone(zone)
+        val (jy, jm, jd) = gregorianToJalali(zoned.year, zoned.monthValue, zoned.dayOfMonth)
+        val date = toPersianDigits(formatJalali(jy, jm, jd))
+        val time = toPersianDigits("%02d:%02d".format(zoned.hour, zoned.minute))
+        return "$date $time"
+    }
+
+    fun millisToJalali(
+        millis: Long,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): Triple<Int, Int, Int> {
+        val zoned = Instant.ofEpochMilli(millis).atZone(zone)
+        return gregorianToJalali(zoned.year, zoned.monthValue, zoned.dayOfMonth)
+    }
+
+    fun jalaliDateTimeToMillis(
+        jy: Int,
+        jm: Int,
+        jd: Int,
+        hour: Int,
+        minute: Int,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): Long {
+        val (gy, gm, gd) = jalaliToGregorian(jy, jm, jd)
+        return java.time.LocalDateTime.of(gy, gm, gd, hour, minute)
+            .atZone(zone)
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    val jalaliMonthNames = listOf(
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند",
+    )
+
+    fun jalaliMonthName(month: Int): String =
+        jalaliMonthNames.getOrElse(month - 1) { month.toString() }
+
+    fun jalaliDaysInMonth(jy: Int, jm: Int): Int = when {
+        jm in 1..6 -> 31
+        jm in 7..11 -> 30
+        jm == 12 -> if (isJalaliLeapYear(jy)) 30 else 29
+        else -> 30
+    }
+
+    fun isJalaliLeapYear(jy: Int): Boolean {
+        val r = (jy + 12) % 33
+        return r in setOf(1, 5, 9, 13, 17, 22, 26, 30)
+    }
+
+    fun jalaliToGregorian(jy: Int, jm: Int, jd: Int): Triple<Int, Int, Int> {
+        val jDaysInMonth = intArrayOf(0, 31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29)
+        var jy2 = jy - 979
+        var jDayNo = 365 * jy2 + (jy2 / 33) * 8 + ((jy2 % 33 + 3) / 4)
+        for (i in 0 until jm - 1) {
+            jDayNo += jDaysInMonth[i + 1]
+        }
+        jDayNo += jd - 1
+
+        var gDayNo = jDayNo + 79
+        var gy = 1600 + 400 * (gDayNo / 146097)
+        gDayNo %= 146097
+
+        var leap = true
+        if (gDayNo >= 36525) {
+            gDayNo--
+            gy += 100 * (gDayNo / 36524)
+            gDayNo %= 36524
+            if (gDayNo >= 365) {
+                gDayNo++
+            } else {
+                leap = false
+            }
+        }
+
+        gy += 4 * (gDayNo / 1461)
+        gDayNo %= 1461
+
+        if (gDayNo >= 366) {
+            leap = false
+            gDayNo--
+            gy += gDayNo / 365
+            gDayNo %= 365
+        }
+
+        val gDaysInMonth = intArrayOf(0, 31, if (leap) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+        var gm = 0
+        while (gm < 12 && gDayNo >= gDaysInMonth[gm + 1]) {
+            gDayNo -= gDaysInMonth[gm + 1]
+            gm++
+        }
+        val gd = gDayNo + 1
+        return Triple(gy, gm + 1, gd)
+    }
 
     private fun parseGregorianDate(isoDate: String): Triple<Int, Int, Int>? =
         runCatching {

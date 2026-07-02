@@ -15,6 +15,8 @@ object DeepLinkParser {
                 else -> DeepLinkTarget.FilingDataset(segments[0])
             }
             "crm" -> when {
+                segments.firstOrNull() == "contacts" && segments.size >= 3 && segments[2] == "matches" ->
+                    segments[1].toLongOrNull()?.let { DeepLinkTarget.ContactMatches(it) }
                 segments.firstOrNull() == "contacts" && segments.size >= 2 ->
                     segments[1].toLongOrNull()?.let { DeepLinkTarget.ContactDetail(it) }
                 segments.firstOrNull() == "today" -> DeepLinkTarget.Today
@@ -36,6 +38,7 @@ sealed class DeepLinkTarget {
     data class ListingDetail(val token: String) : DeepLinkTarget()
     data object Crm : DeepLinkTarget()
     data class ContactDetail(val contactId: Long) : DeepLinkTarget()
+    data class ContactMatches(val contactId: Long) : DeepLinkTarget()
     data object Today : DeepLinkTarget()
     data object Extract : DeepLinkTarget()
     data object ExtractSchedules : DeepLinkTarget()

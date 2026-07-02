@@ -13,16 +13,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDateTimePickerPanel
 import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,9 +35,7 @@ fun ContactReminderSheet(
     onSubmit: () -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
-    val zone = ZoneId.systemDefault()
-    val localDateTime = Instant.ofEpochMilli(dueMillis).atZone(zone).toLocalDateTime()
-    val displayFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm", Locale("fa", "IR"))
+    val dueLabel = DateUtils.formatJalaliDateTimeFromMillis(dueMillis)
 
     DfSheetScaffold(
         title = "یادآور جدید",
@@ -73,7 +68,7 @@ fun ContactReminderSheet(
                 enabled = !isSubmitting,
             )
             DfGlassTextButton(
-                text = "زمان: ${localDateTime.format(displayFormatter)}",
+                text = "زمان: $dueLabel",
                 onClick = { showPicker = true },
             )
             AnimatedVisibility(

@@ -11,12 +11,16 @@ import ir.divarfiling.mobile.core.network.ActivityCreateRequest
 import ir.divarfiling.mobile.core.network.ActivityDto
 import ir.divarfiling.mobile.core.network.ContactDetailData
 import ir.divarfiling.mobile.core.network.ContactDto
+import ir.divarfiling.mobile.core.network.ContactMatchesData
+import ir.divarfiling.mobile.core.network.ContactSuggestRequest
+import ir.divarfiling.mobile.core.network.ContactSuggestResponse
 import ir.divarfiling.mobile.core.network.ContactUpdateRequest
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.NoteCreateRequest
 import ir.divarfiling.mobile.core.network.PaginatedResult
+import ir.divarfiling.mobile.core.network.PropertyMatchDto
 import ir.divarfiling.mobile.core.network.QuickLeadRequest
 import ir.divarfiling.mobile.core.network.ReminderCreateRequest
 import ir.divarfiling.mobile.core.network.ReminderDto
@@ -82,6 +86,33 @@ class CrmRepository @Inject constructor(
         return try {
             val response = api.getContact(contactId)
             if (!response.ok) return ApiResult.Error(response.error ?: "خطا در دریافت مخاطب")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun getContactMatches(contactId: Long): ApiResult<ContactMatchesData> {
+        return try {
+            val response = api.getContactMatches(contactId)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در دریافت پیشنهادها")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun suggestContactMatches(
+        contactId: Long,
+        matches: List<PropertyMatchDto>,
+        note: String? = null,
+    ): ApiResult<ContactSuggestResponse> {
+        return try {
+            val response = api.suggestContactMatches(
+                contactId,
+                ContactSuggestRequest(matches = matches, note = note),
+            )
+            if (!response.ok) return ApiResult.Error(response.error ?: "ثبت پیشنهاد ناموفق")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")

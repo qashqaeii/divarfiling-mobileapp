@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.network.ActivityDto
 import ir.divarfiling.mobile.core.network.ContactDetailData
+import ir.divarfiling.mobile.core.network.ContactMatchesData
 import ir.divarfiling.mobile.core.network.ContactUpdateRequest
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.network.PropertyMatchDto
 import ir.divarfiling.mobile.core.network.SendListingRequest
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
@@ -24,6 +26,8 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import ir.divarfiling.mobile.feature.crm.components.ContactEditMoneyState
+import ir.divarfiling.mobile.feature.crm.components.ContactEditPrefsState
 import javax.inject.Inject
 
 data class ContactDetailUiState(
@@ -46,7 +50,8 @@ data class ContactDetailUiState(
     val editStatus: String = "",
     val editCustomerType: String = "",
     val editPriority: String = "",
-    val editBudget: String = "",
+    val editMoney: ContactEditMoneyState = ContactEditMoneyState(),
+    val editPrefs: ContactEditPrefsState = ContactEditPrefsState(),
     val editNotes: String = "",
     val activityContent: String = "",
     val selectedActivityType: String = "پیگیری",
@@ -58,6 +63,9 @@ data class ContactDetailUiState(
     val selectedDatasetId: String? = null,
     val isFilingLoading: Boolean = false,
     val pendingWhatsAppShare: String? = null,
+    val showMatchesSheet: Boolean = false,
+    val matchesData: ContactMatchesData? = null,
+    val matchesLoading: Boolean = false,
 )
 
 @HiltViewModel
@@ -67,6 +75,7 @@ class ContactDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val contactId: Long = savedStateHandle.get<Long>("contactId") ?: 0L
+    private val openMatchesOnLoad: Boolean = savedStateHandle.get<Boolean>("openMatches") ?: false
     private val _uiState = MutableStateFlow(ContactDetailUiState())
     val uiState: StateFlow<ContactDetailUiState> = _uiState.asStateFlow()
 
@@ -97,9 +106,26 @@ class ContactDetailViewModel @Inject constructor(
                             editStatus = contact.status.orEmpty(),
                             editCustomerType = contact.customerType.orEmpty(),
                             editPriority = contact.priority.orEmpty(),
-                            editBudget = contact.budget?.toString().orEmpty(),
+                            editMoney = ContactEditMoneyState(
+                                budgetMin = contact.budgetMin?.toString().orEmpty(),
+                                budgetMax = contact.budgetMax?.toString().orEmpty(),
+                                depositMin = contact.depositMin?.toString().orEmpty(),
+                                depositMax = contact.depositMax?.toString().orEmpty(),
+                                rentMin = contact.rentMin?.toString().orEmpty(),
+                                rentMax = contact.rentMax?.toString().orEmpty(),
+                            ),
+                            editPrefs = ContactEditPrefsState(
+                                propertyType = contact.propertyType.orEmpty(),
+                                rooms = contact.rooms.orEmpty(),
+                                minArea = contact.minArea?.toString().orEmpty(),
+                                maxArea = contact.maxArea?.toString().orEmpty(),
+                                areas = contact.areas.orEmpty(),
+                            ),
                             editNotes = contact.notes.orEmpty(),
                         )
+                    }
+                    if (openMatchesOnLoad || _uiState.value.showMatchesSheet) {
+                        loadMatches(openSheet = openMatchesOnLoad)
                     }
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -212,7 +238,8 @@ class ContactDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
             val state = _uiState.value
-            val budget = state.editBudget.trim().toLongOrNull()
+            val money = state.editMoney
+            val prefs = state.editPrefs
             when (crmRepository.updateContact(
                 contactId,
                 ContactUpdateRequest(
@@ -222,7 +249,17 @@ class ContactDetailViewModel @Inject constructor(
                     customerType = state.editCustomerType.ifBlank { null },
                     priority = state.editPriority.ifBlank { null },
                     notes = state.editNotes,
-                    budget = budget,
+                    budgetMin = parseMoneyInput(money.budgetMin),
+                    budgetMax = parseMoneyInput(money.budgetMax),
+                    depositMin = parseMoneyInput(money.depositMin),
+                    depositMax = parseMoneyInput(money.depositMax),
+                    rentMin = parseMoneyInput(money.rentMin),
+                    rentMax = parseMoneyInput(money.rentMax),
+                    propertyType = prefs.propertyType.ifBlank { "" },
+                    rooms = prefs.rooms.ifBlank { "" },
+                    minArea = parseMoneyInput(prefs.minArea)?.toInt(),
+                    maxArea = parseMoneyInput(prefs.maxArea)?.toInt(),
+                    areas = prefs.areas.ifBlank { "" },
                 ),
             )) {
                 is ApiResult.Success -> {
@@ -355,6 +392,60 @@ class ContactDetailViewModel @Inject constructor(
         }
     }
 
+    fun toggleMatchesSheet(show: Boolean) {
+        _uiState.update { it.copy(showMatchesSheet = show) }
+        if (show && _uiState.value.matchesData == null) {
+            loadMatches(openSheet = true)
+        }
+    }
+
+    fun loadMatches(openSheet: Boolean = false) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    matchesLoading = true,
+                    showMatchesSheet = openSheet || it.showMatchesSheet,
+                    error = null,
+                )
+            }
+            when (val result = crmRepository.getContactMatches(contactId)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(matchesData = result.data, matchesLoading = false)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(matchesLoading = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun suggestMatches(matches: List<PropertyMatchDto>, shareViaWhatsApp: Boolean = false) {
+        if (matches.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = crmRepository.suggestContactMatches(contactId, matches)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showMatchesSheet = false,
+                            successMessage = "${result.data.suggestedCount} ملک پیشنهاد شد",
+                            pendingWhatsAppShare = if (shareViaWhatsApp) {
+                                result.data.whatsappText
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
     fun uploadDocument(uri: Uri) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
@@ -412,11 +503,26 @@ class ContactDetailViewModel @Inject constructor(
     fun onEditStatusChange(v: String) = _uiState.update { it.copy(editStatus = v) }
     fun onEditCustomerTypeChange(v: String) = _uiState.update { it.copy(editCustomerType = v) }
     fun onEditPriorityChange(v: String) = _uiState.update { it.copy(editPriority = v) }
-    fun onEditBudgetChange(v: String) = _uiState.update { it.copy(editBudget = v) }
+    fun onEditBudgetMinChange(v: String) = _uiState.update { it.copy(editMoney = it.editMoney.copy(budgetMin = v)) }
+    fun onEditBudgetMaxChange(v: String) = _uiState.update { it.copy(editMoney = it.editMoney.copy(budgetMax = v)) }
+    fun onEditDepositMinChange(v: String) = _uiState.update { it.copy(editMoney = it.editMoney.copy(depositMin = v)) }
+    fun onEditDepositMaxChange(v: String) = _uiState.update { it.copy(editMoney = it.editMoney.copy(depositMax = v)) }
+    fun onEditRentMinChange(v: String) = _uiState.update { it.copy(editMoney = it.editMoney.copy(rentMin = v)) }
+    fun onEditRentMaxChange(v: String) = _uiState.update { it.copy(editMoney = it.editMoney.copy(rentMax = v)) }
+    fun onEditPropertyTypeChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(propertyType = v)) }
+    fun onEditRoomsChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(rooms = v)) }
+    fun onEditMinAreaChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(minArea = v)) }
+    fun onEditMaxAreaChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(maxArea = v)) }
+    fun onEditAreasChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(areas = v)) }
     fun onEditNotesChange(v: String) = _uiState.update { it.copy(editNotes = v) }
     fun onActivityContentChange(v: String) = _uiState.update { it.copy(activityContent = v) }
     fun onActivityTypeChange(v: String) = _uiState.update { it.copy(selectedActivityType = v) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
+
+    private fun parseMoneyInput(raw: String): Long? {
+        val digits = raw.filter { it.isDigit() }
+        return digits.toLongOrNull()
+    }
 
     private fun millisToIso(millis: Long): String {
         return Instant.ofEpochMilli(millis)

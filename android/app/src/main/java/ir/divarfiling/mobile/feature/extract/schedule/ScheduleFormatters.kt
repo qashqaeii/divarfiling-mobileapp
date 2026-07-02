@@ -41,7 +41,7 @@ internal fun scheduleIntervalLabel(hours: Double): String = when (hours) {
 }
 
 internal fun scheduleDateTimeLabel(iso: String): String =
-    DateUtils.formatJalaliDateTime(iso) ?: DateUtils.formatJalaliDate(iso) ?: iso
+    DateUtils.formatForDisplay(iso)
 
 internal fun scheduleRelativeLabel(iso: String?): String? =
     iso?.let { DateUtils.formatRelativeTimeAgo(it) }

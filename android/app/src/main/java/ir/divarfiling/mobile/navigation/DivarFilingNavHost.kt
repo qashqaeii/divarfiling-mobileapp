@@ -53,7 +53,7 @@ object Routes {
     const val HOME = "home"
     const val CRM = "crm"
     const val CRM_CONTACTS = "crm/contacts"
-    const val CRM_CONTACT_DETAIL = "crm/contacts/{contactId}"
+    const val CRM_CONTACT_DETAIL = "crm/contacts/{contactId}?openMatches={openMatches}"
     const val CRM_TODAY = "crm/today"
     const val FILING = "filing"
     const val FILING_SEARCH = "filing/search?query={query}"
@@ -73,7 +73,8 @@ object Routes {
     fun listings(datasetId: String) = "filing/$datasetId"
     fun toolCalculator(toolId: String) = "tools/$toolId"
     fun filingSearch(query: String = "") = "filing/search?query=${Uri.encode(query)}"
-    fun contactDetail(contactId: Long) = "crm/contacts/$contactId"
+    fun contactDetail(contactId: Long, openMatches: Boolean = false) =
+        "crm/contacts/$contactId?openMatches=$openMatches"
     fun dealDetail(dealId: Long) = "crm/deals/$dealId"
     fun propertyDetail(propertyId: Long) = "crm/properties/$propertyId"
     fun listingDetail(token: String) = "filing/listing/$token"
@@ -178,13 +179,22 @@ fun DivarFilingNavHost(
                         ContactsScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onContactSuggest = { id ->
+                                navController.navigate(Routes.contactDetail(id, openMatches = true))
+                            },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                         )
                     }
                     composable(
                         route = Routes.CRM_CONTACT_DETAIL,
-                        arguments = listOf(navArgument("contactId") { type = NavType.LongType }),
+                        arguments = listOf(
+                            navArgument("contactId") { type = NavType.LongType },
+                            navArgument("openMatches") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            },
+                        ),
                     ) {
                         ContactDetailScreen(
                             onBack = { navController.popBackStack() },

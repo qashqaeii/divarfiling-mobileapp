@@ -48,4 +48,16 @@ object CrmConstants {
     val PROPERTY_TYPES = listOf(
         "آپارتمان", "ویلا", "کلنگی", "اداری", "مغازه", "زمین", "سایر",
     )
+
+    val MATCH_ELIGIBLE_TYPES = setOf(
+        "خریدار",
+        "مستاجر",
+        "متقاضی خرید",
+        "متقاضی اجاره",
+        "سرنخ",
+        "سرمایه‌گذار",
+    )
+
+    fun isMatchEligible(customerType: String?): Boolean =
+        customerType != null && customerType in MATCH_ELIGIBLE_TYPES
 }
