@@ -1,7 +1,5 @@
 package ir.divarfiling.mobile.feature.crm.components
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,14 +7,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
@@ -40,6 +34,7 @@ import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.network.ContactMatchesData
 import ir.divarfiling.mobile.core.network.PropertyMatchDto
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactMatchesSheet(
     visible: Boolean,
@@ -57,7 +52,6 @@ fun ContactMatchesSheet(
             .sortedByDescending { it.score }
     }
     var selected by remember(allMatches) { mutableStateOf(emptySet<String>()) }
-    val context = LocalContext.current
 
     fun matchKey(m: PropertyMatchDto): String =
         if (m.source == "crm") "crm:${m.propertyId}" else "divar:${m.token}"
@@ -77,7 +71,7 @@ fun ContactMatchesSheet(
             )
             Text(
                 "بر اساس بودجه، محله و متراژ مخاطب",
-                style = AppTypography.bodySmall,
+                style = AppTypography.labelSmall,
                 color = DfColors.TextSecondary,
             )
 
@@ -95,7 +89,7 @@ fun ContactMatchesSheet(
                 matches?.eligible == false -> {
                     Text(
                         matches.message ?: "تطبیق برای این نوع مخاطب فعال نیست.",
-                        style = AppTypography.bodyMedium,
+                        style = AppTypography.bodyDescription,
                         color = DfColors.TextSecondary,
                         modifier = Modifier.padding(vertical = AppSpacing.md),
                     )
@@ -107,7 +101,7 @@ fun ContactMatchesSheet(
                         } else {
                             "ملک مناسبی برای این مخاطب پیدا نشد."
                         },
-                        style = AppTypography.bodyMedium,
+                        style = AppTypography.bodyDescription,
                         color = DfColors.TextSecondary,
                         modifier = Modifier.padding(vertical = AppSpacing.md),
                     )

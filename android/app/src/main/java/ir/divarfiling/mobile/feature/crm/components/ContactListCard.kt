@@ -42,7 +42,6 @@ import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.feature.crm.CrmConstants
-import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -346,27 +345,6 @@ private fun ContactStatusBadge(status: String?) {
             )
         }
     }
-}
-
-private fun contactInitials(name: String): String {
-    val parts = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
-    return when {
-        parts.isEmpty() -> "?"
-        parts.size == 1 -> parts[0].take(1)
-        else -> "${parts[0].take(1)}${parts[1].take(1)}"
-    }
-}
-
-private fun contactAccentColor(name: String): Color {
-    val palette = listOf(
-        DfColors.Purple,
-        DfColors.Blue,
-        DfColors.Green,
-        DfColors.Amber,
-        DfColors.Rose,
-    )
-    val index = name.hashCode().absoluteValue % palette.size
-    return palette[index]
 }
 
 private fun statusColors(status: String): Triple<Color, Color, Color> = when {
