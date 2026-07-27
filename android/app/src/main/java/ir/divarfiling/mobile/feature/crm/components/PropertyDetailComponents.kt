@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,19 +36,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.R
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfAsyncImage
-import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
-import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 
@@ -289,8 +290,9 @@ private fun PropertyDetailSummaryCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = 2.dp,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
     ) {
         Column(
             modifier = Modifier.padding(AppSpacing.sm),
@@ -365,8 +367,9 @@ fun PropertyDetailPriceBoard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = 2.dp,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
     ) {
         Column(
             modifier = Modifier.padding(AppSpacing.sm),
@@ -423,8 +426,9 @@ fun PropertyDetailSpecsGrid(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = 2.dp,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
     ) {
         Column(
             modifier = Modifier.padding(AppSpacing.sm),
@@ -458,7 +462,8 @@ private fun PropertySpecTile(label: String, value: String, icon: ImageVector) {
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .liquidGlassSurface(shape = AppShapes.IconContainer, variant = DfGlassButtonVariant.Secondary),
+                    .clip(AppShapes.IconContainer)
+                    .background(DfColors.PurpleContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(icon, null, tint = DfColors.Purple, modifier = Modifier.size(14.dp))
@@ -493,8 +498,9 @@ fun PropertyDetailAmenities(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = 2.dp,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
     ) {
         Column(
             modifier = Modifier.padding(AppSpacing.sm),
@@ -576,12 +582,12 @@ fun PropertyDetailQuickActions(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        PropertyQuickAction(label = "ویرایش", iconRes = DfDecorIcons.FileEdit, bg = DfColors.PurpleContainer, tint = DfColors.Purple, onClick = onEdit, modifier = Modifier.weight(1f))
-        PropertyQuickAction(label = "اشتراک", iconRes = DfDecorIcons.Share2, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onShare, modifier = Modifier.weight(1f))
+        PropertyQuickAction(label = "ویرایش", icon = DfIcons.Pencil, bg = DfColors.PurpleContainer, tint = DfColors.Purple, onClick = onEdit, modifier = Modifier.weight(1f))
+        PropertyQuickAction(label = "اشتراک", icon = DfIcons.Share2, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onShare, modifier = Modifier.weight(1f))
         PropertyQuickAction(label = "واتساپ", iconRes = R.drawable.ic_whatsapp, tintIconRes = true, bg = DfColors.GreenLight, tint = DfColors.Green, onClick = onWhatsApp, modifier = Modifier.weight(1f))
-        PropertyQuickAction(label = "کپی", iconRes = DfDecorIcons.Copy, bg = DfColors.AmberLight, tint = DfColors.Amber, onClick = onCopyLink, modifier = Modifier.weight(1f))
+        PropertyQuickAction(label = "کپی", icon = DfIcons.Copy, bg = DfColors.AmberLight, tint = DfColors.Amber, onClick = onCopyLink, modifier = Modifier.weight(1f))
         if (onOpenLink != null) {
-            PropertyQuickAction(label = "دیوار", iconRes = DfDecorIcons.ExternalLink, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onOpenLink, modifier = Modifier.weight(1f))
+            PropertyQuickAction(label = "دیوار", icon = DfIcons.ExternalLink, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onOpenLink, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -650,8 +656,9 @@ fun PropertyTxStatusSection(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = AppShapes.Card,
-            color = DfColors.Surface,
-            shadowElevation = 2.dp,
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            shadowElevation = AppElevations.subtle,
         ) {
             Column(
                 modifier = Modifier.padding(AppSpacing.sm),
@@ -682,8 +689,9 @@ private fun PropertyDetailInfoCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = 2.dp,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
     ) {
         Column(
             modifier = Modifier.padding(AppSpacing.sm),

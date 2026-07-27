@@ -45,6 +45,7 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
@@ -183,10 +184,23 @@ fun PropertiesScreen(
                         )
                     }
                 } else if (state.properties.isEmpty()) {
+                    val hasActiveFilters = state.query.isNotBlank() ||
+                        state.transactionStatus != null ||
+                        state.dealMode != null ||
+                        state.propertyType != null
                     item {
                         DfEmptyState(
-                            title = "فایل شخصی ثبت نشده",
-                            subtitle = "با «فایل جدید» اضافه کنید یا از جزئیات آگهی تبدیل کنید",
+                            title = if (hasActiveFilters) "نتیجه‌ای با این فیلتر نیست" else "فایل شخصی ثبت نشده",
+                            subtitle = if (hasActiveFilters) {
+                                "فیلترها یا جستجو را تغییر دهید"
+                            } else {
+                                "با «فایل جدید» اضافه کنید یا از جزئیات آگهی تبدیل کنید"
+                            },
+                            variant = if (hasActiveFilters) DfEmptyVariant.NoResults else DfEmptyVariant.Empty,
+                            actionLabel = if (hasActiveFilters) null else "فایل جدید",
+                            onAction = if (hasActiveFilters) null else {
+                                { viewModel.toggleCreate(true) }
+                            },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }

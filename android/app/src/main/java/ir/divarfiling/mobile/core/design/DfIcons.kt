@@ -82,4 +82,11 @@ object DfIcons {
     val Wrench: ImageVector = LucideIcons.Wrench
     val Calculator: ImageVector = LucideIcons.Calculator
     val Percent: ImageVector = LucideIcons.Percent
+    val Inbox: ImageVector = LucideIcons.Inbox
+    val WifiOff: ImageVector = LucideIcons.WifiOff
+    val Lock: ImageVector = LucideIcons.Lock
+    val SearchX: ImageVector = LucideIcons.SearchX
+    val CircleAlert: ImageVector = LucideIcons.CircleAlert
+    val Pencil: ImageVector = LucideIcons.Pencil
+    val Paperclip: ImageVector = LucideIcons.Paperclip
 }

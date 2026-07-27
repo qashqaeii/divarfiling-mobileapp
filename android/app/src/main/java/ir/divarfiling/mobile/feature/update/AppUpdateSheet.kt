@@ -145,7 +145,7 @@ private fun AppUpdateSheet(
                     .clip(RoundedCornerShape(20.dp))
                     .background(
                         Brush.linearGradient(
-                            listOf(Color(0xFF5B21B6), Color(0xFF7C3AED), Color(0xFFA78BFA)),
+                            listOf(DfColors.PurpleDark, DfColors.Purple, DfColors.PurpleGradientStart),
                         ),
                     )
                     .padding(AppSpacing.md),

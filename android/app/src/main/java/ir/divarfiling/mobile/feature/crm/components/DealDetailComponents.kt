@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -28,14 +29,14 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
-import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
-import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.network.DealDto
 
 @Composable
@@ -53,8 +54,9 @@ fun DealDetailHeroCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = 3.dp,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -152,7 +154,7 @@ fun DealDetailHeroCard(
                     color = DfColors.TextMuted,
                 )
 
-                HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.15f))
+                HorizontalDivider(color = DfThemeColors.outlineSubtle())
 
                 DealDetailMetaRow(
                     icon = DfIcons.User,
@@ -272,7 +274,7 @@ fun DealDetailQuickActions(
     ) {
         DealQuickAction(
             label = "ویرایش",
-            icon = DfIcons.File,
+            icon = DfIcons.Pencil,
             background = DfColors.PurpleContainer,
             iconTint = DfColors.Purple,
             onClick = onEdit,
@@ -340,11 +342,8 @@ private fun DealDetailMetaRow(
         Box(
             modifier = Modifier
                 .size(32.dp)
-                .liquidGlassSurface(
-                    shape = AppShapes.IconContainer,
-                    variant = DfGlassButtonVariant.Secondary,
-                    elevation = 1.dp,
-                ),
+                .clip(AppShapes.IconContainer)
+                .background(DfThemeColors.surfaceVariant()),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

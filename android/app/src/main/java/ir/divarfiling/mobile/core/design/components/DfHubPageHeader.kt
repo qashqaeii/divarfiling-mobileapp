@@ -47,6 +47,7 @@ import ir.divarfiling.mobile.core.design.components.DfGlassIconButton
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 /**
@@ -61,7 +62,7 @@ fun DfStandardPageHeader(
     subtitle: String = "",
     titleIcon: ImageVector? = null,
     @DrawableRes titleIconRes: Int? = null,
-    titleColor: Color = DfColors.TextPrimary,
+    titleColor: Color = DfThemeColors.textPrimary(),
     userName: String? = null,
     notificationCount: Int = 0,
     onNotificationsClick: (() -> Unit)? = null,
@@ -114,7 +115,7 @@ fun DfHubPageHeader(
     onNotificationsClick: (() -> Unit)? = null,
     onMenuClick: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
-    titleColor: Color = DfColors.TextPrimary,
+    titleColor: Color = DfThemeColors.textPrimary(),
     showBrandLogo: Boolean = false,
     menuIcon: ImageVector = DfIcons.Menu,
     bottomContent: @Composable (() -> Unit)? = null,
@@ -156,6 +157,7 @@ fun DfGreetingHeader(
     DfStandardPageHeader(
         title = title,
         subtitle = subtitle,
+        titleColor = DfThemeColors.textPrimary(),
         userName = userName,
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,
@@ -210,13 +212,13 @@ private fun DfHeaderTitleBlock(
         verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = title,
                 style = AppTypography.pageTitle,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = titleColor,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -225,7 +227,7 @@ private fun DfHeaderTitleBlock(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = DfColors.Purple,
+                    tint = DfThemeColors.primary(),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -240,7 +242,7 @@ private fun DfHeaderTitleBlock(
             Text(
                 text = subtitle,
                 style = AppTypography.bodyDescription,
-                color = DfColors.TextSecondary,
+                color = DfThemeColors.textSecondary(),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -293,15 +295,16 @@ private fun DfHubUserAvatar(userName: String) {
         Surface(
             modifier = Modifier.size(44.dp),
             shape = CircleShape,
-            color = DfColors.PurpleContainer,
-            shadowElevation = AppElevations.subtle,
+            color = DfThemeColors.primaryContainer(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            shadowElevation = AppElevations.none,
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     text = userName.firstOrNull()?.toString() ?: "؟",
                     style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.PurpleDark,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfThemeColors.onPrimaryContainer(),
                     maxLines = 1,
                 )
             }
@@ -311,14 +314,14 @@ private fun DfHubUserAvatar(userName: String) {
                 .align(Alignment.BottomEnd)
                 .size(12.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(DfThemeColors.surface())
                 .padding(2.dp),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
-                    .background(DfColors.Green),
+                    .background(DfThemeColors.success()),
             )
         }
     }
@@ -332,8 +335,9 @@ private fun DfHubBrandLogo(
     Surface(
         modifier = modifier,
         shape = CircleShape,
-        color = DfColors.PurpleContainer,
-        shadowElevation = AppElevations.subtle,
+        color = DfThemeColors.primaryContainer(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.none,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Image(
@@ -453,8 +457,8 @@ private fun DfStandardPageHeaderPreview() {
     DivarFilingTheme {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)) {
             DfGreetingHeader(
-                title = "سلام حسین 👋",
-                subtitle = "خوش آمدی به فایلینگ دیوار",
+                title = "سلام حسین",
+                subtitle = "میزکار فایلینگ دیوار",
                 userName = "حسین",
                 notificationCount = 3,
                 onNotificationsClick = {},

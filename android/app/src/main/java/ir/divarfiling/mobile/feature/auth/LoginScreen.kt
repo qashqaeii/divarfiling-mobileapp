@@ -1,10 +1,6 @@
 package ir.divarfiling.mobile.feature.auth
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -28,8 +24,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,9 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -60,15 +51,17 @@ import ir.divarfiling.mobile.R
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfHaptics
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
-import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
-import ir.divarfiling.mobile.core.design.components.DfGlassCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfScreenBackground
-import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
+import ir.divarfiling.mobile.core.design.components.DfStatusBanner
+import ir.divarfiling.mobile.core.design.components.DfStatusTone
+import ir.divarfiling.mobile.core.design.components.DfTextField
 
 @Composable
 fun LoginScreen(
@@ -78,6 +71,7 @@ fun LoginScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var passwordVisible by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
+    val haptics = DfHaptics.rememberPerformer()
 
     DfScreenBackground(
         modifier = Modifier
@@ -96,147 +90,109 @@ fun LoginScreen(
         ) {
             AnimatedVisibility(
                 visible = true,
-                enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { it / 3 },
+                enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 4 },
             ) {
                 LoginHeroSection()
             }
 
-            Spacer(Modifier.height(AppSpacing.sectionGap))
+            Spacer(Modifier.height(AppSpacing.lg))
 
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(tween(600, delayMillis = 120)) +
-                    slideInVertically(tween(600, delayMillis = 120)) { it / 4 },
-            ) {
-                LoginFeatureChips()
-            }
+            LoginFeatureChips()
 
             Spacer(Modifier.height(AppSpacing.sectionGap))
 
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(tween(700, delayMillis = 200)) +
-                    slideInVertically(tween(700, delayMillis = 200)) { it / 5 },
-            ) {
-                DfGlassCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 24.dp,
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                        Text(
-                            text = "ورود به میزکار",
-                            style = AppTypography.sectionTitle,
-                            fontWeight = FontWeight.Bold,
-                            color = DfColors.TextPrimary,
-                        )
-                        Text(
-                            text = "با حساب فایلینگ دیوار خود وارد شوید",
-                            style = AppTypography.bodyDescription,
-                            color = DfColors.TextSecondary,
-                        )
+            DfCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                    Text(
+                        text = "ورود به میزکار",
+                        style = AppTypography.sectionTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                    )
+                    Text(
+                        text = "با حساب فایلینگ دیوار وارد شوید",
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                    )
 
-                        Spacer(Modifier.height(AppSpacing.xs))
+                    Spacer(Modifier.height(AppSpacing.xxs))
 
-                        OutlinedTextField(
-                            value = state.username,
-                            onValueChange = viewModel::onUsernameChange,
-                            label = { Text("شماره موبایل / نام کاربری", style = AppTypography.labelSmall) },
-                            modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Phone,
-                                imeAction = ImeAction.Next,
-                            ),
-                            singleLine = true,
-                            shape = AppShapes.Field,
-                            leadingIcon = {
+                    DfTextField(
+                        value = state.username,
+                        onValueChange = viewModel::onUsernameChange,
+                        label = "شماره موبایل / نام کاربری",
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Phone,
+                            imeAction = ImeAction.Next,
+                        ),
+                        leadingIcon = {
+                            Icon(
+                                DfIcons.Smartphone,
+                                contentDescription = null,
+                                tint = DfThemeColors.primary(),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        },
+                    )
+
+                    DfTextField(
+                        value = state.password,
+                        onValueChange = viewModel::onPasswordChange,
+                        label = "رمز عبور",
+                        visualTransformation = if (passwordVisible) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                haptics.confirm()
+                                viewModel.login(onLoggedIn)
+                            },
+                        ),
+                        leadingIcon = {
+                            Icon(
+                                DfIcons.Lock,
+                                contentDescription = null,
+                                tint = DfThemeColors.primary(),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
-                                    DfIcons.Smartphone,
-                                    contentDescription = null,
-                                    tint = DfColors.Purple,
+                                    imageVector = if (passwordVisible) LucideIcons.EyeOff else LucideIcons.Eye,
+                                    contentDescription = if (passwordVisible) "مخفی کردن رمز" else "نمایش رمز",
+                                    tint = DfThemeColors.textMuted(),
                                     modifier = Modifier.size(20.dp),
                                 )
-                            },
-                            colors = loginFieldColors(),
-                        )
-
-                        OutlinedTextField(
-                            value = state.password,
-                            onValueChange = viewModel::onPasswordChange,
-                            label = { Text("رمز عبور", style = AppTypography.labelSmall) },
-                            modifier = Modifier.fillMaxWidth(),
-                            visualTransformation = if (passwordVisible) {
-                                VisualTransformation.None
-                            } else {
-                                PasswordVisualTransformation()
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Password,
-                                imeAction = ImeAction.Done,
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = { viewModel.login(onLoggedIn) },
-                            ),
-                            singleLine = true,
-                            shape = AppShapes.Field,
-                            leadingIcon = {
-                                Icon(
-                                    DfIcons.User,
-                                    contentDescription = null,
-                                    tint = DfColors.Purple,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            },
-                            trailingIcon = {
-                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(
-                                        imageVector = if (passwordVisible) {
-                                            LucideIcons.EyeOff
-                                        } else {
-                                            LucideIcons.Eye
-                                        },
-                                        contentDescription = if (passwordVisible) {
-                                            "مخفی کردن رمز"
-                                        } else {
-                                            "نمایش رمز"
-                                        },
-                                        tint = DfColors.TextMuted,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
-                            },
-                            colors = loginFieldColors(),
-                        )
-
-                        AnimatedVisibility(visible = state.error != null) {
-                            state.error?.let { error ->
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .liquidGlassSurface(
-                                            shape = AppShapes.CardSmall,
-                                            variant = DfGlassButtonVariant.Accent,
-                                            accent = DfColors.Rose,
-                                            elevation = 2.dp,
-                                        )
-                                        .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
-                                ) {
-                                    Text(
-                                        text = error,
-                                        style = AppTypography.labelSmall,
-                                        color = DfColors.Rose,
-                                    )
-                                }
                             }
+                        },
+                    )
+
+                    AnimatedVisibility(visible = state.error != null) {
+                        state.error?.let { error ->
+                            DfStatusBanner(
+                                message = error,
+                                tone = DfStatusTone.Error,
+                            )
                         }
-
-                        Spacer(Modifier.height(AppSpacing.xs))
-
-                        DfPrimaryButton(
-                            text = "ورود به میزکار",
-                            onClick = { viewModel.login(onLoggedIn) },
-                            loading = state.isLoading,
-                        )
                     }
+
+                    Spacer(Modifier.height(AppSpacing.xxs))
+
+                    DfPrimaryButton(
+                        text = "ورود به میزکار",
+                        onClick = {
+                            haptics.confirm()
+                            viewModel.login(onLoggedIn)
+                        },
+                        loading = state.isLoading,
+                    )
                 }
             }
 
@@ -245,7 +201,7 @@ fun LoginScreen(
             Text(
                 text = "نسخه ${BuildConfig.VERSION_NAME}",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
                 textAlign = TextAlign.Center,
             )
         }
@@ -254,58 +210,34 @@ fun LoginScreen(
 
 @Composable
 private fun LoginHeroSection() {
-    val pulse by rememberInfiniteTransition(label = "loginLogoPulse").animateFloat(
-        initialValue = 0.96f,
-        targetValue = 1.04f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2200),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "loginLogoScale",
-    )
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         Box(
-            modifier = Modifier
-                .size(108.dp)
-                .scale(pulse)
-                .liquidGlassSurface(
-                    shape = AppShapes.Hero,
-                    variant = DfGlassButtonVariant.Primary,
-                    elevation = 12.dp,
-                ),
+            modifier = Modifier.size(96.dp),
             contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(R.drawable.logo_divarfiling),
                 contentDescription = "فایلینگ دیوار",
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(72.dp),
                 contentScale = ContentScale.Fit,
             )
         }
 
         Text(
             text = "فایلینگ دیوار",
-            style = AppTypography.pageTitle.copy(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        DfColors.PurpleGradientStart,
-                        DfColors.Purple,
-                        DfColors.PurpleGradientEnd,
-                    ),
-                ),
-            ),
+            style = AppTypography.pageTitle,
             fontWeight = FontWeight.Bold,
+            color = DfThemeColors.primary(),
             textAlign = TextAlign.Center,
         )
 
         Text(
             text = "همراه هوشمند مشاور املاک",
             style = AppTypography.bodyDescription,
-            color = DfColors.TextSecondary,
+            color = DfThemeColors.textSecondary(),
             textAlign = TextAlign.Center,
         )
     }
@@ -317,54 +249,29 @@ private fun LoginFeatureChips() {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs, Alignment.CenterHorizontally),
     ) {
-        LoginFeatureChip(iconRes = DfDecorIcons.Folder, label = "فایلینگ", tint = DfColors.Purple)
-        LoginFeatureChip(iconRes = DfDecorIcons.Users, label = "CRM", tint = DfColors.Blue)
-        LoginFeatureChip(iconRes = DfDecorIcons.Rocket, label = "استخراج", tint = DfColors.Green)
+        LoginFeatureChip(iconRes = DfDecorIcons.Folder, label = "فایلینگ")
+        LoginFeatureChip(iconRes = DfDecorIcons.Users, label = "CRM")
+        LoginFeatureChip(iconRes = DfDecorIcons.Rocket, label = "استخراج")
     }
 }
 
 @Composable
 private fun LoginFeatureChip(
     label: String,
-    tint: Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    iconRes: Int? = null,
+    iconRes: Int,
 ) {
     Row(
         modifier = Modifier
-            .liquidGlassSurface(
-                shape = AppShapes.Chip,
-                variant = DfGlassButtonVariant.Accent,
-                accent = tint,
-                elevation = 4.dp,
-            )
-            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        when {
-            iconRes != null -> DfDecorImage(resId = iconRes, size = 16.dp)
-            icon != null -> Icon(
-                icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(16.dp),
-            )
-        }
+        DfDecorImage(resId = iconRes, size = 16.dp)
         Text(
             text = label,
             style = AppTypography.labelSmall,
-            color = DfColors.TextPrimary,
+            color = DfThemeColors.textSecondary(),
             fontWeight = FontWeight.Medium,
         )
     }
 }
-
-@Composable
-private fun loginFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = DfColors.Purple,
-    focusedLabelColor = DfColors.Purple,
-    unfocusedBorderColor = DfColors.Outline,
-    focusedContainerColor = Color.White.copy(alpha = 0.55f),
-    unfocusedContainerColor = Color.White.copy(alpha = 0.35f),
-)

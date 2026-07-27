@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.feature.crm.components.ListingSendSheet
@@ -33,10 +34,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.feature.crm.ContactPickerSheet
 import ir.divarfiling.mobile.core.filing.ListingImageUtils
@@ -85,12 +89,34 @@ fun ListingDetailScreen(
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .statusBarsPadding(),
         ) {
             when {
                 state.isLoading -> DfDetailSkeleton()
                 state.error != null && listing == null -> {
-                    Column(Modifier.padding(16.dp)) { DfErrorBanner(state.error!!) }
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    ) {
+                        DfDetailPageHeader(
+                            title = "جزئیات آگهی",
+                            onBack = onBack,
+                            titleIconRes = DfDecorIcons.FileText,
+                        )
+                        DfErrorBanner(
+                            state.error!!,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                        DfEmptyState(
+                            title = "بارگذاری ناموفق",
+                            subtitle = "اتصال را بررسی کنید و دوباره تلاش کنید",
+                            variant = DfEmptyVariant.Error,
+                            actionLabel = "تلاش مجدد",
+                            onAction = viewModel::refresh,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 listing != null -> {
                     ListingDetailContent(

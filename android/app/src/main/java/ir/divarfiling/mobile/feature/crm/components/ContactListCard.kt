@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,16 +31,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.FormatUtils
-import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
-import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 
@@ -64,8 +65,9 @@ fun ContactListCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = 3.dp,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Box(
@@ -149,7 +151,7 @@ fun ContactListCard(
                     }
                 }
 
-                HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.12f))
+                HorizontalDivider(color = DfThemeColors.outlineSubtle())
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -298,11 +300,8 @@ private fun ContactQuickAction(
     Box(
         modifier = Modifier
             .size(36.dp)
-            .liquidGlassSurface(
-                shape = CircleShape,
-                variant = DfGlassButtonVariant.Secondary,
-                elevation = 2.dp,
-            )
+            .clip(CircleShape)
+            .background(tint.copy(alpha = 0.1f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

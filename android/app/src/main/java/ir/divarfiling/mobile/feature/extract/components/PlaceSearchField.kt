@@ -11,26 +11,27 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppElevations
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.places.PlaceSearchResult
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -44,7 +45,7 @@ fun PlaceSearchField(
     onSuggestionSelect: (PlaceSearchResult) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
         OutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
@@ -53,19 +54,26 @@ fun PlaceSearchField(
             singleLine = true,
             label = { Text("جستجوی مکان") },
             placeholder = { Text("مثلاً سعادت آباد") },
-            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = DfColors.Purple) },
+            shape = AppShapes.Field,
+            leadingIcon = {
+                Icon(
+                    DfIcons.MapPin,
+                    contentDescription = null,
+                    tint = DfThemeColors.primary(),
+                )
+            },
         )
 
         selectedSummary?.takeIf { it.isNotBlank() }?.let { summary ->
             Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = DfColors.PurpleContainer,
+                shape = AppShapes.CardSmall,
+                color = DfThemeColors.primaryContainer(),
             ) {
                 Text(
                     summary,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DfColors.PurpleDark,
+                    modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.onPrimaryContainer(),
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -73,9 +81,10 @@ fun PlaceSearchField(
 
         if (query.length >= 2 && suggestions.isNotEmpty()) {
             Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = DfColors.Surface,
-                shadowElevation = 4.dp,
+                shape = AppShapes.Card,
+                color = DfThemeColors.surface(),
+                shadowElevation = AppElevations.raised,
+                tonalElevation = 0.dp,
             ) {
                 LazyColumn(
                     modifier = Modifier
@@ -102,19 +111,20 @@ private fun PlaceSuggestionRow(
     query: String,
     onClick: () -> Unit,
 ) {
-    Surface(onClick = onClick, color = DfColors.Surface) {
+    Surface(onClick = onClick, color = DfThemeColors.surface()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
         ) {
             Text(
                 highlightText(result.matchedText, query),
-                style = MaterialTheme.typography.bodyLarge,
+                style = AppTypography.bodyDescription,
                 fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textPrimary(),
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                 listOfNotNull(
                     "استان ${result.provinceName}",
                     result.cityName?.let { "شهر $it" },
@@ -122,11 +132,14 @@ private fun PlaceSuggestionRow(
                 ).forEach { chip ->
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(DfColors.SurfaceVariant)
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .background(DfThemeColors.surfaceVariant(), AppShapes.Chip)
+                            .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
                     ) {
-                        Text(chip, style = MaterialTheme.typography.labelSmall, color = DfColors.TextSecondary)
+                        Text(
+                            chip,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textSecondary(),
+                        )
                     }
                 }
             }
@@ -142,7 +155,7 @@ private fun highlightText(text: String, query: String): AnnotatedString {
     if (index < 0) return AnnotatedString(text)
     return buildAnnotatedString {
         append(text.substring(0, index))
-        withStyle(SpanStyle(color = DfColors.Purple, fontWeight = FontWeight.Bold)) {
+        withStyle(SpanStyle(color = AppColors.Purple, fontWeight = FontWeight.Bold)) {
             append(text.substring(index, index + lowerQuery.length))
         }
         append(text.substring(index + lowerQuery.length))

@@ -100,9 +100,9 @@ fun DealsPipelineBar(
 private fun stageColor(stage: String): Color = when {
     stage.contains("از دست") || stage.contains("سرد") -> DfColors.OverdueAccent
     stage.contains("بسته") -> DfColors.Green
-    stage.contains("قرارداد") || stage.contains("پیش") -> Color(0xFFEC4899)
+    stage.contains("قرارداد") || stage.contains("پیش") -> DfColors.Pink
     stage.contains("بازدید") -> DfColors.Blue
     stage.contains("مذاکره") -> DfColors.Amber
-    stage == "سرنخ" -> Color(0xFF1E3A8A)
+    stage == "سرنخ" -> DfColors.OnInfo
     else -> DfColors.Purple
 }

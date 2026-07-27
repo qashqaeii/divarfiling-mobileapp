@@ -11,15 +11,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfFilterApplyButton
 import ir.divarfiling.mobile.core.design.components.DfFilterDropdownRow
-import ir.divarfiling.mobile.core.design.components.DfGlassChip
-import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfSearchFilterPanel
+import ir.divarfiling.mobile.core.design.components.DfSoftChip
+import ir.divarfiling.mobile.core.design.components.DfTextButton
 import ir.divarfiling.mobile.core.network.SavedFilterDto
 import ir.divarfiling.mobile.feature.filing.ListingFilterState
 import ir.divarfiling.mobile.feature.filing.ListingSortOptions
@@ -63,12 +63,15 @@ fun ListingsActiveFilterChips(
 ) {
     if (filters.activeCount(includeSort = true) == 0) return
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             filters.priceMin?.let { DfBadge(text = "از ${formatPrice(it)}") }
@@ -101,7 +104,7 @@ fun ListingsActiveFilterChips(
             }
         }
         if (onClear != null) {
-            DfGlassTextButton(text = "پاک‌سازی فیلترها", onClick = onClear)
+            DfTextButton(text = "پاک‌سازی فیلترها", onClick = onClear, compact = true)
         }
     }
 }
@@ -116,18 +119,21 @@ fun SavedFiltersChipRow(
     modifier: Modifier = Modifier,
 ) {
     if (filters.isEmpty()) return
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
         Text(
             "فیلترهای ذخیره‌شده",
             style = AppTypography.labelSmall,
-            color = DfColors.TextSecondary,
+            color = DfThemeColors.textSecondary(),
             fontWeight = FontWeight.SemiBold,
         )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             filters.forEach { filter ->
@@ -137,7 +143,7 @@ fun SavedFiltersChipRow(
                     append(filter.name)
                     if (filter.newCount > 0) append(" +${filter.newCount}")
                 }
-                DfGlassChip(
+                DfSoftChip(
                     text = label,
                     selected = selected,
                     onClick = { onSelect(filter) },
@@ -145,9 +151,9 @@ fun SavedFiltersChipRow(
             }
         }
         if (activeId != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DfGlassTextButton(text = "سنجاق", onClick = { onPin(activeId) })
-                DfGlassTextButton(text = "حذف", onClick = { onDelete(activeId) })
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                DfTextButton(text = "سنجاق", onClick = { onPin(activeId) }, compact = true)
+                DfTextButton(text = "حذف", onClick = { onDelete(activeId) }, compact = true)
             }
         }
     }

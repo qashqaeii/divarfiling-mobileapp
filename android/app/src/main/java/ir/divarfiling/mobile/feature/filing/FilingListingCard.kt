@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.filing
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -29,15 +28,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
-import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.filing.ListingAmenityUtils
 import ir.divarfiling.mobile.core.filing.ListingPriceUtils
 import ir.divarfiling.mobile.core.network.ListingDto
@@ -64,9 +66,10 @@ fun FilingListingCard(
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = 3.dp,
+        shape = AppShapes.ListingCard,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.listingCard,
         tonalElevation = 0.dp,
     ) {
         Column {
@@ -88,8 +91,8 @@ fun FilingListingCard(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.45f),
+                                    AppColors.ImageOverlayStart,
+                                    AppColors.ImageOverlayEnd,
                                 ),
                                 startY = 60f,
                             ),
@@ -100,7 +103,7 @@ fun FilingListingCard(
                         .fillMaxWidth()
                         .padding(AppSpacing.sm)
                         .align(Alignment.TopStart),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
                     ListingTag(
                         text = advertiserBadge.label,
@@ -126,26 +129,26 @@ fun FilingListingCard(
                     text = listing.title?.takeIf { it.isNotBlank() } ?: "بدون عنوان",
                     style = AppTypography.cardTitle,
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
 
                 if (location.isNotBlank()) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             DfIcons.MapPin,
                             contentDescription = null,
-                            tint = DfColors.Purple,
+                            tint = DfThemeColors.primary(),
                             modifier = Modifier.size(14.dp),
                         )
                         Text(
                             text = location,
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextSecondary,
+                            color = DfThemeColors.textSecondary(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -153,16 +156,16 @@ fun FilingListingCard(
                 }
 
                 if (primaryPrice != null || secondaryPrices.isNotEmpty()) {
-                    Surface(
-                        shape = AppShapes.CardSmall,
-                        color = DfColors.SurfaceVariant.copy(alpha = 0.65f),
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                DfThemeColors.surfaceVariant().copy(alpha = 0.65f),
+                                AppShapes.CardSmall,
+                            )
+                            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
                             primaryPrice?.let { line ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -172,7 +175,7 @@ fun FilingListingCard(
                                     Text(
                                         text = line.label,
                                         style = AppTypography.labelSmall,
-                                        color = DfColors.TextMuted,
+                                        color = DfThemeColors.textMuted(),
                                     )
                                     Text(
                                         text = line.value,
@@ -193,27 +196,26 @@ fun FilingListingCard(
                                     Text(
                                         text = line.label,
                                         style = AppTypography.labelSmall,
-                                        color = DfColors.TextMuted,
+                                        color = DfThemeColors.textMuted(),
                                     )
                                     Text(
                                         text = line.value,
                                         style = AppTypography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = DfColors.TextSecondary,
+                                        color = DfThemeColors.textSecondary(),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
                             }
-                        }
                     }
                 }
 
                 if (amenities.isNotEmpty()) {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
                         amenities.forEach { amenity ->
                             ListingAmenityChip(
@@ -225,16 +227,16 @@ fun FilingListingCard(
                     }
                 }
 
-                HorizontalDivider(color = DfColors.GlassBorder.copy(alpha = 0.35f))
+                HorizontalDivider(color = DfThemeColors.outlineSubtle())
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
                     ListingActionButton(
                         label = "جزئیات",
                         icon = DfIcons.File,
-                        tint = DfColors.Purple,
+                        tint = DfThemeColors.primary(),
                         background = DfColors.PurpleContainer,
                         onClick = onClick,
                         modifier = Modifier.weight(1f),
@@ -274,7 +276,7 @@ private fun ListingTag(
     Surface(shape = AppShapes.Chip, color = background) {
         Text(
             text = text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
             style = AppTypography.labelSmall,
             color = color,
             fontWeight = FontWeight.Bold,
@@ -290,10 +292,10 @@ private fun ListingAmenityChip(
     icon: ImageVector? = null,
     iconRes: Int? = null,
 ) {
-    Surface(shape = AppShapes.Chip, color = DfColors.SurfaceVariant) {
+    Surface(shape = AppShapes.Chip, color = DfThemeColors.surfaceVariant()) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             when {
@@ -301,14 +303,14 @@ private fun ListingAmenityChip(
                 icon != null -> Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = DfColors.Purple,
+                    tint = DfThemeColors.primary(),
                     modifier = Modifier.size(12.dp),
                 )
             }
             Text(
                 text = label,
                 style = AppTypography.labelSmall,
-                color = DfColors.TextSecondary,
+                color = DfThemeColors.textSecondary(),
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

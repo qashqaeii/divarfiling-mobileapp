@@ -10,22 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.NoteAdd
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,6 +22,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.R
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfHaptics
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
@@ -41,6 +32,9 @@ import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfSnackbarHost
+import ir.divarfiling.mobile.core.design.components.rememberDfSnackbarHostState
+import ir.divarfiling.mobile.core.design.components.showDfMessage
 import ir.divarfiling.mobile.feature.crm.components.ActivityLogSheet
 import ir.divarfiling.mobile.feature.crm.components.ContactActivityTimeline
 import ir.divarfiling.mobile.feature.crm.components.ContactDealCard
@@ -70,7 +64,8 @@ fun ContactDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val contact = state.data?.contact
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = rememberDfSnackbarHostState()
+    val haptics = DfHaptics.rememberPerformer()
     val documentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.uploadDocument(it) }
     }
@@ -87,18 +82,18 @@ fun ContactDetailScreen(
 
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showDfMessage(it)
             viewModel.clearMessage()
         }
         state.error?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showDfMessage(it)
             viewModel.clearMessage()
         }
     }
 
     Scaffold(
         containerColor = DfScreenContainerColor,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { DfSnackbarHost(snackbarHostState) },
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
@@ -121,13 +116,13 @@ fun ContactDetailScreen(
                 state.data != null -> {
                     val detail = state.data!!
                     val contactInfo = detail.contact
-                    val primaryActions = buildPrimaryActions(contactInfo, context, viewModel)
+                    val primaryActions = buildPrimaryActions(contactInfo, context, viewModel, haptics)
                     val secondaryActions = buildSecondaryActions(contactInfo, viewModel, documentPicker::launch)
 
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
                         item {
                             ContactDetailHero(
@@ -297,7 +292,10 @@ fun ContactDetailScreen(
                 onBuilderBuyAreasChange = viewModel::onEditBuilderBuyAreasChange,
                 onBuilderBuyTypesChange = viewModel::onEditBuilderBuyTypesChange,
                 onNotesChange = viewModel::onEditNotesChange,
-                onSave = viewModel::saveEdit,
+                onSave = {
+                    haptics.confirm()
+                    viewModel.saveEdit()
+                },
                 onDismiss = { viewModel.toggleEditSheet(false) },
             )
         }
@@ -356,10 +354,12 @@ private fun buildPrimaryActions(
     contact: ir.divarfiling.mobile.core.network.ContactDto,
     context: android.content.Context,
     viewModel: ContactDetailViewModel,
+    haptics: DfHapticPerformer,
 ): List<ContactQuickActionItem> = buildList {
     add(
-        ContactQuickActionItem("تماس", DfColors.Blue, icon = Icons.Default.Call) {
+        ContactQuickActionItem("تماس", DfColors.Blue, icon = DfIcons.Phone) {
             contact.phone?.let { phone ->
+                haptics.tick()
                 context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
                 viewModel.logActivity("تماس", "تماس تلفنی")
             }
@@ -368,6 +368,7 @@ private fun buildPrimaryActions(
     add(
         ContactQuickActionItem("واتساپ", DfColors.Green, iconRes = R.drawable.ic_whatsapp) {
             contact.phone?.let { phone ->
+                haptics.tick()
                 val wa = phone.removePrefix("0")
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/98$wa")))
                 viewModel.logActivity("واتساپ", "پیام واتساپ")
@@ -375,7 +376,7 @@ private fun buildPrimaryActions(
         },
     )
     add(
-        ContactQuickActionItem("پیامک", DfColors.Amber, icon = Icons.Default.Message) {
+        ContactQuickActionItem("پیامک", DfColors.Amber, icon = DfIcons.MessageCircle) {
             contact.phone?.let { phone ->
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("smsto:$phone")))
                 viewModel.logActivity("پیامک", "ارسال پیامک")
@@ -384,13 +385,13 @@ private fun buildPrimaryActions(
     )
     if (CrmConstants.isMatchEligible(contact.customerType)) {
         add(
-            ContactQuickActionItem("پیشنهاد", DfColors.Purple, iconRes = DfDecorIcons.Sparkles) {
+            ContactQuickActionItem("پیشنهاد", DfColors.Purple, icon = DfIcons.Sparkles) {
                 viewModel.toggleMatchesSheet(true)
             },
         )
     } else {
         add(
-            ContactQuickActionItem("یادآور", DfColors.Rose, icon = Icons.Default.Notifications) {
+            ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
                 viewModel.toggleReminderDialog(true)
             },
         )
@@ -403,20 +404,20 @@ private fun buildSecondaryActions(
     pickDocument: (String) -> Unit,
 ): List<ContactQuickActionItem> = buildList {
     if (CrmConstants.isMatchEligible(contact.customerType)) {
-        add(ContactQuickActionItem("یادآور", DfColors.Rose, icon = Icons.Default.Notifications) {
+        add(ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
             viewModel.toggleReminderDialog(true)
         })
     }
-    add(ContactQuickActionItem("یادداشت", DfColors.Purple, icon = Icons.Default.NoteAdd) {
+    add(ContactQuickActionItem("یادداشت", DfColors.Purple, icon = DfIcons.StickyNote) {
         viewModel.toggleNoteDialog(true)
     })
-    add(ContactQuickActionItem("فایل", DfColors.Blue, icon = Icons.Default.Share) {
+    add(ContactQuickActionItem("فایل", DfColors.Blue, icon = DfIcons.Share2) {
         viewModel.toggleSendFilingSheet(true)
     })
-    add(ContactQuickActionItem("مدرک", DfColors.TextSecondary, icon = Icons.Default.AttachFile) {
+    add(ContactQuickActionItem("مدرک", DfColors.TextSecondary, icon = DfIcons.Paperclip) {
         pickDocument("*/*")
     })
-    add(ContactQuickActionItem("فعالیت", DfColors.Blue, icon = Icons.Default.History) {
+    add(ContactQuickActionItem("فعالیت", DfColors.Blue, icon = DfIcons.ClipboardList) {
         viewModel.toggleActivitySheet(true)
     })
 }

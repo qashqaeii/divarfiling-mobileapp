@@ -12,22 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Launch
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,11 +28,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfCard
 import kotlinx.coroutines.delay
 
 @Composable
@@ -72,31 +65,26 @@ fun ExtractLoadingExperience(
         label = "pulseScale",
     )
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = DfColors.Surface,
-        shadowElevation = 6.dp,
-    ) {
+    DfCard(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
                     Text(
                         "در حال استخراج…",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
                     )
                     Text(
                         "${phaseProgress.toInt()}٪ · ${formatDuration(elapsedSeconds)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DfColors.TextSecondary,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
                     )
                 }
                 Box(
@@ -104,17 +92,13 @@ fun ExtractLoadingExperience(
                         .scale(pulse)
                         .size(52.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(DfColors.PurpleGradientStart, DfColors.PurpleGradientEnd),
-                            ),
-                        ),
+                        .background(DfThemeColors.primary()),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(32.dp),
                         strokeWidth = 2.5.dp,
-                        color = DfColors.Surface,
+                        color = DfThemeColors.surface(),
                     )
                 }
             }
@@ -123,27 +107,27 @@ fun ExtractLoadingExperience(
                 progress = { (phaseProgress / 100f).coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp)),
-                color = DfColors.Purple,
-                trackColor = DfColors.SurfaceVariant,
+                    .clip(AppShapes.Chip),
+                color = DfThemeColors.primary(),
+                trackColor = DfThemeColors.surfaceVariant(),
             )
 
             if (progressTotal > 0) {
                 Text(
                     "$progressCurrent از $progressTotal آگهی",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = AppTypography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = DfColors.PurpleDark,
+                    color = DfThemeColors.onPrimaryContainer(),
                 )
             }
 
             Text(
                 "زمان باقی‌مانده تقریبی: ${formatDuration(remainingSeconds)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = DfColors.TextMuted,
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textMuted(),
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 ExtractPhase.entries.forEach { step ->
                     ExtractPhaseRow(
                         step = step,
@@ -163,7 +147,7 @@ private fun ExtractPhaseRow(step: ExtractPhase, current: ExtractPhase) {
         else -> PhaseRowState.Pending
     }
     Row(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -172,32 +156,50 @@ private fun ExtractPhaseRow(step: ExtractPhase, current: ExtractPhase) {
                 .clip(CircleShape)
                 .background(
                     when (state) {
-                        PhaseRowState.Done -> DfColors.GreenLight
-                        PhaseRowState.Active -> DfColors.PurpleContainer
-                        PhaseRowState.Pending -> DfColors.SurfaceVariant
+                        PhaseRowState.Done -> DfThemeColors.successContainer()
+                        PhaseRowState.Active -> DfThemeColors.primaryContainer()
+                        PhaseRowState.Pending -> DfThemeColors.surfaceVariant()
                     },
                 ),
             contentAlignment = Alignment.Center,
         ) {
             when (state) {
-                PhaseRowState.Done -> Icon(Icons.Default.CheckCircle, null, tint = DfColors.Green, modifier = Modifier.size(18.dp))
-                PhaseRowState.Active -> CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = DfColors.Purple)
-                PhaseRowState.Pending -> Icon(step.icon, null, tint = DfColors.TextMuted, modifier = Modifier.size(16.dp))
+                PhaseRowState.Done -> Icon(
+                    DfIcons.CircleCheck,
+                    null,
+                    tint = DfThemeColors.success(),
+                    modifier = Modifier.size(18.dp),
+                )
+                PhaseRowState.Active -> CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = DfThemeColors.primary(),
+                )
+                PhaseRowState.Pending -> Icon(
+                    step.icon,
+                    null,
+                    tint = DfThemeColors.textMuted(),
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
         Column {
             Text(
                 step.label,
-                style = MaterialTheme.typography.bodyMedium,
+                style = AppTypography.bodyDescription,
                 fontWeight = if (state == PhaseRowState.Active) FontWeight.Bold else FontWeight.Normal,
                 color = when (state) {
-                    PhaseRowState.Done -> DfColors.Green
-                    PhaseRowState.Active -> DfColors.PurpleDark
-                    PhaseRowState.Pending -> DfColors.TextMuted
+                    PhaseRowState.Done -> DfThemeColors.success()
+                    PhaseRowState.Active -> DfThemeColors.onPrimaryContainer()
+                    PhaseRowState.Pending -> DfThemeColors.textMuted()
                 },
             )
             if (state == PhaseRowState.Active) {
-                Text(step.hint, style = MaterialTheme.typography.labelSmall, color = DfColors.TextSecondary)
+                Text(
+                    step.hint,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textSecondary(),
+                )
             }
         }
     }
@@ -206,13 +208,13 @@ private fun ExtractPhaseRow(step: ExtractPhase, current: ExtractPhase) {
 private enum class PhaseRowState { Done, Active, Pending }
 
 enum class ExtractPhase(val label: String, val hint: String, val icon: ImageVector) {
-    Connecting("اتصال", "برقراری ارتباط امن", Icons.Default.Link),
-    Preparing("آماده‌سازی", "پیکربندی فیلترها", Icons.Default.Search),
-    LaunchingDivar("اجرای دیوار", "ورود به جستجوی دیوار", Icons.Default.Launch),
-    Extracting("استخراج", "دریافت آگهی‌ها", Icons.Default.CloudDownload),
-    Downloading("دانلود", "بارگیری جزئیات", Icons.Default.CloudDownload),
-    Saving("ذخیره", "آپلود به فایلینگ", Icons.Default.Save),
-    Completed("تکمیل", "عملیات با موفقیت انجام شد", Icons.Default.CheckCircle),
+    Connecting("اتصال", "برقراری ارتباط امن", DfIcons.Compass),
+    Preparing("آماده‌سازی", "پیکربندی فیلترها", DfIcons.Search),
+    LaunchingDivar("اجرای دیوار", "ورود به جستجوی دیوار", DfIcons.ExternalLink),
+    Extracting("استخراج", "دریافت آگهی‌ها", DfIcons.Cloud),
+    Downloading("دانلود", "بارگیری جزئیات", DfIcons.Download),
+    Saving("ذخیره", "آپلود به فایلینگ", DfIcons.Upload),
+    Completed("تکمیل", "عملیات با موفقیت انجام شد", DfIcons.CircleCheck),
 }
 
 fun extractPhaseFromProgress(current: Int, total: Int, isRunning: Boolean): ExtractPhase {

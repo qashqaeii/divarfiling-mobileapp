@@ -1,12 +1,6 @@
 package ir.divarfiling.mobile.feature.extract.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,8 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,12 +34,18 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.places.PlaceMatchType
 import ir.divarfiling.mobile.core.places.PlaceOption
 import ir.divarfiling.mobile.core.places.PlaceSearchResult
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,31 +77,21 @@ fun ExtractLocationCard(
             Text(
                 text = "نام منطقه یا شهر را تایپ کنید؛ در صورت تطابق کامل، خودکار انتخاب می‌شود.",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
 
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 56.dp),
-                shape = RoundedCornerShape(18.dp),
-                color = DfColors.Surface,
-                shadowElevation = 2.dp,
+                shape = AppShapes.Field,
+                color = DfThemeColors.surface(),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DfThemeColors.outline()),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(
-                            width = 1.5.dp,
-                            brush = Brush.horizontalGradient(
-                                listOf(
-                                    DfColors.Purple.copy(alpha = 0.55f),
-                                    Color(0xFFA78BFA).copy(alpha = 0.35f),
-                                ),
-                            ),
-                            shape = RoundedCornerShape(18.dp),
-                        )
-                        .padding(horizontal = 14.dp, vertical = 4.dp),
+                        .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xxs),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -113,14 +101,14 @@ fun ExtractLocationCard(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(DfColors.PurpleContainer),
+                                .clip(AppShapes.IconContainer)
+                                .background(DfThemeColors.primaryContainer()),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = DfIcons.Search,
                                 contentDescription = null,
-                                tint = DfColors.Purple,
+                                tint = DfThemeColors.primary(),
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -130,18 +118,18 @@ fun ExtractLocationCard(
                             enabled = enabled,
                             modifier = Modifier.weight(1f),
                             textStyle = AppTypography.bodyDescription.copy(
-                                color = DfColors.TextPrimary,
+                                color = DfThemeColors.textPrimary(),
                                 fontWeight = FontWeight.Medium,
                             ),
                             singleLine = true,
-                            cursorBrush = SolidColor(DfColors.Purple),
+                            cursorBrush = SolidColor(DfThemeColors.primary()),
                             decorationBox = { inner ->
                                 Box(contentAlignment = Alignment.CenterStart) {
                                     if (query.isEmpty()) {
                                         Text(
                                             text = "مثلاً سعادت آباد، ونک، اصفهان…",
                                             style = AppTypography.bodyDescription,
-                                            color = DfColors.TextMuted,
+                                            color = DfThemeColors.textMuted(),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
@@ -158,7 +146,7 @@ fun ExtractLocationCard(
                                 Icon(
                                     imageVector = DfIcons.X,
                                     contentDescription = "پاک کردن",
-                                    tint = DfColors.TextMuted,
+                                    tint = DfThemeColors.textMuted(),
                                     modifier = Modifier.size(16.dp),
                                 )
                             }
@@ -176,7 +164,7 @@ fun ExtractLocationCard(
                     Text(
                         text = "پیشنهادها — با تکمیل نام، خودکار انتخاب می‌شود",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                         fontWeight = FontWeight.Medium,
                     )
                     suggestions.take(5).forEach { item ->
@@ -311,7 +299,7 @@ private fun SuggestionChip(
         onClick = { if (enabled) onClick() },
         enabled = enabled,
         shape = RoundedCornerShape(14.dp),
-        color = DfColors.SurfaceVariant.copy(alpha = 0.7f),
+        color = DfThemeColors.surfaceVariant().copy(alpha = 0.7f),
     ) {
         Row(
             modifier = Modifier
@@ -338,7 +326,7 @@ private fun SuggestionChip(
                     text = result.matchedText,
                     style = AppTypography.bodyDescription,
                     fontWeight = FontWeight.SemiBold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -350,7 +338,7 @@ private fun SuggestionChip(
                     Text(
                         text = breadcrumb,
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -359,7 +347,7 @@ private fun SuggestionChip(
             Icon(
                 imageVector = DfIcons.ChevronLeft,
                 contentDescription = null,
-                tint = DfColors.TextMuted,
+                tint = DfThemeColors.textMuted(),
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -398,7 +386,7 @@ private fun LocationSelectedRow(
             Text(
                 text = label,
                 style = AppTypography.bodyDescription,
-                color = DfColors.TextPrimary,
+                color = DfThemeColors.textPrimary(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

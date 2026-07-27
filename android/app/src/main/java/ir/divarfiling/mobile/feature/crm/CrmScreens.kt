@@ -59,46 +59,29 @@ import ir.divarfiling.mobile.feature.crm.components.CrmPropertiesIllustration
 import ir.divarfiling.mobile.feature.crm.components.CrmQuickAction
 import ir.divarfiling.mobile.feature.crm.components.CrmQuickActionsBar
 import ir.divarfiling.mobile.feature.crm.components.CrmTodayIllustration
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Apartment
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Handshake
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfHaptics
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.feature.crm.components.CrmContactsIllustration
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfContactListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
-import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
@@ -126,6 +109,7 @@ fun ContactsScreen(
     var quickFilter by remember { mutableStateOf(ContactsFilters.QuickFilter.ALL) }
     val listState = rememberLazyListState()
     val snackbar = remember { SnackbarHostState() }
+    val haptics = DfHaptics.rememberPerformer()
 
     LaunchedEffect(state.exportMessage, state.error) {
         state.exportMessage?.let {
@@ -192,7 +176,7 @@ fun ContactsScreen(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
                     ContactsHeader(
@@ -290,6 +274,7 @@ fun ContactsScreen(
                             } else {
                                 "فیلترها یا جستجو را تغییر دهید"
                             },
+                            variant = if (state.contacts.isEmpty()) DfEmptyVariant.Empty else DfEmptyVariant.NoResults,
                             actionLabel = "مخاطب جدید",
                             onAction = { viewModel.toggleQuickLead(true) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -318,6 +303,7 @@ fun ContactsScreen(
                             },
                             onCallClick = {
                                 contact.phone?.let { phone ->
+                                    haptics.tick()
                                     runCatching {
                                         context.startActivity(
                                             Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
@@ -402,6 +388,7 @@ fun TodayScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val haptics = DfHaptics.rememberPerformer()
     var selectedTab by remember { mutableStateOf(TodayFilterTab.All) }
     var showDoneSummary by remember { mutableStateOf(false) }
 
@@ -555,6 +542,7 @@ fun TodayScreen(
                             DfEmptyState(
                                 title = "$doneCount کار امروز انجام شده",
                                 subtitle = "کارهای تکمیل‌شده از صف امروز حذف می‌شوند و در این لیست نمایش داده نمی‌شوند.",
+                                variant = DfEmptyVariant.Empty,
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
@@ -567,6 +555,7 @@ fun TodayScreen(
                                 } else {
                                     "همه پیگیری‌ها انجام شده — عالی!"
                                 },
+                                variant = if (state.query.isNotBlank()) DfEmptyVariant.NoResults else DfEmptyVariant.Empty,
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
@@ -581,6 +570,7 @@ fun TodayScreen(
                                 isActionRunning = state.isActionRunning,
                                 onCall = {
                                     entry.item.contact?.phone?.let { phone ->
+                                        haptics.tick()
                                         runCatching {
                                             context.startActivity(
                                                 Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")),
@@ -626,6 +616,7 @@ fun TodayScreen(
                         DfEmptyState(
                             title = "داده‌ای نیست",
                             subtitle = "با کشیدن صفحه به‌روزرسانی کنید",
+                            variant = DfEmptyVariant.Empty,
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }

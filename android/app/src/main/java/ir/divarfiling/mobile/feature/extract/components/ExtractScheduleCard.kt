@@ -23,11 +23,11 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.components.DfGlassButton
-import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 
 data class ScheduleChipOption(
     val label: String,
@@ -89,24 +89,21 @@ fun ExtractScheduleCard(
             Text(
                 text = scheduleDescriptionForHours(selectedHours),
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                DfGlassButton(
+                DfSecondaryButton(
                     text = "مدیریت",
                     onClick = onOpenSchedules,
-                    icon = DfIcons.Clock,
                     modifier = Modifier.weight(1f),
                 )
-                DfGlassButton(
+                DfPrimaryButton(
                     text = "ذخیره",
                     onClick = onCreateSchedule,
-                    icon = DfIcons.Check,
-                    variant = DfGlassButtonVariant.Primary,
                     enabled = canCreateSchedule,
                     modifier = Modifier.weight(1f),
                 )
@@ -128,7 +125,7 @@ private fun ScheduleIntervalChip(
         onClick = onClick,
         enabled = enabled,
         shape = AppShapes.ButtonPill,
-        color = if (selected) DfColors.Purple else DfColors.SurfaceVariant,
+        color = if (selected) DfThemeColors.primary() else DfThemeColors.surfaceVariant(),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = 10.dp),
@@ -138,14 +135,14 @@ private fun ScheduleIntervalChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) Color.White else DfColors.TextMuted,
+                tint = if (selected) Color.White else DfThemeColors.textMuted(),
                 modifier = Modifier.size(14.dp),
             )
             Text(
                 text = label,
                 style = AppTypography.labelSmall,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) Color.White else DfColors.TextSecondary,
+                color = if (selected) Color.White else DfThemeColors.textSecondary(),
                 maxLines = 1,
             )
         }

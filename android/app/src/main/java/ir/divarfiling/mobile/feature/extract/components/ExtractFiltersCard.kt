@@ -13,20 +13,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCountSlider
 import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.feature.extract.ExtractCategories
@@ -58,10 +55,7 @@ fun ExtractFiltersCard(
                 icon = DfIcons.SlidersHorizontal,
             )
 
-            FilterBlock(
-                title = "جستجو",
-                subtitle = "در دستهٔ انتخاب‌شده؛ خالی = همه آگهی‌ها",
-            ) {
+            FilterBlock(title = "جستجو", subtitle = "خالی = همه آگهی‌های دسته") {
                 OutlinedTextField(
                     value = state.searchQuery,
                     onValueChange = onSearchQueryChange,
@@ -76,17 +70,14 @@ fun ExtractFiltersCard(
                         Icon(
                             imageVector = DfIcons.Search,
                             contentDescription = null,
-                            tint = DfColors.Purple,
+                            tint = DfThemeColors.primary(),
                             modifier = Modifier.size(18.dp),
                         )
                     },
                 )
             }
 
-            FilterBlock(
-                title = "دسته و ترتیب",
-                subtitle = "نوع معامله، زیردسته و نحوهٔ نمایش",
-            ) {
+            FilterBlock(title = "دسته و ترتیب") {
                 Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                     DfDropdown(
                         label = "نوع معامله",
@@ -139,10 +130,7 @@ fun ExtractFiltersCard(
                 }
             }
 
-            FilterBlock(
-                title = "حجم استخراج",
-                subtitle = "تعداد آگهی‌هایی که در این دور جمع می‌شود",
-            ) {
+            FilterBlock(title = "حجم استخراج") {
                 DfCountSlider(
                     value = state.maxItems,
                     onValueChange = onMaxItemsChange,
@@ -151,10 +139,7 @@ fun ExtractFiltersCard(
                 )
             }
 
-            FilterBlock(
-                title = "محدودهٔ قیمت و مشخصات",
-                subtitle = "فیلترهای اختیاری برای دقیق‌تر کردن نتیجه",
-            ) {
+            FilterBlock(title = "قیمت و مشخصات", subtitle = "اختیاری") {
                 advancedFilters()
             }
         }
@@ -164,56 +149,47 @@ fun ExtractFiltersCard(
 @Composable
 private fun FilterBlock(
     title: String,
-    subtitle: String,
+    subtitle: String? = null,
     content: @Composable () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 3.dp, height = 14.dp)
-                        .background(
-                            brush = Brush.verticalGradient(
-                                listOf(DfColors.Purple, Color(0xFFA78BFA)),
-                            ),
-                            shape = RoundedCornerShape(2.dp),
-                        ),
-                )
-                Text(
-                    text = title,
-                    style = AppTypography.bodyDescription,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DfColors.TextPrimary,
-                )
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 3.dp, height = 14.dp)
+                    .background(
+                        color = DfThemeColors.primary(),
+                        shape = RoundedCornerShape(2.dp),
+                    ),
+            )
+            Text(
+                text = title,
+                style = AppTypography.bodyDescription,
+                fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textPrimary(),
+            )
+        }
+        if (!subtitle.isNullOrBlank()) {
             Text(
                 text = subtitle,
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
                 modifier = Modifier.padding(start = 11.dp),
             )
         }
-        Surface(
-            shape = AppShapes.Field,
-            color = DfColors.SurfaceVariant.copy(alpha = 0.45f),
-        ) {
-            Box(modifier = Modifier.padding(AppSpacing.sm)) {
-                content()
-            }
-        }
+        content()
     }
 }
 
 @Composable
 private fun filterFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = DfColors.Purple,
-    unfocusedBorderColor = DfColors.Outline,
-    focusedContainerColor = DfColors.Surface,
-    unfocusedContainerColor = DfColors.Surface,
-    cursorColor = DfColors.Purple,
-    focusedLabelColor = DfColors.Purple,
+    focusedBorderColor = DfThemeColors.primary(),
+    unfocusedBorderColor = DfThemeColors.outline(),
+    focusedContainerColor = DfThemeColors.surface(),
+    unfocusedContainerColor = DfThemeColors.surface(),
+    cursorColor = DfThemeColors.primary(),
+    focusedLabelColor = DfThemeColors.primary(),
 )

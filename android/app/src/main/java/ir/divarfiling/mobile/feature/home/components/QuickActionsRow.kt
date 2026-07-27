@@ -1,8 +1,7 @@
 package ir.divarfiling.mobile.feature.home.components
 
-import ir.divarfiling.mobile.core.design.DfColors
-
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,10 +30,12 @@ import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfDecorSize
-import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 data class QuickAction(
     val label: String,
@@ -73,11 +74,15 @@ private fun QuickActionItem(action: QuickAction) {
         Surface(
             onClick = action.onClick,
             shape = AppShapes.CardSmall,
-            color = DfColors.Surface,
-            shadowElevation = AppElevations.card,
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            shadowElevation = AppElevations.subtle,
             modifier = Modifier.size(64.dp),
         ) {
-            Box(contentAlignment = Alignment.Center) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(AppSpacing.xs),
+            ) {
                 when {
                     action.iconRes != null -> DfDecorImage(
                         resId = action.iconRes,
@@ -96,7 +101,7 @@ private fun QuickActionItem(action: QuickAction) {
         Text(
             text = action.label,
             style = AppTypography.bottomNav,
-            color = DfColors.TextSecondary,
+            color = DfThemeColors.textSecondary(),
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Medium,
             maxLines = 2,

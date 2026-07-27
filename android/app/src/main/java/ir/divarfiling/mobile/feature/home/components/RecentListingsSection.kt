@@ -1,9 +1,6 @@
 package ir.divarfiling.mobile.feature.home.components
 
-import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfColors
-
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,8 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -38,10 +33,13 @@ import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.RecentFileItem
 
@@ -128,12 +126,12 @@ fun RecentListingsSection(
                 text = "مشاهده همه فایل‌ها",
                 style = AppTypography.bodyDescription,
                 fontWeight = FontWeight.Medium,
-                color = DfColors.Purple,
+                color = DfThemeColors.primary(),
             )
             Icon(
                 imageVector = DfIcons.ChevronLeft,
                 contentDescription = null,
-                tint = DfColors.Purple,
+                tint = DfThemeColors.primary(),
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -163,8 +161,9 @@ private fun RecentFileCard(
             .width(cardWidth)
             .height(RecentFileCardHeight),
         shape = AppShapes.ListingCard,
-        shadowElevation = AppElevations.card,
-        color = DfColors.Surface,
+        shadowElevation = AppElevations.subtle,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -206,6 +205,7 @@ private fun RecentFileCard(
                     text = fileTitle(file),
                     style = AppTypography.cardTitle,
                     fontWeight = FontWeight.SemiBold,
+                    color = DfThemeColors.textPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -213,7 +213,7 @@ private fun RecentFileCard(
                     Text(
                         it,
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                 }
                 Row(
@@ -224,17 +224,17 @@ private fun RecentFileCard(
                     Text(
                         "${file.itemCount} آگهی",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
+                        color = DfThemeColors.textSecondary(),
                     )
                     Text(
                         "${estimatedSizeMb}MB",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                     Icon(
                         DfIcons.MoreVertical,
                         contentDescription = null,
-                        tint = DfColors.TextMuted,
+                        tint = DfThemeColors.textMuted(),
                         modifier = Modifier.size(16.dp),
                     )
                 }

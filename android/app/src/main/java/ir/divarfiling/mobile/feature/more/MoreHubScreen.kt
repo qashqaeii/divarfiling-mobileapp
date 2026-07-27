@@ -4,22 +4,26 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -29,13 +33,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.AppLinks
+import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
-import ir.divarfiling.mobile.core.design.components.DfDecorSize
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -45,7 +50,6 @@ private data class MoreHubItem(
     val title: String,
     val subtitle: String,
     @DrawableRes val iconRes: Int,
-    val tint: Color,
     val background: Color,
     val action: MoreHubAction,
 )
@@ -76,17 +80,17 @@ fun MoreHubScreen(
     val updateViewModel: AppUpdateViewModel = hiltViewModel(activity)
 
     val items = listOf(
-        MoreHubItem("ابزارهای هوشمند", "محاسبه‌گرها و ابزار مشاور", DfDecorIcons.Calculator, DfColors.Purple, DfColors.PurpleContainer, MoreHubAction.Navigate("tools")),
-        MoreHubItem("استخراج سبک", "استخراج آگهی از دیوار روی گوشی", DfDecorIcons.Download, DfColors.Blue, DfColors.BlueLight, MoreHubAction.Navigate("extract")),
-        MoreHubItem("قالب پیام", "پیام‌های آماده برای مشتری", DfDecorIcons.FileText, DfColors.Amber, DfColors.AmberLight, MoreHubAction.Navigate("templates")),
-        MoreHubItem("تقویم", "یادآورها و برنامه روز", DfDecorIcons.Calendar, DfColors.Green, DfColors.GreenLight, MoreHubAction.Navigate("calendar")),
-        MoreHubItem("تیم", "مدیریت تیم در میزکار وب", DfDecorIcons.Users, DfColors.Pink, DfColors.PinkLight, MoreHubAction.External(AppLinks.WORKSPACE_TEAM)),
-        MoreHubItem("دستیار AI", "به‌زودی — در حال توسعه", DfDecorIcons.Sparkles, DfColors.Purple, DfColors.PurpleContainer, MoreHubAction.Navigate("ai")),
-        MoreHubItem("آکادمی", "آموزش و راهنما", DfDecorIcons.Rocket, DfColors.Blue, DfColors.BlueLight, MoreHubAction.External(AppLinks.ACADEMY)),
-        MoreHubItem("پشتیبانی", "تیکت و درخواست کمک", DfDecorIcons.Phone, DfColors.Amber, DfColors.AmberLight, MoreHubAction.Navigate("support")),
-        MoreHubItem("بروزرسانی اپ", "بررسی نسخه جدید و نصب", DfDecorIcons.Download, DfColors.Green, DfColors.GreenLight, MoreHubAction.CheckUpdate),
-        MoreHubItem("حریم خصوصی", "سیاست حفظ حریم", DfDecorIcons.Database, DfColors.TextSecondary, DfColors.SurfaceVariant, MoreHubAction.External(AppLinks.PRIVACY)),
-        MoreHubItem("تنظیمات", "پروفایل و اعلان‌ها", DfDecorIcons.Settings, DfColors.TextSecondary, DfColors.SurfaceVariant, MoreHubAction.Navigate("settings")),
+        MoreHubItem("ابزارهای هوشمند", "محاسبه‌گرها و ابزار مشاور", DfDecorIcons.Calculator, AppColors.PurpleContainer, MoreHubAction.Navigate("tools")),
+        MoreHubItem("استخراج سبک", "استخراج آگهی از دیوار روی گوشی", DfDecorIcons.Download, AppColors.BlueLight, MoreHubAction.Navigate("extract")),
+        MoreHubItem("قالب پیام", "پیام‌های آماده برای مشتری", DfDecorIcons.FileText, AppColors.AmberLight, MoreHubAction.Navigate("templates")),
+        MoreHubItem("تقویم", "یادآورها و برنامه روز", DfDecorIcons.Calendar, AppColors.GreenLight, MoreHubAction.Navigate("calendar")),
+        MoreHubItem("تیم", "مدیریت تیم در میزکار وب", DfDecorIcons.Users, AppColors.PinkLight, MoreHubAction.External(AppLinks.WORKSPACE_TEAM)),
+        MoreHubItem("دستیار AI", "به‌زودی — در حال توسعه", DfDecorIcons.Sparkles, AppColors.PurpleContainer, MoreHubAction.Navigate("ai")),
+        MoreHubItem("آکادمی", "آموزش و راهنما", DfDecorIcons.Rocket, AppColors.BlueLight, MoreHubAction.External(AppLinks.ACADEMY)),
+        MoreHubItem("پشتیبانی", "تیکت و درخواست کمک", DfDecorIcons.Phone, AppColors.AmberLight, MoreHubAction.Navigate("support")),
+        MoreHubItem("بروزرسانی اپ", "بررسی نسخه جدید و نصب", DfDecorIcons.Download, AppColors.GreenLight, MoreHubAction.CheckUpdate),
+        MoreHubItem("حریم خصوصی", "سیاست حفظ حریم", DfDecorIcons.Database, AppColors.SurfaceVariant, MoreHubAction.External(AppLinks.PRIVACY)),
+        MoreHubItem("تنظیمات", "پروفایل و اعلان‌ها", DfDecorIcons.Settings, AppColors.SurfaceVariant, MoreHubAction.Navigate("settings")),
     )
 
     fun handleItem(item: MoreHubItem) {
@@ -132,8 +136,8 @@ fun MoreHubScreen(
                         horizontal = AppSpacing.screenHorizontal,
                         vertical = AppSpacing.sm,
                     ),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                 ) {
                     items(items, key = { it.title }) { item ->
                         MoreHubCard(item = item, onClick = { handleItem(item) })
@@ -144,37 +148,43 @@ fun MoreHubScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MoreHubCard(item: MoreHubItem, onClick: () -> Unit) {
-    Surface(
+    DfCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 112.dp),
         onClick = onClick,
-        shape = AppShapes.Card,
-        color = item.background.copy(alpha = 0.55f),
-        modifier = Modifier.fillMaxWidth(),
+        containerColor = DfThemeColors.surface(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
         ) {
-            DfDecorImage(
-                resId = item.iconRes,
-                size = DfDecorSize.Medium,
-                contentDescription = item.title,
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(item.background, AppShapes.IconContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                DfDecorImage(
+                    resId = item.iconRes,
+                    size = 22.dp,
+                    contentDescription = item.title,
+                )
+            }
             Text(
                 item.title,
                 style = AppTypography.cardTitle,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textPrimary(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 item.subtitle,
                 style = AppTypography.labelSmall,
-                color = DfColors.TextSecondary,
+                color = DfThemeColors.textSecondary(),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

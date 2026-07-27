@@ -26,21 +26,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfStatusBanner
+import ir.divarfiling.mobile.core.design.components.DfStatusTone
+import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.network.CloudExtractionJobDto
 import ir.divarfiling.mobile.feature.extract.ExtractCategories
 
@@ -88,7 +91,6 @@ fun CloudExtractScreen(
                 item {
                     DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
                         Column(
-                            modifier = Modifier.padding(AppSpacing.cardPadding),
                             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                         ) {
                             CityDropdown(state.cities, state.cityName, viewModel::onCityChange)
@@ -99,6 +101,7 @@ fun CloudExtractScreen(
                                 label = { Text("حداکثر آگهی") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
+                                shape = AppShapes.Field,
                             )
                             DfPrimaryButton(
                                 text = "شروع استخراج ابری",
@@ -122,6 +125,7 @@ fun CloudExtractScreen(
                         DfEmptyState(
                             title = "درخواستی ثبت نشده",
                             subtitle = "اولین استخراج ابری خود را ایجاد کنید.",
+                            variant = DfEmptyVariant.Empty,
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -154,6 +158,7 @@ private fun CityDropdown(
             readOnly = true,
             label = { Text("شهر") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            shape = ir.divarfiling.mobile.core.design.AppShapes.Field,
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth(),
@@ -187,6 +192,7 @@ private fun CategoryDropdown(
             readOnly = true,
             label = { Text("دسته‌بندی") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            shape = ir.divarfiling.mobile.core.design.AppShapes.Field,
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth(),
@@ -211,25 +217,45 @@ private fun CloudJobCard(
     onOpenDataset: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val statusTone = when (job.status.lowercase()) {
+        "success", "completed", "done" -> DfStatusTone.Success
+        "failed", "error" -> DfStatusTone.Error
+        "running", "pending", "queued" -> DfStatusTone.Info
+        else -> DfStatusTone.Warning
+    }
+    val statusTitle = when (statusTone) {
+        DfStatusTone.Success -> "موفق"
+        DfStatusTone.Error -> "ناموفق"
+        DfStatusTone.Info -> "در حال اجرا"
+        else -> job.status
+    }
     DfCard(
         modifier = modifier.fillMaxWidth(),
         onClick = job.datasetId?.takeIf { job.status == "success" }?.let { { onOpenDataset(it) } },
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            Text("درخواست #${job.id}", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-            Text("وضعیت: ${job.status}", style = AppTypography.labelSmall, color = DfColors.Purple)
-            Text("${job.ingestedCount} / ${job.maxItems} آگهی", style = AppTypography.labelSmall, color = DfColors.TextSecondary)
-            job.createdAt?.let { Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted) }
+            Text(
+                "درخواست #${job.id}",
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
+            DfStatusBanner(
+                message = "${job.ingestedCount} / ${job.maxItems} آگهی",
+                tone = statusTone,
+                title = statusTitle,
+            )
+            job.createdAt?.let {
+                Text(it, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+            }
             job.error?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = AppTypography.labelSmall, color = DfColors.Rose)
+                DfStatusBanner(message = it, tone = DfStatusTone.Error)
             }
             job.datasetId?.takeIf { job.status == "success" }?.let {
-                Text("مشاهده فایل", style = AppTypography.labelSmall, color = DfColors.Blue)
+                Text("مشاهده فایل", style = AppTypography.labelSmall, color = DfThemeColors.info())
             }
         }
     }

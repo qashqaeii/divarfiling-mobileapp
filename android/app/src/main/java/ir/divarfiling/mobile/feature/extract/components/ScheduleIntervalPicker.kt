@@ -6,9 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -19,7 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfBottomSheetPicker
 
 data class ScheduleIntervalOption(
@@ -59,7 +58,7 @@ fun ScheduleIntervalField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -72,7 +71,7 @@ fun ScheduleIntervalField(
                     color = if (enabled) DfColors.TextPrimary else DfColors.TextMuted,
                 )
             }
-            Icon(Icons.Default.Schedule, contentDescription = null, tint = DfColors.Purple)
+            Icon(DfIcons.Clock, contentDescription = null, tint = DfColors.Purple)
         }
     }
 }
@@ -104,7 +103,7 @@ fun ScheduleIntervalBottomSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -115,7 +114,7 @@ fun ScheduleIntervalBottomSheet(
                         color = if (selected) DfColors.PurpleDark else DfColors.TextPrimary,
                     )
                     if (selected) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = DfColors.Purple)
+                        Icon(DfIcons.Check, contentDescription = null, tint = DfColors.Purple)
                     }
                 }
             }

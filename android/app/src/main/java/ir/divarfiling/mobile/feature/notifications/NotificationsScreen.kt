@@ -1,7 +1,5 @@
 package ir.divarfiling.mobile.feature.notifications
 
-import ir.divarfiling.mobile.core.design.DfColors
-
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +18,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,18 +30,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
-import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfNotificationListSkeleton
-import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfStatusBanner
+import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.feature.home.HomeNotificationType
 import ir.divarfiling.mobile.navigation.DeepLinkParser
 import ir.divarfiling.mobile.navigation.DeepLinkTarget
@@ -71,21 +73,58 @@ fun NotificationsScreen(
         ) {
             when {
                 state.isLoading -> {
-                    DfNotificationListSkeleton(
-                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                    )
+                    Column {
+                        DfHubPageHeader(
+                            title = "اعلان‌ها",
+                            subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
+                            titleIconRes = DfDecorIcons.Bell,
+                            onBack = onBack,
+                        )
+                        DfNotificationListSkeleton(
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 state.error != null && state.items.isEmpty() -> {
-                    Column(Modifier.padding(AppSpacing.screenHorizontal)) {
-                        DfErrorBanner(state.error!!)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                    ) {
+                        DfHubPageHeader(
+                            title = "اعلان‌ها",
+                            subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
+                            titleIconRes = DfDecorIcons.Bell,
+                            onBack = onBack,
+                        )
+                        DfStatusBanner(
+                            message = state.error!!,
+                            tone = DfStatusTone.Error,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                        DfEmptyState(
+                            title = "بارگذاری ناموفق",
+                            subtitle = "اتصال را بررسی کنید و دوباره تلاش کنید.",
+                            variant = DfEmptyVariant.Error,
+                            actionLabel = "تلاش مجدد",
+                            onAction = viewModel::refresh,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
                     }
                 }
                 state.items.isEmpty() -> {
-                    DfEmptyState(
-                        title = "اعلانی ندارید",
-                        subtitle = "یادآورها، استخراج‌ها و پیگیری‌ها اینجا نمایش داده می‌شوند",
-                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                    )
+                    Column {
+                        DfHubPageHeader(
+                            title = "اعلان‌ها",
+                            subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
+                            titleIconRes = DfDecorIcons.Bell,
+                            onBack = onBack,
+                        )
+                        DfEmptyState(
+                            title = "اعلانی ندارید",
+                            subtitle = "یادآورها، استخراج‌ها و پیگیری‌ها اینجا نمایش داده می‌شوند",
+                            variant = DfEmptyVariant.Empty,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 else -> {
                     LazyColumn(
@@ -118,17 +157,13 @@ fun NotificationsScreen(
                         }
                         if (state.hasMore) {
                             item {
-                                TextButton(
+                                DfSecondaryButton(
+                                    text = if (state.isLoadingMore) "در حال بارگذاری…" else "بیشتر",
                                     onClick = viewModel::loadMore,
-                                    modifier = Modifier.fillMaxWidth(),
                                     enabled = !state.isLoadingMore,
-                                ) {
-                                    Text(
-                                        if (state.isLoadingMore) "در حال بارگذاری…" else "بیشتر",
-                                        style = AppTypography.labelSmall,
-                                        color = DfColors.Purple,
-                                    )
-                                }
+                                    loading = state.isLoadingMore,
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                )
                             }
                         }
                     }
@@ -145,7 +180,15 @@ private fun NotificationListRow(
     modifier: Modifier = Modifier,
 ) {
     val (icon, tint, bg) = notificationStyle(item.type)
-    DfPremiumCard(onClick = onClick, modifier = modifier) {
+    DfCard(
+        onClick = onClick,
+        modifier = modifier,
+        containerColor = if (item.isRead) {
+            DfThemeColors.surface()
+        } else {
+            DfThemeColors.primaryContainer().copy(alpha = 0.35f)
+        },
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
@@ -162,7 +205,7 @@ private fun NotificationListRow(
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -172,7 +215,8 @@ private fun NotificationListRow(
                     Text(
                         item.title,
                         style = AppTypography.cardTitle,
-                        fontWeight = if (item.isRead) FontWeight.Normal else FontWeight.Bold,
+                        fontWeight = if (item.isRead) FontWeight.Normal else FontWeight.SemiBold,
+                        color = DfThemeColors.textPrimary(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
@@ -181,8 +225,8 @@ private fun NotificationListRow(
                         Box(
                             modifier = Modifier
                                 .size(8.dp)
-                                .clip(AppShapes.IconContainer)
-                                .background(DfColors.Purple),
+                                .clip(AppShapes.Avatar)
+                                .background(DfThemeColors.primary()),
                         )
                     }
                 }
@@ -190,7 +234,7 @@ private fun NotificationListRow(
                     Text(
                         item.body,
                         style = AppTypography.bodyDescription,
-                        color = DfColors.TextSecondary,
+                        color = DfThemeColors.textSecondary(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -198,7 +242,7 @@ private fun NotificationListRow(
                 Text(
                     item.timeAgo,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
         }
@@ -206,10 +250,10 @@ private fun NotificationListRow(
 }
 
 private fun notificationStyle(type: HomeNotificationType): Triple<ImageVector, Color, Color> = when (type) {
-    HomeNotificationType.ExtractSuccess -> Triple(DfIcons.Download, DfColors.Blue, DfColors.BlueLight)
-    HomeNotificationType.NewMatch -> Triple(DfIcons.Star, DfColors.Green, DfColors.GreenLight)
-    HomeNotificationType.PriceDrop -> Triple(DfIcons.TrendingDown, DfColors.Amber, DfColors.AmberLight)
-    HomeNotificationType.License -> Triple(DfIcons.Sparkles, DfColors.Purple, DfColors.PurpleContainer)
-    HomeNotificationType.FollowUp -> Triple(DfIcons.Phone, DfColors.Rose, DfColors.RoseLight)
-    HomeNotificationType.General -> Triple(DfIcons.Home, DfColors.Purple, DfColors.PurpleContainer)
+    HomeNotificationType.ExtractSuccess -> Triple(DfIcons.Download, AppColors.Blue, AppColors.BlueLight)
+    HomeNotificationType.NewMatch -> Triple(DfIcons.Star, AppColors.Green, AppColors.GreenLight)
+    HomeNotificationType.PriceDrop -> Triple(DfIcons.TrendingDown, AppColors.Amber, AppColors.AmberLight)
+    HomeNotificationType.License -> Triple(DfIcons.Sparkles, AppColors.Purple, AppColors.PurpleContainer)
+    HomeNotificationType.FollowUp -> Triple(DfIcons.Phone, AppColors.Rose, AppColors.RoseLight)
+    HomeNotificationType.General -> Triple(DfIcons.Home, AppColors.Purple, AppColors.PurpleContainer)
 }

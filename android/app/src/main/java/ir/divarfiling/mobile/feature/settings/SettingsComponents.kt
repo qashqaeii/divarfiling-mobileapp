@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.feature.settings
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,21 +10,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -39,21 +36,27 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
-import ir.divarfiling.mobile.core.design.components.DfDecorImage
-import ir.divarfiling.mobile.core.design.DfShapes
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
+import ir.divarfiling.mobile.core.design.components.DfDestructiveButton
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
-import ir.divarfiling.mobile.core.design.components.DfGlassButton
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.core.design.components.DfStatusBanner
+import ir.divarfiling.mobile.core.design.components.DfStatusTone
+import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.UserDto
 
@@ -73,56 +76,74 @@ fun SettingsHeroCard(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = DfShapes.Card,
+        shape = AppShapes.Card,
         color = Color.Transparent,
+        border = BorderStroke(1.dp, AppColors.OutlineSubtle),
+        shadowElevation = AppElevations.subtle,
+        tonalElevation = AppElevations.none,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        listOf(DfColors.PurpleGradientStart, DfColors.PurpleGradientEnd),
+                        listOf(AppColors.PurpleGradientStart, AppColors.PurpleGradientEnd),
                     ),
                 )
-                .padding(20.dp),
+                .padding(AppSpacing.cardPadding),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
+                        .size(56.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f)),
+                        .background(AppColors.Surface.copy(alpha = 0.22f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         initials,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = AppTypography.sectionTitle,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = AppColors.Surface,
                     )
                 }
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                ) {
                     Text(
                         user?.fullName ?: "مشاور املاک",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = AppTypography.sectionTitle,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = AppColors.Surface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     user?.agencyName?.takeIf { it.isNotBlank() }?.let {
-                        Text(it, color = Color.White.copy(alpha = 0.88f), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            it,
+                            color = AppColors.Surface.copy(alpha = 0.88f),
+                            style = AppTypography.bodyDescription,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                     user?.phone?.takeIf { it.isNotBlank() }?.let {
-                        Text(it, color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            it,
+                            color = AppColors.Surface.copy(alpha = 0.75f),
+                            style = AppTypography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
                 IconButton(onClick = onEditProfile) {
-                    Icon(Icons.Default.Edit, contentDescription = "ویرایش", tint = Color.White)
+                    Icon(DfIcons.Pencil, contentDescription = "ویرایش", tint = AppColors.Surface)
                 }
             }
         }
@@ -141,48 +162,63 @@ fun LicenseInsightCard(
         label = "licenseProgress",
     )
     val accent = when {
-        !license.valid -> DfColors.Rose
-        license.expiringSoon -> DfColors.Amber
-        else -> DfColors.Green
+        !license.valid -> AppColors.Rose
+        license.expiringSoon -> AppColors.Amber
+        else -> AppColors.Green
     }
     val bg = when {
-        !license.valid -> DfColors.RoseLight
-        license.expiringSoon -> DfColors.AmberLight
-        else -> DfColors.GreenLight
+        !license.valid -> AppColors.RoseLight
+        license.expiringSoon -> AppColors.AmberLight
+        else -> AppColors.GreenLight
     }
 
-    Surface(
+    DfCard(
         modifier = modifier.fillMaxWidth(),
-        shape = DfShapes.Card,
-        color = bg,
+        containerColor = bg,
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("وضعیت لایسنس", fontWeight = FontWeight.SemiBold)
-                    Text(license.licenseLabel, color = DfColors.TextSecondary)
-                    if (!license.valid) {
-                        Text(
-                            "پس از خرید با همین حساب وارد اپ شوید. هر لایسنس: یک ویندوز + یک اندروید.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = DfColors.TextMuted,
-                        )
-                    }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                ) {
+                    Text(
+                        "وضعیت لایسنس",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DfThemeColors.textPrimary(),
+                    )
+                    Text(
+                        license.licenseLabel,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                    )
                     Text(
                         license.expiryHeadline,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
                         color = accent,
                     )
                 }
-                Icon(DfIcons.Sparkles, contentDescription = null, tint = accent, modifier = Modifier.size(28.dp))
+                Icon(
+                    DfIcons.Sparkles,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+            if (!license.valid) {
+                DfStatusBanner(
+                    message = "پس از خرید با همین حساب وارد اپ شوید. هر لایسنس: یک ویندوز + یک اندروید.",
+                    tone = DfStatusTone.Locked,
+                    title = "لایسنس فعال نیست",
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -191,12 +227,12 @@ fun LicenseInsightCard(
             ) {
                 Text(
                     "زمان باقی‌مانده",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DfColors.TextMuted,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
                 )
                 Text(
                     "${license.expiryProgressPercent}٪",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = AppTypography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = accent,
                 )
@@ -206,16 +242,16 @@ fun LicenseInsightCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
-                    .clip(DfShapes.Chip),
+                    .clip(AppShapes.Chip),
                 color = accent,
-                trackColor = Color.White.copy(alpha = 0.65f),
+                trackColor = AppColors.Surface.copy(alpha = 0.65f),
             )
             license.expiresAt?.takeIf { it.isNotBlank() }?.let {
                 val formatted = DateUtils.formatForDisplay(it)
                 Text(
                     "انقضا: $formatted",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DfColors.TextMuted,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
                 )
             }
             FeatureChips(license)
@@ -227,10 +263,9 @@ fun LicenseInsightCard(
                 )
             }
             if (onOpenDashboard != null && !license.valid) {
-                DfGlassButton(
+                DfSecondaryButton(
                     text = "مشاهده کلید در داشبورد",
                     onClick = onOpenDashboard,
-                    icon = DfIcons.ExternalLink,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -241,7 +276,10 @@ fun LicenseInsightCard(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FeatureChips(license: LicenseState) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
         FeatureChip("CRM", license.valid && license.crmEnabled)
         FeatureChip("فایلینگ", license.valid && license.filingEnabled)
         FeatureChip("استخراج فایل", license.canUseLightExtract)
@@ -253,19 +291,35 @@ private fun FeatureChips(license: LicenseState) {
 private fun FeatureChip(label: String, enabled: Boolean) {
     DfBadge(
         text = label,
-        color = if (enabled) DfColors.Green.copy(alpha = 0.15f) else DfColors.SurfaceVariant,
-        textColor = if (enabled) DfColors.Green else DfColors.TextMuted,
+        color = if (enabled) AppColors.GreenLight else DfThemeColors.surfaceVariant(),
+        textColor = if (enabled) AppColors.Green else DfThemeColors.textMuted(),
     )
 }
 
 @Composable
 fun SettingsSectionTitle(title: String, subtitle: String? = null, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(title, style = AppTypography.sectionTitle, fontWeight = FontWeight.SemiBold)
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+    ) {
+        Text(
+            title,
+            style = AppTypography.sectionTitle,
+            fontWeight = FontWeight.SemiBold,
+            color = DfThemeColors.textPrimary(),
+        )
         subtitle?.let {
-            Text(it, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
+            Text(it, style = AppTypography.bodyDescription, color = DfThemeColors.textMuted())
         }
     }
+}
+
+@Composable
+fun SettingsRowDivider() {
+    HorizontalDivider(
+        color = DfThemeColors.outlineSubtle(),
+        modifier = Modifier.padding(vertical = AppSpacing.xxs),
+    )
 }
 
 @Composable
@@ -277,31 +331,57 @@ fun NotificationPrefRow(
     enabled: Boolean = true,
     icon: ImageVector? = null,
     @DrawableRes iconRes: Int? = null,
+    showDivider: Boolean = false,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (showDivider) SettingsRowDivider()
+        Row(
             modifier = Modifier
-                .size(40.dp)
-                .clip(DfShapes.IconContainer)
-                .background(DfColors.PurpleContainer),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = AppSpacing.listRowMinHeight)
+                .padding(vertical = AppSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            when {
-                iconRes != null -> DfDecorImage(resId = iconRes, size = 22.dp)
-                icon != null -> Icon(icon, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(20.dp))
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(AppShapes.IconContainer)
+                    .background(DfThemeColors.primaryContainer()),
+                contentAlignment = Alignment.Center,
+            ) {
+                when {
+                    iconRes != null -> DfDecorImage(resId = iconRes, size = 20.dp)
+                    icon != null -> Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = DfThemeColors.primary(),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+            ) {
+                Text(
+                    title,
+                    style = AppTypography.bodyDescription,
+                    fontWeight = FontWeight.Medium,
+                    color = DfThemeColors.textPrimary(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    subtitle,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textSecondary(),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
         }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary, maxLines = 2)
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
 
@@ -311,14 +391,27 @@ fun DigestHourPicker(
     onHourChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        SettingsRowDivider()
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("ساعت خلاصه روزانه", fontWeight = FontWeight.Medium)
-            DfBadge(text = String.format("%02d:00", hour), color = DfColors.BlueLight, textColor = DfColors.Blue)
+            Text(
+                "ساعت خلاصه روزانه",
+                style = AppTypography.bodyDescription,
+                fontWeight = FontWeight.Medium,
+                color = DfThemeColors.textPrimary(),
+            )
+            DfBadge(
+                text = String.format("%02d:00", hour),
+                color = AppColors.BlueLight,
+                textColor = AppColors.Blue,
+            )
         }
         Slider(
             value = hour.toFloat(),
@@ -328,8 +421,8 @@ fun DigestHourPicker(
         )
         Text(
             "اعلان «کارهای امروز» و پیگیری معوق حدود این ساعت ارسال می‌شود.",
-            style = MaterialTheme.typography.bodySmall,
-            color = DfColors.TextMuted,
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textMuted(),
         )
     }
 }
@@ -341,23 +434,68 @@ fun SettingsInfoRow(
     icon: ImageVector,
     trailing: String? = null,
     onClick: (() -> Unit)? = null,
+    showDivider: Boolean = false,
 ) {
     val content: @Composable () -> Unit = {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(icon, contentDescription = null, tint = DfColors.TextSecondary)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Medium)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DfColors.TextSecondary)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (showDivider) SettingsRowDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = AppSpacing.listRowMinHeight)
+                    .padding(vertical = AppSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.iconTextGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(AppShapes.IconContainer)
+                        .background(DfThemeColors.surfaceVariant()),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = DfThemeColors.textSecondary(),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                ) {
+                    Text(
+                        title,
+                        style = AppTypography.bodyDescription,
+                        fontWeight = FontWeight.Medium,
+                        color = DfThemeColors.textPrimary(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        subtitle,
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textSecondary(),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                when {
+                    trailing != null -> Text(
+                        trailing,
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.primary(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    onClick != null -> Icon(
+                        DfIcons.ChevronLeft,
+                        contentDescription = null,
+                        tint = DfThemeColors.textMuted(),
+                    )
+                }
             }
-            trailing?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium, color = DfColors.Purple)
-            } ?: Icon(Icons.Default.ChevronLeft, contentDescription = null, tint = DfColors.TextMuted)
         }
     }
     if (onClick != null) {
@@ -384,7 +522,7 @@ fun ProfileEditSheet(
         DfSheetScaffold(
             title = "ویرایش پروفایل",
             subtitle = "نام و شماره تماس نمایشی خود را به‌روز کنید",
-            icon = Icons.Default.Edit,
+            icon = DfIcons.Pencil,
             onClose = onDismiss,
             footer = {
                 DfSheetActions(
@@ -397,20 +535,16 @@ fun ProfileEditSheet(
             },
         ) {
             DfSheetSection(title = "اطلاعات کاربری") {
-                OutlinedTextField(
+                DfTextField(
                     value = fullName,
                     onValueChange = onFullNameChange,
-                    label = { Text("نام کامل") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    label = "نام کامل",
                     enabled = !isSaving,
                 )
-                OutlinedTextField(
+                DfTextField(
                     value = phone,
                     onValueChange = onPhoneChange,
-                    label = { Text("تلفن") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    label = "تلفن",
                     enabled = !isSaving,
                 )
             }
@@ -420,24 +554,9 @@ fun ProfileEditSheet(
 
 @Composable
 fun LogoutButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
+    DfDestructiveButton(
+        text = "خروج از حساب",
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = DfShapes.Card,
-        color = DfColors.RoseLight,
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = DfColors.Rose)
-            Text(
-                "خروج از حساب",
-                modifier = Modifier.padding(start = 8.dp),
-                color = DfColors.Rose,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-    }
+    )
 }

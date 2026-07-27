@@ -13,12 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.NoteAdd
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -37,8 +31,10 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
-import ir.divarfiling.mobile.core.design.components.DfPremiumCard
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.network.ActivityDto
 
 @Composable
@@ -46,9 +42,8 @@ fun ContactActivityTimeline(
     activities: List<ActivityDto>,
     modifier: Modifier = Modifier,
 ) {
-    DfPremiumCard(modifier = modifier) {
+    DfCard(modifier = modifier, containerColor = DfThemeColors.surface()) {
         Column(
-            modifier = Modifier.padding(AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             Row(
@@ -66,16 +61,16 @@ fun ContactActivityTimeline(
                     text = "تاریخچه فعالیت",
                     style = AppTypography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                     modifier = Modifier.weight(1f),
                 )
                 if (activities.isNotEmpty()) {
-                    Surface(shape = AppShapes.Chip, color = DfColors.PurpleContainer) {
+                    Surface(shape = AppShapes.Chip, color = DfThemeColors.primaryContainer()) {
                         Text(
                             text = DateUtils.toPersianDigits(activities.size.toString()),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             style = AppTypography.labelSmall,
-                            color = DfColors.Purple,
+                            color = DfThemeColors.primary(),
                             fontWeight = FontWeight.Bold,
                         )
                     }
@@ -86,6 +81,7 @@ fun ContactActivityTimeline(
                 DfEmptyState(
                     title = "تایم‌لاین خالی است",
                     subtitle = "تماس، یادداشت یا ثبت فعالیت، تاریخچه را اینجا می‌سازد",
+                    variant = DfEmptyVariant.Empty,
                 )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
@@ -128,7 +124,7 @@ private fun ContactTimelineItem(
                     modifier = Modifier
                         .width(2.dp)
                         .height(10.dp)
-                        .background(DfColors.Outline.copy(alpha = 0.35f)),
+                        .background(DfThemeColors.outlineSubtle()),
                 )
             }
             Box(
@@ -150,7 +146,7 @@ private fun ContactTimelineItem(
                     modifier = Modifier
                         .width(2.dp)
                         .fillMaxHeight()
-                        .background(DfColors.Outline.copy(alpha = 0.35f)),
+                        .background(DfThemeColors.outlineSubtle()),
                 )
             }
         }
@@ -174,7 +170,7 @@ private fun ContactTimelineItem(
                             ?: "فعالیت",
                         style = AppTypography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = DfColors.TextPrimary,
+                        color = DfThemeColors.textPrimary(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -203,13 +199,13 @@ private fun ContactTimelineItem(
             activity.content?.takeIf { it.isNotBlank() }?.let { content ->
                 Surface(
                     shape = AppShapes.Chip,
-                    color = DfColors.SurfaceVariant.copy(alpha = 0.55f),
+                    color = DfThemeColors.surfaceVariant().copy(alpha = 0.55f),
                 ) {
                     Text(
                         text = content,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                         style = AppTypography.bodyDescription,
-                        color = DfColors.TextSecondary,
+                        color = DfThemeColors.textSecondary(),
                     )
                 }
             }
@@ -217,7 +213,7 @@ private fun ContactTimelineItem(
                 Text(
                     text = "مخاطب: $name",
                     style = AppTypography.labelSmall,
-                    color = DfColors.Purple,
+                    color = DfThemeColors.primary(),
                 )
             }
         }
@@ -229,7 +225,7 @@ private fun ContactTimelineDateChip(
     primary: String,
     secondary: String?,
 ) {
-    Surface(shape = AppShapes.Chip, color = DfColors.SurfaceVariant) {
+    Surface(shape = AppShapes.Chip, color = DfThemeColors.surfaceVariant()) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
             horizontalAlignment = Alignment.End,
@@ -238,14 +234,14 @@ private fun ContactTimelineDateChip(
                 text = primary,
                 style = AppTypography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = DfColors.TextSecondary,
+                color = DfThemeColors.textSecondary(),
                 maxLines = 1,
             )
             secondary?.let {
                 Text(
                     text = it,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                     maxLines = 1,
                 )
             }
@@ -254,13 +250,13 @@ private fun ContactTimelineDateChip(
 }
 
 private fun activityVisual(typeKey: String): Pair<Color, ImageVector> = when {
-    typeKey.contains("تماس", ignoreCase = true) -> DfColors.Blue to Icons.Default.Call
+    typeKey.contains("تماس", ignoreCase = true) -> DfColors.Blue to DfIcons.Phone
     typeKey.contains("واتساپ", ignoreCase = true) -> DfColors.Green to DfIcons.MessageCircle
-    typeKey.contains("پیامک", ignoreCase = true) -> DfColors.Amber to Icons.Default.Message
-    typeKey.contains("یادآور", ignoreCase = true) -> DfColors.Rose to Icons.Default.Notifications
-    typeKey.contains("یادداشت", ignoreCase = true) -> DfColors.Purple to Icons.Default.NoteAdd
+    typeKey.contains("پیامک", ignoreCase = true) -> DfColors.Amber to DfIcons.MessageCircle
+    typeKey.contains("یادآور", ignoreCase = true) -> DfColors.Rose to DfIcons.Bell
+    typeKey.contains("یادداشت", ignoreCase = true) -> DfColors.Purple to DfIcons.StickyNote
     typeKey.contains("بازدید", ignoreCase = true) -> DfColors.Green to DfIcons.MapPin
     typeKey.contains("جلسه", ignoreCase = true) -> DfColors.Purple to DfIcons.Users
     typeKey.contains("فایل", ignoreCase = true) -> DfColors.Blue to DfIcons.Share2
-    else -> DfColors.TextMuted to Icons.Default.History
+    else -> DfColors.TextMuted to DfIcons.ClipboardList
 }

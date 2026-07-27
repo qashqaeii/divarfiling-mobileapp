@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.home.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
@@ -34,6 +34,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfAnimation
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfAnimatedCounter
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
@@ -74,8 +75,9 @@ fun StatsSection(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = AppShapes.Card,
-            color = DfColors.Surface,
-            shadowElevation = AppElevations.card,
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            shadowElevation = AppElevations.subtle,
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 TodayProgressHero(
@@ -89,12 +91,12 @@ fun StatsSection(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                        .padding(AppSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
                         OverviewMiniTile(
                             value = hoursSpent,
@@ -118,7 +120,7 @@ fun StatsSection(
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
                         OverviewMiniTile(
                             value = stats.todayTasksDone.toString(),
@@ -131,7 +133,7 @@ fun StatsSection(
                             icon = DfIcons.CircleCheck,
                             tint = DfColors.Green,
                             background = DfColors.GreenLight,
-                            footerTint = if (stats.tasksDoneDelta > 0) DfColors.Green else DfColors.TextMuted,
+                            footerTint = if (stats.tasksDoneDelta > 0) DfColors.Green else DfThemeColors.textMuted(),
                             animateValue = true,
                             modifier = Modifier.weight(1f),
                         )
@@ -178,15 +180,15 @@ private fun TodayProgressHero(
                     ),
                 ),
             )
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(horizontal = AppSpacing.cardPadding, vertical = AppSpacing.md),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
                     Text(
                         "پیشرفت روزانه",
                         style = AppTypography.labelSmall,
@@ -200,12 +202,12 @@ private fun TodayProgressHero(
                     )
                 }
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppShapes.Chip,
                     color = Color.White.copy(alpha = 0.16f),
                 ) {
                     Text(
                         text = if (total > 0) "$done از $total کار" else "بدون کار ثبت‌شده",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xxs + 2.dp),
                         style = AppTypography.labelSmall,
                         color = Color.White,
                         fontWeight = FontWeight.Medium,
@@ -217,7 +219,7 @@ private fun TodayProgressHero(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
+                    .clip(AppShapes.Avatar),
                 color = Color.White,
                 trackColor = Color.White.copy(alpha = 0.22f),
             )
@@ -234,29 +236,30 @@ private fun OverviewMiniTile(
     tint: Color,
     background: Color,
     modifier: Modifier = Modifier,
-    footerTint: Color = DfColors.TextMuted,
+    footerTint: Color = DfThemeColors.textMuted(),
     animateValue: Boolean = false,
 ) {
     Surface(
         modifier = modifier,
         shape = AppShapes.StatCard,
         color = background.copy(alpha = 0.45f),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+                .padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs + 2.dp),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
                         .size(30.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White.copy(alpha = 0.55f)),
+                        .clip(AppShapes.IconContainer)
+                        .background(DfThemeColors.surface().copy(alpha = 0.7f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
@@ -264,7 +267,7 @@ private fun OverviewMiniTile(
                 Text(
                     label,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextSecondary,
+                    color = DfThemeColors.textSecondary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -275,14 +278,14 @@ private fun OverviewMiniTile(
                     DfAnimatedCounter(
                         target = numeric,
                         style = AppTypography.cardTitle,
-                        color = DfColors.TextPrimary,
+                        color = DfThemeColors.textPrimary(),
                     )
                 } else {
                     Text(
                         value,
                         style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.TextPrimary,
+                        color = DfThemeColors.textPrimary(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -292,7 +295,7 @@ private fun OverviewMiniTile(
                     value,
                     style = AppTypography.cardTitle,
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

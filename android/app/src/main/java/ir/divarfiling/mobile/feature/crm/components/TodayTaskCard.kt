@@ -1,7 +1,7 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -33,13 +33,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
-import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.network.TodayItemDto
 import kotlin.math.absoluteValue
 
@@ -68,19 +68,16 @@ fun TodayTaskCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = if (isOverdue) 4.dp else 2.dp,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(
+            1.dp,
+            if (isOverdue) DfColors.OverdueAccent.copy(alpha = 0.25f) else DfThemeColors.outlineSubtle(),
+        ),
+        shadowElevation = if (isOverdue) AppElevations.card else AppElevations.subtle,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(
-                    if (isOverdue) {
-                        Modifier.border(1.dp, DfColors.OverdueAccent.copy(alpha = 0.25f), AppShapes.Card)
-                    } else {
-                        Modifier
-                    },
-                )
                 .padding(AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
@@ -158,7 +155,7 @@ fun TodayTaskCard(
                 }
             }
 
-            HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.18f))
+            HorizontalDivider(color = DfThemeColors.outlineSubtle())
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -273,12 +270,8 @@ private fun TodayQuickAction(
     Box(
         modifier = Modifier
             .size(38.dp)
-            .liquidGlassSurface(
-                shape = CircleShape,
-                variant = DfGlassButtonVariant.Secondary,
-                elevation = 2.dp,
-                enabled = enabled,
-            )
+            .clip(CircleShape)
+            .background(tint.copy(alpha = if (enabled) 0.1f else 0.05f))
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -290,7 +283,7 @@ private fun TodayQuickAction(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = tint,
+            tint = if (enabled) tint else tint.copy(alpha = 0.45f),
             modifier = Modifier.size(17.dp),
         )
     }

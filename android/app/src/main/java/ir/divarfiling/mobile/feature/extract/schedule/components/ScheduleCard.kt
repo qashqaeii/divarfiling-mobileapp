@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,15 +37,18 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfGlassButton
-import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfDestructiveButton
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfStatusBanner
+import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.network.ExtractionRunDto
 import ir.divarfiling.mobile.core.network.ExtractionScheduleDto
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleDateTimeLabel
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleIntervalAccent
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleIntervalIcon
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleIntervalLabel
-import ir.divarfiling.mobile.feature.extract.schedule.scheduleNextRunLabel
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleNextRunLabel
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleRelativeLabel
 import ir.divarfiling.mobile.feature.extract.schedule.scheduleStatusStyle
@@ -65,8 +68,9 @@ fun ScheduleCard(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = AppShapes.Hero,
-        color = DfColors.Surface,
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outline().copy(alpha = 0.35f)),
         shadowElevation = AppElevations.card,
     ) {
         Column {
@@ -75,18 +79,7 @@ fun ScheduleCard(
                     .fillMaxWidth()
                     .height(4.dp)
                     .background(
-                        brush = if (schedule.isEnabled) {
-                            Brush.horizontalGradient(
-                                colors = listOf(accent, DfColors.PurpleGradientEnd),
-                            )
-                        } else {
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    DfColors.TextMuted.copy(alpha = 0.35f),
-                                    DfColors.Outline,
-                                ),
-                            )
-                        },
+                        color = if (schedule.isEnabled) accent else DfThemeColors.textMuted().copy(alpha = 0.35f),
                     ),
             )
 
@@ -99,29 +92,29 @@ fun ScheduleCard(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     verticalAlignment = Alignment.Top,
                 ) {
-                    Surface(
-                        shape = AppShapes.IconContainer,
-                        color = accent.copy(alpha = 0.14f),
-                        modifier = Modifier.size(48.dp),
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(accent.copy(alpha = 0.14f), AppShapes.IconContainer),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = scheduleIntervalIcon(schedule.intervalHours),
-                                contentDescription = null,
-                                tint = accent,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
+                        Icon(
+                            imageVector = scheduleIntervalIcon(schedule.intervalHours),
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(22.dp),
+                        )
                     }
 
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                     ) {
                         Text(
                             text = schedule.title,
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
+                            color = DfThemeColors.textPrimary(),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -134,13 +127,13 @@ fun ScheduleCard(
                         Text(
                             text = "حداکثر ${DateUtils.toPersianDigits(schedule.maxItems.toString())} آگهی",
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextMuted,
+                            color = DfThemeColors.textMuted(),
                         )
                     }
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                     ) {
                         Switch(
                             checked = schedule.isEnabled,
@@ -149,13 +142,13 @@ fun ScheduleCard(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = accent,
                                 uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = DfColors.Outline,
+                                uncheckedTrackColor = DfThemeColors.outline(),
                             ),
                         )
                         Text(
                             text = if (schedule.isEnabled) "فعال" else "متوقف",
                             style = AppTypography.labelSmall,
-                            color = if (schedule.isEnabled) accent else DfColors.TextMuted,
+                            color = if (schedule.isEnabled) accent else DfThemeColors.textMuted(),
                         )
                     }
                 }
@@ -167,58 +160,34 @@ fun ScheduleCard(
                 ScheduleStatusRow(schedule = schedule)
 
                 schedule.lastError?.takeIf { it.isNotBlank() }?.let { error ->
-                    Surface(
-                        shape = AppShapes.Chip,
-                        color = DfColors.RoseLight,
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.Top,
-                        ) {
-                            Icon(
-                                imageVector = DfIcons.X,
-                                contentDescription = null,
-                                tint = DfColors.Rose,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                text = error,
-                                style = AppTypography.labelSmall,
-                                color = DfColors.Rose,
-                            )
-                        }
-                    }
+                    DfStatusBanner(
+                        message = error,
+                        tone = DfStatusTone.Error,
+                        icon = DfIcons.X,
+                    )
                 }
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
-                    DfGlassButton(
+                    DfPrimaryButton(
                         text = "اجرا الان",
                         onClick = onRunNow,
-                        icon = DfIcons.Play,
-                        variant = DfGlassButtonVariant.Primary,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
-                        DfGlassButton(
+                        DfSecondaryButton(
                             text = if (isExpanded) "بستن تاریخچه" else "تاریخچه اجرا",
                             onClick = onToggleRuns,
-                            icon = if (isExpanded) DfIcons.ChevronUp else DfIcons.Clock,
                             modifier = Modifier.weight(1f),
                         )
-                        DfGlassButton(
+                        DfDestructiveButton(
                             text = "حذف",
                             onClick = onDelete,
-                            icon = DfIcons.X,
-                            accent = DfColors.Rose,
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -252,32 +221,29 @@ private fun ScheduleFilterChips(schedule: ExtractionScheduleDto) {
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs - 2.dp),
     ) {
         chips.take(4).forEach { (label, icon) ->
-            Surface(
-                shape = AppShapes.Chip,
-                color = DfColors.SurfaceVariant,
+            Row(
+                modifier = Modifier
+                    .background(DfThemeColors.surfaceVariant(), AppShapes.Chip)
+                    .padding(horizontal = AppSpacing.xs, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = DfColors.TextMuted,
-                        modifier = Modifier.size(12.dp),
-                    )
-                    Text(
-                        text = label,
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = DfThemeColors.textMuted(),
+                    modifier = Modifier.size(12.dp),
+                )
+                Text(
+                    text = label,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textSecondary(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -286,51 +252,50 @@ private fun ScheduleFilterChips(schedule: ExtractionScheduleDto) {
 @Composable
 private fun ScheduleTimelinePanel(schedule: ExtractionScheduleDto) {
     val isRunning = schedule.lastStatus == "running"
-    Surface(
-        shape = AppShapes.Card,
-        color = DfColors.PurpleContainer.copy(alpha = 0.45f),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                DfThemeColors.primaryContainer().copy(alpha = 0.45f),
+                AppShapes.CardSmall,
+            )
+            .padding(horizontal = AppSpacing.sm, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (isRunning) {
+        if (isRunning) {
+            ScheduleTimelineRow(
+                icon = DfIcons.RefreshCw,
+                title = "وضعیت",
+                relative = "در حال اجرا…",
+                absolute = schedule.lastRunAt?.let(::scheduleDateTimeLabel) ?: "شروع شده",
+                accent = DfColors.Blue,
+            )
+        } else {
+            schedule.nextRunAt?.takeIf { schedule.isEnabled }?.let { nextRun ->
                 ScheduleTimelineRow(
-                    icon = DfIcons.RefreshCw,
-                    title = "وضعیت",
-                    relative = "در حال اجرا…",
-                    absolute = schedule.lastRunAt?.let(::scheduleDateTimeLabel) ?: "شروع شده",
-                    accent = DfColors.Blue,
-                )
-            } else {
-                schedule.nextRunAt?.takeIf { schedule.isEnabled }?.let { nextRun ->
-                    ScheduleTimelineRow(
-                        icon = DfIcons.AlarmClock,
-                        title = "اجرای بعدی",
-                        relative = scheduleNextRunLabel(nextRun),
-                        absolute = scheduleDateTimeLabel(nextRun),
-                        accent = DfColors.Purple,
-                    )
-                }
-            }
-            schedule.lastRunAt?.takeIf { !isRunning }?.let { lastRun ->
-                ScheduleTimelineRow(
-                    icon = DfIcons.RefreshCw,
-                    title = "آخرین اجرا",
-                    relative = scheduleRelativeLabel(lastRun),
-                    absolute = scheduleDateTimeLabel(lastRun),
-                    accent = DfColors.TextMuted,
+                    icon = DfIcons.AlarmClock,
+                    title = "اجرای بعدی",
+                    relative = scheduleNextRunLabel(nextRun),
+                    absolute = scheduleDateTimeLabel(nextRun),
+                    accent = DfThemeColors.primary(),
                 )
             }
-            if (!isRunning && schedule.nextRunAt.isNullOrBlank() && schedule.lastRunAt.isNullOrBlank()) {
-                Text(
-                    text = "هنوز اجرایی ثبت نشده",
-                    style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
-                )
-            }
+        }
+        schedule.lastRunAt?.takeIf { !isRunning }?.let { lastRun ->
+            ScheduleTimelineRow(
+                icon = DfIcons.RefreshCw,
+                title = "آخرین اجرا",
+                relative = scheduleRelativeLabel(lastRun),
+                absolute = scheduleDateTimeLabel(lastRun),
+                accent = DfThemeColors.textMuted(),
+            )
+        }
+        if (!isRunning && schedule.nextRunAt.isNullOrBlank() && schedule.lastRunAt.isNullOrBlank()) {
+            Text(
+                text = "هنوز اجرایی ثبت نشده",
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textMuted(),
+            )
         }
     }
 }
@@ -345,7 +310,7 @@ private fun ScheduleTimelineRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
@@ -358,7 +323,7 @@ private fun ScheduleTimelineRow(
             Text(
                 text = title,
                 style = AppTypography.labelSmall,
-                color = DfColors.TextSecondary,
+                color = DfThemeColors.textSecondary(),
             )
             relative?.let {
                 Text(
@@ -371,7 +336,7 @@ private fun ScheduleTimelineRow(
             Text(
                 text = absolute,
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
         }
     }
@@ -381,48 +346,39 @@ private fun ScheduleTimelineRow(
 private fun ScheduleStatusRow(schedule: ExtractionScheduleDto) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs - 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         schedule.lastStatus?.let { status ->
             val style = scheduleStatusStyle(status)
-            Surface(
-                shape = AppShapes.Chip,
-                color = style.background,
-            ) {
-                Text(
-                    text = style.label,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = AppTypography.labelSmall,
-                    color = style.color,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-        Surface(
-            shape = AppShapes.Chip,
-            color = DfColors.SurfaceVariant,
-        ) {
             Text(
-                text = "${DateUtils.toPersianDigits(schedule.runCount.toString())} اجرا",
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                text = style.label,
+                modifier = Modifier
+                    .background(style.background, AppShapes.Chip)
+                    .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
                 style = AppTypography.labelSmall,
-                color = DfColors.TextSecondary,
+                color = style.color,
+                fontWeight = FontWeight.SemiBold,
             )
         }
+        Text(
+            text = "${DateUtils.toPersianDigits(schedule.runCount.toString())} اجرا",
+            modifier = Modifier
+                .background(DfThemeColors.surfaceVariant(), AppShapes.Chip)
+                .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textSecondary(),
+        )
         if (schedule.consecutiveFailures > 0) {
-            Surface(
-                shape = AppShapes.Chip,
-                color = DfColors.RoseLight,
-            ) {
-                Text(
-                    text = "${DateUtils.toPersianDigits(schedule.consecutiveFailures.toString())} خطا",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = AppTypography.labelSmall,
-                    color = DfColors.Rose,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            Text(
+                text = "${DateUtils.toPersianDigits(schedule.consecutiveFailures.toString())} خطا",
+                modifier = Modifier
+                    .background(DfThemeColors.errorContainer(), AppShapes.Chip)
+                    .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.error(),
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
@@ -432,20 +388,20 @@ private fun ScheduleRunHistory(runs: List<ExtractionRunDto>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp),
+            .padding(top = AppSpacing.xxs),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             text = "تاریخچه اجرا",
             style = AppTypography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = DfColors.TextPrimary,
+            color = DfThemeColors.textPrimary(),
         )
         if (runs.isEmpty()) {
             Text(
                 text = "اجرایی ثبت نشده",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             return
         }
@@ -481,13 +437,13 @@ private fun ScheduleRunRow(
                     modifier = Modifier
                         .width(2.dp)
                         .height(28.dp)
-                        .background(DfColors.Outline),
+                        .background(DfThemeColors.outline()),
                 )
             }
         }
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -503,21 +459,21 @@ private fun ScheduleRunRow(
                 Text(
                     text = "${DateUtils.toPersianDigits(run.ingestedCount.toString())} آگهی",
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
             run.startedAt?.let { started ->
                 Text(
                     text = scheduleDateTimeLabel(started),
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
             run.error?.takeIf { it.isNotBlank() }?.let { error ->
                 Text(
                     text = error,
                     style = AppTypography.labelSmall,
-                    color = DfColors.Rose,
+                    color = DfThemeColors.error(),
                 )
             }
         }

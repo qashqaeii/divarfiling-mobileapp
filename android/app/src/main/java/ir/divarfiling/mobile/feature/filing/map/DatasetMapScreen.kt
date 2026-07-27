@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -21,12 +20,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -73,6 +71,13 @@ fun DatasetMapScreen(
                             onBack = onBack,
                         )
                         DfErrorBanner(state.error!!)
+                        DfEmptyState(
+                            title = "بارگذاری ناموفق",
+                            subtitle = "اتصال را بررسی کنید و دوباره تلاش کنید",
+                            variant = DfEmptyVariant.Error,
+                            actionLabel = "تلاش مجدد",
+                            onAction = viewModel::refresh,
+                        )
                     }
                 }
                 markers.isEmpty() -> {
@@ -86,6 +91,7 @@ fun DatasetMapScreen(
                         DfEmptyState(
                             title = "موقعیت جغرافیایی یافت نشد",
                             subtitle = "برای این فایل مختصات کافی برای نمایش نقشه وجود ندارد.",
+                            variant = DfEmptyVariant.Empty,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = AppSpacing.screenHorizontal),

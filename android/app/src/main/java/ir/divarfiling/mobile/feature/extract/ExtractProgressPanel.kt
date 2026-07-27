@@ -12,24 +12,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.AppShapes
+import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfCard
 
 private data class ExtractStep(val label: String, val threshold: Float)
 
@@ -55,48 +54,42 @@ fun ExtractProgressPanel(
         label = "pulse",
     )
 
-    Surface(
+    DfCard(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = DfColors.PurpleContainer,
+        containerColor = DfThemeColors.primaryContainer(),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
                     Text(
                         "در حال استخراج فایل…",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.PurpleDark,
+                        color = DfThemeColors.onPrimaryContainer(),
                     )
                     Text(
                         steps[activeStep].label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DfColors.TextSecondary,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
                     )
                 }
                 Box(
                     modifier = Modifier
                         .size((44 * pulse).dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(DfColors.PurpleGradientStart, DfColors.PurpleGradientEnd),
-                            ),
-                        ),
+                        .background(DfThemeColors.primary()),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(28.dp),
                         strokeWidth = 2.5.dp,
-                        color = DfColors.Surface,
+                        color = DfThemeColors.surface(),
                     )
                 }
             }
@@ -106,24 +99,24 @@ fun ExtractProgressPanel(
                     progress = { progress.coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp)),
-                    color = DfColors.Purple,
-                    trackColor = DfColors.Surface,
+                        .clip(AppShapes.Chip),
+                    color = DfThemeColors.primary(),
+                    trackColor = DfThemeColors.surface(),
                 )
                 Text(
                     "$current از $total آگهی",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = AppTypography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = DfColors.PurpleDark,
+                    color = DfThemeColors.onPrimaryContainer(),
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs - 2.dp)) {
                 steps.forEachIndexed { index, step ->
                     val done = index < activeStep
                     val active = index == activeStep
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(
@@ -132,19 +125,19 @@ fun ExtractProgressPanel(
                                 .clip(CircleShape)
                                 .background(
                                     when {
-                                        done -> DfColors.Green
-                                        active -> DfColors.Purple
-                                        else -> DfColors.OutlineSubtle
+                                        done -> DfThemeColors.success()
+                                        active -> DfThemeColors.primary()
+                                        else -> DfThemeColors.outlineSubtle()
                                     },
                                 ),
                         )
                         Text(
                             step.label,
-                            style = MaterialTheme.typography.labelMedium,
+                            style = AppTypography.labelSmall,
                             color = when {
-                                done -> DfColors.Green
-                                active -> DfColors.PurpleDark
-                                else -> DfColors.TextMuted
+                                done -> DfThemeColors.success()
+                                active -> DfThemeColors.onPrimaryContainer()
+                                else -> DfThemeColors.textMuted()
                             },
                             fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                         )

@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -16,27 +15,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 
 @Composable
 fun ExtractSectionCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = AppShapes.Hero,
-        color = DfColors.Surface,
-        shadowElevation = AppElevations.card,
-        tonalElevation = AppElevations.none,
-    ) {
-        Box(modifier = Modifier.padding(AppSpacing.cardPadding)) {
-            content()
-        }
+    DfCard(modifier = modifier.fillMaxWidth()) {
+        content()
     }
 }
 
@@ -54,19 +46,19 @@ fun ExtractSectionTitle(
     ) {
         Surface(
             shape = AppShapes.IconContainer,
-            color = DfColors.PurpleContainer,
+            color = DfThemeColors.primaryContainer(),
             modifier = Modifier.size(32.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 when {
-                    iconRes != null -> ir.divarfiling.mobile.core.design.components.DfDecorImage(
+                    iconRes != null -> DfDecorImage(
                         resId = iconRes,
                         size = 18.dp,
                     )
                     icon != null -> Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = DfColors.Purple,
+                        tint = DfThemeColors.primary(),
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -76,7 +68,7 @@ fun ExtractSectionTitle(
             text = title,
             style = AppTypography.sectionTitle,
             fontWeight = FontWeight.Bold,
-            color = DfColors.TextPrimary,
+            color = DfThemeColors.textPrimary(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),

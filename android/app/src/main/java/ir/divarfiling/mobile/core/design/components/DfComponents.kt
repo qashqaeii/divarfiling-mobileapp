@@ -48,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
@@ -67,7 +66,10 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfComponentSpec
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfShapes
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,7 +109,9 @@ fun DfTopBar(
         actions = { actions() },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
-            titleContentColor = DfColors.TextPrimary,
+            titleContentColor = DfThemeColors.textPrimary(),
+            navigationIconContentColor = DfThemeColors.textPrimary(),
+            actionIconContentColor = DfThemeColors.textPrimary(),
         ),
         modifier = Modifier
             .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
@@ -141,7 +145,7 @@ fun DfPrimaryButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 52.dp)
+            .defaultMinSize(minHeight = DfComponentSpec.PrimaryButtonMinHeightDp.dp)
             .liquidGlassSurface(
                 shape = shape,
                 variant = DfGlassButtonVariant.Primary,
@@ -166,9 +170,90 @@ fun DfPrimaryButton(
         } else {
             Text(
                 text,
-                style = MaterialTheme.typography.labelLarge,
+                style = AppTypography.button,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
+            )
+        }
+    }
+}
+
+@Composable
+fun DfSecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = DfComponentSpec.PrimaryButtonMinHeightDp.dp)
+            .liquidGlassSurface(
+                shape = DfShapes.Button,
+                variant = DfGlassButtonVariant.Secondary,
+                elevation = AppElevations.subtle,
+                enabled = enabled && !loading,
+            )
+            .then(
+                if (enabled && !loading) Modifier.clickable(onClick = onClick) else Modifier,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(22.dp),
+                color = DfColors.Purple,
+                strokeWidth = 2.dp,
+            )
+        } else {
+            Text(
+                text,
+                style = AppTypography.button,
+                fontWeight = FontWeight.SemiBold,
+                color = DfColors.TextPrimary,
+            )
+        }
+    }
+}
+
+@Composable
+fun DfDestructiveButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = DfComponentSpec.PrimaryButtonMinHeightDp.dp)
+            .liquidGlassSurface(
+                shape = DfShapes.Button,
+                variant = DfGlassButtonVariant.Accent,
+                accent = DfColors.Rose,
+                elevation = AppElevations.subtle,
+                enabled = enabled && !loading,
+            )
+            .then(
+                if (enabled && !loading) Modifier.clickable(onClick = onClick) else Modifier,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(22.dp),
+                color = DfColors.Rose,
+                strokeWidth = 2.dp,
+            )
+        } else {
+            Text(
+                text,
+                style = AppTypography.button,
+                fontWeight = FontWeight.SemiBold,
+                color = DfColors.Rose,
             )
         }
     }
@@ -194,7 +279,7 @@ fun DfTextButton(
 @Composable
 fun DfScreenGradient(): Brush = Brush.verticalGradient(
     colors = listOf(
-        DfColors.PurpleLight.copy(alpha = 0.65f),
+        DfColors.PurpleLight.copy(alpha = 0.28f),
         DfColors.Background,
         DfColors.Background,
     ),
@@ -324,63 +409,89 @@ fun DfSearchField(
     )
 }
 
+enum class DfEmptyVariant {
+    Empty,
+    NoResults,
+    Offline,
+    Locked,
+    Error,
+}
+
+@Composable
+fun DfEmptyVariant.defaultIcon(): ImageVector = when (this) {
+    DfEmptyVariant.Empty -> DfIcons.Inbox
+    DfEmptyVariant.NoResults -> DfIcons.SearchX
+    DfEmptyVariant.Offline -> DfIcons.WifiOff
+    DfEmptyVariant.Locked -> DfIcons.Lock
+    DfEmptyVariant.Error -> DfIcons.CircleAlert
+}
+
 @Composable
 fun DfEmptyState(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.Default.Inbox,
+    variant: DfEmptyVariant = DfEmptyVariant.Empty,
+    icon: ImageVector = variant.defaultIcon(),
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
+    val accent = when (variant) {
+        DfEmptyVariant.Empty, DfEmptyVariant.NoResults -> DfThemeColors.primary()
+        DfEmptyVariant.Offline -> DfThemeColors.warning()
+        DfEmptyVariant.Locked -> DfThemeColors.locked()
+        DfEmptyVariant.Error -> DfThemeColors.error()
+    }
+    val container = when (variant) {
+        DfEmptyVariant.Empty, DfEmptyVariant.NoResults -> DfThemeColors.primaryContainer()
+        DfEmptyVariant.Offline -> DfThemeColors.warningContainer()
+        DfEmptyVariant.Locked -> DfThemeColors.lockedContainer()
+        DfEmptyVariant.Error -> DfThemeColors.errorContainer()
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(AppSpacing.xxl),
+            .padding(horizontal = AppSpacing.xl, vertical = AppSpacing.xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        DfGlassCard(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(DfColors.PurpleContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = DfColors.Purple,
-                    )
-                }
-                Text(
-                    title,
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DfColors.TextPrimary,
-                )
-                if (subtitle.isNotBlank()) {
-                    Text(
-                        subtitle,
-                        style = AppTypography.bodyDescription,
-                        color = DfColors.TextSecondary,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    )
-                }
-                if (actionLabel != null && onAction != null) {
-                    DfPrimaryButton(
-                        text = actionLabel,
-                        onClick = onAction,
-                        modifier = Modifier.padding(top = AppSpacing.xs),
-                    )
-                }
-            }
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(container),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+                tint = accent,
+            )
+        }
+        Text(
+            title,
+            style = AppTypography.cardTitle,
+            fontWeight = FontWeight.SemiBold,
+            color = DfThemeColors.textPrimary(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        if (subtitle.isNotBlank()) {
+            Text(
+                subtitle,
+                style = AppTypography.bodyDescription,
+                color = DfThemeColors.textSecondary(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+        }
+        if (actionLabel != null && onAction != null) {
+            DfPrimaryButton(
+                text = actionLabel,
+                onClick = onAction,
+                modifier = Modifier
+                    .padding(top = AppSpacing.xs)
+                    .fillMaxWidth(0.72f),
+            )
         }
     }
 }
@@ -428,20 +539,11 @@ fun DfErrorBanner(
     message: String,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = DfShapes.Chip,
-        color = DfColors.Rose.copy(alpha = 0.12f),
-    ) {
-        Text(
-            message,
-            modifier = Modifier.padding(12.dp),
-            color = DfColors.Rose,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 4,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    DfStatusBanner(
+        message = message,
+        tone = DfStatusTone.Error,
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

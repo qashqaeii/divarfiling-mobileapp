@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
@@ -36,10 +37,10 @@ fun ExtractHeroIllustration(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .shadow(6.dp, RoundedCornerShape(18.dp))
+                .shadow(AppElevations.raised, RoundedCornerShape(18.dp))
                 .clip(RoundedCornerShape(18.dp))
                 .background(
-                    Brush.verticalGradient(listOf(Color(0xFFEDE9FE), Color(0xFFF5F3FF))),
+                    Brush.verticalGradient(listOf(DfColors.PurpleLight, DfColors.PurpleContainer)),
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -130,7 +131,7 @@ fun ExtractMapIllustration(modifier: Modifier = Modifier) {
             resId = DfDecorIcons.MapPin,
             size = DfDecorSize.Hero,
             modifier = Modifier
-                .shadow(10.dp, CircleShape)
+                .shadow(AppElevations.floating, CircleShape)
                 .offset(y = (-4).dp),
         )
     }

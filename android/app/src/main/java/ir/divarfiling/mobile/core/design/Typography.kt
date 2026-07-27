@@ -15,12 +15,21 @@ val VazirmatnFamily = FontFamily(
     Font(R.font.vazirmatn_bold, FontWeight.Bold),
 )
 
+/**
+ * Role-based type scale — readable for mixed digital literacy, RTL-friendly Vazirmatn.
+ */
 object AppTypography {
     val pageTitle = TextStyle(
         fontFamily = VazirmatnFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
-        lineHeight = 30.sp,
+        lineHeight = 32.sp,
+    )
+    val sectionTitle = TextStyle(
+        fontFamily = VazirmatnFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
     )
     val cardTitle = TextStyle(
         fontFamily = VazirmatnFamily,
@@ -28,11 +37,23 @@ object AppTypography {
         fontSize = 16.sp,
         lineHeight = 24.sp,
     )
+    val body = TextStyle(
+        fontFamily = VazirmatnFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = 24.sp,
+    )
     val bodyDescription = TextStyle(
         fontFamily = VazirmatnFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 13.sp,
         lineHeight = 20.sp,
+    )
+    val meta = TextStyle(
+        fontFamily = VazirmatnFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 18.sp,
     )
     val statNumber = TextStyle(
         fontFamily = VazirmatnFamily,
@@ -45,12 +66,6 @@ object AppTypography {
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
-    )
-    val sectionTitle = TextStyle(
-        fontFamily = VazirmatnFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
     )
     val labelSmall = TextStyle(
         fontFamily = VazirmatnFamily,
@@ -69,6 +84,12 @@ object AppTypography {
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 18.sp,
+    )
+    val button = TextStyle(
+        fontFamily = VazirmatnFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
     )
 }
 
@@ -102,19 +123,9 @@ val DfTypography = Typography(
     titleLarge = AppTypography.pageTitle,
     titleMedium = AppTypography.cardTitle,
     titleSmall = AppTypography.sectionTitle,
-    bodyLarge = TextStyle(
-        fontFamily = VazirmatnFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        lineHeight = 24.sp,
-    ),
+    bodyLarge = AppTypography.body,
     bodyMedium = AppTypography.bodyDescription,
-    bodySmall = TextStyle(
-        fontFamily = VazirmatnFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 18.sp,
-    ),
+    bodySmall = AppTypography.meta,
     labelLarge = AppTypography.labelLarge,
     labelMedium = AppTypography.bottomNav,
     labelSmall = AppTypography.labelSmall,

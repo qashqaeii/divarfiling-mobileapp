@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.settings
 
-import androidx.compose.foundation.background
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,11 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -23,17 +20,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import android.content.Intent
-import android.net.Uri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.BuildConfig
 import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
@@ -98,7 +92,7 @@ fun SettingsScreen(
             }
 
             LazyColumn(
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                contentPadding = PaddingValues(bottom = AppSpacing.fabClearance),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
@@ -138,7 +132,7 @@ fun SettingsScreen(
 
                 item {
                     DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                        Column(Modifier.padding(horizontal = AppSpacing.cardPadding, vertical = AppSpacing.xs)) {
+                        Column {
                             SettingsInfoRow(
                                 title = "ابزارهای هوشمند",
                                 subtitle = "محاسبه‌گرها و ابزار مشاور",
@@ -150,18 +144,21 @@ fun SettingsScreen(
                                 subtitle = "تیکت و درخواست کمک",
                                 icon = DfIcons.Phone,
                                 onClick = onNavigateSupport,
+                                showDivider = true,
                             )
                             SettingsInfoRow(
                                 title = "حریم خصوصی",
                                 subtitle = "سیاست حفظ حریم",
-                                icon = Icons.Default.Security,
+                                icon = DfIcons.Lock,
                                 onClick = { openWeb(AppLinks.PRIVACY) },
+                                showDivider = true,
                             )
                             SettingsInfoRow(
                                 title = "آکادمی",
                                 subtitle = "آموزش و راهنما",
                                 icon = DfIcons.ExternalLink,
                                 onClick = { openWeb(AppLinks.ACADEMY) },
+                                showDivider = true,
                             )
                         }
                     }
@@ -181,7 +178,7 @@ fun SettingsScreen(
 
                 item {
                     DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                        Column(Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs)) {
+                        Column {
                             NotificationPrefRow(
                                 title = "یادآور CRM",
                                 subtitle = "تماس، بازدید و پیگیری‌های سررسید",
@@ -201,6 +198,7 @@ fun SettingsScreen(
                                     viewModel.updatePref { it.copy(todayDigest = v) }
                                 },
                                 enabled = !state.isSavingPrefs,
+                                showDivider = true,
                             )
                             NotificationPrefRow(
                                 title = "پیگیری معوق",
@@ -211,8 +209,8 @@ fun SettingsScreen(
                                     viewModel.updatePref { it.copy(overdueFollowup = v) }
                                 },
                                 enabled = !state.isSavingPrefs,
+                                showDivider = true,
                             )
-                            HorizontalDivider(color = DfColors.OutlineSubtle)
                             NotificationPrefRow(
                                 title = "فایل جدید",
                                 subtitle = "dataset تازه از ویندوز یا موبایل",
@@ -222,6 +220,7 @@ fun SettingsScreen(
                                     viewModel.updatePref { it.copy(newDataset = v) }
                                 },
                                 enabled = !state.isSavingPrefs,
+                                showDivider = true,
                             )
                             NotificationPrefRow(
                                 title = "کاهش قیمت",
@@ -232,6 +231,7 @@ fun SettingsScreen(
                                     viewModel.updatePref { it.copy(priceDrop = v) }
                                 },
                                 enabled = !state.isSavingPrefs,
+                                showDivider = true,
                             )
                             NotificationPrefRow(
                                 title = "فایل مناسب مشتری",
@@ -242,8 +242,8 @@ fun SettingsScreen(
                                     viewModel.updatePref { it.copy(customerMatch = v) }
                                 },
                                 enabled = !state.isSavingPrefs,
+                                showDivider = true,
                             )
-                            HorizontalDivider(color = DfColors.OutlineSubtle)
                             NotificationPrefRow(
                                 title = "پایان استخراج",
                                 subtitle = "وقتی آپلود به Workspace تمام شد",
@@ -253,6 +253,7 @@ fun SettingsScreen(
                                     viewModel.updatePref { it.copy(extractComplete = v) }
                                 },
                                 enabled = !state.isSavingPrefs,
+                                showDivider = true,
                             )
                             NotificationPrefRow(
                                 title = "زمان‌بندی استخراج",
@@ -263,6 +264,7 @@ fun SettingsScreen(
                                     viewModel.updatePref { it.copy(extractScheduleDue = v) }
                                 },
                                 enabled = !state.isSavingPrefs,
+                                showDivider = true,
                             )
                             NotificationPrefRow(
                                 title = "انقضای لایسنس",
@@ -273,10 +275,7 @@ fun SettingsScreen(
                                     viewModel.updatePref { it.copy(licenseAlerts = v) }
                                 },
                                 enabled = !state.isSavingPrefs,
-                            )
-                            HorizontalDivider(
-                                color = DfColors.OutlineSubtle,
-                                modifier = Modifier.padding(vertical = AppSpacing.xs),
+                                showDivider = true,
                             )
                             DigestHourPicker(
                                 hour = state.notificationPrefs.digestHour,
@@ -295,11 +294,11 @@ fun SettingsScreen(
 
                 item {
                     DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                        Column(Modifier.padding(horizontal = AppSpacing.cardPadding, vertical = AppSpacing.xs)) {
+                        Column {
                             SettingsInfoRow(
                                 title = "نسخه اپ",
                                 subtitle = "Divar Filing Companion",
-                                icon = Icons.Default.Info,
+                                icon = DfIcons.CircleAlert,
                                 trailing = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                             )
                             SettingsInfoRow(
@@ -308,11 +307,13 @@ fun SettingsScreen(
                                 icon = DfIcons.ExternalLink,
                                 trailing = "divarfiling.ir",
                                 onClick = { openWeb("https://divarfiling.ir/") },
+                                showDivider = true,
                             )
                             SettingsInfoRow(
                                 title = "نصب امن",
                                 subtitle = "در صورت هشدار Play Protect گزینه Install anyway",
-                                icon = Icons.Default.Security,
+                                icon = DfIcons.Lock,
+                                showDivider = true,
                             )
                         }
                     }
@@ -329,7 +330,7 @@ fun SettingsScreen(
                     Text(
                         "ساخته‌شده برای مشاورانی که هر روز در حرکت‌اند.",
                         style = AppTypography.bodyDescription,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

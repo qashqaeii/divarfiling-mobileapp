@@ -24,6 +24,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.DateUtils
 import java.time.Instant
@@ -45,9 +46,9 @@ fun ExtractStatsCard(
     val usagePercent = if (dailyLimit > 0) (used * 100f / dailyLimit).roundToInt() else 0
     val progress = if (dailyLimit > 0) used.toFloat() / dailyLimit else 0f
     val accent = when {
-        !canExtractNow -> DfColors.Rose
-        usagePercent >= 80 -> DfColors.Amber
-        else -> DfColors.Purple
+        !canExtractNow -> DfThemeColors.error()
+        usagePercent >= 80 -> DfThemeColors.warning()
+        else -> DfThemeColors.primary()
     }
 
     ExtractSectionCard(modifier = modifier) {
@@ -61,7 +62,7 @@ fun ExtractStatsCard(
                     Text(
                         text = "باقی‌مانده امروز",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -76,7 +77,7 @@ fun ExtractStatsCard(
                         Text(
                             text = "آگهی",
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextSecondary,
+                            color = DfThemeColors.textSecondary(),
                         )
                     }
                 }
@@ -93,7 +94,7 @@ fun ExtractStatsCard(
                     Text(
                         text = "از $dailyLimit",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                 }
             }
@@ -105,7 +106,7 @@ fun ExtractStatsCard(
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp)),
                 color = accent,
-                trackColor = DfColors.SurfaceVariant,
+                trackColor = DfThemeColors.surfaceVariant(),
             )
 
             Row(
@@ -169,7 +170,7 @@ private fun StatTile(
             Text(
                 text = label,
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.home.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -7,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,20 +27,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import androidx.annotation.DrawableRes
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 
 @Composable
@@ -65,11 +64,11 @@ fun HomeDashboardCard(
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(AppElevations.card, AppShapes.Card, ambientColor = DfColors.Shadow),
+            modifier = Modifier.fillMaxWidth(),
             shape = AppShapes.Card,
-            color = DfColors.Surface,
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            shadowElevation = AppElevations.subtle,
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -93,7 +92,7 @@ fun HomeDashboardCard(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(DfColors.PurpleContainer, AppShapes.IconContainer),
+                                .background(DfThemeColors.primaryContainer(), AppShapes.IconContainer),
                             contentAlignment = Alignment.Center,
                         ) {
                             when {
@@ -104,7 +103,7 @@ fun HomeDashboardCard(
                                 icon != null -> Icon(
                                     imageVector = icon,
                                     contentDescription = null,
-                                    tint = DfColors.Purple,
+                                    tint = DfThemeColors.primary(),
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
@@ -113,7 +112,7 @@ fun HomeDashboardCard(
                             text = title,
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.SemiBold,
-                            color = DfColors.TextPrimary,
+                            color = DfThemeColors.textPrimary(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -121,7 +120,7 @@ fun HomeDashboardCard(
                     Icon(
                         imageVector = DfIcons.ChevronDown,
                         contentDescription = if (expanded) "بستن" else "باز کردن",
-                        tint = DfColors.TextMuted,
+                        tint = DfThemeColors.textMuted(),
                         modifier = Modifier
                             .size(20.dp)
                             .rotate(chevronRotation),
@@ -155,14 +154,14 @@ fun HomeDashboardCard(
                                 text = footerLabel,
                                 style = AppTypography.bodyDescription,
                                 fontWeight = FontWeight.Medium,
-                                color = DfColors.Purple,
+                                color = DfThemeColors.primary(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Icon(
                                 imageVector = DfIcons.ChevronLeft,
                                 contentDescription = null,
-                                tint = DfColors.Purple,
+                                tint = DfThemeColors.primary(),
                                 modifier = Modifier.size(16.dp),
                             )
                         }
@@ -188,13 +187,13 @@ fun HomeSectionTitle(
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .background(DfColors.PurpleContainer, AppShapes.IconContainer),
+                    .background(DfThemeColors.primaryContainer(), AppShapes.IconContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = DfColors.Purple,
+                    tint = DfThemeColors.primary(),
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -203,7 +202,7 @@ fun HomeSectionTitle(
             text = title,
             style = AppTypography.sectionTitle,
             fontWeight = FontWeight.SemiBold,
-            color = DfColors.TextPrimary,
+            color = DfThemeColors.textPrimary(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
@@ -211,7 +210,7 @@ fun HomeSectionTitle(
         Box(
             modifier = Modifier
                 .size(6.dp)
-                .background(DfColors.Purple, CircleShape),
+                .background(DfThemeColors.primary(), CircleShape),
         )
     }
 }

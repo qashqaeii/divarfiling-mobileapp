@@ -29,6 +29,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
@@ -181,6 +182,13 @@ fun DealsScreen(
                                 "با «معامله جدید» یک فرصت فروش بسازید"
                             } else {
                                 "فیلترها یا جستجو را تغییر دهید"
+                            },
+                            variant = if (state.deals.isEmpty()) DfEmptyVariant.Empty else DfEmptyVariant.NoResults,
+                            actionLabel = if (state.deals.isEmpty()) "معامله جدید" else null,
+                            onAction = if (state.deals.isEmpty()) {
+                                { viewModel.toggleCreate(true) }
+                            } else {
+                                null
                             },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )

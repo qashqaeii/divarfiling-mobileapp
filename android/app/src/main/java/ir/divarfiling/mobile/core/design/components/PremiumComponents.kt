@@ -56,6 +56,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DfAnimation
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 data class DfNavItem(
@@ -78,11 +79,11 @@ fun DfBottomNavigation(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .shadow(AppElevations.navBar, AppShapes.BottomNav, ambientColor = AppColors.Shadow),
+            .shadow(AppElevations.navBar, AppShapes.BottomNav, ambientColor = DfThemeColors.shadow()),
         shape = AppShapes.BottomNav,
-        color = AppColors.Surface.copy(alpha = 0.94f),
+        color = DfThemeColors.surface().copy(alpha = 0.96f),
         tonalElevation = 0.dp,
-        border = BorderStroke(1.dp, AppColors.GlassBorder),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
         Row(
             modifier = Modifier
@@ -132,11 +133,11 @@ private fun DfCenterNavItem(
         Box(
             modifier = Modifier
                 .scale(scale)
-                .size(46.dp)
+                .size(48.dp)
                 .shadow(
-                    elevation = if (selected) AppElevations.floating else AppElevations.raised,
+                    elevation = if (selected) AppElevations.raised else AppElevations.subtle,
                     shape = CircleShape,
-                    ambientColor = AppColors.Purple.copy(alpha = 0.25f),
+                    ambientColor = AppColors.Purple.copy(alpha = 0.18f),
                 )
                 .clip(CircleShape)
                 .background(
@@ -170,7 +171,7 @@ private fun DfCenterNavItem(
             text = item.label,
             style = AppTypography.bottomNav,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) AppColors.NavActive else AppColors.NavInactive,
+            color = if (selected) DfThemeColors.primary() else DfThemeColors.textMuted(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -187,7 +188,7 @@ private fun DfSideNavItem(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val tint = if (selected) AppColors.NavActive else AppColors.NavInactive
+    val tint = if (selected) DfThemeColors.primary() else DfThemeColors.textMuted()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -280,19 +281,19 @@ fun DfAnimatedCounter(
 fun DfPremiumCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    containerColor: Color = AppColors.Surface,
+    containerColor: Color = DfThemeColors.surface(),
     content: @Composable () -> Unit,
 ) {
     val cardModifier = modifier
         .fillMaxWidth()
-        .shadow(AppElevations.card, AppShapes.Card, ambientColor = AppColors.Shadow)
+        .shadow(AppElevations.card, AppShapes.Card, ambientColor = DfThemeColors.shadow())
     if (onClick != null) {
         Surface(
             onClick = onClick,
             modifier = cardModifier,
             shape = AppShapes.Card,
             color = containerColor,
-            border = BorderStroke(1.dp, AppColors.OutlineSubtle),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         ) {
             Column(
                 modifier = Modifier
@@ -308,7 +309,7 @@ fun DfPremiumCard(
             modifier = cardModifier,
             shape = AppShapes.Card,
             color = containerColor,
-            border = BorderStroke(1.dp, AppColors.OutlineSubtle),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         ) {
             Column(
                 modifier = Modifier
@@ -343,7 +344,7 @@ fun DfSectionTitle(
             Text(
                 text = title,
                 style = AppTypography.sectionTitle,
-                color = AppColors.TextPrimary,
+                color = DfThemeColors.textPrimary(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -367,7 +368,7 @@ fun DfSectionTitle(
             Text(
                 text = actionLabel,
                 style = AppTypography.bodyDescription,
-                color = AppColors.Purple,
+                color = DfThemeColors.primary(),
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -395,9 +396,9 @@ fun DfShimmerBox(
     )
     val brush = Brush.linearGradient(
         colors = listOf(
-            AppColors.SurfaceVariant,
-            AppColors.OutlineSubtle,
-            AppColors.SurfaceVariant,
+            DfThemeColors.surfaceVariant(),
+            DfThemeColors.outlineSubtle(),
+            DfThemeColors.surfaceVariant(),
         ),
         start = Offset(offset - 300f, 0f),
         end = Offset(offset, 0f),

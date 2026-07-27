@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.filing.components
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,7 +27,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import java.text.NumberFormat
 import java.util.Locale
@@ -46,34 +47,48 @@ fun FilingStatsRow(
             .padding(horizontal = AppSpacing.screenHorizontal),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
-        FilingStatCard(
-            value = numberFormat.format(totalAds),
-            label = "از کل فایل‌ها",
-            title = "کل آگهی‌ها",
-            iconRes = DfDecorIcons.ClipboardList,
-            background = DfColors.PurpleContainer,
-        )
-        FilingStatCard(
-            value = numberFormat.format(filesCount),
-            label = "تعداد فایل",
-            title = "فایل‌ها",
-            iconRes = DfDecorIcons.Layers,
-            background = DfColors.GreenLight,
-        )
-        FilingStatCard(
-            value = String.format(Locale.US, "%.1f GB", estimatedSizeGb),
-            label = "فضای استفاده‌شده",
-            title = "حجم کل",
-            iconRes = DfDecorIcons.Database,
-            background = DfColors.BlueLight,
-        )
-        FilingStatCard(
-            value = numberFormat.format(datasetsThisMonth),
-            label = "دیتاست‌های ایجادشده",
-            title = "ماه جاری",
-            iconRes = DfDecorIcons.Calendar,
-            background = DfColors.AmberLight,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            FilingStatCard(
+                value = numberFormat.format(totalAds),
+                label = "از کل فایل‌ها",
+                title = "کل آگهی‌ها",
+                iconRes = DfDecorIcons.ClipboardList,
+                background = DfColors.PurpleContainer,
+                modifier = Modifier.weight(1f),
+            )
+            FilingStatCard(
+                value = numberFormat.format(filesCount),
+                label = "تعداد فایل",
+                title = "فایل‌ها",
+                iconRes = DfDecorIcons.Layers,
+                background = DfColors.GreenLight,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            FilingStatCard(
+                value = String.format(Locale.US, "%.1f GB", estimatedSizeGb),
+                label = "فضای استفاده‌شده",
+                title = "حجم کل",
+                iconRes = DfDecorIcons.Database,
+                background = DfColors.BlueLight,
+                modifier = Modifier.weight(1f),
+            )
+            FilingStatCard(
+                value = numberFormat.format(datasetsThisMonth),
+                label = "دیتاست‌های ایجادشده",
+                title = "ماه جاری",
+                iconRes = DfDecorIcons.Calendar,
+                background = DfColors.AmberLight,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
@@ -89,22 +104,24 @@ private fun FilingStatCard(
     iconTint: Color = DfColors.Purple,
 ) {
     Surface(
+        modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.subtle,
-        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                .padding(AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
                 shape = AppShapes.IconContainer,
                 color = background,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(36.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -115,14 +132,14 @@ private fun FilingStatCard(
                         iconRes != null -> Image(
                             painter = painterResource(iconRes),
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(16.dp),
                             contentScale = ContentScale.Fit,
                         )
                         icon != null -> Icon(
                             imageVector = icon,
                             contentDescription = null,
                             tint = iconTint,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(16.dp),
                         )
                     }
                 }
@@ -134,7 +151,7 @@ private fun FilingStatCard(
                 Text(
                     text = title,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextSecondary,
+                    color = DfThemeColors.textSecondary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -142,15 +159,15 @@ private fun FilingStatCard(
                     text = value,
                     style = AppTypography.cardTitle,
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = label,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
-                    maxLines = 2,
+                    color = DfThemeColors.textMuted(),
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

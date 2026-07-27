@@ -87,7 +87,7 @@ fun Modifier.liquidGlassSurface(
     shape: Shape,
     variant: DfGlassButtonVariant = DfGlassButtonVariant.Secondary,
     accent: Color = DfColors.Purple,
-    elevation: Dp = AppElevations.subtle + 4.dp,
+    elevation: Dp = AppElevations.subtle,
     enabled: Boolean = true,
 ): Modifier {
     val shadowColor = when (variant) {
@@ -127,42 +127,22 @@ fun Modifier.liquidGlassSurface(
 }
 
 @Composable
+@Composable
 fun DfLiquidBackground(modifier: Modifier = Modifier) {
+    val bg = ir.divarfiling.mobile.core.design.DfThemeColors.background()
+    val wash = ir.divarfiling.mobile.core.design.DfThemeColors.primary().copy(alpha = 0.06f)
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(DfColors.Background),
+            .background(bg),
     ) {
+        // Subtle brand wash only — no multi-color liquid mesh
         Box(
             Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.radialGradient(
-                        colors = listOf(DfColors.LiquidPurple, Color.Transparent),
-                        radius = 900f,
-                        center = androidx.compose.ui.geometry.Offset(0.15f, 0.1f),
-                    ),
-                ),
-        )
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(DfColors.LiquidBlue, Color.Transparent),
-                        radius = 800f,
-                        center = androidx.compose.ui.geometry.Offset(0.85f, 0.25f),
-                    ),
-                ),
-        )
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(DfColors.LiquidPink, Color.Transparent),
-                        radius = 700f,
-                        center = androidx.compose.ui.geometry.Offset(0.5f, 0.95f),
+                    Brush.verticalGradient(
+                        colors = listOf(wash, Color.Transparent, Color.Transparent),
                     ),
                 ),
         )
@@ -179,7 +159,7 @@ fun DfGlassCard(
     val shape = RoundedCornerShape(cornerRadius)
     Box(
         modifier = modifier
-            .liquidGlassSurface(shape = shape, elevation = AppElevations.floating + 6.dp)
+            .liquidGlassSurface(shape = shape, elevation = AppElevations.floating)
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
@@ -356,7 +336,7 @@ fun DfGlassTopBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
-            .liquidGlassSurface(shape = AppShapes.GlassSmall, elevation = 8.dp)
+            .liquidGlassSurface(shape = AppShapes.GlassSmall, elevation = AppElevations.raised)
             .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,

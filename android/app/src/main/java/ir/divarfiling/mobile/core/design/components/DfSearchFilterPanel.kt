@@ -142,7 +142,7 @@ fun DfPanelSearchField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .liquidGlassSurface(shape = AppShapes.Field, elevation = 3.dp)
+                .liquidGlassSurface(shape = AppShapes.Field, elevation = AppElevations.raised)
                 .padding(horizontal = AppSpacing.sm, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -194,7 +194,7 @@ fun DfFilterDropdown(
     Box(modifier = modifier) {
         Row(
             modifier = Modifier
-                .liquidGlassSurface(shape = AppShapes.CardSmall, elevation = 4.dp)
+                .liquidGlassSurface(shape = AppShapes.CardSmall, elevation = AppElevations.floating)
                 .clickable { expanded = true }
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -274,7 +274,7 @@ fun DfFilterApplyButton(
             .liquidGlassSurface(
                 shape = AppShapes.CardSmall,
                 variant = DfGlassButtonVariant.Primary,
-                elevation = 6.dp,
+                elevation = AppElevations.raised,
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),

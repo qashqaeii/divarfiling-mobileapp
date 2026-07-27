@@ -30,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.DateUtils
@@ -73,7 +73,7 @@ fun ListingSpecsCard(
                     text = "مشخصات ملک",
                     style = AppTypography.sectionTitle,
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                 )
             }
 
@@ -94,11 +94,12 @@ fun ListingSpecsCard(
                             text = "توضیحات",
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.SemiBold,
+                            color = DfThemeColors.textPrimary(),
                         )
                         Text(
                             text = desc,
                             style = AppTypography.bodyDescription,
-                            color = DfColors.TextSecondary,
+                            color = DfThemeColors.textSecondary(),
                         )
                     }
                 }
@@ -107,25 +108,25 @@ fun ListingSpecsCard(
             Surface(
                 onClick = { expanded = !expanded },
                 shape = AppShapes.ButtonPill,
-                color = DfColors.SurfaceVariant,
+                color = DfThemeColors.surfaceVariant(),
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = AppSpacing.sm),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = if (expanded) "بستن" else "مشاهده بیشتر",
                         style = AppTypography.labelSmall,
-                        color = DfColors.Purple,
+                        color = DfThemeColors.primary(),
                         fontWeight = FontWeight.Medium,
                     )
                     Icon(
                         imageVector = if (expanded) DfIcons.ChevronUp else DfIcons.ChevronDown,
                         contentDescription = null,
-                        tint = DfColors.Purple,
+                        tint = DfThemeColors.primary(),
                         modifier = Modifier.size(14.dp),
                     )
                 }
@@ -142,12 +143,12 @@ private fun SpecCard(
     Surface(
         modifier = modifier,
         shape = AppShapes.Field,
-        color = DfColors.SurfaceVariant.copy(alpha = 0.55f),
+        color = DfThemeColors.surfaceVariant().copy(alpha = 0.55f),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AppSpacing.sm, vertical = 10.dp),
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -155,14 +156,14 @@ private fun SpecCard(
                 Text(
                     text = item.label,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                     maxLines = 1,
                 )
                 Text(
                     text = item.value,
                     style = AppTypography.bodyDescription,
                     fontWeight = FontWeight.SemiBold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -176,7 +177,7 @@ private fun SpecCard(
                 item.icon != null -> Icon(
                     imageVector = item.icon,
                     contentDescription = null,
-                    tint = DfColors.Purple,
+                    tint = DfThemeColors.primary(),
                     modifier = Modifier
                         .padding(start = AppSpacing.xxs)
                         .size(16.dp),

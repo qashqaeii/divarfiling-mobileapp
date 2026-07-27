@@ -16,9 +16,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -32,23 +30,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
-import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
+import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
+import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfStatusBanner
+import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.DfTextButton
 import ir.divarfiling.mobile.core.network.ReminderDto
 import ir.divarfiling.mobile.feature.crm.components.ContactReminderSheet
@@ -123,15 +129,24 @@ fun CrmCalendarScreen(
                     )
                 }
                 item {
-                    ModeChips(
-                        mode = state.mode,
+                    DfFilterChipRow(
+                        options = listOf(
+                            DfFilterOption(CalendarMode.Day, "روز"),
+                            DfFilterOption(CalendarMode.Week, "هفته"),
+                            DfFilterOption(CalendarMode.Month, "ماه"),
+                        ),
+                        selected = state.mode,
                         onSelect = viewModel::setMode,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
                 state.error?.let { error ->
                     item {
-                        DfErrorBanner(error, modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal))
+                        DfStatusBanner(
+                            message = error,
+                            tone = DfStatusTone.Error,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
                     }
                 }
                 item {
@@ -166,6 +181,7 @@ fun CrmCalendarScreen(
                         text = "رویدادهای ${state.selectedDate.toJalaliLabel()}",
                         style = AppTypography.sectionTitle,
                         fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
@@ -174,6 +190,9 @@ fun CrmCalendarScreen(
                         DfEmptyState(
                             title = "یادآوری برای این روز نیست",
                             subtitle = "با دکمه یادآور، یک پیگیری جدید بسازید.",
+                            variant = DfEmptyVariant.Empty,
+                            actionLabel = "یادآور جدید",
+                            onAction = { viewModel.toggleCreateSheet(true) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -189,27 +208,6 @@ fun CrmCalendarScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun ModeChips(
-    mode: CalendarMode,
-    onSelect: (CalendarMode) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(
-            CalendarMode.Day to "روز",
-            CalendarMode.Week to "هفته",
-            CalendarMode.Month to "ماه",
-        ).forEach { (value, label) ->
-            FilterChip(
-                selected = mode == value,
-                onClick = { onSelect(value) },
-                label = { Text(label) },
-            )
         }
     }
 }
@@ -231,12 +229,13 @@ private fun MonthGrid(
         repeat(lead) { add(null) }
         for (d in 1..daysInMonth) add(first.withDayOfMonth(d))
     }
-    DfCard(modifier = modifier.fillMaxWidth()) {
+    DfCard(
+        modifier = modifier.fillMaxWidth(),
+        containerColor = DfThemeColors.surface(),
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -244,7 +243,12 @@ private fun MonthGrid(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 DfTextButton(text = "قبلی", onClick = onPrev, compact = true)
-                Text(visibleMonth.toJalaliMonthTitle(), style = AppTypography.bodyDescription, fontWeight = FontWeight.Bold)
+                Text(
+                    visibleMonth.toJalaliMonthTitle(),
+                    style = AppTypography.bodyDescription,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.textPrimary(),
+                )
                 DfTextButton(text = "بعدی", onClick = onNext, compact = true)
             }
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -254,7 +258,7 @@ private fun MonthGrid(
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                 }
             }
@@ -265,13 +269,13 @@ private fun MonthGrid(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
-                                .padding(2.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .padding(AppSpacing.xxs)
+                                .clip(AppShapes.Chip)
                                 .background(
                                     when {
-                                        day == null -> DfColors.Surface
-                                        day == selected -> DfColors.PurpleContainer
-                                        else -> DfColors.SurfaceVariant.copy(alpha = 0.35f)
+                                        day == null -> DfThemeColors.surface()
+                                        day == selected -> DfThemeColors.primaryContainer()
+                                        else -> DfThemeColors.surfaceVariant().copy(alpha = 0.35f)
                                     },
                                 )
                                 .then(
@@ -290,7 +294,11 @@ private fun MonthGrid(
                                         DateUtils.toPersianDigits(jd.toString()),
                                         style = AppTypography.labelSmall,
                                         fontWeight = if (day == selected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (day == selected) DfColors.PurpleDark else DfColors.TextPrimary,
+                                        color = if (day == selected) {
+                                            DfThemeColors.onPrimaryContainer()
+                                        } else {
+                                            DfThemeColors.textPrimary()
+                                        },
                                     )
                                     val count = counts[day] ?: 0
                                     if (count > 0) {
@@ -298,7 +306,7 @@ private fun MonthGrid(
                                             modifier = Modifier
                                                 .size(6.dp)
                                                 .clip(CircleShape)
-                                                .background(DfColors.Purple),
+                                                .background(DfThemeColors.primary()),
                                         )
                                     }
                                 }
@@ -325,12 +333,13 @@ private fun WeekStrip(
 ) {
     val start = selected.minusDays((selected.dayOfWeek.value % 7).toLong())
     val days = (0..6).map { start.plusDays(it.toLong()) }
-    DfCard(modifier = modifier.fillMaxWidth()) {
+    DfCard(
+        modifier = modifier.fillMaxWidth(),
+        containerColor = DfThemeColors.surface(),
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -339,16 +348,22 @@ private fun WeekStrip(
                 DfTextButton(text = "هفته قبل", onClick = onPrev, compact = true)
                 DfTextButton(text = "هفته بعد", onClick = onNext, compact = true)
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
                 days.forEach { day ->
                     val selectedDay = day == selected
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (selectedDay) DfColors.PurpleContainer else DfColors.SurfaceVariant.copy(alpha = 0.4f))
+                            .clip(AppShapes.CardSmall)
+                            .background(
+                                if (selectedDay) {
+                                    DfThemeColors.primaryContainer()
+                                } else {
+                                    DfThemeColors.surfaceVariant().copy(alpha = 0.4f)
+                                },
+                            )
                             .clickable { onSelect(day) }
-                            .padding(vertical = 10.dp),
+                            .padding(vertical = AppSpacing.sm),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         val (_, _, jd) = DateUtils.gregorianToJalali(day.year, day.monthValue, day.dayOfMonth)
@@ -356,15 +371,19 @@ private fun WeekStrip(
                             DateUtils.toPersianDigits(jd.toString()),
                             style = AppTypography.bodyDescription,
                             fontWeight = FontWeight.Bold,
-                            color = if (selectedDay) DfColors.PurpleDark else DfColors.TextPrimary,
+                            color = if (selectedDay) {
+                                DfThemeColors.onPrimaryContainer()
+                            } else {
+                                DfThemeColors.textPrimary()
+                            },
                         )
                         if ((counts[day] ?: 0) > 0) {
                             Box(
                                 modifier = Modifier
-                                    .padding(top = 4.dp)
+                                    .padding(top = AppSpacing.xxs)
                                     .size(6.dp)
                                     .clip(CircleShape)
-                                    .background(DfColors.Purple),
+                                    .background(DfThemeColors.primary()),
                             )
                         }
                     }
@@ -381,14 +400,24 @@ private fun DayHeader(
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    DfCard(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        containerColor = DfThemeColors.surface(),
     ) {
-        DfTextButton(text = "روز قبل", onClick = onPrev, compact = true)
-        Text(selected.toJalaliLabel(), style = AppTypography.bodyDescription, fontWeight = FontWeight.Bold)
-        DfTextButton(text = "روز بعد", onClick = onNext, compact = true)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DfTextButton(text = "روز قبل", onClick = onPrev, compact = true)
+            Text(
+                selected.toJalaliLabel(),
+                style = AppTypography.bodyDescription,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
+            DfTextButton(text = "روز بعد", onClick = onNext, compact = true)
+        }
     }
 }
 
@@ -400,40 +429,71 @@ private fun ReminderCard(
     onOpenContact: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DfCard(modifier = modifier.fillMaxWidth()) {
+    DfCard(
+        modifier = modifier.fillMaxWidth(),
+        containerColor = DfThemeColors.surface(),
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            Text(reminder.title, style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold)
+            Text(
+                reminder.title,
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textPrimary(),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             if (reminder.contactName.isNotBlank()) {
                 Text(
                     reminder.contactName,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextSecondary,
+                    color = DfThemeColors.textSecondary(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.clickable {
                         reminder.contactId?.let(onOpenContact)
                     },
                 )
             }
             reminder.dueAt?.let {
-                Text(DateUtils.formatForDisplay(it), style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                Text(
+                    DateUtils.formatForDisplay(it),
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
             }
             if (reminder.recurrence.isNotBlank()) {
-                Text(
-                    ReminderRecurrenceLabel(reminder.recurrence),
-                    style = AppTypography.labelSmall,
-                    color = DfColors.Purple,
+                DfBadge(
+                    text = ReminderRecurrenceLabel(reminder.recurrence),
+                    color = DfThemeColors.primaryContainer(),
+                    textColor = DfThemeColors.onPrimaryContainer(),
                 )
             }
             if (!reminder.note.isNullOrBlank()) {
-                Text(reminder.note, style = AppTypography.labelSmall, color = DfColors.TextSecondary)
+                Text(
+                    reminder.note,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textSecondary(),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DfTextButton(text = "انجام شد", onClick = onComplete, compact = true)
-                DfTextButton(text = "تعویق ۱ ساعته", onClick = onSnooze, compact = true)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                DfSecondaryButton(
+                    text = "انجام شد",
+                    onClick = onComplete,
+                    modifier = Modifier.weight(1f),
+                )
+                DfSecondaryButton(
+                    text = "تعویق ۱ ساعته",
+                    onClick = onSnooze,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }

@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,6 +40,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDatasetCardSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
@@ -50,6 +50,7 @@ import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.feature.filing.components.FilingCategoryTabsRow
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetCard
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetFilters
@@ -189,6 +190,9 @@ fun DatasetsScreen(
                             } else {
                                 "فیلترها یا جستجو را تغییر دهید"
                             },
+                            variant = if (state.datasets.isEmpty()) DfEmptyVariant.Empty else DfEmptyVariant.NoResults,
+                            actionLabel = if (state.datasets.isEmpty()) "استخراج جدید" else null,
+                            onAction = if (state.datasets.isEmpty()) onNavigateExtract else null,
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -355,12 +359,16 @@ fun ListingsScreen(
                             .padding(horizontal = AppSpacing.screenHorizontal),
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     ) {
-                        OutlinedButton(onClick = onInsights, modifier = Modifier.weight(1f)) {
-                            Text("تحلیل فایل")
-                        }
-                        OutlinedButton(onClick = onMap, modifier = Modifier.weight(1f)) {
-                            Text("نقشه")
-                        }
+                        DfSecondaryButton(
+                            text = "تحلیل فایل",
+                            onClick = onInsights,
+                            modifier = Modifier.weight(1f),
+                        )
+                        DfSecondaryButton(
+                            text = "نقشه",
+                            onClick = onMap,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
                 item {
@@ -417,6 +425,11 @@ fun ListingsScreen(
                         DfEmptyState(
                             title = "آگهی‌ای یافت نشد",
                             subtitle = "فیلتر جستجو را تغییر دهید یا عبارت دیگری امتحان کنید",
+                            variant = if (filterCount > 0 || state.query.isNotBlank()) {
+                                DfEmptyVariant.NoResults
+                            } else {
+                                DfEmptyVariant.Empty
+                            },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -545,6 +558,8 @@ fun FilingSearchScreen(
                         DfEmptyState(
                             title = "جستجو در همه فایل‌ها",
                             subtitle = "عبارت مورد نظر را وارد کنید تا در تمام فایل‌ها جستجو شود",
+                            variant = DfEmptyVariant.Empty,
+                            icon = DfIcons.Search,
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -561,6 +576,7 @@ fun FilingSearchScreen(
                         DfEmptyState(
                             title = "نتیجه‌ای یافت نشد",
                             subtitle = "عبارت یا فیلترها را تغییر دهید",
+                            variant = DfEmptyVariant.NoResults,
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }

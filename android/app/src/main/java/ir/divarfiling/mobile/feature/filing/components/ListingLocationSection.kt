@@ -22,6 +22,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
@@ -49,7 +50,7 @@ fun ListingLocationSection(
                     text = "موقعیت ملک",
                     style = AppTypography.sectionTitle,
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                 )
             }
 
@@ -57,7 +58,7 @@ fun ListingLocationSection(
                 Text(
                     text = locationLabel,
                     style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
+                    color = DfThemeColors.textSecondary(),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

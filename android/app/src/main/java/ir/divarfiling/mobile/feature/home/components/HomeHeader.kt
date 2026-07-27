@@ -15,8 +15,8 @@ fun HomeHeader(
     modifier: Modifier = Modifier,
 ) {
     DfGreetingHeader(
-        title = "سلام $userName 👋",
-        subtitle = "خوش آمدی به فایلینگ دیوار",
+        title = "سلام $userName",
+        subtitle = "میزکار فایلینگ دیوار",
         userName = userName,
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,

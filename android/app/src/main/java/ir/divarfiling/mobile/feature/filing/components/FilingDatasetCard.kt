@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.filing.components
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,23 +26,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
-import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.network.DatasetDto
-import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 
 @Composable
 fun FilingDatasetsSection(
@@ -50,33 +50,32 @@ fun FilingDatasetsSection(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    ExtractSectionCard(
+    Column(
         modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = AppTypography.sectionTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
+            Surface(shape = AppShapes.Chip, color = DfThemeColors.primaryContainer()) {
                 Text(
-                    text = title,
-                    style = AppTypography.sectionTitle,
+                    text = "$count فایل",
+                    modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.primary(),
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
                 )
-                Surface(shape = AppShapes.Chip, color = DfColors.PurpleContainer) {
-                    Text(
-                        text = "$count فایل",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = AppTypography.labelSmall,
-                        color = DfColors.Purple,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
             }
-            content()
         }
+        content()
     }
 }
 
@@ -97,15 +96,17 @@ fun FilingDatasetCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.card,
+        tonalElevation = 0.dp,
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
-                    .background(DfColors.SurfaceVariant),
+                    .background(DfThemeColors.surfaceVariant()),
                 contentAlignment = Alignment.Center,
             ) {
                 DfListingImage(
@@ -127,13 +128,13 @@ fun FilingDatasetCard(
                 ) {
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                     ) {
                         Text(
                             text = dataset.name,
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
-                            color = DfColors.TextPrimary,
+                            color = DfThemeColors.textPrimary(),
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -165,20 +166,20 @@ fun FilingDatasetCard(
                                     onClick = { showMenu = false; onExport() },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("حذف فایل", color = DfColors.OverdueAccent) },
+                                    text = { Text("حذف فایل", color = DfThemeColors.error()) },
                                     onClick = { showMenu = false; onDelete() },
                                 )
                             }
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                     FormatBadge(format)
                     dataset.transactionType?.let {
                         Surface(shape = AppShapes.Chip, color = DfColors.BlueLight) {
                             Text(
                                 text = it,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = 3.dp),
                                 style = AppTypography.labelSmall,
                                 color = DfColors.Blue,
                             )
@@ -192,20 +193,20 @@ fun FilingDatasetCard(
                 ) {
                     if (location.isNotBlank()) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.weight(1f),
                         ) {
                             Icon(
                                 imageVector = DfIcons.MapPin,
                                 contentDescription = null,
-                                tint = DfColors.Purple,
+                                tint = DfThemeColors.primary(),
                                 modifier = Modifier.size(12.dp),
                             )
                             Text(
                                 text = location,
                                 style = AppTypography.labelSmall,
-                                color = DfColors.TextSecondary,
+                                color = DfThemeColors.textSecondary(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -215,26 +216,26 @@ fun FilingDatasetCard(
                         text = "${dataset.itemCount} آگهی",
                         style = AppTypography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.Purple,
+                        color = DfThemeColors.primary(),
                     )
                 }
                 dataset.createdAt?.let { created ->
                     DateUtils.formatJalaliDateTime(created) ?: DateUtils.formatJalaliDate(created)
                 }?.let { jalaliDate ->
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             imageVector = DfIcons.Calendar,
                             contentDescription = null,
-                            tint = DfColors.TextMuted,
+                            tint = DfThemeColors.textMuted(),
                             modifier = Modifier.size(12.dp),
                         )
                         Text(
                             text = jalaliDate,
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextMuted,
+                            color = DfThemeColors.textMuted(),
                             maxLines = 1,
                         )
                     }
@@ -247,14 +248,14 @@ fun FilingDatasetCard(
 @Composable
 private fun FormatBadge(format: String) {
     val (bg, fg) = when (format.uppercase()) {
-        "CSV" -> DfColors.GreenLight to DfColors.Green
-        "XLSX", "XLS" -> Color(0xFFECFDF5) to Color(0xFF0F766E)
-        else -> DfColors.PurpleContainer to DfColors.Purple
+        "CSV" -> DfColors.GreenLight to DfColors.OnSuccess
+        "XLSX", "XLS" -> DfColors.SuccessContainer to DfColors.OnSuccess
+        else -> DfThemeColors.primaryContainer() to DfThemeColors.primary()
     }
     Surface(shape = AppShapes.Chip, color = bg) {
         Text(
             text = format,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = 3.dp),
             style = AppTypography.labelSmall,
             color = fg,
             fontWeight = FontWeight.Bold,
@@ -280,7 +281,7 @@ private fun IconAction(
             icon != null -> Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = DfColors.TextMuted,
+                tint = DfThemeColors.textMuted(),
                 modifier = Modifier.size(16.dp),
             )
         }

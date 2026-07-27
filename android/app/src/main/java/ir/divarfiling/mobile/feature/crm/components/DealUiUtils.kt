@@ -15,7 +15,7 @@ object DealUiUtils {
     fun dealStageColors(stage: String): Pair<Color, Color> = when {
         stage.contains("از دست") || stage.contains("سرد") -> DfColors.OverdueAccent to DfColors.RoseLight
         stage.contains("بسته") -> DfColors.Green to DfColors.GreenLight
-        stage.contains("قرارداد") || stage.contains("پیش") -> Color(0xFFEC4899) to Color(0xFFFCE7F3)
+        stage.contains("قرارداد") || stage.contains("پیش") -> DfColors.Pink to DfColors.PinkLight
         stage.contains("بازدید") -> DfColors.Blue to DfColors.BlueLight
         stage.contains("مذاکره") -> DfColors.Amber to DfColors.AmberLight
         stage == "سرنخ" || stage == "جدید" -> DfColors.Blue to DfColors.BlueLight

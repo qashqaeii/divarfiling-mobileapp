@@ -17,19 +17,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
-import ir.divarfiling.mobile.core.design.components.DfGlassChip
-import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.core.design.components.DfSoftChip
+import ir.divarfiling.mobile.core.design.components.DfTextButton
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -82,7 +83,7 @@ fun ListingFiltersSheet(
             footer = {
                 Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                     if (onSaveFilter != null) {
-                        DfGlassTextButton(
+                        DfTextButton(
                             text = "ذخیره فیلتر فعلی",
                             onClick = { onSaveFilter(syncNumericDraft()) },
                             modifier = Modifier.fillMaxWidth(),
@@ -92,7 +93,7 @@ fun ListingFiltersSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     ) {
-                        DfGlassTextButton(
+                        DfSecondaryButton(
                             text = "پاک کردن",
                             onClick = {
                                 draft = ListingFilterState()
@@ -126,13 +127,13 @@ fun ListingFiltersSheet(
                 )
             }
             DfSheetSection(title = "سریع") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DfGlassChip(
+                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    DfSoftChip(
                         text = "بدون تکرار",
                         selected = draft.unique,
                         onClick = { draft = draft.copy(unique = !draft.unique) },
                     )
-                    DfGlassChip(
+                    DfSoftChip(
                         text = "فقط جدید",
                         selected = draft.newOnly,
                         onClick = { draft = draft.copy(newOnly = !draft.newOnly) },
@@ -146,15 +147,16 @@ fun ListingFiltersSheet(
                     label = { Text("نام محله") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    shape = AppShapes.Field,
                 )
                 if (neighborhoods.isNotEmpty()) {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
                         neighborhoods.take(24).forEach { name ->
-                            DfGlassChip(
+                            DfSoftChip(
                                 text = name,
                                 selected = draft.neighborhood == name,
                                 onClick = {
@@ -175,6 +177,7 @@ fun ListingFiltersSheet(
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
+                    shape = AppShapes.Field,
                 )
                 OutlinedTextField(
                     value = priceMaxText,
@@ -183,6 +186,7 @@ fun ListingFiltersSheet(
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
+                    shape = AppShapes.Field,
                 )
             }
             DfSheetSection(title = "مشخصات ملک") {
@@ -194,6 +198,7 @@ fun ListingFiltersSheet(
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
+                        shape = AppShapes.Field,
                     )
                     OutlinedTextField(
                         value = areaMaxText,
@@ -202,6 +207,7 @@ fun ListingFiltersSheet(
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
+                        shape = AppShapes.Field,
                     )
                 }
                 OutlinedTextField(
@@ -211,6 +217,7 @@ fun ListingFiltersSheet(
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
+                    shape = AppShapes.Field,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                     OutlinedTextField(
@@ -220,6 +227,7 @@ fun ListingFiltersSheet(
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
+                        shape = AppShapes.Field,
                     )
                     OutlinedTextField(
                         value = yearMaxText,
@@ -228,23 +236,24 @@ fun ListingFiltersSheet(
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
+                        shape = AppShapes.Field,
                     )
                 }
             }
             DfSheetSection(title = "امکانات") {
-                Text("پارکینگ", style = AppTypography.labelSmall, color = DfColors.TextSecondary)
+                Text("پارکینگ", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
                 DfFilterChipRow(
                     options = ListingTriStateOptions.map { DfFilterOption(it.first, it.second) },
                     selected = draft.parking,
                     onSelect = { draft = draft.copy(parking = it) },
                 )
-                Text("آسانسور", style = AppTypography.labelSmall, color = DfColors.TextSecondary)
+                Text("آسانسور", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
                 DfFilterChipRow(
                     options = ListingTriStateOptions.map { DfFilterOption(it.first, it.second) },
                     selected = draft.elevator,
                     onSelect = { draft = draft.copy(elevator = it) },
                 )
-                Text("انباری", style = AppTypography.labelSmall, color = DfColors.TextSecondary)
+                Text("انباری", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
                 DfFilterChipRow(
                     options = ListingTriStateOptions.map { DfFilterOption(it.first, it.second) },
                     selected = draft.storage,

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,17 +20,20 @@ import androidx.compose.ui.text.font.FontWeight
 import android.content.Intent
 import android.net.Uri
 import ir.divarfiling.mobile.core.AppLinks
-import ir.divarfiling.mobile.core.design.components.LicenseGateBanner
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.components.DfPremiumCard
+import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfStatusBanner
+import ir.divarfiling.mobile.core.design.components.DfStatusTone
+import ir.divarfiling.mobile.core.design.components.LicenseGateBanner
 import ir.divarfiling.mobile.feature.extract.components.ExtractFiltersCard
 import ir.divarfiling.mobile.feature.extract.components.ExtractHeader
 import ir.divarfiling.mobile.feature.extract.components.ExtractLoadingExperience
@@ -87,6 +89,29 @@ fun ExtractScreen(
                     onMenuClick = onMenuClick,
                     onBack = onBack,
                 )
+            }
+
+            state.gateMessage?.let { gate ->
+                item {
+                    LicenseGateBanner(
+                        message = gate,
+                        onBuyLicense = { openWeb(AppLinks.SHOP_BOT) },
+                        onOpenDashboard = { openWeb(AppLinks.DASHBOARD_LICENSES) },
+                        onRefresh = viewModel::refreshGate,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+
+            if (state.gateMessage == null && !state.canExtractNow && state.remainingToday != null) {
+                item {
+                    DfStatusBanner(
+                        message = "سقف استخراج روزانه تکمیل شده است. فردا دوباره تلاش کنید.",
+                        tone = DfStatusTone.Warning,
+                        title = "محدودیت روزانه",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
             }
 
             if (state.remainingToday != null && state.extractionsDailyLimit != null) {
@@ -193,25 +218,17 @@ fun ExtractScreen(
                 )
             }
 
-            state.gateMessage?.let { gate ->
-                item {
-                    LicenseGateBanner(
-                        message = gate,
-                        onBuyLicense = { openWeb(AppLinks.SHOP_BOT) },
-                        onOpenDashboard = { openWeb(AppLinks.DASHBOARD_LICENSES) },
-                        onRefresh = viewModel::refreshGate,
-                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                    )
-                }
-            }
-
             state.message?.let {
                 item {
                     Column(
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     ) {
-                        Text(it, color = DfColors.PurpleDark, fontWeight = FontWeight.Medium)
+                        DfStatusBanner(
+                            message = it,
+                            tone = DfStatusTone.Success,
+                            title = "استخراج انجام شد",
+                        )
                         state.lastUploadStats?.let { stats ->
                             IngestStatsCard(stats)
                         }
@@ -224,9 +241,8 @@ fun ExtractScreen(
 
             state.error?.let { error ->
                 item {
-                    Text(
+                    DfErrorBanner(
                         error,
-                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
@@ -316,7 +332,7 @@ private fun FilterRangeRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
         OutlinedTextField(
             value = leftValue,
@@ -341,10 +357,17 @@ private fun FilterRangeRow(
 
 @Composable
 private fun IngestStatsCard(stats: ir.divarfiling.mobile.core.network.ExtractionUploadData) {
-    DfPremiumCard {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    DfCard {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
             stats.datasetName?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    it,
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.textPrimary(),
+                )
             }
             IngestStatRow("پردازش‌شده", stats.ingestedCount)
             IngestStatRow("جدید", stats.createdCount)
@@ -362,7 +385,11 @@ private fun IngestStatsCard(stats: ir.divarfiling.mobile.core.network.Extraction
             }
             IngestStatRow("کل فایلینگ", stats.totalInDataset)
             if (stats.datasetMerged) {
-                Text("با فایلینگ قبلی ادغام شد", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "با فایلینگ قبلی ادغام شد",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
             }
         }
     }
@@ -374,8 +401,13 @@ private fun IngestStatRow(label: String, value: Int) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        Text(value.toString(), fontWeight = FontWeight.SemiBold)
+        Text(label, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
+        Text(
+            value.toString(),
+            style = AppTypography.bodyDescription,
+            fontWeight = FontWeight.SemiBold,
+            color = DfThemeColors.textPrimary(),
+        )
     }
 }
 

@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.crm.components
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -11,21 +12,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -39,18 +38,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.R
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
-import ir.divarfiling.mobile.core.design.components.DfGlassChip
 import ir.divarfiling.mobile.core.design.components.DfGlassIconButton
-import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
@@ -79,6 +79,7 @@ fun ContactDetailHero(
     val accent = contactAccentColor(contact.fullName)
     val initials = contactInitials(contact.fullName)
 
+    val surface = DfThemeColors.surface()
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -92,8 +93,8 @@ fun ContactDetailHero(
                     Brush.linearGradient(
                         listOf(
                             accent.copy(alpha = 0.16f),
-                            DfColors.Purple.copy(alpha = 0.05f),
-                            Color.White.copy(alpha = 0.94f),
+                            DfThemeColors.primary().copy(alpha = 0.06f),
+                            surface.copy(alpha = 0.96f),
                         ),
                     ),
                 ),
@@ -118,12 +119,12 @@ fun ContactDetailHero(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 DfGlassIconButton(
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    icon = DfIcons.ChevronLeft,
                     contentDescription = "بازگشت",
                     onClick = onBack,
                 )
                 DfGlassIconButton(
-                    icon = Icons.Default.Edit,
+                    icon = DfIcons.Pencil,
                     contentDescription = "ویرایش",
                     onClick = onEdit,
                 )
@@ -155,7 +156,7 @@ fun ContactDetailHero(
                         text = contact.fullName,
                         style = AppTypography.sectionTitle,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.TextPrimary,
+                        color = DfThemeColors.textPrimary(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -167,13 +168,13 @@ fun ContactDetailHero(
                             Icon(
                                 imageVector = DfIcons.Phone,
                                 contentDescription = null,
-                                tint = DfColors.TextMuted,
+                                tint = DfThemeColors.textMuted(),
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
                                 text = phone,
                                 style = AppTypography.bodyDescription,
-                                color = DfColors.TextSecondary,
+                                color = DfThemeColors.textSecondary(),
                             )
                         }
                     }
@@ -182,12 +183,16 @@ fun ContactDetailHero(
             }
 
             contact.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-                Surface(shape = AppShapes.CardSmall, color = Color.White.copy(alpha = 0.6f)) {
+                Surface(
+                    shape = AppShapes.CardSmall,
+                    color = DfThemeColors.surfaceVariant().copy(alpha = 0.72f),
+                    border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+                ) {
                     Text(
                         text = notes,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                         style = AppTypography.bodyDescription,
-                        color = DfColors.TextSecondary,
+                        color = DfThemeColors.textSecondary(),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -320,14 +325,15 @@ private fun ContactInsightTile(
     Surface(
         modifier = modifier,
         shape = AppShapes.CardSmall,
-        color = DfColors.Surface,
-        shadowElevation = 2.dp,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+            Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
             Text(
                 value,
                 style = AppTypography.labelLarge,
@@ -346,39 +352,44 @@ fun ContactDetailQuickActionsPanel(
     secondary: List<ContactQuickActionItem>,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = AppSpacing.screenHorizontal),
-        shape = AppShapes.Card,
-        color = DfColors.Surface,
-        shadowElevation = 3.dp,
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = AppShapes.Card,
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            shadowElevation = AppElevations.subtle,
         ) {
-            Text(
-                "دسترسی سریع",
-                style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
-                fontWeight = FontWeight.SemiBold,
-            )
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
             ) {
                 primary.forEach { action ->
                     ContactQuickActionTile(action, emphasized = true, modifier = Modifier.weight(1f))
                 }
             }
-            if (secondary.isNotEmpty()) {
-                HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.1f))
+        }
+        if (secondary.isNotEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.Card,
+                color = DfThemeColors.surface(),
+                border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+                shadowElevation = AppElevations.subtle,
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
                     secondary.forEach { action ->
                         ContactQuickActionTile(action, emphasized = false, modifier = Modifier.width(72.dp))
@@ -397,49 +408,49 @@ private fun ContactQuickActionTile(
 ) {
     Column(
         modifier = modifier
+            .defaultMinSize(minHeight = if (emphasized) 76.dp else 64.dp)
             .clip(AppShapes.CardSmall)
             .then(
                 if (emphasized) Modifier.background(action.tint.copy(alpha = 0.07f)) else Modifier,
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = ripple(bounded = true, color = action.tint.copy(alpha = 0.25f)),
                 onClick = action.onClick,
             )
-            .padding(vertical = 10.dp),
+            .padding(vertical = if (emphasized) 12.dp else 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(if (emphasized) 44.dp else 38.dp)
-                .liquidGlassSurface(
-                    shape = CircleShape,
-                    variant = if (emphasized) DfGlassButtonVariant.Accent else DfGlassButtonVariant.Secondary,
-                    accent = action.tint,
-                    elevation = if (emphasized) 4.dp else 2.dp,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            when {
-                action.iconRes != null -> Icon(
-                    painter = painterResource(action.iconRes),
-                    contentDescription = action.label,
-                    tint = action.tint,
-                    modifier = Modifier.size(if (emphasized) 20.dp else 18.dp),
-                )
-                action.icon != null -> Icon(
-                    imageVector = action.icon,
-                    contentDescription = action.label,
-                    tint = action.tint,
-                    modifier = Modifier.size(if (emphasized) 20.dp else 18.dp),
-                )
+        if (emphasized) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .liquidGlassSurface(
+                        shape = CircleShape,
+                        variant = DfGlassButtonVariant.Accent,
+                        accent = action.tint,
+                        elevation = AppElevations.subtle,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                ContactQuickActionIcon(action = action, size = 22.dp)
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(action.tint.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                ContactQuickActionIcon(action = action, size = 18.dp)
             }
         }
         Text(
             text = action.label,
             style = AppTypography.labelSmall,
-            color = if (emphasized) action.tint else DfColors.TextSecondary,
+            color = if (emphasized) action.tint else DfThemeColors.textSecondary(),
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -447,6 +458,28 @@ private fun ContactQuickActionTile(
     }
 }
 
+@Composable
+private fun ContactQuickActionIcon(
+    action: ContactQuickActionItem,
+    size: androidx.compose.ui.unit.Dp,
+) {
+    when {
+        action.iconRes != null -> Icon(
+            painter = painterResource(action.iconRes),
+            contentDescription = action.label,
+            tint = action.tint,
+            modifier = Modifier.size(size),
+        )
+        action.icon != null -> Icon(
+            imageVector = action.icon,
+            contentDescription = action.label,
+            tint = action.tint,
+            modifier = Modifier.size(size),
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactDetailStatusBar(
     currentStatus: String?,
@@ -462,7 +495,7 @@ fun ContactDetailStatusBar(
         Text(
             "مرحله پیگیری",
             style = AppTypography.labelSmall,
-            color = DfColors.TextMuted,
+            color = DfThemeColors.textMuted(),
             fontWeight = FontWeight.SemiBold,
         )
         Row(
@@ -472,11 +505,26 @@ fun ContactDetailStatusBar(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             CrmConstants.STATUSES.forEach { status ->
-                DfGlassChip(
-                    text = status,
-                    selected = status == currentStatus,
-                    onClick = { if (status != currentStatus) onStatusChange(status) },
-                )
+                val selected = status == currentStatus
+                Surface(
+                    onClick = { if (!selected) onStatusChange(status) },
+                    shape = AppShapes.Chip,
+                    color = if (selected) DfThemeColors.primary() else DfThemeColors.surface(),
+                    border = BorderStroke(
+                        1.dp,
+                        if (selected) DfThemeColors.primary() else DfThemeColors.outlineSubtle(),
+                    ),
+                    shadowElevation = AppElevations.none,
+                ) {
+                    Text(
+                        text = status,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        style = AppTypography.labelSmall,
+                        color = if (selected) Color.White else DfThemeColors.textSecondary(),
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -505,16 +553,16 @@ fun ContactDetailSectionHeader(
             text = title,
             style = AppTypography.cardTitle,
             fontWeight = FontWeight.Bold,
-            color = DfColors.TextPrimary,
+            color = DfThemeColors.textPrimary(),
             modifier = Modifier.weight(1f),
         )
         count?.takeIf { it > 0 }?.let {
-            Surface(shape = AppShapes.Chip, color = DfColors.PurpleContainer) {
+            Surface(shape = AppShapes.Chip, color = DfThemeColors.primaryContainer()) {
                 Text(
                     text = DateUtils.toPersianDigits(it.toString()),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                     style = AppTypography.labelSmall,
-                    color = DfColors.Purple,
+                    color = DfThemeColors.primary(),
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -529,7 +577,10 @@ fun ContactReminderCard(
     onPostpone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DfPremiumCard(modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+    DfCard(
+        modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal),
+        containerColor = DfThemeColors.surface(),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -550,7 +601,12 @@ fun ContactReminderCard(
                 )
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(reminder.title.orEmpty(), style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold)
+                Text(
+                    reminder.title.orEmpty(),
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfThemeColors.textPrimary(),
+                )
                 reminder.dueAt?.let { due ->
                     val label = DateUtils.formatJalaliDateTime(due)
                         ?: DateUtils.formatRelativeTimeUntil(due)
@@ -559,7 +615,7 @@ fun ContactReminderCard(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     TextButton(onClick = onComplete) { Text("انجام شد", color = DfColors.Green) }
-                    TextButton(onClick = onPostpone) { Text("فردا", color = DfColors.TextMuted) }
+                    TextButton(onClick = onPostpone) { Text("فردا", color = DfThemeColors.textMuted()) }
                 }
             }
         }
@@ -572,14 +628,23 @@ fun ContactDealCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DfPremiumCard(onClick = onClick, modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+    DfCard(
+        onClick = onClick,
+        modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal),
+        containerColor = DfThemeColors.surface(),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(deal.title, style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold)
+                Text(
+                    deal.title,
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfThemeColors.textPrimary(),
+                )
                 deal.stage?.let { DfBadge(it) }
             }
             deal.amount?.let {
@@ -587,7 +652,7 @@ fun ContactDealCard(
                     FormatUtils.formatPriceToman(it),
                     style = AppTypography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.Purple,
+                    color = DfThemeColors.primary(),
                 )
             }
         }
@@ -601,12 +666,16 @@ fun ContactLinkedListingCard(
     onOpenLink: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DfPremiumCard(modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+    DfCard(
+        modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal),
+        containerColor = DfThemeColors.surface(),
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 listing.title ?: listing.token,
                 style = AppTypography.cardTitle,
                 fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textPrimary(),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -627,7 +696,9 @@ fun ContactLinkedListingCard(
                     Text("واتساپ", color = DfColors.Green)
                 }
                 listing.link?.takeIf { it.isNotBlank() }?.let { link ->
-                    TextButton(onClick = { onOpenLink(link) }) { Text("مشاهده") }
+                    TextButton(onClick = { onOpenLink(link) }) {
+                        Text("مشاهده", color = DfThemeColors.textSecondary())
+                    }
                 }
             }
         }
@@ -641,7 +712,10 @@ fun ContactDocumentCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DfPremiumCard(modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+    DfCard(
+        modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal),
+        containerColor = DfThemeColors.surface(),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -651,23 +725,36 @@ fun ContactDocumentCard(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(AppShapes.IconContainer)
-                    .background(DfColors.SurfaceVariant),
+                    .background(DfThemeColors.surfaceVariant()),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(DfIcons.File, contentDescription = null, tint = DfColors.TextSecondary, modifier = Modifier.size(18.dp))
+                Icon(
+                    DfIcons.Paperclip,
+                    contentDescription = null,
+                    tint = DfThemeColors.textSecondary(),
+                    modifier = Modifier.size(18.dp),
+                )
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(document.title, style = AppTypography.cardTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    document.title,
+                    style = AppTypography.cardTitle,
+                    color = DfThemeColors.textPrimary(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 document.uploadedAt?.let {
                     Text(
                         DateUtils.formatForDisplay(it),
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                 }
             }
             document.fileUrl?.takeIf { it.isNotBlank() }?.let { url ->
-                TextButton(onClick = { onOpen(url) }) { Text("باز") }
+                TextButton(onClick = { onOpen(url) }) {
+                    Text("باز", color = DfThemeColors.textSecondary())
+                }
             }
             TextButton(onClick = onDelete) { Text("حذف", color = DfColors.OverdueAccent) }
         }

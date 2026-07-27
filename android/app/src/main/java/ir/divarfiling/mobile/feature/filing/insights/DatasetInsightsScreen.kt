@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.filing.insights
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,17 +18,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -69,14 +73,32 @@ fun DatasetInsightsScreen(
                             onBack = onBack,
                         )
                         DfErrorBanner(state.error!!)
+                        DfEmptyState(
+                            title = "بارگذاری ناموفق",
+                            subtitle = "اتصال را بررسی کنید و دوباره تلاش کنید",
+                            variant = DfEmptyVariant.Error,
+                            actionLabel = "تلاش مجدد",
+                            onAction = viewModel::refresh,
+                        )
                     }
                 }
                 insights == null -> {
-                    DfEmptyState(
-                        title = "داده‌ای یافت نشد",
-                        subtitle = "تحلیل برای این فایل در دسترس نیست.",
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        DfHubPageHeader(
+                            title = "تحلیل فایل",
+                            subtitle = "بینش‌های هوشمند فایلینگ",
+                            titleIconRes = DfDecorIcons.BarChart,
+                            onBack = onBack,
+                        )
+                        DfEmptyState(
+                            title = "داده‌ای یافت نشد",
+                            subtitle = "تحلیل برای این فایل در دسترس نیست.",
+                            variant = DfEmptyVariant.Empty,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 else -> {
                     LazyColumn(
@@ -135,6 +157,7 @@ fun DatasetInsightsScreen(
                                 DfEmptyState(
                                     title = "بینشی ثبت نشده",
                                     subtitle = "برای این فایل هنوز تحلیل تفصیلی موجود نیست.",
+                                    variant = DfEmptyVariant.Empty,
                                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                                 )
                             }
@@ -195,13 +218,18 @@ private fun InsightsMetaRow(
 
 @Composable
 private fun MetaChip(label: String, modifier: Modifier = Modifier) {
-    DfCard(modifier = modifier) {
+    Box(
+        modifier = modifier
+            .background(DfThemeColors.surfaceVariant(), AppShapes.CardSmall)
+            .padding(AppSpacing.sm),
+        contentAlignment = Alignment.Center,
+    ) {
         Text(
             label,
             style = AppTypography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = DfColors.TextPrimary,
-            modifier = Modifier.padding(AppSpacing.sm),
+            color = DfThemeColors.textPrimary(),
+            maxLines = 1,
         )
     }
 }
@@ -214,18 +242,21 @@ private fun InsightsMapCard(
 ) {
     DfCard(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppSpacing.cardPadding),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            Text(title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+            Text(
+                title,
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
             entries.forEach { (key, value) ->
                 if (value.isNotBlank()) {
                     Text(
                         "$key: $value",
                         style = AppTypography.bodyDescription,
-                        color = DfColors.TextSecondary,
+                        color = DfThemeColors.textSecondary(),
                     )
                 }
             }

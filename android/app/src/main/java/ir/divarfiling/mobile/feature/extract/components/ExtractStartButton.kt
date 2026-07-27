@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -44,7 +45,7 @@ fun ExtractStartButton(
             .liquidGlassSurface(
                 shape = AppShapes.Hero,
                 variant = DfGlassButtonVariant.Primary,
-                elevation = 10.dp,
+                elevation = AppElevations.raised,
                 enabled = enabled,
             )
             .then(
@@ -68,7 +69,7 @@ fun ExtractStartButton(
                 .liquidGlassSurface(
                     shape = AppShapes.IconContainer,
                     variant = DfGlassButtonVariant.Secondary,
-                    elevation = 4.dp,
+                    elevation = AppElevations.subtle,
                     enabled = enabled,
                 ),
             contentAlignment = Alignment.Center,

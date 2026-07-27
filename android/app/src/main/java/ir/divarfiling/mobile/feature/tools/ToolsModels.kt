@@ -2,7 +2,7 @@ package ir.divarfiling.mobile.feature.tools
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.DfIcons
 
 enum class SmartToolId(val key: String) {
@@ -31,8 +31,8 @@ val smartToolsCatalog: List<SmartTool> = listOf(
         title = "محاسبه کمیسیون اجاره",
         subtitle = "محاسبه سریع کمیسیون اجاره بر اساس مبلغ رهن و اجاره",
         icon = DfIcons.Calculator,
-        tint = DfColors.Purple,
-        background = DfColors.PurpleContainer,
+        tint = AppColors.Purple,
+        background = AppColors.PurpleContainer,
     ),
     SmartTool(
         id = SmartToolId.DepositConvert,
@@ -40,8 +40,8 @@ val smartToolsCatalog: List<SmartTool> = listOf(
         title = "تبدیل رهن ↔ اجاره",
         subtitle = "تبدیل مبلغ رهن به اجاره و برعکس بر اساس نرخ بازار",
         icon = DfIcons.RotateCcw,
-        tint = DfColors.Blue,
-        background = DfColors.BlueLight,
+        tint = AppColors.Blue,
+        background = AppColors.BlueLight,
     ),
     SmartTool(
         id = SmartToolId.Compare,
@@ -49,8 +49,8 @@ val smartToolsCatalog: List<SmartTool> = listOf(
         title = "مقایسه دو آگهی",
         subtitle = "مقایسه دقیق ویژگی‌ها، قیمت و ارزش دو ملک",
         icon = DfIcons.Scale,
-        tint = DfColors.Green,
-        background = DfColors.GreenLight,
+        tint = AppColors.Green,
+        background = AppColors.GreenLight,
     ),
     SmartTool(
         id = SmartToolId.AreaPrice,
@@ -58,8 +58,8 @@ val smartToolsCatalog: List<SmartTool> = listOf(
         title = "متراژ و قیمت",
         subtitle = "محاسبه قیمت هر مترمربع و تخمین قیمت کل ملک",
         icon = DfIcons.Ruler,
-        tint = DfColors.Amber,
-        background = DfColors.AmberLight,
+        tint = AppColors.Amber,
+        background = AppColors.AmberLight,
     ),
     SmartTool(
         id = SmartToolId.Discount,
@@ -67,8 +67,8 @@ val smartToolsCatalog: List<SmartTool> = listOf(
         title = "تخفیف و مذاکره",
         subtitle = "محاسبه مبلغ تخفیف و پیشنهاد قیمت مناسب برای مذاکره",
         icon = DfIcons.Tag,
-        tint = DfColors.Pink,
-        background = DfColors.PinkLight,
+        tint = AppColors.Pink,
+        background = AppColors.PinkLight,
     ),
     SmartTool(
         id = SmartToolId.SalesCommission,
@@ -76,7 +76,7 @@ val smartToolsCatalog: List<SmartTool> = listOf(
         title = "کمیسیون فروش",
         subtitle = "محاسبه سریع کمیسیون فروش بر اساس قیمت نهایی ملک",
         icon = DfIcons.Coins,
-        tint = Color(0xFF0D9488),
-        background = Color(0xFFCCFBF1),
+        tint = AppColors.Green,
+        background = AppColors.GreenLight,
     ),
 )
