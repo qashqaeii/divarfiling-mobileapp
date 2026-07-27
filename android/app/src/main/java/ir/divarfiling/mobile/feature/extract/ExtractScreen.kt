@@ -141,7 +141,6 @@ fun ExtractScreen(
                     state = state,
                     subcategories = subcategories,
                     enabled = canExtract && !state.isRunning,
-                    onToggleAdvanced = viewModel::toggleAdvanced,
                     onTransactionTypeChange = viewModel::onTransactionTypeChange,
                     onSubcategoryChange = viewModel::onSubcategoryChange,
                     onSortChange = viewModel::onSortChange,
@@ -243,107 +242,100 @@ private fun AdvancedFilters(
     canExtract: Boolean,
     viewModel: ExtractViewModel,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val fieldsEnabled = canExtract && !state.isRunning
+    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
         if (state.isRent) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = state.depositMin,
-                    onValueChange = viewModel::onDepositMinChange,
-                    label = { Text("ودیعه از") },
-                    modifier = Modifier.weight(1f),
-                    enabled = canExtract && !state.isRunning,
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = state.depositMax,
-                    onValueChange = viewModel::onDepositMaxChange,
-                    label = { Text("ودیعه تا") },
-                    modifier = Modifier.weight(1f),
-                    enabled = canExtract && !state.isRunning,
-                    singleLine = true,
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = state.rentMin,
-                    onValueChange = viewModel::onRentMinChange,
-                    label = { Text("اجاره از") },
-                    modifier = Modifier.weight(1f),
-                    enabled = canExtract && !state.isRunning,
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = state.rentMax,
-                    onValueChange = viewModel::onRentMaxChange,
-                    label = { Text("اجاره تا") },
-                    modifier = Modifier.weight(1f),
-                    enabled = canExtract && !state.isRunning,
-                    singleLine = true,
-                )
-            }
+            FilterRangeRow(
+                leftLabel = "ودیعه از",
+                leftValue = state.depositMin,
+                onLeftChange = viewModel::onDepositMinChange,
+                rightLabel = "ودیعه تا",
+                rightValue = state.depositMax,
+                onRightChange = viewModel::onDepositMaxChange,
+                enabled = fieldsEnabled,
+            )
+            FilterRangeRow(
+                leftLabel = "اجاره از",
+                leftValue = state.rentMin,
+                onLeftChange = viewModel::onRentMinChange,
+                rightLabel = "اجاره تا",
+                rightValue = state.rentMax,
+                onRightChange = viewModel::onRentMaxChange,
+                enabled = fieldsEnabled,
+            )
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = state.priceMin,
-                    onValueChange = viewModel::onPriceMinChange,
-                    label = { Text("قیمت از") },
-                    modifier = Modifier.weight(1f),
-                    enabled = canExtract && !state.isRunning,
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = state.priceMax,
-                    onValueChange = viewModel::onPriceMaxChange,
-                    label = { Text("قیمت تا") },
-                    modifier = Modifier.weight(1f),
-                    enabled = canExtract && !state.isRunning,
-                    singleLine = true,
-                )
-            }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = state.areaMin,
-                onValueChange = viewModel::onAreaMinChange,
-                label = { Text("متراژ از") },
-                modifier = Modifier.weight(1f),
-                enabled = canExtract && !state.isRunning,
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = state.areaMax,
-                onValueChange = viewModel::onAreaMaxChange,
-                label = { Text("متراژ تا") },
-                modifier = Modifier.weight(1f),
-                enabled = canExtract && !state.isRunning,
-                singleLine = true,
+            FilterRangeRow(
+                leftLabel = "قیمت از",
+                leftValue = state.priceMin,
+                onLeftChange = viewModel::onPriceMinChange,
+                rightLabel = "قیمت تا",
+                rightValue = state.priceMax,
+                onRightChange = viewModel::onPriceMaxChange,
+                enabled = fieldsEnabled,
             )
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = state.yearMin,
-                onValueChange = viewModel::onYearMinChange,
-                label = { Text("سال ساخت از") },
-                modifier = Modifier.weight(1f),
-                enabled = canExtract && !state.isRunning,
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = state.yearMax,
-                onValueChange = viewModel::onYearMaxChange,
-                label = { Text("سال ساخت تا") },
-                modifier = Modifier.weight(1f),
-                enabled = canExtract && !state.isRunning,
-                singleLine = true,
-            )
-        }
+        FilterRangeRow(
+            leftLabel = "متراژ از",
+            leftValue = state.areaMin,
+            onLeftChange = viewModel::onAreaMinChange,
+            rightLabel = "متراژ تا",
+            rightValue = state.areaMax,
+            onRightChange = viewModel::onAreaMaxChange,
+            enabled = fieldsEnabled,
+        )
+        FilterRangeRow(
+            leftLabel = "سال ساخت از",
+            leftValue = state.yearMin,
+            onLeftChange = viewModel::onYearMinChange,
+            rightLabel = "سال ساخت تا",
+            rightValue = state.yearMax,
+            onRightChange = viewModel::onYearMaxChange,
+            enabled = fieldsEnabled,
+        )
         OutlinedTextField(
             value = state.rooms,
             onValueChange = viewModel::onRoomsChange,
-            label = { Text("اتاق (مثلاً 2,3)") },
+            label = { Text("تعداد اتاق") },
+            placeholder = { Text("مثلاً ۲ یا ۲,۳") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = canExtract && !state.isRunning,
+            enabled = fieldsEnabled,
             singleLine = true,
+            shape = ir.divarfiling.mobile.core.design.AppShapes.Field,
+        )
+    }
+}
+
+@Composable
+private fun FilterRangeRow(
+    leftLabel: String,
+    leftValue: String,
+    onLeftChange: (String) -> Unit,
+    rightLabel: String,
+    rightValue: String,
+    onRightChange: (String) -> Unit,
+    enabled: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = leftValue,
+            onValueChange = onLeftChange,
+            label = { Text(leftLabel) },
+            modifier = Modifier.weight(1f),
+            enabled = enabled,
+            singleLine = true,
+            shape = ir.divarfiling.mobile.core.design.AppShapes.Field,
+        )
+        OutlinedTextField(
+            value = rightValue,
+            onValueChange = onRightChange,
+            label = { Text(rightLabel) },
+            modifier = Modifier.weight(1f),
+            enabled = enabled,
+            singleLine = true,
+            shape = ir.divarfiling.mobile.core.design.AppShapes.Field,
         )
     }
 }

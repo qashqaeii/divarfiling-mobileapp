@@ -1,8 +1,13 @@
 package ir.divarfiling.mobile.feature.extract.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,9 +45,11 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.core.places.PlaceMatchType
 import ir.divarfiling.mobile.core.places.PlaceOption
 import ir.divarfiling.mobile.core.places.PlaceSearchResult
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExtractLocationCard(
     query: String,
@@ -62,52 +70,80 @@ fun ExtractLocationCard(
     modifier: Modifier = Modifier,
 ) {
     var showManualPicker by remember { mutableStateOf(false) }
+    val hasSelection = provinceName.isNotBlank() || cityName.isNotBlank()
 
     ExtractSectionCard(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
             ExtractSectionTitle(title = "انتخاب موقعیت", iconRes = DfDecorIcons.MapPin)
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
+            Text(
+                text = "نام منطقه یا شهر را تایپ کنید؛ در صورت تطابق کامل، خودکار انتخاب می‌شود.",
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+            )
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+                shape = RoundedCornerShape(18.dp),
+                color = DfColors.Surface,
+                shadowElevation = 2.dp,
             ) {
-                Surface(
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp),
-                    shape = AppShapes.Field,
-                    color = DfColors.SurfaceVariant,
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.5.dp,
+                            brush = Brush.horizontalGradient(
+                                listOf(
+                                    DfColors.Purple.copy(alpha = 0.55f),
+                                    Color(0xFFA78BFA).copy(alpha = 0.35f),
+                                ),
+                            ),
+                            shape = RoundedCornerShape(18.dp),
+                        )
+                        .padding(horizontal = 14.dp, vertical = 4.dp),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppSpacing.sm),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     ) {
-                        Icon(
-                            imageVector = DfIcons.Search,
-                            contentDescription = null,
-                            tint = DfColors.TextMuted,
-                            modifier = Modifier.size(18.dp),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(DfColors.PurpleContainer),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = DfIcons.Search,
+                                contentDescription = null,
+                                tint = DfColors.Purple,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                         BasicTextField(
                             value = query,
                             onValueChange = onQueryChange,
                             enabled = enabled,
                             modifier = Modifier.weight(1f),
-                            textStyle = AppTypography.bodyDescription.copy(color = DfColors.TextPrimary),
+                            textStyle = AppTypography.bodyDescription.copy(
+                                color = DfColors.TextPrimary,
+                                fontWeight = FontWeight.Medium,
+                            ),
                             singleLine = true,
                             cursorBrush = SolidColor(DfColors.Purple),
                             decorationBox = { inner ->
                                 Box(contentAlignment = Alignment.CenterStart) {
                                     if (query.isEmpty()) {
                                         Text(
-                                            text = "مثلاً سعادت آباد",
+                                            text = "مثلاً سعادت آباد، ونک، اصفهان…",
                                             style = AppTypography.bodyDescription,
                                             color = DfColors.TextMuted,
                                             maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
                                         )
                                     }
                                     inner()
@@ -117,7 +153,7 @@ fun ExtractLocationCard(
                         if (query.isNotEmpty() && enabled) {
                             IconButton(
                                 onClick = { onQueryChange("") },
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(32.dp),
                             ) {
                                 Icon(
                                     imageVector = DfIcons.X,
@@ -129,44 +165,70 @@ fun ExtractLocationCard(
                         }
                     }
                 }
-                Surface(
-                    shape = AppShapes.IconContainer,
-                    color = DfColors.PurpleContainer,
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        DfDecorImage(
-                            resId = DfDecorIcons.MapPin,
-                            size = 28.dp,
+            }
+
+            AnimatedVisibility(
+                visible = query.length >= 2 && suggestions.isNotEmpty(),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    Text(
+                        text = "پیشنهادها — با تکمیل نام، خودکار انتخاب می‌شود",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    suggestions.take(5).forEach { item ->
+                        SuggestionChip(
+                            result = item,
+                            enabled = enabled,
+                            onClick = { onSuggestionSelect(item) },
                         )
                     }
                 }
             }
 
-            if (query.length >= 2 && suggestions.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                    Text(
-                        text = "نتایج پیشنهادی",
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    suggestions.take(4).forEach { item ->
-                        Surface(
-                            onClick = { if (enabled) onSuggestionSelect(item) },
-                            shape = RoundedCornerShape(12.dp),
-                            color = DfColors.SurfaceVariant.copy(alpha = 0.65f),
+            AnimatedVisibility(
+                visible = hasSelection,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = DfColors.PurpleContainer.copy(alpha = 0.45f),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(AppSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Text(
-                                text = item.matchedText,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = AppSpacing.sm, vertical = 10.dp),
-                                style = AppTypography.bodyDescription,
-                                color = DfColors.TextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                            Icon(
+                                imageVector = DfIcons.CircleCheck,
+                                contentDescription = null,
+                                tint = DfColors.Green,
+                                modifier = Modifier.size(16.dp),
                             )
+                            Text(
+                                text = "موقعیت انتخاب‌شده",
+                                style = AppTypography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DfColors.PurpleDark,
+                            )
+                        }
+                        if (provinceName.isNotBlank()) {
+                            LocationSelectedRow(label = "استان $provinceName", icon = DfIcons.Building)
+                        }
+                        if (cityName.isNotBlank()) {
+                            LocationSelectedRow(label = "شهر $cityName", icon = DfIcons.Building)
+                        }
+                        districtName?.takeIf { it.isNotBlank() }?.let { district ->
+                            LocationSelectedRow(label = "منطقه $district", useMapPin = true)
                         }
                     }
                 }
@@ -175,75 +237,131 @@ fun ExtractLocationCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    if (provinceName.isNotBlank()) {
-                        LocationSelectedRow(
-                            label = "استان $provinceName",
-                            icon = DfIcons.Building,
-                        )
-                    }
-                    if (cityName.isNotBlank()) {
-                        LocationSelectedRow(
-                            label = "شهر $cityName",
-                            icon = DfIcons.Building,
-                        )
-                    }
-                    districtName?.takeIf { it.isNotBlank() }?.let { district ->
-                        LocationSelectedRow(label = "منطقه $district", useMapPin = true)
-                    }
-                    Text(
-                        text = if (showManualPicker) "بستن انتخاب دستی" else "انتخاب دستی استان و شهر",
-                        style = AppTypography.labelSmall,
-                        color = DfColors.Purple,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable(enabled = enabled) { showManualPicker = !showManualPicker }
-                            .padding(vertical = 4.dp),
-                    )
-                    if (showManualPicker) {
-                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                            DfDropdown(
-                                label = "استان",
-                                value = provinceName,
-                                options = provinces,
-                                enabled = enabled,
-                                onSelect = onProvinceChange,
-                            )
-                            DfDropdown(
-                                label = "شهر",
-                                value = cityName,
-                                options = cities.map { it.name },
-                                enabled = enabled,
-                                onSelect = { name ->
-                                    cities.firstOrNull { it.name == name }?.let(onCityChange)
-                                },
-                            )
-                            if (districts.isNotEmpty()) {
-                                DfDropdown(
-                                    label = "منطقه (اختیاری)",
-                                    value = districts.firstOrNull { it.id == districtId }?.name ?: "همه مناطق",
-                                    options = listOf("همه مناطق") + districts.map { it.name },
-                                    enabled = enabled,
-                                    onSelect = { name ->
-                                        if (name == "همه مناطق") {
-                                            onDistrictChange("")
-                                        } else {
-                                            districts.firstOrNull { it.name == name }?.id?.let(onDistrictChange)
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
+                Text(
+                    text = if (showManualPicker) "بستن انتخاب دستی" else "انتخاب دستی استان و شهر",
+                    style = AppTypography.labelSmall,
+                    color = DfColors.Purple,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(enabled = enabled) { showManualPicker = !showManualPicker }
+                        .padding(vertical = 4.dp, horizontal = 2.dp),
+                )
                 ExtractMapIllustration(modifier = Modifier.padding(start = AppSpacing.xs))
             }
+
+            AnimatedVisibility(
+                visible = showManualPicker,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    DfDropdown(
+                        label = "استان",
+                        value = provinceName,
+                        options = provinces,
+                        enabled = enabled,
+                        onSelect = onProvinceChange,
+                    )
+                    DfDropdown(
+                        label = "شهر",
+                        value = cityName,
+                        options = cities.map { it.name },
+                        enabled = enabled,
+                        onSelect = { name ->
+                            cities.firstOrNull { it.name == name }?.let(onCityChange)
+                        },
+                    )
+                    if (districts.isNotEmpty()) {
+                        DfDropdown(
+                            label = "منطقه (اختیاری)",
+                            value = districts.firstOrNull { it.id == districtId }?.name ?: "همه مناطق",
+                            options = listOf("همه مناطق") + districts.map { it.name },
+                            enabled = enabled,
+                            onSelect = { name ->
+                                if (name == "همه مناطق") {
+                                    onDistrictChange("")
+                                } else {
+                                    districts.firstOrNull { it.name == name }?.id?.let(onDistrictChange)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SuggestionChip(
+    result: PlaceSearchResult,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val typeLabel = when (result.matchType) {
+        PlaceMatchType.DISTRICT -> "منطقه"
+        PlaceMatchType.CITY -> "شهر"
+        PlaceMatchType.PROVINCE -> "استان"
+    }
+    Surface(
+        onClick = { if (enabled) onClick() },
+        enabled = enabled,
+        shape = RoundedCornerShape(14.dp),
+        color = DfColors.SurfaceVariant.copy(alpha = 0.7f),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 11.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DfColors.Purple.copy(alpha = 0.12f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = typeLabel,
+                    style = AppTypography.labelSmall,
+                    color = DfColors.Purple,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = result.matchedText,
+                    style = AppTypography.bodyDescription,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val breadcrumb = listOfNotNull(
+                    result.provinceName.takeIf { it.isNotBlank() },
+                    result.cityName?.takeIf { it.isNotBlank() },
+                ).joinToString(" · ")
+                if (breadcrumb.isNotBlank()) {
+                    Text(
+                        text = breadcrumb,
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Icon(
+                imageVector = DfIcons.ChevronLeft,
+                contentDescription = null,
+                tint = DfColors.TextMuted,
+                modifier = Modifier.size(16.dp),
+            )
         }
     }
 }
@@ -258,7 +376,7 @@ private fun LocationSelectedRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(DfColors.SurfaceVariant.copy(alpha = 0.55f))
+            .background(DfColors.Surface.copy(alpha = 0.85f))
             .padding(horizontal = AppSpacing.sm, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

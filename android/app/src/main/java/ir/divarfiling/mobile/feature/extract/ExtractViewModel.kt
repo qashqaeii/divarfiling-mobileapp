@@ -9,7 +9,9 @@ import ir.divarfiling.mobile.core.license.ExtractLightLimits
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.datastore.ExtractPreferences
 import ir.divarfiling.mobile.core.datastore.SessionStore
+import ir.divarfiling.mobile.core.places.PlaceMatchType
 import ir.divarfiling.mobile.core.places.PlaceOption
+import ir.divarfiling.mobile.core.places.PlaceSearch
 import ir.divarfiling.mobile.core.places.PlaceSearchResult
 import ir.divarfiling.mobile.core.places.PlacesRepository
 import ir.divarfiling.mobile.core.network.ExtractionUploadData
@@ -42,9 +44,8 @@ data class ExtractUiState(
     val cityName: String = "تهران",
     val districtId: String = "",
     val sort: String = "sort_date",
-    val maxItems: Int = 100,
+    val maxItems: Int = ExtractLightLimits.MAX_ITEMS,
     val advertiserFilter: String = "all",
-    val showAdvanced: Boolean = false,
     val priceMin: String = "",
     val priceMax: String = "",
     val depositMin: String = "",
@@ -238,8 +239,6 @@ class ExtractViewModel @Inject constructor(
     fun onMaxItemsChange(value: Int) = _uiState.update {
         it.copy(maxItems = value.coerceIn(0, ExtractLightLimits.MAX_ITEMS))
     }
-    fun toggleAdvanced() = _uiState.update { it.copy(showAdvanced = !it.showAdvanced) }
-
     fun onPriceMinChange(v: String) = _uiState.update { it.copy(priceMin = v) }
     fun onPriceMaxChange(v: String) = _uiState.update { it.copy(priceMax = v) }
     fun onDepositMinChange(v: String) = _uiState.update { it.copy(depositMin = v) }
@@ -263,12 +262,51 @@ class ExtractViewModel @Inject constructor(
     }
 
     fun onPlaceSearchDebounced(query: String) {
-        val suggestions = if (query.trim().length >= 2) {
-            placesRepository.searchPlaces(query)
+        val trimmed = query.trim()
+        val suggestions = if (trimmed.length >= 2) {
+            placesRepository.searchPlaces(trimmed)
         } else {
             emptyList()
         }
-        _uiState.update { it.copy(placeSuggestions = suggestions) }
+        val autoSelect = findAutoSelectablePlace(trimmed, suggestions)
+        if (autoSelect != null) {
+            val current = _uiState.value
+            val alreadySelected = PlaceSearch.normName(current.placeQuery) ==
+                PlaceSearch.normName(autoSelect.matchedText) &&
+                current.cityName.isNotBlank() &&
+                current.placeSuggestions.isEmpty()
+            if (alreadySelected) {
+                _uiState.update { it.copy(placeSuggestions = emptyList()) }
+            } else {
+                onPlaceSuggestionSelect(autoSelect)
+            }
+        } else {
+            _uiState.update { it.copy(placeSuggestions = suggestions) }
+        }
+    }
+
+    private fun findAutoSelectablePlace(
+        query: String,
+        suggestions: List<PlaceSearchResult>,
+    ): PlaceSearchResult? {
+        if (suggestions.isEmpty() || query.length < 2) return null
+        val normQuery = PlaceSearch.normName(query)
+        val exact = suggestions.filter {
+            PlaceSearch.normName(it.matchedText) == normQuery
+        }
+        return when {
+            exact.size == 1 -> exact.first()
+            exact.size > 1 -> {
+                val districts = exact.filter { it.matchType == PlaceMatchType.DISTRICT }
+                val cities = exact.filter { it.matchType == PlaceMatchType.CITY }
+                when {
+                    districts.size == 1 -> districts.first()
+                    cities.size == 1 -> cities.first()
+                    else -> null
+                }
+            }
+            else -> null
+        }
     }
 
     fun onPlaceSuggestionSelect(result: PlaceSearchResult) {

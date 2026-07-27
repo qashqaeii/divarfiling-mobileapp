@@ -136,7 +136,7 @@ fun QuickExtractCard(
                     }
                     if (enabled && maxItems > 0) {
                         Text(
-                            text = "حداکثر $maxItems آگهی در هر استخراج",
+                            text = "حداکثر ${ir.divarfiling.mobile.core.design.DateUtils.toPersianDigits(maxItems.toString())} آگهی در هر استخراج",
                             style = AppTypography.labelSmall,
                             color = Color.White.copy(alpha = 0.72f),
                             maxLines = 1,
@@ -189,7 +189,7 @@ private fun HeroMeshPattern(modifier: Modifier = Modifier) {
 private fun QuickExtractCardPreview() {
     DivarFilingTheme {
         QuickExtractCard(
-            maxItems = 100,
+            maxItems = 250,
             enabled = true,
             onStartClick = {},
         )

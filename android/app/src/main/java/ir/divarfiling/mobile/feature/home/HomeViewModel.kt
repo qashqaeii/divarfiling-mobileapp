@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.feature.crm.components.TodayTaskLabels
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.license.ExtractLightLimits
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.NotificationDto
 import ir.divarfiling.mobile.core.network.TodayItemDto
@@ -154,7 +155,7 @@ class HomeViewModel @Inject constructor(
                                 )
                             },
                             notificationBadgeCount = maxOf(data.notificationsUnread, unreadInPreview),
-                            maxExtractItems = 100,
+                            maxExtractItems = ExtractLightLimits.MAX_ITEMS,
                             canExtract = license?.features?.lightExtract ?: state.canExtract,
                             license = license?.let {
                                 LicenseState(
