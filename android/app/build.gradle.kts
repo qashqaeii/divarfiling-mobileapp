@@ -16,8 +16,8 @@ android {
         applicationId = "ir.divarfiling.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 34
-        versionName = "2.4.6"
+        versionCode = 35
+        versionName = "2.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -53,11 +53,9 @@ android {
                 "proguard-rules.pro",
             )
             val releaseSigning = signingConfigs.findByName("release")
-            signingConfig = releaseSigning?.takeIf { it.storeFile?.exists() == true }
-                ?: error(
-                    "Release signing not configured. Set ANDROID_KEYSTORE_PATH, " +
-                        "ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and ANDROID_KEY_PASSWORD.",
-                )
+            if (releaseSigning?.storeFile?.exists() == true) {
+                signingConfig = releaseSigning
+            }
         }
     }
 

@@ -1,10 +1,11 @@
 # قرارداد REST API — اپ اندروید
 
-**نسخه:** 2.0  
+**نسخه:** 2.5  
 **Base URL:** `https://divarfiling.ir/api/mobile/v1`  
 **اصل:** تمام منطق کسب‌وکار روی سرور — اپ فقط consumer
 
-> پیاده‌سازی در ریپوی backend Django — اپ `mobile_api`
+> پیاده‌سازی در ریپوی backend Django — اپ `mobile_api`  
+> نقش محصول: میزکار اصلی موبایل (بدون وابستگی اجباری به ویندوز)
 
 ---
 
@@ -596,3 +597,29 @@ GET /license/status
 ---
 
 *نسخه ۲.۰ — بدون endpoint export فایل در موبایل*
+
+---
+
+## ۱۹. افزونه‌های v2.5 — میزکار اصلی موبایل (تیر ۱۴۰۵)
+
+Base path همان `/api/mobile/v1/`.
+
+| Method | Path | توضیح |
+|--------|------|--------|
+| GET | `/filing/datasets/{id}/insights` | تحلیل بازار فایل |
+| GET | `/filing/datasets/{id}/map` | مارکرهای نقشه |
+| GET | `/crm/properties/{id}/contact-matches` | مشتریان مناسب ملک |
+| POST | `/crm/properties/{id}/suggest-contacts` | پیشنهاد/پیوند مخاطب |
+| GET | `/crm/templates` | قالب‌های پیام |
+| GET | `/crm/saved-filters` | فیلترهای ذخیره‌شده |
+| GET/POST | `/support/tickets` | تیکت پشتیبانی |
+| GET | `/ai/quota` | سهمیه AI |
+| POST | `/ai/draft-message` | پیش‌نویس پیام |
+| POST | `/ai/summarize-listing` | خلاصه آگهی |
+| GET/POST | `/extractions/cloud` | لیست / ایجاد Job استخراج ابری |
+| GET | `/extractions/cloud/{id}` | وضعیت Job ابری |
+
+حریم خصوصی وب: `https://divarfiling.ir/privacy/`
+
+*نسخه ۲.۵ — میزکار اصلی موبایل*
+

@@ -46,6 +46,8 @@ import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 fun SettingsScreen(
     onLoggedOut: () -> Unit,
     onNavigateNotifications: () -> Unit = {},
+    onNavigateTools: () -> Unit = {},
+    onNavigateSupport: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -102,7 +104,7 @@ fun SettingsScreen(
                 item {
                     DfHubPageHeader(
                         title = "تنظیمات",
-                        subtitle = "پروفایل، اعلان‌ها و امنیت",
+                        subtitle = "میزکار موبایل",
                         titleIconRes = DfDecorIcons.Settings,
                         userName = state.user?.fullName?.substringBefore(" ") ?: "کاربر",
                         notificationCount = state.notificationBadgeCount,
@@ -125,6 +127,44 @@ fun SettingsScreen(
                         onOpenDashboard = { openWeb(AppLinks.DASHBOARD_LICENSES) },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
+                }
+
+                item {
+                    SettingsSectionTitle(
+                        title = "میانبرها",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+
+                item {
+                    DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                        Column(Modifier.padding(horizontal = AppSpacing.cardPadding, vertical = AppSpacing.xs)) {
+                            SettingsInfoRow(
+                                title = "ابزارهای هوشمند",
+                                subtitle = "محاسبه‌گرها و ابزار مشاور",
+                                icon = DfIcons.Sparkles,
+                                onClick = onNavigateTools,
+                            )
+                            SettingsInfoRow(
+                                title = "پشتیبانی",
+                                subtitle = "تیکت و درخواست کمک",
+                                icon = DfIcons.Phone,
+                                onClick = onNavigateSupport,
+                            )
+                            SettingsInfoRow(
+                                title = "حریم خصوصی",
+                                subtitle = "سیاست حفظ حریم",
+                                icon = Icons.Default.Security,
+                                onClick = { openWeb(AppLinks.PRIVACY) },
+                            )
+                            SettingsInfoRow(
+                                title = "آکادمی",
+                                subtitle = "آموزش و راهنما",
+                                icon = DfIcons.ExternalLink,
+                                onClick = { openWeb(AppLinks.ACADEMY) },
+                            )
+                        }
+                    }
                 }
 
                 item {

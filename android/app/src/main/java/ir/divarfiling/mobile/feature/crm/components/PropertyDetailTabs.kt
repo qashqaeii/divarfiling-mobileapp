@@ -81,6 +81,7 @@ fun PropertyDetailTabbedContent(
     onStatusChange: (String) -> Unit,
     onDelete: () -> Unit,
     onLinkContact: () -> Unit,
+    onContactMatches: () -> Unit = {},
     onContactClick: (Long) -> Unit,
     onInlineNotesChange: (String) -> Unit,
     onSaveNotes: () -> Unit,
@@ -120,6 +121,17 @@ fun PropertyDetailTabbedContent(
                 onOpenLink = onOpenLink,
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
+        }
+
+        item {
+            Button(
+                onClick = onContactMatches,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.screenHorizontal),
+            ) {
+                Text("مشتریان مناسب")
+            }
         }
 
         item {

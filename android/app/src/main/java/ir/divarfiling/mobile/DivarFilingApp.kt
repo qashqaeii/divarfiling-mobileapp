@@ -11,6 +11,8 @@ import dagger.hilt.android.EntryPointAccessors
 import ir.divarfiling.mobile.core.fcm.FcmEntryPoint
 import ir.divarfiling.mobile.core.sync.BackgroundWorkManager
 import ir.divarfiling.mobile.core.sync.WorkerSessionEntryPoint
+import org.osmdroid.config.Configuration
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,6 +28,9 @@ class DivarFilingApp : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        Configuration.getInstance().userAgentValue = packageName
+        Configuration.getInstance().osmdroidBasePath = cacheDir
+        Configuration.getInstance().osmdroidTileCache = File(cacheDir, "osmdroid/tiles")
         appScope.launch(Dispatchers.IO) {
             val sessionStore = EntryPointAccessors.fromApplication(
                 this@DivarFilingApp,

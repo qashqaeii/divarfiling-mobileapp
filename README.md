@@ -1,20 +1,26 @@
-# Divar Filing Mobile — همراه هوشمند مشاور
+# Divar Filing Mobile — میزکار اصلی مشاور
 
-اپ اندروید **یکی از سه جزء** اکوسیستم «فایلینگ دیوار» است — نه جایگزین نرم‌افزار ویندوز.
+اپ اندروید **میزکار روزانه** اکوسیستم فایلینگ دیوار است. کاربر بدون ویندوز می‌تواند CRM، فایلینگ، تحلیل، نقشه، استخراج سبک/ابری، ابزارها، AI و پشتیبانی را از موبایل انجام دهد.
 
 ```
-Django (مرکز)  ◄──  Windows (استخراج حرفه‌ای)
-      ▲
-      └──  Android (CRM + فایلینگ + استخراج سبک)
+Django (مرکز + استخراج ابری)
+   ▲
+   ├── Android (میزکار اصلی موبایل)
+   ├── Web (فروشگاه / پرداخت / گزارش حجیم)
+   └── Windows (اختیاری — قدرت‌کارها)
 ```
 
 ## وضعیت
 
 | مرحله | وضعیت |
 |-------|--------|
-| نقشه راه v2 | ✅ |
-| اسکلت اندروید (فاز ۰–۱) | ✅ |
-| API موبایل Django | ⏳ باید روی سرور پیاده شود |
+| نقشه راه v3 — میزکار اصلی | ✅ |
+| اپ Kotlin/Compose (v2.5.0) | ✅ |
+| API موبایل Django | ✅ |
+| نقشه / insights / تطبیق ملک | ✅ |
+| استخراج ابری | ✅ |
+| تیم / AI / پشتیبانی / قالب‌ها | ✅ |
+| انتشار کافه‌بازار / Play Protect | 📄 [راهنما](docs/CAFEBAZAAR_PLAY_PROTECT.md) |
 
 ## ساختار پروژه
 
@@ -24,8 +30,6 @@ Django (مرکز)  ◄──  Windows (استخراج حرفه‌ای)
 ├── .github/          ← CI (Build APK)
 └── ROADMAP.md
 ```
-
-> این ریپو **مستقل** از پروژهٔ اصلی (Django + ویندوز) است. API سرور در ریپوی backend (`django/mobile_api`) نگهداری می‌شود.
 
 ## اجرای محلی
 
@@ -48,82 +52,28 @@ export ANDROID_KEY_PASSWORD=...
 
 نیازمند: JDK 17، Android SDK (API 35)
 
-## Build APK with GitHub Actions
+**هرگز APK دیباگ به کافه‌بازار نفرستید.** جزئیات: [docs/CAFEBAZAAR_PLAY_PROTECT.md](docs/CAFEBAZAAR_PLAY_PROTECT.md)
 
-با هر `push` روی branch اصلی (`main` / `master`) — در صورت تغییر فایل‌های داخل `android/` — workflow **Build APK** یک **`app-release.apk` امضا‌شده** می‌سازد.
+## قابلیت‌های کلیدی
 
-روی **pull request** فقط lint اجرا می‌شود (بدون artifact).
+- CRM: مخاطبین، معاملات، املاک، امروز، تطبیق هوشمند
+- فایلینگ: لیست، جستجو، export، **تحلیل**، **نقشه**
+- استخراج سبک روی گوشی + **استخراج ابری** روی سرور
+- ابزارهای هوشمند، قالب پیام، تقویم
+- دستیار AI، تیکت پشتیبانی، آکادمی (لینک وب)، تیم (میزکار وب)
+- Push / deep link
 
-همچنین می‌توانید دستی اجرا کنید: **Actions → Build APK → Run workflow**
+## اسناد
 
-### Secrets لازم در GitHub
+| سند | مسیر |
+|-----|------|
+| نقش اکوسیستم | [docs/ECOSYSTEM_ROLES.md](docs/ECOSYSTEM_ROLES.md) |
+| قرارداد API | [docs/MOBILE_API_SPEC.md](docs/MOBILE_API_SPEC.md) |
+| نصب و Play Protect | [docs/INSTALL_GUIDE_FA.md](docs/INSTALL_GUIDE_FA.md) |
+| کافه‌بازار | [docs/CAFEBAZAAR_PLAY_PROTECT.md](docs/CAFEBAZAAR_PLAY_PROTECT.md) |
 
-| Secret | توضیح |
-|--------|--------|
-| `ANDROID_KEYSTORE_BASE64` | فایل `.keystore` به صورت base64 |
-| `ANDROID_KEYSTORE_PASSWORD` | رمز keystore |
-| `ANDROID_KEY_ALIAS` | نام alias (مثلاً `divarfiling`) |
-| `ANDROID_KEY_PASSWORD` | رمز کلید |
+## پشتیبانی
 
-ساخت base64 از keystore (PowerShell):
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("divarfiling-release.keystore"))
-```
-
-### دانلود APK
-
-1. GitHub → **Actions**
-2. workflow **Build APK**
-3. آخرین **Run** موفق (job `release`)
-4. بخش **Artifacts** → `divar-filing-release-apk`
-
-## قابلیت‌های فعلی اپ
-
-| بخش | وضعیت |
-|-----|--------|
-| ورود + JWT | ✅ |
-| لایسنس (cache + API) | ✅ |
-| CRM — مخاطبین، سرنخ سریع، امروز | ✅ |
-| فایلینگ — dataset و آگهی (از سرور) | ✅ |
-| **استخراج سبک** | ✅ — **فقط با لایسنس فعال** |
-| Push (FCM) | ⏳ فاز بعد |
-| نقشه | ⏳ فاز بعد |
-
-### استخراج سبک — قوانین
-
-- فقط کاربران با **لایسنس فعال** و `light_extract` / `mobile_extract_enabled`
-- حداکثر **۱۰۰** آگهی، **۲** درخواست همزمان
-- بدون Excel / CSV / JSON / دانلود عکس
-- آپلود مستقیم به Workspace روی سرور
-
-## مستندات
-
-| سند | توضیح |
-|-----|--------|
-| [ROADMAP.md](./ROADMAP.md) | نقشه راه |
-| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | معماری فنی |
-| [docs/MOBILE_API_SPEC.md](./docs/MOBILE_API_SPEC.md) | قرارداد REST API |
-| [docs/ECOSYSTEM_ROLES.md](./docs/ECOSYSTEM_ROLES.md) | نقش ویندوز / اندروید / سرور |
-| [docs/reference/](./docs/reference/) | مرجع HTTP دیوار (کپی از پروژهٔ ویندوز) |
-
-## استک
-
-Kotlin · Jetpack Compose · Hilt · Retrofit · Room (cache) · WorkManager
-
----
-
-**دامنه API:** `https://divarfiling.ir/api/mobile/v1/`
-
-## انتشار روی GitHub
-
-این پوشه یک ریپوی **مستقل** است (`git init` از قبل انجام شده). مراحل:
-
-```bash
-cd divar-mobile-app
-git add .
-git commit -m "Initial commit: Divar Filing Android companion app"
-git remote add origin https://github.com/YOUR_USER/divar-mobile-app.git
-git push -u origin main
-```
-
-ریپوی Django/backend جداگانه است — فقط `docs/MOBILE_API_SPEC.md` قرارداد API را اینجا نگه می‌دارد.
+- وب: https://divarfiling.ir
+- حریم خصوصی: https://divarfiling.ir/privacy/
+- تلگرام: @hosseinQashqaeii

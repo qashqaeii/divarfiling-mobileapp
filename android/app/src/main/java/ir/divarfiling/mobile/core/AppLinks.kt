@@ -4,4 +4,13 @@ object AppLinks {
     const val SITE = "https://divarfiling.ir/"
     const val SHOP_BOT = "https://divarfiling.ir/products/divar-extraction-bot/"
     const val DASHBOARD_LICENSES = "https://divarfiling.ir/accounts/dashboard/?tab=licenses#licenses"
+    const val PRIVACY = "https://divarfiling.ir/privacy/"
+    const val TERMS = "https://divarfiling.ir/terms/"
+    const val ACADEMY = "https://divarfiling.ir/academy/"
+    const val WORKSPACE = "https://divarfiling.ir/workspace/"
+    const val WORKSPACE_AI = "https://divarfiling.ir/workspace/ai/"
+    const val WORKSPACE_SUPPORT = "https://divarfiling.ir/workspace/support/"
+    const val WORKSPACE_TEAM = "https://divarfiling.ir/workspace/crm/team/"
+    const val WORKSPACE_TEMPLATES = "https://divarfiling.ir/workspace/crm/templates/"
+    const val WORKSPACE_CALENDAR = "https://divarfiling.ir/workspace/crm/calendar/"
 }

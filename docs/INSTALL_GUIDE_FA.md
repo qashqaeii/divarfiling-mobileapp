@@ -4,9 +4,20 @@
 
 هنگام نصب APK از خارج Google Play ممکن است پیام زیر نمایش داده شود:
 
-> **App blocked to protect your device**
+> **App blocked to protect your device**  
+> Play Protect doesn't recognize this app's developer
 
-این به معنی خراب بودن برنامه نیست. Google توسعه‌دهندگان ناشناس را هشدار می‌دهد.
+این به معنی خراب بودن برنامه نیست. گوگل توسعه‌دهندگان تازه‌وارد / کم‌نصب را هشدار می‌دهد (دسته Uncommon).
+
+### رفع برای انتشار کافه‌بازار
+
+جزئیات کامل: [CAFEBAZAAR_PLAY_PROTECT.md](./CAFEBAZAAR_PLAY_PROTECT.md)
+
+خلاصه:
+1. فقط APK **release** امضاشده با keystore رسمی بسازید
+2. SHA-256 را از VirusTotal بگیرید و فرم Play Protect Appeals را ارسال کنید
+3. ۷–۱۰ روز صبر کنید و با Play Protect روشن تست کنید
+4. حساب demo ریویو را در توضیح انتشار بازار بگذارید
 
 ### روش نصب (سایدلود)
 
@@ -23,8 +34,8 @@
 
 | نوع | توضیح |
 |-----|--------|
-| `app-debug.apk` | برای توسعه — هشدار Play Protect محتمل‌تر |
-| `app-release.apk` | امضا‌شده — برای استفاده واقعی مشاوران |
+| `app-debug.apk` | برای توسعه — هشدار Play Protect محتمل‌تر — **هرگز به بازار نفرستید** |
+| `app-release.apk` | امضا‌شده — برای کافه‌بازار و مشاوران |
 
 ## CI / ساخت Release
 
@@ -46,11 +57,18 @@ Secrets در GitHub → Settings → Secrets and variables → Actions:
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
 
+**بکاپ keystore اجباری است.** از دست دادن کلید یعنی عدم امکان به‌روزرسانی همان اپ در بازار.
+
 ## پس از نصب
 
 1. با همان حساب **divarfiling.ir** وارد شوید.
 2. لایسنس فعال + «استخراج سبک» لازم است.
-3. پس از استخراج، فایل در **میزکار → فایلینگ دیوار** با نام استاندارد (مثل خروجی ویندوز) ظاهر می‌شود.
+3. پس از استخراج، فایل در **میزکار → فایلینگ دیوار** ظاهر می‌شود.
+
+## حریم خصوصی و قوانین
+
+- حریم خصوصی: https://divarfiling.ir/privacy/
+- قوانین: https://divarfiling.ir/terms/
 
 ## پشتیبانی
 

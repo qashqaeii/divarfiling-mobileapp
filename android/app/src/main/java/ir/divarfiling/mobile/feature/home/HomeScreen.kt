@@ -55,6 +55,8 @@ fun HomeScreen(
     onNavigateExtract: () -> Unit = {},
     onNavigateCrm: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
+    onNavigateTools: () -> Unit = {},
+    onNavigateMore: () -> Unit = {},
     onDatasetClick: (String) -> Unit = {},
     onNotificationDeepLink: (DeepLinkTarget) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
@@ -123,6 +125,7 @@ fun HomeScreen(
                             onNavigateFiling = onNavigateFiling,
                             onNavigateCrm = onNavigateCrm,
                             onNavigateToday = onNavigateToday,
+                            onNavigateTools = onNavigateTools,
                         ),
                     )
                 }
@@ -144,6 +147,7 @@ fun HomeScreen(
                             onNavigateFiling = onNavigateFiling,
                             onNavigateCrm = onNavigateCrm,
                             onNavigateToday = onNavigateToday,
+                            onNavigateTools = onNavigateTools,
                         ),
                     )
                 }
@@ -209,11 +213,12 @@ private fun buildQuickActions(
     onNavigateFiling: () -> Unit,
     onNavigateCrm: () -> Unit,
     onNavigateToday: () -> Unit,
+    onNavigateTools: () -> Unit,
 ): List<QuickAction> = listOf(
     QuickAction("یادآور جدید", DfColors.Pink, onNavigateToday, iconRes = DfDecorIcons.StickyNote),
     QuickAction("مخاطب جدید", DfColors.Amber, onNavigateContacts, iconRes = DfDecorIcons.Upload),
     QuickAction("فایل‌ها", DfColors.Blue, onNavigateFiling, iconRes = DfDecorIcons.Layers),
-    QuickAction("مخاطبین", DfColors.Purple, onNavigateCrm, iconRes = DfDecorIcons.ClipboardList),
+    QuickAction("ابزارها", DfColors.Purple, onNavigateTools, iconRes = DfDecorIcons.Calculator),
 )
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")
@@ -253,7 +258,7 @@ internal fun HomeScreenContentPreview() {
         }
         item {
             QuickActionsRow(
-                actions = buildQuickActions({}, {}, {}, {}),
+                actions = buildQuickActions({}, {}, {}, {}, {}),
             )
         }
         item {

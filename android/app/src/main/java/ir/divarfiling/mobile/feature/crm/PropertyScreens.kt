@@ -55,7 +55,7 @@ import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.feature.crm.components.PropertiesSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.PropertiesStatsRow
-import ir.divarfiling.mobile.feature.crm.components.PropertyCreateSheet
+import ir.divarfiling.mobile.feature.crm.components.PropertyContactMatchesSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyDetailTabbedContent
 import ir.divarfiling.mobile.feature.crm.components.PropertyEditSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyLinkContactSheet
@@ -336,6 +336,7 @@ fun PropertyDetailScreen(
                         onStatusChange = viewModel::changeStatus,
                         onDelete = { viewModel.toggleDeleteDialog(true) },
                         onLinkContact = { viewModel.toggleLinkContactSheet(true) },
+                        onContactMatches = { viewModel.toggleContactMatchesSheet(true) },
                         onContactClick = onContactClick,
                         onInlineNotesChange = viewModel::onInlineNotesChange,
                         onSaveNotes = viewModel::saveInlineNotes,
@@ -458,6 +459,15 @@ fun PropertyDetailScreen(
             )
         }
     }
+
+    PropertyContactMatchesSheet(
+        visible = state.showContactMatchesSheet,
+        matches = state.contactMatchesData,
+        isLoading = state.contactMatchesLoading,
+        isSubmitting = state.isSubmitting,
+        onDismiss = { viewModel.toggleContactMatchesSheet(false) },
+        onSuggest = viewModel::suggestContactMatches,
+    )
 }
 
 private fun copyToClipboard(context: Context, text: String) {

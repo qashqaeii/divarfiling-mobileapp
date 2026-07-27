@@ -967,3 +967,158 @@ data class SyncEntityBatch<T>(
     val upserted: List<T> = emptyList(),
     @SerialName("deleted_ids") val deletedIds: List<Long> = emptyList(),
 )
+
+@Serializable
+data class DatasetInsightsMetaDto(
+    @SerialName("row_count") val rowCount: Int = 0,
+    @SerialName("clean_count") val cleanCount: Int = 0,
+    @SerialName("geo_count") val geoCount: Int = 0,
+    @SerialName("transaction_type") val transactionType: String = "",
+    @SerialName("is_rent") val isRent: Boolean = false,
+    @SerialName("filter_value_label") val filterValueLabel: String = "قیمت",
+)
+
+@Serializable
+data class DatasetInsightsData(
+    val dataset: DatasetDto? = null,
+    val meta: DatasetInsightsMetaDto = DatasetInsightsMetaDto(),
+    val confidence: kotlinx.serialization.json.JsonElement? = null,
+    val header: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    @SerialName("quick_snapshot")
+    val quickSnapshot: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    val neighborhoods: List<kotlinx.serialization.json.JsonElement> = emptyList(),
+    val opportunities: List<kotlinx.serialization.json.JsonElement> = emptyList(),
+    val insights: List<kotlinx.serialization.json.JsonElement> = emptyList(),
+    val negotiation: List<kotlinx.serialization.json.JsonElement> = emptyList(),
+)
+
+@Serializable
+data class DatasetMapMarkerDto(
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val token: String? = null,
+    val title: String? = null,
+    val price: String? = null,
+    @SerialName("price_label") val priceLabel: String? = null,
+    val thumb: String? = null,
+    @SerialName("is_consultant") val isConsultant: Boolean = false,
+    val color: String? = null,
+    val quartile: Int? = null,
+)
+
+@Serializable
+data class DatasetMapData(
+    val dataset: DatasetDto? = null,
+    val markers: List<DatasetMapMarkerDto> = emptyList(),
+    @SerialName("geo_count") val geoCount: Int = 0,
+    @SerialName("markers_shown") val markersShown: Int = 0,
+)
+
+@Serializable
+data class PropertyContactMatchItemDto(
+    @SerialName("customer_id") val customerId: Long,
+    val score: Int = 0,
+    @SerialName("full_name") val fullName: String? = null,
+    val phone: String? = null,
+    @SerialName("customer_type") val customerType: String? = null,
+    val reasons: List<String> = emptyList(),
+)
+
+@Serializable
+data class PropertyContactMatchesData(
+    val eligible: Boolean = false,
+    val forbidden: Boolean = false,
+    val message: String? = null,
+    val matches: List<PropertyContactMatchItemDto> = emptyList(),
+    @SerialName("total_count") val totalCount: Int = 0,
+)
+
+@Serializable
+data class PropertySuggestContactsRequest(
+    @SerialName("customer_ids") val customerIds: List<Long>,
+    val note: String? = null,
+)
+
+@Serializable
+data class MessageTemplateDto(
+    val id: Long,
+    val title: String = "",
+    val body: String = "",
+    val category: String = "",
+)
+
+@Serializable
+data class SavedFilterDto(
+    val id: Long,
+    val name: String = "",
+    val entity: String = "",
+    val payload: Map<String, kotlinx.serialization.json.JsonElement> = emptyMap(),
+)
+
+@Serializable
+data class SupportTicketDto(
+    val id: Long,
+    @SerialName("ticket_number") val ticketNumber: String = "",
+    val subject: String = "",
+    val status: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class SupportTicketCreateRequest(
+    val subject: String,
+    val body: String,
+    val category: String = "general",
+)
+
+@Serializable
+data class AiQuotaData(
+    val remaining: Int = 0,
+    val limit: Int = 0,
+    @SerialName("plan_label") val planLabel: String? = null,
+)
+
+@Serializable
+data class AiDraftMessageRequest(
+    @SerialName("contact_id") val contactId: Long? = null,
+    @SerialName("listing_token") val listingToken: String? = null,
+    val intent: String = "followup",
+    val notes: String? = null,
+)
+
+@Serializable
+data class AiSummarizeListingRequest(
+    @SerialName("listing_token") val listingToken: String,
+)
+
+@Serializable
+data class AiTextResult(
+    val text: String = "",
+    @SerialName("quota_remaining") val quotaRemaining: Int? = null,
+)
+
+@Serializable
+data class CloudExtractionCreateRequest(
+    @SerialName("city_id") val cityId: String,
+    val category: String,
+    @SerialName("district_ids") val districtIds: List<String> = emptyList(),
+    @SerialName("max_items") val maxItems: Int = 200,
+    @SerialName("advertiser_filter") val advertiserFilter: String = "all",
+    @SerialName("search_query") val searchQuery: String? = null,
+    @SerialName("city_name") val cityName: String? = null,
+    @SerialName("category_label") val categoryLabel: String? = null,
+    @SerialName("district_names") val districtNames: List<String> = emptyList(),
+)
+
+@Serializable
+data class CloudExtractionJobDto(
+    val id: Long,
+    val status: String = "queued",
+    @SerialName("max_items") val maxItems: Int = 0,
+    @SerialName("ingested_count") val ingestedCount: Int = 0,
+    @SerialName("dataset_id") val datasetId: String? = null,
+    val error: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("finished_at") val finishedAt: String? = null,
+    val filters: Map<String, kotlinx.serialization.json.JsonElement> = emptyMap(),
+)

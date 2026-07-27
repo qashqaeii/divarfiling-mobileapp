@@ -4,6 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -256,6 +258,8 @@ fun ListingsScreen(
     datasetId: String,
     onBack: () -> Unit = {},
     onListingClick: (String) -> Unit = {},
+    onInsights: () -> Unit = {},
+    onMap: () -> Unit = {},
     viewModel: ListingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -314,6 +318,21 @@ fun ListingsScreen(
                         titleIconRes = DfDecorIcons.Building,
                         onBack = onBack,
                     )
+                }
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    ) {
+                        OutlinedButton(onClick = onInsights, modifier = Modifier.weight(1f)) {
+                            Text("تحلیل فایل")
+                        }
+                        OutlinedButton(onClick = onMap, modifier = Modifier.weight(1f)) {
+                            Text("نقشه")
+                        }
+                    }
                 }
                 item {
                     DfExportLinkButton(

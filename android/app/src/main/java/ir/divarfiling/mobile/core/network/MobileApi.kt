@@ -333,6 +333,51 @@ interface MobileApi {
         @Body body: ExtractionRunFailRequest,
     ): ApiEnvelope
 
+    @GET("filing/datasets/{id}/insights")
+    suspend fun getDatasetInsights(@Path("id") datasetId: String): ApiEnvelope
+
+    @GET("filing/datasets/{id}/map")
+    suspend fun getDatasetMap(@Path("id") datasetId: String): ApiEnvelope
+
+    @GET("crm/properties/{id}/contact-matches")
+    suspend fun getPropertyContactMatches(@Path("id") propertyId: Long): ApiEnvelope
+
+    @POST("crm/properties/{id}/suggest-contacts")
+    suspend fun suggestPropertyContacts(
+        @Path("id") propertyId: Long,
+        @Body body: PropertySuggestContactsRequest,
+    ): ApiEnvelope
+
+    @GET("crm/templates")
+    suspend fun getMessageTemplates(): ApiEnvelope
+
+    @GET("crm/saved-filters")
+    suspend fun getSavedFilters(@Query("entity") entity: String? = null): ApiEnvelope
+
+    @GET("support/tickets")
+    suspend fun getSupportTickets(): ApiEnvelope
+
+    @POST("support/tickets")
+    suspend fun createSupportTicket(@Body body: SupportTicketCreateRequest): ApiEnvelope
+
+    @GET("ai/quota")
+    suspend fun getAiQuota(): ApiEnvelope
+
+    @POST("ai/draft-message")
+    suspend fun aiDraftMessage(@Body body: AiDraftMessageRequest): ApiEnvelope
+
+    @POST("ai/summarize-listing")
+    suspend fun aiSummarizeListing(@Body body: AiSummarizeListingRequest): ApiEnvelope
+
+    @POST("extractions/cloud")
+    suspend fun createCloudExtraction(@Body body: CloudExtractionCreateRequest): ApiEnvelope
+
+    @GET("extractions/cloud")
+    suspend fun listCloudExtractions(): ApiEnvelope
+
+    @GET("extractions/cloud/{id}")
+    suspend fun getCloudExtraction(@Path("id") jobId: Long): ApiEnvelope
+
     @POST("sync/push")
     suspend fun syncPush(@Body body: SyncPushRequest): ApiEnvelope
 

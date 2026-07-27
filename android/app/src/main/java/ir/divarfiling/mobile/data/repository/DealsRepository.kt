@@ -12,7 +12,10 @@ import ir.divarfiling.mobile.core.network.DealUpdateRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
 import ir.divarfiling.mobile.core.network.PropertyContactLinkDto
+import ir.divarfiling.mobile.core.network.ContactSuggestResponse
+import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
+import ir.divarfiling.mobile.core.network.PropertySuggestContactsRequest
 import ir.divarfiling.mobile.core.network.ListingPublicShareDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyDetailData
@@ -173,6 +176,29 @@ class DealsRepository @Inject constructor(
         request: ListingPublicShareUpdateRequest,
     ): ApiResult<ListingPublicShareDto> = single {
         api.updatePropertyPublicShare(propertyId, request)
+    }
+
+    suspend fun getPropertyContactMatches(propertyId: Long): ApiResult<PropertyContactMatchesData> = try {
+        val response = api.getPropertyContactMatches(propertyId)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا در دریافت پیشنهادها")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun suggestPropertyContacts(
+        propertyId: Long,
+        customerIds: List<Long>,
+        note: String? = null,
+    ): ApiResult<ContactSuggestResponse> = try {
+        val response = api.suggestPropertyContacts(
+            propertyId,
+            PropertySuggestContactsRequest(customerIds = customerIds, note = note),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "ثبت پیشنهاد ناموفق بود")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
     }
 
     suspend fun deleteProperty(propertyId: Long): ApiResult<Unit> = try {

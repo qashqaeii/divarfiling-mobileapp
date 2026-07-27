@@ -3,12 +3,12 @@ package ir.divarfiling.mobile.core.design
 import androidx.compose.ui.graphics.Color
 
 object AppColors {
-    val Purple = Color(0xFF7C3AED)
-    val PurpleDark = Color(0xFF6D28D9)
+    val Purple = Color(0xFF5B4FCF)
+    val PurpleDark = Color(0xFF4A3FB8)
     val PurpleLight = Color(0xFFEDE9FE)
     val PurpleContainer = Color(0xFFF3E8FF)
-    val PurpleGradientStart = Color(0xFF8B5CF6)
-    val PurpleGradientEnd = Color(0xFF6D28D9)
+    val PurpleGradientStart = Color(0xFF6C63FF)
+    val PurpleGradientEnd = Color(0xFF5B4FCF)
 
     val Blue = Color(0xFF2563EB)
     val BlueLight = Color(0xFFEFF6FF)
@@ -35,8 +35,8 @@ object AppColors {
     val GlassOverlay = Color(0xCCFFFFFF)
     val GlassBorder = Color(0x99FFFFFF)
     val GlassHighlight = Color(0xE6FFFFFF)
-    val GlassShadow = Color(0x1A7C3AED)
-    val LiquidPurple = Color(0x807C3AED)
+    val GlassShadow = Color(0x1A5B4FCF)
+    val LiquidPurple = Color(0x805B4FCF)
     val LiquidBlue = Color(0x802563EB)
     val LiquidPink = Color(0x80EC4899)
 

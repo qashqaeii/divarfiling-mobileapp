@@ -13,6 +13,8 @@ import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
 import ir.divarfiling.mobile.core.network.DealUpdateRequest
+import ir.divarfiling.mobile.core.network.PropertyContactMatchItemDto
+import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
 import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
@@ -640,6 +642,9 @@ data class PropertyDetailUiState(
     val editNotes: String = "",
     val inlineNotes: String = "",
     val showShareSheet: Boolean = false,
+    val showContactMatchesSheet: Boolean = false,
+    val contactMatchesData: PropertyContactMatchesData? = null,
+    val contactMatchesLoading: Boolean = false,
     val shareNote: String = "",
     val shareIncludeLink: Boolean = false,
     val shareIncludeAddress: Boolean = false,
@@ -883,6 +888,55 @@ class PropertyDetailViewModel @Inject constructor(
             when (val result = repository.deletePropertyDocument(propertyId, documentId)) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, successMessage = "مدرک حذف شد") }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun toggleContactMatchesSheet(show: Boolean) {
+        _uiState.update { it.copy(showContactMatchesSheet = show) }
+        if (show && _uiState.value.contactMatchesData == null) {
+            loadContactMatches(openSheet = true)
+        }
+    }
+
+    fun loadContactMatches(openSheet: Boolean = false) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    contactMatchesLoading = true,
+                    showContactMatchesSheet = openSheet || it.showContactMatchesSheet,
+                    error = null,
+                )
+            }
+            when (val result = repository.getPropertyContactMatches(propertyId)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(contactMatchesData = result.data, contactMatchesLoading = false)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(contactMatchesLoading = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun suggestContactMatches(matches: List<PropertyContactMatchItemDto>) {
+        if (matches.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = repository.suggestPropertyContacts(propertyId, matches.map { it.customerId })) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showContactMatchesSheet = false,
+                            successMessage = "${result.data.suggestedCount} مشتری پیشنهاد شد",
+                        )
+                    }
                     load()
                 }
                 is ApiResult.Error -> _uiState.update {

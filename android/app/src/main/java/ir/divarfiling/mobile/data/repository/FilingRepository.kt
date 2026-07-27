@@ -3,6 +3,8 @@ package ir.divarfiling.mobile.data.repository
 import ir.divarfiling.mobile.core.database.CachedDatasetEntity
 import ir.divarfiling.mobile.core.database.DatasetCacheDao
 import ir.divarfiling.mobile.core.network.DatasetDto
+import ir.divarfiling.mobile.core.network.DatasetInsightsData
+import ir.divarfiling.mobile.core.network.DatasetMapData
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareDto
@@ -127,6 +129,26 @@ class FilingRepository @Inject constructor(
         return try {
             val response = api.updateListingPublicShare(token, request)
             if (!response.ok) return ApiResult.Error(response.error ?: "خطا در ذخیره اشتراک")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun getDatasetInsights(datasetId: String): ApiResult<DatasetInsightsData> {
+        return try {
+            val response = api.getDatasetInsights(datasetId)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در دریافت تحلیل")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun getDatasetMap(datasetId: String): ApiResult<DatasetMapData> {
+        return try {
+            val response = api.getDatasetMap(datasetId)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در دریافت نقشه")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")

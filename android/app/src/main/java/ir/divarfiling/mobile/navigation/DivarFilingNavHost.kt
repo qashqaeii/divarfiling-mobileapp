@@ -42,6 +42,13 @@ import ir.divarfiling.mobile.feature.filing.ListingsScreen
 import ir.divarfiling.mobile.feature.home.HomeScreen
 import ir.divarfiling.mobile.feature.notifications.NotificationsScreen
 import ir.divarfiling.mobile.feature.settings.SettingsScreen
+import ir.divarfiling.mobile.feature.ai.AiAssistantScreen
+import ir.divarfiling.mobile.feature.crm.calendar.CrmCalendarScreen
+import ir.divarfiling.mobile.feature.crm.templates.MessageTemplatesScreen
+import ir.divarfiling.mobile.feature.extract.cloud.CloudExtractScreen
+import ir.divarfiling.mobile.feature.filing.insights.DatasetInsightsScreen
+import ir.divarfiling.mobile.feature.filing.map.DatasetMapScreen
+import ir.divarfiling.mobile.feature.more.MoreHubScreen
 import ir.divarfiling.mobile.feature.tools.SmartToolCalculatorScreen
 import ir.divarfiling.mobile.feature.tools.ToolsScreen
 import ir.divarfiling.mobile.feature.tools.smartToolIdFromKey
@@ -62,6 +69,14 @@ object Routes {
     const val EXTRACT = "extract"
     const val EXTRACT_SCHEDULES = "extract/schedules"
     const val SETTINGS = "settings"
+    const val MORE = "more"
+    const val FILING_INSIGHTS = "filing/{datasetId}/insights"
+    const val FILING_MAP = "filing/{datasetId}/map"
+    const val TEMPLATES = "templates"
+    const val CALENDAR = "calendar"
+    const val AI = "ai"
+    const val SUPPORT = "support"
+    const val CLOUD_EXTRACT = "cloud-extract"
     const val CRM_DEALS = "crm/deals"
     const val CRM_DEAL_DETAIL = "crm/deals/{dealId}"
     const val CRM_PROPERTIES = "crm/properties"
@@ -78,8 +93,10 @@ object Routes {
     fun dealDetail(dealId: Long) = "crm/deals/$dealId"
     fun propertyDetail(propertyId: Long) = "crm/properties/$propertyId"
     fun listingDetail(token: String) = "filing/listing/$token"
+    fun datasetInsights(datasetId: String) = "filing/$datasetId/insights"
+    fun datasetMap(datasetId: String) = "filing/$datasetId/map"
 
-    val mainTabs = setOf(HOME, CRM, FILING, SETTINGS)
+    val mainTabs = setOf(HOME, CRM, FILING, MORE, CRM_TODAY)
 }
 
 @Composable
@@ -118,7 +135,7 @@ fun DivarFilingNavHost(
                 DfNavItem(Routes.CRM, "CRM", iconRes = DfDecorIcons.Users),
                 DfNavItem(Routes.HOME, "میزکار", iconRes = DfDecorIcons.House, isCenter = true),
                 DfNavItem(Routes.CRM_TODAY, "امروز", iconRes = DfDecorIcons.Handshake),
-                DfNavItem(Routes.SETTINGS, "تنظیمات", iconRes = DfDecorIcons.Settings),
+                DfNavItem(Routes.MORE, "بیشتر", iconRes = DfDecorIcons.Layers),
             )
             val navBackStack by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStack?.destination?.route
@@ -163,6 +180,8 @@ fun DivarFilingNavHost(
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onNavigateTools = { navController.navigate(Routes.TOOLS) },
+                            onNavigateMore = { navController.navigate(Routes.MORE) },
                             onDatasetClick = { id -> navController.navigate(Routes.listings(id)) },
                             onNotificationDeepLink = { target -> navController.navigateDeepLink(target) },
                         )
@@ -277,6 +296,8 @@ fun DivarFilingNavHost(
                             datasetId = id,
                             onBack = { navController.popBackStack() },
                             onListingClick = { token -> navController.navigate(Routes.listingDetail(token)) },
+                            onInsights = { navController.navigate(Routes.datasetInsights(id)) },
+                            onMap = { navController.navigate(Routes.datasetMap(id)) },
                         )
                     }
                     composable(
@@ -285,12 +306,28 @@ fun DivarFilingNavHost(
                     ) {
                         ListingDetailScreen(onBack = { navController.popBackStack() })
                     }
+                    composable(
+                        route = Routes.FILING_INSIGHTS,
+                        arguments = listOf(navArgument("datasetId") { type = NavType.StringType }),
+                    ) {
+                        DatasetInsightsScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(
+                        route = Routes.FILING_MAP,
+                        arguments = listOf(navArgument("datasetId") { type = NavType.StringType }),
+                    ) {
+                        DatasetMapScreen(
+                            onBack = { navController.popBackStack() },
+                            onListingClick = { token -> navController.navigate(Routes.listingDetail(token)) },
+                        )
+                    }
                     composable(Routes.EXTRACT) {
                         ExtractScreen(
                             onViewDataset = { id ->
                                 navController.navigate(Routes.listings(id))
                             },
                             onOpenSchedules = { navController.navigate(Routes.EXTRACT_SCHEDULES) },
+                            onOpenCloudExtract = { navController.navigate(Routes.CLOUD_EXTRACT) },
                             onBack = { navController.popBackStack() },
                             onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
                             onMenuClick = { navController.navigate(Routes.SETTINGS) },
@@ -303,6 +340,38 @@ fun DivarFilingNavHost(
                         SettingsScreen(
                             onLoggedOut = { isLoggedIn = false },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                            onNavigateTools = { navController.navigate(Routes.TOOLS) },
+                            onNavigateSupport = { navController.navigate(Routes.SUPPORT) },
+                        )
+                    }
+                    composable(Routes.MORE) {
+                        MoreHubScreen(
+                            onNavigateTools = { navController.navigate(Routes.TOOLS) },
+                            onNavigateCloudExtract = { navController.navigate(Routes.CLOUD_EXTRACT) },
+                            onNavigateTemplates = { navController.navigate(Routes.TEMPLATES) },
+                            onNavigateCalendar = { navController.navigate(Routes.CALENDAR) },
+                            onNavigateAi = { navController.navigate(Routes.AI) },
+                            onNavigateSupport = { navController.navigate(Routes.SUPPORT) },
+                            onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                        )
+                    }
+                    composable(Routes.TEMPLATES) {
+                        MessageTemplatesScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.CALENDAR) {
+                        CrmCalendarScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.AI) {
+                        AiAssistantScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.SUPPORT) {
+                        SupportTicketsScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.CLOUD_EXTRACT) {
+                        CloudExtractScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenDataset = { id -> navController.navigate(Routes.listings(id)) },
                         )
                     }
                     composable(Routes.NOTIFICATIONS) {
