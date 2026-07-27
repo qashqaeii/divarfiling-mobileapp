@@ -34,7 +34,12 @@ object DeepLinkParser {
             "more" -> DeepLinkTarget.More
             "tools" -> DeepLinkTarget.Tools
             "ai" -> DeepLinkTarget.Ai
-            "support" -> DeepLinkTarget.Support
+            "support" -> {
+                val ticketId = segments.firstOrNull()?.toLongOrNull()
+                if (ticketId != null) DeepLinkTarget.SupportTicket(ticketId)
+                else DeepLinkTarget.Support
+            }
+            "calendar" -> DeepLinkTarget.Calendar
             "settings" -> DeepLinkTarget.Settings
             else -> null
         }
@@ -58,5 +63,7 @@ sealed class DeepLinkTarget {
     data object Tools : DeepLinkTarget()
     data object Ai : DeepLinkTarget()
     data object Support : DeepLinkTarget()
+    data class SupportTicket(val ticketId: Long) : DeepLinkTarget()
+    data object Calendar : DeepLinkTarget()
     data object Settings : DeepLinkTarget()
 }

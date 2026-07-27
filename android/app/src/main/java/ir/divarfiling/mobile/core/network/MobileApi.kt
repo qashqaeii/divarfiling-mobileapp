@@ -9,6 +9,7 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.QueryMap
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 
@@ -68,6 +69,12 @@ interface MobileApi {
         @Query("q") query: String? = null,
         @Query("page") page: Int = 1,
         @Query("page_size") pageSize: Int = 50,
+        @Query("customer_type") customerType: String? = null,
+        @Query("status") status: String? = null,
+        @Query("priority") priority: String? = null,
+        @Query("due") due: String? = null,
+        @Query("sort") sort: String? = null,
+        @Query("tag") tag: String? = null,
     ): ApiEnvelope
 
     @GET("crm/contacts/{id}")
@@ -99,6 +106,25 @@ interface MobileApi {
         @Path("id") contactId: Long,
         @Body body: ReminderCreateRequest,
     ): ApiEnvelope
+
+    @GET("crm/reminders")
+    suspend fun getReminders(
+        @Query("due_from") dueFrom: String? = null,
+        @Query("due_to") dueTo: String? = null,
+        @Query("done") done: Boolean? = null,
+    ): ApiEnvelope
+
+    @POST("crm/reminders")
+    suspend fun createStandaloneReminder(@Body body: ReminderCreateRequest): ApiEnvelope
+
+    @PATCH("crm/reminders/{id}")
+    suspend fun patchReminder(
+        @Path("id") reminderId: Long,
+        @Body body: ReminderPatchRequest,
+    ): ApiEnvelope
+
+    @DELETE("crm/reminders/{id}")
+    suspend fun deleteReminder(@Path("id") reminderId: Long): ApiEnvelope
 
     @POST("crm/contacts/{id}/listings")
     suspend fun linkListing(
@@ -254,11 +280,7 @@ interface MobileApi {
         @Query("page") page: Int = 1,
         @Query("page_size") pageSize: Int = 50,
         @Query("q") query: String? = null,
-        @Query("price_min") priceMin: Long? = null,
-        @Query("price_max") priceMax: Long? = null,
-        @Query("area_min") areaMin: Int? = null,
-        @Query("area_max") areaMax: Int? = null,
-        @Query("rooms") rooms: Int? = null,
+        @QueryMap filters: Map<String, String> = emptyMap(),
     ): ApiEnvelope
 
     @GET("filing/listings/{token}")
@@ -285,11 +307,7 @@ interface MobileApi {
         @Query("dataset_id") datasetId: String? = null,
         @Query("page") page: Int = 1,
         @Query("page_size") pageSize: Int = 30,
-        @Query("price_min") priceMin: Long? = null,
-        @Query("price_max") priceMax: Long? = null,
-        @Query("area_min") areaMin: Int? = null,
-        @Query("area_max") areaMax: Int? = null,
-        @Query("rooms") rooms: Int? = null,
+        @QueryMap filters: Map<String, String> = emptyMap(),
     ): ApiEnvelope
 
     @GET("extractions/limits")
@@ -357,13 +375,42 @@ interface MobileApi {
     suspend fun getMessageTemplates(): ApiEnvelope
 
     @GET("crm/saved-filters")
-    suspend fun getSavedFilters(@Query("entity") entity: String? = null): ApiEnvelope
+    suspend fun getSavedFilters(
+        @Query("entity") entity: String? = null,
+        @Query("include_new_count") includeNewCount: Int? = null,
+    ): ApiEnvelope
+
+    @POST("crm/saved-filters")
+    suspend fun createSavedFilter(@Body body: SavedFilterCreateRequest): ApiEnvelope
+
+    @DELETE("crm/saved-filters/{id}")
+    suspend fun deleteSavedFilter(@Path("id") filterId: Long): ApiEnvelope
+
+    @POST("crm/saved-filters/{id}/pin")
+    suspend fun pinSavedFilter(@Path("id") filterId: Long): ApiEnvelope
 
     @GET("support/tickets")
     suspend fun getSupportTickets(): ApiEnvelope
 
     @POST("support/tickets")
     suspend fun createSupportTicket(@Body body: SupportTicketCreateRequest): ApiEnvelope
+
+    @GET("support/tickets/{id}")
+    suspend fun getSupportTicket(@Path("id") ticketId: Long): ApiEnvelope
+
+    @Multipart
+    @POST("support/tickets/{id}/reply")
+    suspend fun replySupportTicket(
+        @Path("id") ticketId: Long,
+        @Part("body") body: RequestBody,
+        @Part attachment: MultipartBody.Part? = null,
+    ): ApiEnvelope
+
+    @POST("support/tickets/{id}/close")
+    suspend fun closeSupportTicket(@Path("id") ticketId: Long): ApiEnvelope
+
+    @POST("support/tickets/{id}/reopen")
+    suspend fun reopenSupportTicket(@Path("id") ticketId: Long): ApiEnvelope
 
     @GET("ai/quota")
     suspend fun getAiQuota(): ApiEnvelope

@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.feature.support
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -28,6 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
@@ -45,6 +47,7 @@ import ir.divarfiling.mobile.core.network.SupportTicketDto
 @Composable
 fun SupportTicketsScreen(
     onBack: () -> Unit,
+    onOpenTicket: (Long) -> Unit,
     viewModel: SupportTicketsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -143,6 +146,7 @@ fun SupportTicketsScreen(
                     items(state.tickets, key = { it.id }) { ticket ->
                         TicketCard(
                             ticket = ticket,
+                            onClick = { onOpenTicket(ticket.id) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -152,20 +156,40 @@ fun SupportTicketsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TicketCard(ticket: SupportTicketDto, modifier: Modifier = Modifier) {
-    DfCard(modifier = modifier.fillMaxWidth()) {
+private fun TicketCard(
+    ticket: SupportTicketDto,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DfCard(modifier = modifier.fillMaxWidth(), onClick = onClick) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(AppSpacing.cardPadding),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(ticket.subject, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    ticket.subject,
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                if (ticket.userHasUnread) {
+                    Text("جدید", style = AppTypography.labelSmall, color = DfColors.Rose, fontWeight = FontWeight.Bold)
+                }
+            }
             Text("#${ticket.ticketNumber}", style = AppTypography.labelSmall, color = DfColors.TextMuted)
-            Text(ticket.status, style = AppTypography.labelSmall, color = DfColors.Purple)
-            ticket.createdAt?.let {
-                Text(it, style = AppTypography.labelSmall, color = DfColors.TextSecondary)
+            Text(ticketStatusLabel(ticket.status), style = AppTypography.labelSmall, color = DfColors.Purple)
+            ticket.lastMessageAt?.let {
+                Text(DateUtils.formatForDisplay(it), style = AppTypography.labelSmall, color = DfColors.TextSecondary)
+            } ?: ticket.createdAt?.let {
+                Text(DateUtils.formatForDisplay(it), style = AppTypography.labelSmall, color = DfColors.TextSecondary)
             }
         }
     }

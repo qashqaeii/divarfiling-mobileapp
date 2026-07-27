@@ -26,6 +26,7 @@ data class ContactsUiState(
     val contacts: List<ContactDto> = emptyList(),
     val query: String = "",
     val statusFilter: String? = null,
+    val customerTypeFilter: String? = null,
     val page: Int = 1,
     val hasMore: Boolean = false,
     val isLoading: Boolean = false,
@@ -33,6 +34,7 @@ data class ContactsUiState(
     val isLoadingMore: Boolean = false,
     val isSubmitting: Boolean = false,
     val error: String? = null,
+    val successMessage: String? = null,
     val showQuickLead: Boolean = false,
     val leadName: String = "",
     val leadPhone: String = "",
@@ -42,6 +44,8 @@ data class ContactsUiState(
     val exportMessage: String? = null,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
+    val savedFilters: List<ir.divarfiling.mobile.core.network.SavedFilterDto> = emptyList(),
+    val activeSavedFilterId: Long? = null,
 )
 
 @HiltViewModel
@@ -50,6 +54,7 @@ class ContactsViewModel @Inject constructor(
     private val exportRepository: ExportRepository,
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
+    private val extrasRepository: ir.divarfiling.mobile.data.repository.WorkspaceExtrasRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ContactsUiState())
     val uiState: StateFlow<ContactsUiState> = _uiState.asStateFlow()
@@ -69,12 +74,23 @@ class ContactsViewModel @Inject constructor(
                 is ApiResult.Error -> Unit
             }
         }
+        loadSavedFilters()
         load(reset = true)
+    }
+
+    fun loadSavedFilters() {
+        viewModelScope.launch {
+            when (val result = extrasRepository.getSavedFilters(entity = "contacts")) {
+                is ApiResult.Success -> _uiState.update { it.copy(savedFilters = result.data) }
+                is ApiResult.Error -> Unit
+            }
+        }
     }
 
     fun load(reset: Boolean = false) {
         viewModelScope.launch {
             val page = if (reset) 1 else _uiState.value.page
+            val state = _uiState.value
             _uiState.update {
                 it.copy(
                     isLoading = reset && it.contacts.isEmpty(),
@@ -82,7 +98,14 @@ class ContactsViewModel @Inject constructor(
                     error = null,
                 )
             }
-            when (val result = crmRepository.getContacts(_uiState.value.query, page = page)) {
+            when (
+                val result = crmRepository.getContacts(
+                    query = state.query,
+                    page = page,
+                    status = state.statusFilter,
+                    customerType = state.customerTypeFilter,
+                )
+            ) {
                 is ApiResult.Success -> {
                     val merged = if (reset) result.data.items else _uiState.value.contacts + result.data.items
                     _uiState.update {
@@ -118,10 +141,87 @@ class ContactsViewModel @Inject constructor(
     fun refresh() {
         _uiState.update { it.copy(isRefreshing = true, page = 1) }
         load(reset = true)
+        loadSavedFilters()
     }
 
     fun onQueryChange(q: String) = _uiState.update { it.copy(query = q) }
-    fun onStatusFilterChange(status: String?) = _uiState.update { it.copy(statusFilter = status) }
+    fun onStatusFilterChange(status: String?) = _uiState.update {
+        it.copy(statusFilter = status, activeSavedFilterId = null)
+    }
+
+    fun onCustomerTypeFilterChange(type: String?) = _uiState.update {
+        it.copy(customerTypeFilter = type, activeSavedFilterId = null)
+    }
+
+    fun applySavedFilter(filter: ir.divarfiling.mobile.core.network.SavedFilterDto) {
+        val params = filter.resolvedParams
+        _uiState.update {
+            it.copy(
+                query = params["q"].orEmpty(),
+                statusFilter = params["status"]?.ifBlank { null },
+                customerTypeFilter = params["customer_type"]?.ifBlank { null },
+                activeSavedFilterId = filter.id,
+                page = 1,
+            )
+        }
+        load(reset = true)
+    }
+
+    fun saveCurrentAsFilter(name: String) {
+        val state = _uiState.value
+        val params = buildMap {
+            if (state.query.isNotBlank()) put("q", state.query.trim())
+            state.statusFilter?.takeIf { it.isNotBlank() }?.let { put("status", it) }
+            state.customerTypeFilter?.takeIf { it.isNotBlank() }?.let { put("customer_type", it) }
+        }
+        if (params.isEmpty() || name.isBlank()) {
+            _uiState.update { it.copy(error = "برای ذخیره، حداقل یک معیار و نام لازم است") }
+            return
+        }
+        viewModelScope.launch {
+            when (
+                val result = extrasRepository.createSavedFilter(
+                    ir.divarfiling.mobile.core.network.SavedFilterCreateRequest(
+                        name = name.trim(),
+                        scope = "contacts",
+                        params = params,
+                    ),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(successMessage = "فیلتر ذخیره شد", activeSavedFilterId = result.data.id)
+                    }
+                    loadSavedFilters()
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    fun pinSavedFilter(id: Long) {
+        viewModelScope.launch {
+            when (extrasRepository.pinSavedFilter(id)) {
+                is ApiResult.Success -> loadSavedFilters()
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    fun deleteSavedFilter(id: Long) {
+        viewModelScope.launch {
+            when (extrasRepository.deleteSavedFilter(id)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(activeSavedFilterId = it.activeSavedFilterId.takeUnless { active -> active == id })
+                    }
+                    loadSavedFilters()
+                }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
     fun search() {
         _uiState.update { it.copy(page = 1) }
         load(reset = true)

@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -49,15 +51,17 @@ import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.feature.filing.components.FilingCategoryTabsRow
-import ir.divarfiling.mobile.feature.filing.components.FilingDatasetFilters
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetCard
+import ir.divarfiling.mobile.feature.filing.components.FilingDatasetFilters
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetsSection
 import ir.divarfiling.mobile.feature.filing.components.FilingExtractFab
 import ir.divarfiling.mobile.feature.filing.components.FilingHubHeader
+import ir.divarfiling.mobile.feature.filing.components.FilingListingCard
 import ir.divarfiling.mobile.feature.filing.components.FilingSearchFilterPanel
 import ir.divarfiling.mobile.feature.filing.components.FilingStatsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingsActiveFilterChips
 import ir.divarfiling.mobile.feature.filing.components.ListingsSearchFilterPanel
+import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -266,32 +270,58 @@ fun ListingsScreen(
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     var showFilters by remember { mutableStateOf(false) }
-    val filterCount = activeListingFilterCount(
-        state.priceMin, state.priceMax, state.areaMin, state.areaMax, state.rooms,
-    )
+    val filterCount = activeListingFilterCount(state.filters)
 
     LaunchedEffect(datasetId) { viewModel.load(datasetId) }
 
-    LaunchedEffect(state.exportMessage, state.error) {
+    LaunchedEffect(state.exportMessage, state.error, state.successMessage) {
         state.exportMessage?.let {
             snackbar.showSnackbar(it)
             viewModel.clearExportMessage()
         }
-        state.error?.let { snackbar.showSnackbar(it) }
+        state.successMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearMessage()
+        }
+        state.error?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearMessage()
+        }
+    }
+
+    if (state.showSaveFilterDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissSaveFilterDialog,
+            title = { Text("ذخیره فیلتر") },
+            text = {
+                OutlinedTextField(
+                    value = state.saveFilterName,
+                    onValueChange = viewModel::onSaveFilterNameChange,
+                    label = { Text("نام فیلتر") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.saveCurrentFilter(datasetId) }) { Text("ذخیره") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissSaveFilterDialog) { Text("انصراف") }
+            },
+        )
     }
 
     ListingFiltersSheet(
         visible = showFilters,
-        priceMin = state.priceMin,
-        priceMax = state.priceMax,
-        areaMin = state.areaMin,
-        areaMax = state.areaMax,
-        rooms = state.rooms,
+        state = state.filters,
+        neighborhoods = state.neighborhoods,
         onDismiss = { showFilters = false },
-        onApply = { pMin, pMax, aMin, aMax, r ->
-            viewModel.applyFilters(datasetId, pMin, pMax, aMin, aMax, r)
-        },
+        onApply = { viewModel.applyFilters(datasetId, it) },
         onClear = { viewModel.clearFilters(datasetId) },
+        onSaveFilter = {
+            viewModel.applyFilters(datasetId, it)
+            viewModel.openSaveFilterDialog()
+        },
     )
 
     Scaffold(
@@ -349,14 +379,20 @@ fun ListingsScreen(
                         onSearch = { viewModel.load(datasetId, reset = true) },
                         activeFilterCount = filterCount,
                         onOpenFilters = { showFilters = true },
+                        savedFiltersSlot = {
+                            SavedFiltersChipRow(
+                                filters = state.savedFilters,
+                                activeId = state.activeSavedFilterId,
+                                onSelect = { viewModel.applySavedFilter(datasetId, it) },
+                                onPin = viewModel::pinSavedFilter,
+                                onDelete = viewModel::deleteSavedFilter,
+                            )
+                        },
                         activeFilterChips = {
                             ListingsActiveFilterChips(
-                                priceMin = state.priceMin,
-                                priceMax = state.priceMax,
-                                areaMin = state.areaMin,
-                                areaMax = state.areaMax,
-                                rooms = state.rooms,
+                                filters = state.filters,
                                 formatPrice = ::formatFilterNumber,
+                                onClear = { viewModel.clearFilters(datasetId) },
                             )
                         },
                     )
@@ -443,9 +479,7 @@ fun FilingSearchScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showFilters by remember { mutableStateOf(false) }
-    val filterCount = activeListingFilterCount(
-        state.priceMin, state.priceMax, state.areaMin, state.areaMax, state.rooms,
-    )
+    val filterCount = activeListingFilterCount(state.filters)
 
     LaunchedEffect(initialQuery) {
         if (initialQuery.isNotBlank()) viewModel.setInitialQuery(initialQuery)
@@ -453,11 +487,7 @@ fun FilingSearchScreen(
 
     ListingFiltersSheet(
         visible = showFilters,
-        priceMin = state.priceMin,
-        priceMax = state.priceMax,
-        areaMin = state.areaMin,
-        areaMax = state.areaMax,
-        rooms = state.rooms,
+        state = state.filters,
         onDismiss = { showFilters = false },
         onApply = viewModel::applyFilters,
         onClear = viewModel::clearFilters,
@@ -496,12 +526,9 @@ fun FilingSearchScreen(
                         onOpenFilters = { showFilters = true },
                         activeFilterChips = {
                             ListingsActiveFilterChips(
-                                priceMin = state.priceMin,
-                                priceMax = state.priceMax,
-                                areaMin = state.areaMin,
-                                areaMax = state.areaMax,
-                                rooms = state.rooms,
+                                filters = state.filters,
                                 formatPrice = ::formatFilterNumber,
+                                onClear = viewModel::clearFilters,
                             )
                         },
                     )

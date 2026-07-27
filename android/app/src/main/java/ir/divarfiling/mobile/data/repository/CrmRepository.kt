@@ -24,6 +24,7 @@ import ir.divarfiling.mobile.core.network.PropertyMatchDto
 import ir.divarfiling.mobile.core.network.QuickLeadRequest
 import ir.divarfiling.mobile.core.network.ReminderCreateRequest
 import ir.divarfiling.mobile.core.network.ReminderDto
+import ir.divarfiling.mobile.core.network.ReminderPatchRequest
 import ir.divarfiling.mobile.core.network.SendListingRequest
 import ir.divarfiling.mobile.core.network.SyncOperation
 import ir.divarfiling.mobile.core.network.SyncPushRequest
@@ -52,9 +53,25 @@ class CrmRepository @Inject constructor(
         query: String? = null,
         page: Int = 1,
         pageSize: Int = 50,
+        status: String? = null,
+        customerType: String? = null,
+        priority: String? = null,
+        due: String? = null,
+        sort: String? = null,
+        tag: String? = null,
     ): ApiResult<PaginatedResult<ContactDto>> {
         return try {
-            val response = api.getContacts(query = query?.ifBlank { null }, page = page, pageSize = pageSize)
+            val response = api.getContacts(
+                query = query?.ifBlank { null },
+                page = page,
+                pageSize = pageSize,
+                status = status?.ifBlank { null },
+                customerType = customerType?.ifBlank { null },
+                priority = priority?.ifBlank { null },
+                due = due?.ifBlank { null },
+                sort = sort?.ifBlank { null },
+                tag = tag?.ifBlank { null },
+            )
             if (!response.ok) {
                 if (page == 1) {
                     val cached = contactCache.getAll().map { it.toDto() }
@@ -181,11 +198,65 @@ class CrmRepository @Inject constructor(
         title: String,
         dueAt: String,
         note: String = "",
+        recurrence: String = "",
     ): ApiResult<ReminderDto> {
         return try {
-            val response = api.createReminder(contactId, ReminderCreateRequest(title, dueAt, note))
+            val response = api.createReminder(
+                contactId,
+                ReminderCreateRequest(title = title, dueAt = dueAt, note = note, recurrence = recurrence),
+            )
             if (!response.ok) return ApiResult.Error(response.error ?: "ثبت یادآور ناموفق")
             ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun getReminders(
+        dueFrom: String? = null,
+        dueTo: String? = null,
+        done: Boolean? = null,
+    ): ApiResult<List<ReminderDto>> {
+        return try {
+            val response = api.getReminders(dueFrom = dueFrom, dueTo = dueTo, done = done)
+            if (!response.ok) return ApiResult.Error(response.error ?: "بارگذاری یادآورها ناموفق")
+            val list = response.data?.let {
+                json.decodeFromJsonElement(
+                    kotlinx.serialization.builtins.ListSerializer(ReminderDto.serializer()),
+                    it,
+                )
+            }.orEmpty()
+            ApiResult.Success(list)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun createStandaloneReminder(request: ReminderCreateRequest): ApiResult<ReminderDto> {
+        return try {
+            val response = api.createStandaloneReminder(request)
+            if (!response.ok) return ApiResult.Error(response.error ?: "ثبت یادآور ناموفق")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun patchReminder(reminderId: Long, request: ReminderPatchRequest): ApiResult<ReminderDto> {
+        return try {
+            val response = api.patchReminder(reminderId, request)
+            if (!response.ok) return ApiResult.Error(response.error ?: "به‌روزرسانی یادآور ناموفق")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun deleteReminder(reminderId: Long): ApiResult<Unit> {
+        return try {
+            val response = api.deleteReminder(reminderId)
+            if (!response.ok) return ApiResult.Error(response.error ?: "حذف یادآور ناموفق")
+            ApiResult.Success(Unit)
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }

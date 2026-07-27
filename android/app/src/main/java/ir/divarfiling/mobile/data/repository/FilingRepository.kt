@@ -71,11 +71,7 @@ class FilingRepository @Inject constructor(
         query: String? = null,
         page: Int = 1,
         pageSize: Int = 50,
-        priceMin: Long? = null,
-        priceMax: Long? = null,
-        areaMin: Int? = null,
-        areaMax: Int? = null,
-        rooms: Int? = null,
+        filters: Map<String, String> = emptyMap(),
     ): ApiResult<PaginatedResult<ListingDto>> {
         return try {
             val response = api.getListings(
@@ -83,11 +79,7 @@ class FilingRepository @Inject constructor(
                 page = page,
                 pageSize = pageSize,
                 query = query?.ifBlank { null },
-                priceMin = priceMin,
-                priceMax = priceMax,
-                areaMin = areaMin,
-                areaMax = areaMax,
-                rooms = rooms,
+                filters = filters,
             )
             if (!response.ok) {
                 return ApiResult.Error(response.error ?: "خطا در دریافت آگهی‌ها")
@@ -96,7 +88,16 @@ class FilingRepository @Inject constructor(
                 json.decodeFromJsonElement(ListSerializer(ListingDto.serializer()), it)
             }.orEmpty()
             val total = response.meta?.total ?: list.size
-            ApiResult.Success(PaginatedResult(list, page, total, page * pageSize < total))
+            ApiResult.Success(
+                PaginatedResult(
+                    items = list,
+                    page = page,
+                    total = total,
+                    hasMore = page * pageSize < total,
+                    neighborhoods = response.meta?.neighborhoods.orEmpty(),
+                    sort = response.meta?.sort,
+                ),
+            )
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
@@ -160,11 +161,7 @@ class FilingRepository @Inject constructor(
         datasetId: String? = null,
         page: Int = 1,
         pageSize: Int = 30,
-        priceMin: Long? = null,
-        priceMax: Long? = null,
-        areaMin: Int? = null,
-        areaMax: Int? = null,
-        rooms: Int? = null,
+        filters: Map<String, String> = emptyMap(),
     ): ApiResult<PaginatedResult<ListingDto>> {
         return try {
             val response = api.searchListings(
@@ -172,11 +169,7 @@ class FilingRepository @Inject constructor(
                 datasetId = datasetId,
                 page = page,
                 pageSize = pageSize,
-                priceMin = priceMin,
-                priceMax = priceMax,
-                areaMin = areaMin,
-                areaMax = areaMax,
-                rooms = rooms,
+                filters = filters.filterKeys { it != "dataset_id" },
             )
             if (!response.ok) {
                 return ApiResult.Error(response.error ?: "خطا در جستجو")
@@ -185,7 +178,16 @@ class FilingRepository @Inject constructor(
                 json.decodeFromJsonElement(ListSerializer(ListingDto.serializer()), it)
             }.orEmpty()
             val total = response.meta?.total ?: list.size
-            ApiResult.Success(PaginatedResult(list, page, total, page * pageSize < total))
+            ApiResult.Success(
+                PaginatedResult(
+                    items = list,
+                    page = page,
+                    total = total,
+                    hasMore = page * pageSize < total,
+                    neighborhoods = response.meta?.neighborhoods.orEmpty(),
+                    sort = response.meta?.sort,
+                ),
+            )
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }

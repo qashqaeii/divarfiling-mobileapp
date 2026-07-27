@@ -40,6 +40,7 @@ import ir.divarfiling.mobile.feature.crm.components.ContactsHeader
 import ir.divarfiling.mobile.feature.crm.components.ContactsSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
 import ir.divarfiling.mobile.feature.crm.components.ContactsStatsRow
+import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 import ir.divarfiling.mobile.feature.crm.components.TodayFilterChip
 import ir.divarfiling.mobile.feature.crm.components.TodayFilterTab
@@ -239,8 +240,32 @@ fun ContactsScreen(
                                 if (status == ContactsFilters.ALL_STATUSES) null else status,
                             )
                         },
-                        onTypeChange = { typeFilter = it },
+                        onTypeChange = { type ->
+                            typeFilter = type
+                            viewModel.onCustomerTypeFilterChange(
+                                if (type == ContactsFilters.ALL_TYPES) null else type,
+                            )
+                        },
                     )
+                }
+                if (state.savedFilters.isNotEmpty()) {
+                    item {
+                        SavedFiltersChipRow(
+                            filters = state.savedFilters,
+                            activeId = state.activeSavedFilterId,
+                            onSelect = { filter ->
+                                viewModel.applySavedFilter(filter)
+                                statusFilter = filter.resolvedParams["status"]
+                                    ?: ContactsFilters.ALL_STATUSES
+                                typeFilter = filter.resolvedParams["customer_type"]
+                                    ?: ContactsFilters.ALL_TYPES
+                                quickFilter = ContactsFilters.QuickFilter.ALL
+                            },
+                            onPin = viewModel::pinSavedFilter,
+                            onDelete = viewModel::deleteSavedFilter,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 state.error?.let { error ->
                     item {

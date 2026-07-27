@@ -10,6 +10,9 @@ import ir.divarfiling.mobile.core.export.ExportShareHelper
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
+import ir.divarfiling.mobile.core.network.SavedFilterCreateRequest
+import ir.divarfiling.mobile.core.network.SavedFilterDto
+import ir.divarfiling.mobile.data.repository.WorkspaceExtrasRepository
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.DashboardRepository
@@ -193,18 +196,21 @@ data class ListingsUiState(
     val showExportSheet: Boolean = false,
     val exportMessage: String? = null,
     val error: String? = null,
+    val successMessage: String? = null,
     val query: String = "",
-    val priceMin: Long? = null,
-    val priceMax: Long? = null,
-    val areaMin: Int? = null,
-    val areaMax: Int? = null,
-    val rooms: Int? = null,
+    val filters: ListingFilterState = ListingFilterState(),
+    val neighborhoods: List<String> = emptyList(),
+    val savedFilters: List<SavedFilterDto> = emptyList(),
+    val activeSavedFilterId: Long? = null,
+    val showSaveFilterDialog: Boolean = false,
+    val saveFilterName: String = "",
 )
 
 @HiltViewModel
 class ListingsViewModel @Inject constructor(
     private val filingRepository: FilingRepository,
     private val exportRepository: ExportRepository,
+    private val extrasRepository: WorkspaceExtrasRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ListingsUiState())
@@ -214,6 +220,7 @@ class ListingsViewModel @Inject constructor(
 
     init {
         routeDatasetId?.let { resolveDatasetName(it) }
+        loadSavedFilters()
     }
 
     private fun resolveDatasetName(datasetId: String) {
@@ -223,6 +230,15 @@ class ListingsViewModel @Inject constructor(
                     val dataset = result.data.items.firstOrNull { it.id == datasetId }
                     _uiState.update { it.copy(datasetId = datasetId, datasetName = dataset?.name) }
                 }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    fun loadSavedFilters() {
+        viewModelScope.launch {
+            when (val result = extrasRepository.getSavedFilters(entity = "listings", includeNewCount = true)) {
+                is ApiResult.Success -> _uiState.update { it.copy(savedFilters = result.data) }
                 is ApiResult.Error -> Unit
             }
         }
@@ -241,24 +257,26 @@ class ListingsViewModel @Inject constructor(
                     error = null,
                 )
             }
+            val filterMap = state.filters.toQueryMap(datasetId = datasetId)
             when (val result = filingRepository.getListings(
                 datasetId,
                 query = state.query,
                 page = page,
-                priceMin = state.priceMin,
-                priceMax = state.priceMax,
-                areaMin = state.areaMin,
-                areaMax = state.areaMax,
-                rooms = state.rooms,
+                filters = filterMap,
             )) {
                 is ApiResult.Success -> {
                     val merged = if (reset) result.data.items else state.listings + result.data.items
-                    val sorted = ListingAdvertiserUtils.sortPersonalFirst(merged)
+                    val sorted = if (state.filters.sort.isBlank()) {
+                        ListingAdvertiserUtils.sortPersonalFirst(merged)
+                    } else {
+                        merged
+                    }
                     _uiState.update {
                         it.copy(
                             listings = sorted,
                             page = page,
                             hasMore = result.data.hasMore,
+                            neighborhoods = result.data.neighborhoods.ifEmpty { it.neighborhoods },
                             isLoading = false,
                             isRefreshing = false,
                             isLoadingMore = false,
@@ -281,34 +299,102 @@ class ListingsViewModel @Inject constructor(
     fun refresh(datasetId: String) {
         _uiState.update { it.copy(page = 1) }
         load(datasetId, reset = true)
+        loadSavedFilters()
     }
 
     fun onQueryChange(q: String) = _uiState.update { it.copy(query = q) }
 
-    fun applyFilters(
-        datasetId: String,
-        priceMin: Long?,
-        priceMax: Long?,
-        areaMin: Int?,
-        areaMax: Int?,
-        rooms: Int?,
-    ) {
+    fun applyFilters(datasetId: String, filters: ListingFilterState) {
+        _uiState.update {
+            it.copy(filters = filters, page = 1, activeSavedFilterId = null)
+        }
+        load(datasetId, reset = true)
+    }
+
+    fun clearFilters(datasetId: String) {
+        applyFilters(datasetId, ListingFilterState())
+    }
+
+    fun applySavedFilter(datasetId: String, filter: SavedFilterDto) {
+        val params = filter.resolvedParams.toMutableMap()
+        val q = params.remove("q").orEmpty()
         _uiState.update {
             it.copy(
-                priceMin = priceMin,
-                priceMax = priceMax,
-                areaMin = areaMin,
-                areaMax = areaMax,
-                rooms = rooms,
+                query = q.ifBlank { it.query },
+                filters = ListingFilterState.fromParams(params),
+                activeSavedFilterId = filter.id,
                 page = 1,
             )
         }
         load(datasetId, reset = true)
     }
 
-    fun clearFilters(datasetId: String) {
-        applyFilters(datasetId, null, null, null, null, null)
+    fun openSaveFilterDialog() = _uiState.update {
+        it.copy(showSaveFilterDialog = true, saveFilterName = "")
     }
+
+    fun dismissSaveFilterDialog() = _uiState.update { it.copy(showSaveFilterDialog = false) }
+
+    fun onSaveFilterNameChange(v: String) = _uiState.update { it.copy(saveFilterName = v) }
+
+    fun saveCurrentFilter(datasetId: String) {
+        val state = _uiState.value
+        val name = state.saveFilterName.trim()
+        if (name.isBlank()) {
+            _uiState.update { it.copy(error = "نام فیلتر الزامی است") }
+            return
+        }
+        val params = state.filters.toQueryMap(datasetId = datasetId).toMutableMap()
+        if (state.query.isNotBlank()) params["q"] = state.query.trim()
+        viewModelScope.launch {
+            when (
+                val result = extrasRepository.createSavedFilter(
+                    SavedFilterCreateRequest(
+                        name = name,
+                        scope = "listings",
+                        params = params,
+                    ),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            showSaveFilterDialog = false,
+                            successMessage = "فیلتر ذخیره شد",
+                            activeSavedFilterId = result.data.id,
+                        )
+                    }
+                    loadSavedFilters()
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    fun pinSavedFilter(id: Long) {
+        viewModelScope.launch {
+            when (extrasRepository.pinSavedFilter(id)) {
+                is ApiResult.Success -> loadSavedFilters()
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    fun deleteSavedFilter(id: Long) {
+        viewModelScope.launch {
+            when (extrasRepository.deleteSavedFilter(id)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(activeSavedFilterId = it.activeSavedFilterId.takeUnless { active -> active == id })
+                    }
+                    loadSavedFilters()
+                }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null, exportMessage = null) }
 
     fun openExportSheet() = _uiState.update { it.copy(showExportSheet = true) }
 
@@ -349,11 +435,7 @@ data class FilingSearchUiState(
     val isLoadingMore: Boolean = false,
     val error: String? = null,
     val query: String = "",
-    val priceMin: Long? = null,
-    val priceMax: Long? = null,
-    val areaMin: Int? = null,
-    val areaMax: Int? = null,
-    val rooms: Int? = null,
+    val filters: ListingFilterState = ListingFilterState(),
 )
 
 @HiltViewModel
@@ -384,15 +466,15 @@ class FilingSearchViewModel @Inject constructor(
             when (val result = filingRepository.searchListings(
                 query = state.query,
                 page = page,
-                priceMin = state.priceMin,
-                priceMax = state.priceMax,
-                areaMin = state.areaMin,
-                areaMax = state.areaMax,
-                rooms = state.rooms,
+                filters = state.filters.toQueryMap(),
             )) {
                 is ApiResult.Success -> {
                     val merged = if (reset) result.data.items else state.listings + result.data.items
-                    val sorted = ListingAdvertiserUtils.sortPersonalFirst(merged)
+                    val sorted = if (state.filters.sort.isBlank()) {
+                        ListingAdvertiserUtils.sortPersonalFirst(merged)
+                    } else {
+                        merged
+                    }
                     _uiState.update {
                         it.copy(
                             listings = sorted,
@@ -422,15 +504,13 @@ class FilingSearchViewModel @Inject constructor(
         search(reset = true)
     }
 
-    fun applyFilters(priceMin: Long?, priceMax: Long?, areaMin: Int?, areaMax: Int?, rooms: Int?) {
-        _uiState.update {
-            it.copy(priceMin = priceMin, priceMax = priceMax, areaMin = areaMin, areaMax = areaMax, rooms = rooms, page = 1)
-        }
+    fun applyFilters(filters: ListingFilterState) {
+        _uiState.update { it.copy(filters = filters, page = 1) }
         search(reset = true)
     }
 
     fun clearFilters() {
-        applyFilters(null, null, null, null, null)
+        applyFilters(ListingFilterState())
     }
 
     fun setInitialQuery(query: String) {

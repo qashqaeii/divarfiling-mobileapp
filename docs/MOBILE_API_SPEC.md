@@ -328,20 +328,32 @@ POST   /crm/contacts/{id}/notes      { "body": "..." }
 GET    /crm/reminders?due_from=&due_to=&done=false
 POST   /crm/reminders
 PATCH  /crm/reminders/{id}
-POST   /crm/reminders/{id}/complete
 DELETE /crm/reminders/{id}
 ```
+
+`POST /crm/reminders` — یادآور مستقل (`contact_id` اختیاری) با `title`, `due_at`, `note`, `recurrence` (`""` | `daily` | `weekly` | `biweekly` | `monthly`).
+
+`PATCH` با `action`:
+- `complete` — انجام؛ برای تکرارشونده نوبت بعدی ساخته می‌شود
+- `snooze` / `postpone` — تعویق با `hours` و/یا `days`
+- بدون action — ویرایش فیلدها (`title`, `note`, `due_at`, `recurrence`)
 
 ```json
 {
   "id": 55,
   "title": "تماس با رضا احمدی",
+  "note": "",
   "contact_id": 101,
-  "due_at": "2026-06-26T09:00:00Z",
+  "contact_name": "رضا احمدی",
+  "due_at": "2026-06-26T09:00:00+03:30",
   "done": false,
-  "reminder_type": "call"
+  "token": "",
+  "recurrence": "weekly",
+  "series_id": null
 }
 ```
+
+Deep-link یادآور: `divarfiling://crm/contacts/{id}` یا بدون مخاطب `divarfiling://calendar`.
 
 ---
 
@@ -404,7 +416,8 @@ GET /filing/datasets/{id}
 ### آگهی‌ها
 
 ```http
-GET /filing/datasets/{id}/listings?q=&price_min=&price_max=&area_min=&rooms=&page=1
+GET /filing/datasets/{id}/listings?q=&neighborhood=&price_min=&price_max=&area_min=&area_max=&rooms=&year_min=&year_max=&parking=&elevator=&storage=&consultant=&value=&unique=1&new_only=1&sort=-price&page=1
+GET /filing/search?q=&dataset_id=&…همان فیلترها…
 GET /filing/listings/{token}
 GET /filing/search?q=ونک+سه+خوابه&dataset_id=456
 ```
@@ -611,8 +624,15 @@ Base path همان `/api/mobile/v1/`.
 | GET | `/crm/properties/{id}/contact-matches` | مشتریان مناسب ملک |
 | POST | `/crm/properties/{id}/suggest-contacts` | پیشنهاد/پیوند مخاطب |
 | GET | `/crm/templates` | قالب‌های پیام |
-| GET | `/crm/saved-filters` | فیلترهای ذخیره‌شده |
-| GET/POST | `/support/tickets` | تیکت پشتیبانی |
+| GET | `/crm/saved-filters?entity=` | لیست فیلتر ذخیره‌شده (`listings`/`contacts`) |
+| POST | `/crm/saved-filters` | ذخیره فیلتر |
+| DELETE | `/crm/saved-filters/{id}` | حذف |
+| POST | `/crm/saved-filters/{id}/pin` | سنجاق |
+| GET/POST | `/support/tickets` | لیست / ایجاد تیکت |
+| GET | `/support/tickets/{id}` | جزئیات + پیام‌ها (و mark-read) |
+| POST | `/support/tickets/{id}/reply` | پاسخ (multipart؛ `body` + اختیاری `attachment`) |
+| POST | `/support/tickets/{id}/close` | بستن تیکت |
+| POST | `/support/tickets/{id}/reopen` | بازگشایی |
 | GET | `/ai/quota` | سهمیه AI |
 | POST | `/ai/draft-message` | پیش‌نویس پیام |
 | POST | `/ai/summarize-listing` | خلاصه آگهی |

@@ -47,6 +47,7 @@ data class ContactDetailUiState(
     val reminderTitle: String = "",
     val reminderNote: String = "",
     val reminderDueMillis: Long = System.currentTimeMillis() + 3_600_000L,
+    val reminderRecurrence: String = "",
     val editName: String = "",
     val editPhone: String = "",
     val editStatus: String = "",
@@ -204,7 +205,13 @@ class ContactDetailViewModel @Inject constructor(
         val dueAt = millisToIso(_uiState.value.reminderDueMillis)
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (crmRepository.createReminder(contactId, title, dueAt, _uiState.value.reminderNote)) {
+            when (crmRepository.createReminder(
+                contactId,
+                title,
+                dueAt,
+                _uiState.value.reminderNote,
+                _uiState.value.reminderRecurrence,
+            )) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
@@ -212,6 +219,7 @@ class ContactDetailViewModel @Inject constructor(
                             showReminderDialog = false,
                             reminderTitle = "",
                             reminderNote = "",
+                            reminderRecurrence = "",
                             successMessage = "یادآور ثبت شد",
                         )
                     }
@@ -521,6 +529,7 @@ class ContactDetailViewModel @Inject constructor(
     fun onReminderTitleChange(v: String) = _uiState.update { it.copy(reminderTitle = v) }
     fun onReminderNoteChange(v: String) = _uiState.update { it.copy(reminderNote = v) }
     fun onReminderDueChange(millis: Long) = _uiState.update { it.copy(reminderDueMillis = millis) }
+    fun onReminderRecurrenceChange(v: String) = _uiState.update { it.copy(reminderRecurrence = v) }
     fun onEditNameChange(v: String) = _uiState.update { it.copy(editName = v) }
     fun onEditPhoneChange(v: String) = _uiState.update { it.copy(editPhone = v) }
     fun onEditStatusChange(v: String) = _uiState.update { it.copy(editStatus = v) }

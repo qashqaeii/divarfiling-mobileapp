@@ -49,6 +49,7 @@ import ir.divarfiling.mobile.feature.extract.cloud.CloudExtractScreen
 import ir.divarfiling.mobile.feature.filing.insights.DatasetInsightsScreen
 import ir.divarfiling.mobile.feature.filing.map.DatasetMapScreen
 import ir.divarfiling.mobile.feature.more.MoreHubScreen
+import ir.divarfiling.mobile.feature.support.SupportTicketDetailScreen
 import ir.divarfiling.mobile.feature.support.SupportTicketsScreen
 import ir.divarfiling.mobile.feature.tools.SmartToolCalculatorScreen
 import ir.divarfiling.mobile.feature.tools.ToolsScreen
@@ -77,6 +78,7 @@ object Routes {
     const val CALENDAR = "calendar"
     const val AI = "ai"
     const val SUPPORT = "support"
+    const val SUPPORT_DETAIL = "support/{ticketId}"
     const val CLOUD_EXTRACT = "cloud-extract"
     const val CRM_DEALS = "crm/deals"
     const val CRM_DEAL_DETAIL = "crm/deals/{dealId}"
@@ -96,6 +98,7 @@ object Routes {
     fun listingDetail(token: String) = "filing/listing/$token"
     fun datasetInsights(datasetId: String) = "filing/$datasetId/insights"
     fun datasetMap(datasetId: String) = "filing/$datasetId/map"
+    fun supportDetail(ticketId: Long) = "support/$ticketId"
 
     val mainTabs = setOf(HOME, CRM, FILING, MORE, CRM_TODAY)
 }
@@ -360,13 +363,25 @@ fun DivarFilingNavHost(
                         MessageTemplatesScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.CALENDAR) {
-                        CrmCalendarScreen(onBack = { navController.popBackStack() })
+                        CrmCalendarScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenContact = { id -> navController.navigate(Routes.contactDetail(id)) },
+                        )
                     }
                     composable(Routes.AI) {
                         AiAssistantScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.SUPPORT) {
-                        SupportTicketsScreen(onBack = { navController.popBackStack() })
+                        SupportTicketsScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenTicket = { id -> navController.navigate(Routes.supportDetail(id)) },
+                        )
+                    }
+                    composable(
+                        route = Routes.SUPPORT_DETAIL,
+                        arguments = listOf(navArgument("ticketId") { type = NavType.LongType }),
+                    ) {
+                        SupportTicketDetailScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.CLOUD_EXTRACT) {
                         CloudExtractScreen(

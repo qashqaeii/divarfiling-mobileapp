@@ -21,6 +21,8 @@ data class ApiMeta(
     val page: Int? = null,
     val total: Int? = null,
     @SerialName("page_size") val pageSize: Int? = null,
+    val neighborhoods: List<String> = emptyList(),
+    val sort: String? = null,
 )
 
 @Serializable
@@ -252,9 +254,14 @@ data class TodayStatsDto(
 data class ReminderDto(
     val id: Long? = null,
     val title: String,
+    val note: String = "",
     @SerialName("contact_id") val contactId: Long? = null,
+    @SerialName("contact_name") val contactName: String = "",
     @SerialName("due_at") val dueAt: String? = null,
     val done: Boolean = false,
+    val token: String = "",
+    val recurrence: String = "",
+    @SerialName("series_id") val seriesId: Long? = null,
 )
 
 @Serializable
@@ -852,6 +859,20 @@ data class ReminderCreateRequest(
     val title: String,
     @SerialName("due_at") val dueAt: String,
     val note: String = "",
+    val recurrence: String = "",
+    @SerialName("contact_id") val contactId: Long? = null,
+    val token: String = "",
+)
+
+@Serializable
+data class ReminderPatchRequest(
+    val action: String? = null,
+    val title: String? = null,
+    val note: String? = null,
+    @SerialName("due_at") val dueAt: String? = null,
+    val recurrence: String? = null,
+    val days: Int? = null,
+    val hours: Int? = null,
 )
 
 @Serializable
@@ -919,6 +940,8 @@ data class PaginatedResult<T>(
     val page: Int,
     val total: Int,
     val hasMore: Boolean,
+    val neighborhoods: List<String> = emptyList(),
+    val sort: String? = null,
 )
 
 @Serializable
@@ -1052,8 +1075,26 @@ data class MessageTemplateDto(
 data class SavedFilterDto(
     val id: Long,
     val name: String = "",
+    val scope: String = "",
     val entity: String = "",
-    val payload: Map<String, kotlinx.serialization.json.JsonElement> = emptyMap(),
+    val params: Map<String, String> = emptyMap(),
+    val payload: Map<String, String> = emptyMap(),
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+    @SerialName("param_count") val paramCount: Int = 0,
+    @SerialName("new_count") val newCount: Int = 0,
+    @SerialName("updated_at") val updatedAt: String? = null,
+) {
+    val resolvedScope: String get() = scope.ifBlank { entity }
+    val resolvedParams: Map<String, String>
+        get() = params.ifEmpty { payload }
+}
+
+@Serializable
+data class SavedFilterCreateRequest(
+    val name: String,
+    val scope: String,
+    val params: Map<String, String>,
+    @SerialName("is_pinned") val isPinned: Boolean = false,
 )
 
 @Serializable
@@ -1062,14 +1103,47 @@ data class SupportTicketDto(
     @SerialName("ticket_number") val ticketNumber: String = "",
     val subject: String = "",
     val status: String = "",
+    val priority: String = "",
+    val category: String = "",
+    @SerialName("user_has_unread") val userHasUnread: Boolean = false,
     @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("last_message_at") val lastMessageAt: String? = null,
+    @SerialName("closed_at") val closedAt: String? = null,
+    val description: String = "",
+    val messages: List<SupportTicketMessageDto> = emptyList(),
+)
+
+@Serializable
+data class SupportTicketMessageDto(
+    val id: Long,
+    val body: String = "",
+    @SerialName("is_staff_reply") val isStaffReply: Boolean = false,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("author_name") val authorName: String = "",
+    val attachments: List<SupportTicketAttachmentDto> = emptyList(),
+)
+
+@Serializable
+data class SupportTicketAttachmentDto(
+    val id: Long,
+    @SerialName("original_filename") val originalFilename: String = "",
+    @SerialName("file_size") val fileSize: Long = 0,
+    val url: String = "",
 )
 
 @Serializable
 data class SupportTicketCreateRequest(
     val subject: String,
     val body: String,
-    val category: String = "general",
+    val category: String = "other",
+    val priority: String = "normal",
+)
+
+@Serializable
+data class SupportTicketReplyResult(
+    val ticket: SupportTicketDto? = null,
+    val message: SupportTicketMessageDto? = null,
 )
 
 @Serializable

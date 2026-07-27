@@ -8,13 +8,20 @@ import ir.divarfiling.mobile.core.network.CloudExtractionCreateRequest
 import ir.divarfiling.mobile.core.network.CloudExtractionJobDto
 import ir.divarfiling.mobile.core.network.MessageTemplateDto
 import ir.divarfiling.mobile.core.network.MobileApi
+import ir.divarfiling.mobile.core.network.SavedFilterCreateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterDto
 import ir.divarfiling.mobile.core.network.SupportTicketCreateRequest
 import ir.divarfiling.mobile.core.network.SupportTicketDto
+import ir.divarfiling.mobile.core.network.SupportTicketReplyResult
 import ir.divarfiling.mobile.core.network.requireData
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,14 +39,38 @@ class WorkspaceExtrasRepository @Inject constructor(
         )
     }
 
-    suspend fun getSavedFilters(entity: String? = null): ApiResult<List<SavedFilterDto>> {
+    suspend fun getSavedFilters(
+        entity: String? = null,
+        includeNewCount: Boolean = false,
+    ): ApiResult<List<SavedFilterDto>> {
         return decodeList(
             decode = { el ->
                 json.decodeFromJsonElement(ListSerializer(SavedFilterDto.serializer()), el)
             },
-            call = { api.getSavedFilters(entity = entity?.ifBlank { null }) },
+            call = {
+                api.getSavedFilters(
+                    entity = entity?.ifBlank { null },
+                    includeNewCount = if (includeNewCount) 1 else null,
+                )
+            },
         )
     }
+
+    suspend fun createSavedFilter(request: SavedFilterCreateRequest): ApiResult<SavedFilterDto> =
+        single { api.createSavedFilter(request) }
+
+    suspend fun deleteSavedFilter(filterId: Long): ApiResult<Unit> {
+        return try {
+            val response = api.deleteSavedFilter(filterId)
+            if (!response.ok) ApiResult.Error(response.error ?: "حذف فیلتر ناموفق")
+            else ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun pinSavedFilter(filterId: Long): ApiResult<SavedFilterDto> =
+        single { api.pinSavedFilter(filterId) }
 
     suspend fun getSupportTickets(): ApiResult<List<SupportTicketDto>> {
         return decodeList(
@@ -52,6 +83,38 @@ class WorkspaceExtrasRepository @Inject constructor(
 
     suspend fun createSupportTicket(request: SupportTicketCreateRequest): ApiResult<SupportTicketDto> =
         single { api.createSupportTicket(request) }
+
+    suspend fun getSupportTicket(ticketId: Long): ApiResult<SupportTicketDto> =
+        single { api.getSupportTicket(ticketId) }
+
+    suspend fun replySupportTicket(
+        ticketId: Long,
+        body: String,
+        attachmentFile: File? = null,
+        attachmentMime: String = "application/octet-stream",
+    ): ApiResult<SupportTicketReplyResult> {
+        return try {
+            val bodyPart = body.toRequestBody("text/plain".toMediaType())
+            val filePart = attachmentFile?.let { file ->
+                MultipartBody.Part.createFormData(
+                    "attachment",
+                    file.name,
+                    file.asRequestBody(attachmentMime.toMediaType()),
+                )
+            }
+            val response = api.replySupportTicket(ticketId, bodyPart, filePart)
+            if (!response.ok) ApiResult.Error(response.error ?: "ارسال پاسخ ناموفق")
+            else ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun closeSupportTicket(ticketId: Long): ApiResult<SupportTicketDto> =
+        single { api.closeSupportTicket(ticketId) }
+
+    suspend fun reopenSupportTicket(ticketId: Long): ApiResult<SupportTicketDto> =
+        single { api.reopenSupportTicket(ticketId) }
 
     suspend fun getAiQuota(): ApiResult<AiQuotaData> = single { api.getAiQuota() }
 

@@ -249,10 +249,12 @@ fun ContactDetailScreen(
                 title = state.reminderTitle,
                 note = state.reminderNote,
                 dueMillis = state.reminderDueMillis,
+                recurrence = state.reminderRecurrence,
                 isSubmitting = state.isSubmitting,
                 onTitleChange = viewModel::onReminderTitleChange,
                 onNoteChange = viewModel::onReminderNoteChange,
                 onDueChange = viewModel::onReminderDueChange,
+                onRecurrenceChange = viewModel::onReminderRecurrenceChange,
                 onDismiss = { viewModel.toggleReminderDialog(false) },
                 onSubmit = viewModel::submitReminder,
             )
