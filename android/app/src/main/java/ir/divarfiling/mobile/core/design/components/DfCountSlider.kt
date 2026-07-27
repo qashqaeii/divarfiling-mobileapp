@@ -21,7 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -191,7 +191,7 @@ private fun CountTrack(
     val thumbSize = 24.dp
     val trackHeight = 8.dp
     val coercedFraction = fraction.coerceIn(0f, 1f)
-    var dragFraction by remember { mutableFloatStateOf<Float?>(null) }
+    var dragFraction by remember { mutableStateOf<Float?>(null) }
     val displayFraction = dragFraction ?: coercedFraction
 
     BoxWithConstraints(
