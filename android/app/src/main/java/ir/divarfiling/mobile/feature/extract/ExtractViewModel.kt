@@ -237,7 +237,7 @@ class ExtractViewModel @Inject constructor(
     fun onSortChange(value: String) = _uiState.update { it.copy(sort = value) }
     fun onAdvertiserFilterChange(value: String) = _uiState.update { it.copy(advertiserFilter = value) }
     fun onMaxItemsChange(value: Int) = _uiState.update {
-        it.copy(maxItems = value.coerceIn(0, ExtractLightLimits.MAX_ITEMS))
+        it.copy(maxItems = value.coerceIn(1, ExtractLightLimits.MAX_ITEMS))
     }
     fun onPriceMinChange(v: String) = _uiState.update { it.copy(priceMin = v) }
     fun onPriceMaxChange(v: String) = _uiState.update { it.copy(priceMax = v) }

@@ -56,6 +56,16 @@ fun ExtractLoadingExperience(
 
     val itemProgress = if (progressTotal > 0) progressCurrent.toFloat() / progressTotal else 0f
     val phaseProgress = phaseProgressValue(phase, itemProgress)
+    val barProgress = if (progressTotal > 0) {
+        itemProgress.coerceIn(0f, 1f)
+    } else {
+        (phaseProgress / 100f).coerceIn(0f, 1f)
+    }
+    val percentLabel = if (progressTotal > 0) {
+        "${(itemProgress * 100).toInt().coerceIn(0, 100)}٪"
+    } else {
+        "${phaseProgress.toInt()}٪"
+    }
     val remainingSeconds = estimateRemainingSeconds(phase, itemProgress, elapsedSeconds)
 
     val pulse by rememberInfiniteTransition(label = "extractPulse").animateFloat(
@@ -82,7 +92,7 @@ fun ExtractLoadingExperience(
                         color = DfThemeColors.textPrimary(),
                     )
                     Text(
-                        "${phaseProgress.toInt()}٪ · ${formatDuration(elapsedSeconds)}",
+                        "$percentLabel · ${formatDuration(elapsedSeconds)}",
                         style = AppTypography.bodyDescription,
                         color = DfThemeColors.textSecondary(),
                     )
@@ -104,7 +114,7 @@ fun ExtractLoadingExperience(
             }
 
             LinearProgressIndicator(
-                progress = { (phaseProgress / 100f).coerceIn(0f, 1f) },
+                progress = { barProgress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(AppShapes.Chip),
@@ -117,7 +127,7 @@ fun ExtractLoadingExperience(
                     "$progressCurrent از $progressTotal آگهی",
                     style = AppTypography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = DfThemeColors.onPrimaryContainer(),
+                    color = DfThemeColors.textPrimary(),
                 )
             }
 

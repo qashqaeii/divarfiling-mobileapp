@@ -1,7 +1,6 @@
 package ir.divarfiling.mobile.core.design.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -23,7 +21,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,15 +35,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.license.ExtractLightLimits
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,10 +56,10 @@ fun DfCountSlider(
     onValueChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
     label: String = "تعداد آگهی",
-    valueRange: ClosedFloatingPointRange<Float> = 0f..ExtractLightLimits.MAX_ITEMS.toFloat(),
+    valueRange: ClosedFloatingPointRange<Float> = 1f..ExtractLightLimits.MAX_ITEMS.toFloat(),
     enabled: Boolean = true,
 ) {
-    val min = valueRange.start.roundToInt()
+    val min = valueRange.start.roundToInt().coerceAtLeast(1)
     val max = valueRange.endInclusive.roundToInt().coerceAtLeast(min + 1)
     val stepSize = when {
         max - min <= 50 -> 1
@@ -69,12 +72,12 @@ fun DfCountSlider(
             .distinct()
     }
     val fraction = ((value - min).toFloat() / (max - min).toFloat()).coerceIn(0f, 1f)
-    val animatedFraction by animateFloatAsState(
-        targetValue = fraction,
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = 400f),
-        label = "countFraction",
-    )
     val persianValue = DateUtils.toPersianDigits(value.toString())
+
+    fun snap(raw: Int): Int {
+        val stepped = (raw.toFloat() / stepSize).roundToInt() * stepSize
+        return stepped.coerceIn(min, max)
+    }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -86,18 +89,18 @@ fun DfCountSlider(
                 Text(
                     text = label,
                     style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
+                    color = DfThemeColors.textSecondary(),
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
                     text = "سقف ${DateUtils.toPersianDigits(max.toString())} آگهی در هر دور",
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = DfColors.PurpleContainer,
+                color = DfThemeColors.primaryContainer(),
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -108,12 +111,12 @@ fun DfCountSlider(
                         text = persianValue,
                         style = AppTypography.sectionTitle,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.PurpleDark,
+                        color = DfThemeColors.onPrimaryContainer(),
                     )
                     Text(
                         text = "آگهی",
                         style = AppTypography.labelSmall,
-                        color = DfColors.Purple,
+                        color = DfThemeColors.primary(),
                         modifier = Modifier.padding(bottom = 2.dp),
                     )
                 }
@@ -121,26 +124,27 @@ fun DfCountSlider(
         }
 
         CountTrack(
-            fraction = animatedFraction,
+            fraction = fraction,
             enabled = enabled,
             onFractionChange = { f ->
                 val raw = min + (f * (max - min)).roundToInt()
-                val snapped = ((raw.toFloat() / stepSize).roundToInt() * stepSize)
-                    .coerceIn(min, max)
+                val snapped = snap(raw)
                 if (snapped != value) onValueChange(snapped)
             },
         )
 
+        val tickValues = remember(min, max) { listOf(min, (min + max) / 2, max) }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            listOf(min, (min + max) / 2, max).forEach { tick ->
+            tickValues.forEach { tick ->
+                val isActive = abs(tick - value) <= stepSize
                 Text(
                     text = DateUtils.toPersianDigits(tick.toString()),
                     style = AppTypography.labelSmall,
-                    color = if (tick == value) DfColors.Purple else DfColors.TextMuted,
-                    fontWeight = if (tick == value) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isActive) DfThemeColors.primary() else DfThemeColors.textMuted(),
+                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
                 )
             }
         }
@@ -156,10 +160,10 @@ fun DfCountSlider(
                         onClick = { if (enabled) onValueChange(preset) },
                         enabled = enabled,
                         shape = RoundedCornerShape(999.dp),
-                        color = if (selected) DfColors.Purple else DfColors.Surface,
+                        color = if (selected) DfThemeColors.primary() else DfThemeColors.surface(),
                         border = BorderStroke(
                             width = 1.dp,
-                            color = if (selected) DfColors.Purple else DfColors.Outline,
+                            color = if (selected) DfThemeColors.primary() else DfThemeColors.outline(),
                         ),
                     ) {
                         Text(
@@ -167,7 +171,7 @@ fun DfCountSlider(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             style = AppTypography.labelSmall,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selected) Color.White else DfColors.TextSecondary,
+                            color = if (selected) Color.White else DfThemeColors.textSecondary(),
                         )
                     }
                 }
@@ -183,25 +187,36 @@ private fun CountTrack(
     onFractionChange: (Float) -> Unit,
 ) {
     val density = LocalDensity.current
-    val thumbSize = 22.dp
-    val trackHeight = 10.dp
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val thumbSize = 24.dp
+    val trackHeight = 8.dp
+    val coercedFraction = fraction.coerceIn(0f, 1f)
+    var dragFraction by remember { mutableFloatStateOf<Float?>(null) }
+    val displayFraction = dragFraction ?: coercedFraction
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .height(36.dp)
+            .height(40.dp)
             .semantics { contentDescription = "اسلایدر تعداد آگهی" }
-            .pointerInput(enabled) {
+            .pointerInput(enabled, isRtl) {
                 if (!enabled) return@pointerInput
+
+                fun updateFromX(x: Float) {
+                    val w = size.width.toFloat().coerceAtLeast(1f)
+                    val raw = (x / w).coerceIn(0f, 1f)
+                    val f = if (isRtl) 1f - raw else raw
+                    dragFraction = f
+                    onFractionChange(f)
+                }
+
                 detectHorizontalDragGestures(
-                    onDragStart = { offset ->
-                        val w = size.width.toFloat().coerceAtLeast(1f)
-                        onFractionChange((offset.x / w).coerceIn(0f, 1f))
-                    },
+                    onDragStart = { offset -> updateFromX(offset.x) },
+                    onDragEnd = { dragFraction = null },
+                    onDragCancel = { dragFraction = null },
                     onHorizontalDrag = { change, _ ->
                         change.consume()
-                        val w = size.width.toFloat().coerceAtLeast(1f)
-                        onFractionChange((change.position.x / w).coerceIn(0f, 1f))
+                        updateFromX(change.position.x)
                     },
                 )
             },
@@ -210,7 +225,14 @@ private fun CountTrack(
         val widthPx = with(density) { maxWidth.toPx() }
         val thumbPx = with(density) { thumbSize.toPx() }
         val travel = (widthPx - thumbPx).coerceAtLeast(1f)
-        val thumbOffset = (fraction.coerceIn(0f, 1f) * travel)
+        val thumbOffset = displayFraction * travel
+        val fillEndPx = thumbOffset + thumbPx / 2f
+
+        val trackBg = DfThemeColors.primaryContainer().copy(alpha = 0.55f)
+        val trackActiveStart = DfThemeColors.primary()
+        val trackActiveEnd = DfThemeColors.primary().copy(alpha = 0.75f)
+        val thumbRing = DfThemeColors.surface()
+        val thumbCore = DfThemeColors.primary()
 
         Canvas(
             modifier = Modifier
@@ -219,29 +241,36 @@ private fun CountTrack(
                 .clip(RoundedCornerShape(999.dp)),
         ) {
             val h = size.height
+            val corner = CornerRadius(h / 2f, h / 2f)
             drawRoundRect(
-                color = DfColors.PurpleContainer.copy(alpha = 0.55f),
+                color = trackBg,
                 size = size,
-                cornerRadius = CornerRadius(h / 2, h / 2),
+                cornerRadius = corner,
             )
-            val activeW = (size.width * fraction).coerceIn(0f, size.width)
-            if (activeW > 0f) {
-                drawRoundRect(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFF7C3AED),
-                            Color(0xFFA78BFA),
-                            Color(0xFFC4B5FD),
+            val fillWidth = fillEndPx.coerceIn(0f, size.width)
+            if (fillWidth > 0f) {
+                if (isRtl) {
+                    drawRoundRect(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(trackActiveEnd, trackActiveStart),
+                            startX = size.width - fillWidth,
+                            endX = size.width,
                         ),
-                    ),
-                    size = Size(activeW, h),
-                    cornerRadius = CornerRadius(h / 2, h / 2),
-                )
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.25f),
-                    radius = h * 0.18f,
-                    center = Offset(activeW * 0.72f, h * 0.35f),
-                )
+                        topLeft = Offset(size.width - fillWidth, 0f),
+                        size = Size(fillWidth, h),
+                        cornerRadius = corner,
+                    )
+                } else {
+                    drawRoundRect(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(trackActiveStart, trackActiveEnd),
+                            startX = 0f,
+                            endX = fillWidth,
+                        ),
+                        size = Size(fillWidth, h),
+                        cornerRadius = corner,
+                    )
+                }
             }
         }
 
@@ -249,21 +278,17 @@ private fun CountTrack(
             modifier = Modifier
                 .offset { IntOffset(thumbOffset.roundToInt(), 0) }
                 .size(thumbSize)
-                .shadow(6.dp, CircleShape, clip = false)
+                .shadow(4.dp, CircleShape, clip = false, ambientColor = DfThemeColors.shadow())
                 .clip(CircleShape)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color.White, Color(0xFFF3E8FF)),
-                    ),
-                )
-                .padding(4.dp),
+                .background(thumbRing)
+                .padding(3.dp),
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .size(10.dp)
+                    .size(14.dp)
                     .clip(CircleShape)
-                    .background(DfColors.Purple),
+                    .background(thumbCore),
             )
         }
     }
