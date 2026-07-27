@@ -370,7 +370,7 @@ data class ExtractionUploadData(
 
 @Serializable
 data class ExtractionLimitsData(
-    @SerialName("max_items") val maxItems: Int = 100,
+    @SerialName("max_items") val maxItems: Int = 250,
     @SerialName("max_concurrent_hint") val maxConcurrentHint: Int = 2,
     @SerialName("extractions_today") val extractionsToday: Int = 0,
     @SerialName("extractions_daily_limit") val extractionsDailyLimit: Int = 10,
@@ -583,6 +583,7 @@ data class PropertyDto(
     val token: String? = null,
     val link: String? = null,
     val images: List<String> = emptyList(),
+    @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
 )

@@ -27,7 +27,7 @@ data class ExtractFilters(
     val categoryLabel: String? = null,
     val transactionTypeLabel: String? = null,
     val sort: String = "sort_date",
-    val maxItems: Int = 50,
+    val maxItems: Int = 100,
     val outputNameHint: String? = null,
     val searchQuery: String? = null,
     val advanced: ExtractAdvancedFilters = ExtractAdvancedFilters(),

@@ -42,7 +42,7 @@ data class ExtractUiState(
     val cityName: String = "تهران",
     val districtId: String = "",
     val sort: String = "sort_date",
-    val maxItems: Int = 50,
+    val maxItems: Int = 100,
     val advertiserFilter: String = "all",
     val showAdvanced: Boolean = false,
     val priceMin: String = "",

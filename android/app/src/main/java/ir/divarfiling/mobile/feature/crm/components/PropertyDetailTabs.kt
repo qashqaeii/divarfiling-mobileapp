@@ -243,27 +243,21 @@ private fun PropertyDetailHero(
     txStatus: String,
     onBack: () -> Unit,
 ) {
-    val cover = property.images.firstOrNull()?.takeIf { it.isNotBlank() }
+    val cover = property.thumbnailUrl?.takeIf { it.isNotBlank() }
+        ?: property.images.firstOrNull()?.takeIf { it.isNotBlank() }
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(260.dp),
         ) {
-            if (cover != null) {
-                DfAsyncImage(
-                    url = cover,
-                    contentDescription = property.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                DfListingImage(
-                    thumbnailUrl = null,
-                    images = property.images,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
+            DfListingImage(
+                thumbnailUrl = cover,
+                images = property.images,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+            if (cover.isNullOrBlank()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

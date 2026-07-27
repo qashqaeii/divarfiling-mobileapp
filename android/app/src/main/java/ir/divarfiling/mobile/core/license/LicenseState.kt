@@ -63,7 +63,7 @@ data class LicenseState(
 }
 
 object ExtractLightLimits {
-    const val MAX_ITEMS = 100
+    const val MAX_ITEMS = 250
     const val MAX_CONCURRENT = 2
     const val MIN_DELAY_MS = 1000L
 }

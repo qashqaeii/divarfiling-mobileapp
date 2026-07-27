@@ -12,8 +12,8 @@ fun CrmHubHeader(
     modifier: Modifier = Modifier,
 ) {
     DfGreetingHeader(
-        title = "مدیریت مشتری",
-        subtitle = "مشتریان، یادآورها و سرنخ‌های شما در یک نگاه",
+        title = "میزکار CRM",
+        subtitle = "مخاطب، معامله و فایل شخصی — پیگیری حرفه‌ای در حرکت",
         userName = userName,
         showBrandLogo = true,
         modifier = modifier,

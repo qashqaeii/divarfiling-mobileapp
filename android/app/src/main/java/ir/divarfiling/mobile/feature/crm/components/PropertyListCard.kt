@@ -47,7 +47,8 @@ fun PropertyListCard(
     val (statusColor, statusBg) = PropertyFilters.txStatusColors(txStatus)
     val dealAccent = PropertyFilters.dealModeAccent(property)
     val location = PropertyFilters.locationLabel(property)
-    val cover = property.images.firstOrNull()
+    val cover = property.thumbnailUrl?.takeIf { it.isNotBlank() }
+        ?: property.images.firstOrNull()
 
     Surface(
         onClick = onClick,
@@ -174,7 +175,7 @@ fun PropertyListCard(
 
                 Box(
                     modifier = Modifier
-                        .size(width = 96.dp, height = 96.dp)
+                        .size(width = 112.dp, height = 112.dp)
                         .clip(AppShapes.CardSmall),
                 ) {
                     DfListingImage(
@@ -184,6 +185,18 @@ fun PropertyListCard(
                         contentScale = ContentScale.Crop,
                         shape = AppShapes.CardSmall,
                     )
+                    // گرادیان پایین برای خوانایی badge
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(28.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f)),
+                                ),
+                            ),
+                    )
                     property.publishStatus?.takeIf { it.isNotBlank() }?.let { pub ->
                         Box(
                             modifier = Modifier
@@ -192,6 +205,17 @@ fun PropertyListCard(
                                 .size(8.dp)
                                 .clip(CircleShape)
                                 .background(PropertyFilters.publishDotColor(pub)),
+                        )
+                    }
+                    if (property.images.size > 1) {
+                        Text(
+                            text = "${property.images.size} عکس",
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(6.dp),
+                            style = AppTypography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
                         )
                     }
                 }

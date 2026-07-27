@@ -328,7 +328,6 @@ fun DivarFilingNavHost(
                                 navController.navigate(Routes.listings(id))
                             },
                             onOpenSchedules = { navController.navigate(Routes.EXTRACT_SCHEDULES) },
-                            onOpenCloudExtract = { navController.navigate(Routes.CLOUD_EXTRACT) },
                             onBack = { navController.popBackStack() },
                             onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
                             onMenuClick = { navController.navigate(Routes.SETTINGS) },
@@ -348,7 +347,7 @@ fun DivarFilingNavHost(
                     composable(Routes.MORE) {
                         MoreHubScreen(
                             onNavigateTools = { navController.navigate(Routes.TOOLS) },
-                            onNavigateCloudExtract = { navController.navigate(Routes.CLOUD_EXTRACT) },
+                            onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                             onNavigateTemplates = { navController.navigate(Routes.TEMPLATES) },
                             onNavigateCalendar = { navController.navigate(Routes.CALENDAR) },
                             onNavigateAi = { navController.navigate(Routes.AI) },

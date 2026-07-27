@@ -19,7 +19,7 @@ fun ContactsHeader(
 ) {
     DfHubPageHeader(
         title = "مخاطبین",
-        subtitle = "مخاطبین CRM",
+        subtitle = "سرنخ، مشتری و پیگیری — تماس و واتساپ یک‌ضربه",
         titleIconRes = DfDecorIcons.Users,
         userName = userName,
         notificationCount = notificationCount,

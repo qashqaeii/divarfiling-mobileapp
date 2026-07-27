@@ -54,12 +54,12 @@ fun DossierShareSheet(
     onDismiss: () -> Unit,
 ) {
     val subtitle = when (kind) {
-        DossierShareKind.FILING -> "پیام حرفه‌ای برای ارسال به مشتری — بدون اطلاعات حساس"
-        DossierShareKind.PERSONAL -> "پرونده شخصی خود را با کنترل کامل محتوا به اشتراک بگذارید"
+        DossierShareKind.FILING -> "پیام حرفه‌ای برای مشتری — کنترل کامل محتوا و لینک عمومی"
+        DossierShareKind.PERSONAL -> "ارسال فایل شخصی به مشتری با واتساپ، کپی یا لینک صفحه عمومی"
     }
 
     DfSheetScaffold(
-        title = "اشتراک پرونده",
+        title = "اشتراک با مشتری",
         subtitle = subtitle,
         icon = DfIcons.Share2,
         iconContainerColor = DfColors.BlueLight,
@@ -67,10 +67,10 @@ fun DossierShareSheet(
         onClose = onDismiss,
         footer = {
             DfSheetActions(
-                primaryText = "اشتراک‌گذاری",
-                onPrimary = onShare,
-                secondaryText = "بستن",
-                onSecondary = onDismiss,
+                primaryText = "ارسال واتساپ",
+                onPrimary = onWhatsApp,
+                secondaryText = "اشتراک سیستم",
+                onSecondary = onShare,
             )
         },
     ) {
@@ -105,9 +105,14 @@ fun DossierShareSheet(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            "لینک صفحه عمومی",
+                            "صفحه اختصاصی مشتری",
                             style = AppTypography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            "مشتری بدون نیاز به اپ، جزئیات و عکس‌ها را در مرورگر می‌بیند.",
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextSecondary,
                         )
                         Text(
                             publicShareUrl,
@@ -198,10 +203,10 @@ fun DossierShareSheet(
             }
         }
 
-        DfSheetSection(title = "روش ارسال") {
+        DfSheetSection(title = "ارسال سریع به مشتری") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DfGlassButton(
-                    text = "واتساپ",
+                    text = "واتساپ به مشتری",
                     onClick = onWhatsApp,
                     icon = DfIcons.MessageCircle,
                     modifier = Modifier.fillMaxWidth(),

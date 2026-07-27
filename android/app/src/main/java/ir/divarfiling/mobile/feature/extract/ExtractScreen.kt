@@ -51,7 +51,6 @@ import ir.divarfiling.mobile.feature.extract.components.rememberDebouncedQuery
 fun ExtractScreen(
     onViewDataset: (String) -> Unit,
     onOpenSchedules: () -> Unit = {},
-    onOpenCloudExtract: () -> Unit = {},
     onBack: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
@@ -192,14 +191,6 @@ fun ExtractScreen(
                     onOpenSchedules = onOpenSchedules,
                     onCreateSchedule = viewModel::createSchedule,
                     canCreateSchedule = canExtract && !state.isRunning,
-                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                )
-            }
-
-            item {
-                DfPrimaryButton(
-                    text = "استخراج ابری",
-                    onClick = onOpenCloudExtract,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }

@@ -249,7 +249,7 @@ fun ExtractFiltersCard(
                         value = state.maxItems,
                         onValueChange = onMaxItemsChange,
                         enabled = enabled,
-                        label = "تعداد آگهی (۰ تا ۱۰۰)",
+                        label = "تعداد آگهی (۰ تا ۲۵۰)",
                     )
                     advancedFilters()
                 }

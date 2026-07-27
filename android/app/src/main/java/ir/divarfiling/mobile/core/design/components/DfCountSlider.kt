@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.license.ExtractLightLimits
+import kotlin.math.roundToInt
 
 @Composable
 fun DfCountSlider(
@@ -20,9 +22,16 @@ fun DfCountSlider(
     onValueChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
     label: String = "تعداد آگهی",
-    valueRange: ClosedFloatingPointRange<Float> = 0f..100f,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..ExtractLightLimits.MAX_ITEMS.toFloat(),
     enabled: Boolean = true,
 ) {
+    val max = valueRange.endInclusive.roundToInt().coerceAtLeast(1)
+    val stepSize = when {
+        max <= 50 -> 1
+        max <= 100 -> 2
+        else -> 5
+    }
+    val steps = ((max / stepSize) - 1).coerceAtLeast(0)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -37,11 +46,15 @@ fun DfCountSlider(
             )
         }
         Slider(
-            value = value.toFloat(),
-            onValueChange = { onValueChange(it.toInt()) },
+            value = value.toFloat().coerceIn(valueRange.start, valueRange.endInclusive),
+            onValueChange = {
+                val snapped = ((it / stepSize).roundToInt() * stepSize)
+                    .coerceIn(valueRange.start.roundToInt(), max)
+                onValueChange(snapped)
+            },
             valueRange = valueRange,
             enabled = enabled,
-            steps = 99,
+            steps = steps,
             colors = SliderDefaults.colors(
                 thumbColor = DfColors.Purple,
                 activeTrackColor = DfColors.Purple,
@@ -53,8 +66,8 @@ fun DfCountSlider(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text("۰", style = MaterialTheme.typography.labelSmall, color = DfColors.TextMuted)
-            Text("۵۰", style = MaterialTheme.typography.labelSmall, color = DfColors.TextMuted)
-            Text("۱۰۰", style = MaterialTheme.typography.labelSmall, color = DfColors.TextMuted)
+            Text("${max / 2}", style = MaterialTheme.typography.labelSmall, color = DfColors.TextMuted)
+            Text("$max", style = MaterialTheme.typography.labelSmall, color = DfColors.TextMuted)
         }
     }
 }

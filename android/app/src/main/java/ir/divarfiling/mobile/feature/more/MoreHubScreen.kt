@@ -59,7 +59,6 @@ fun MoreHubScreen(
     onBack: (() -> Unit)? = null,
     onNavigateTools: () -> Unit = {},
     onNavigateExtract: () -> Unit = {},
-    onNavigateCloudExtract: () -> Unit = {},
     onNavigateTemplates: () -> Unit = {},
     onNavigateCalendar: () -> Unit = {},
     onNavigateAi: () -> Unit = {},
@@ -73,11 +72,11 @@ fun MoreHubScreen(
 
     val items = listOf(
         MoreHubItem("ابزارهای هوشمند", "محاسبه‌گرها و ابزار مشاور", DfDecorIcons.Calculator, DfColors.Purple, DfColors.PurpleContainer, MoreHubAction.Navigate("tools")),
-        MoreHubItem("استخراج / ابری", "استخراج ابری از سرور", DfDecorIcons.Download, DfColors.Blue, DfColors.BlueLight, MoreHubAction.Navigate("cloud-extract")),
-        MoreHubItem("قالب پیام", "پیام‌های آماده CRM", DfDecorIcons.FileText, DfColors.Amber, DfColors.AmberLight, MoreHubAction.Navigate("templates")),
+        MoreHubItem("استخراج سبک", "استخراج آگهی از دیوار روی گوشی", DfDecorIcons.Download, DfColors.Blue, DfColors.BlueLight, MoreHubAction.Navigate("extract")),
+        MoreHubItem("قالب پیام", "پیام‌های آماده برای مشتری", DfDecorIcons.FileText, DfColors.Amber, DfColors.AmberLight, MoreHubAction.Navigate("templates")),
         MoreHubItem("تقویم", "یادآورها و برنامه روز", DfDecorIcons.Calendar, DfColors.Green, DfColors.GreenLight, MoreHubAction.Navigate("calendar")),
-        MoreHubItem("تیم", "مدیریت تیم در میزکار", DfDecorIcons.Users, DfColors.Pink, DfColors.PinkLight, MoreHubAction.External(AppLinks.WORKSPACE_TEAM)),
-        MoreHubItem("دستیار AI", "پیش‌نویس پیام هوشمند", DfDecorIcons.Sparkles, DfColors.Purple, DfColors.PurpleContainer, MoreHubAction.Navigate("ai")),
+        MoreHubItem("تیم", "مدیریت تیم در میزکار وب", DfDecorIcons.Users, DfColors.Pink, DfColors.PinkLight, MoreHubAction.External(AppLinks.WORKSPACE_TEAM)),
+        MoreHubItem("دستیار AI", "به‌زودی — در حال توسعه", DfDecorIcons.Sparkles, DfColors.Purple, DfColors.PurpleContainer, MoreHubAction.Navigate("ai")),
         MoreHubItem("آکادمی", "آموزش و راهنما", DfDecorIcons.Rocket, DfColors.Blue, DfColors.BlueLight, MoreHubAction.External(AppLinks.ACADEMY)),
         MoreHubItem("پشتیبانی", "تیکت و درخواست کمک", DfDecorIcons.Phone, DfColors.Amber, DfColors.AmberLight, MoreHubAction.Navigate("support")),
         MoreHubItem("حریم خصوصی", "سیاست حفظ حریم", DfDecorIcons.Database, DfColors.TextSecondary, DfColors.SurfaceVariant, MoreHubAction.External(AppLinks.PRIVACY)),
@@ -89,7 +88,7 @@ fun MoreHubScreen(
             is MoreHubAction.External -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(action.url)))
             is MoreHubAction.Navigate -> when (action.route) {
                 "tools" -> onNavigateTools()
-                "cloud-extract" -> onNavigateCloudExtract()
+                "extract" -> onNavigateExtract()
                 "templates" -> onNavigateTemplates()
                 "calendar" -> onNavigateCalendar()
                 "ai" -> onNavigateAi()

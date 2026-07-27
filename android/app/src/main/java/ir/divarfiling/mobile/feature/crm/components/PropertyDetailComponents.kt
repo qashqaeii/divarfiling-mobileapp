@@ -67,7 +67,8 @@ fun PropertyDetailContent(
     val dealAccent = PropertyFilters.dealModeAccent(property)
     val txStatus = property.transactionStatus ?: "فعال"
     val (statusColor, statusBg) = PropertyFilters.txStatusColors(txStatus)
-    val cover = property.images.firstOrNull()?.takeIf { it.isNotBlank() }
+    val cover = property.thumbnailUrl?.takeIf { it.isNotBlank() }
+        ?: property.images.firstOrNull()?.takeIf { it.isNotBlank() }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -200,20 +201,13 @@ private fun PropertyDetailGallery(
             .fillMaxWidth()
             .height(240.dp),
     ) {
-        if (cover != null) {
-            DfAsyncImage(
-                url = cover,
-                contentDescription = property.title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            DfListingImage(
-                thumbnailUrl = null,
-                images = images,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
+        DfListingImage(
+            thumbnailUrl = cover,
+            images = images,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+        )
+        if (cover.isNullOrBlank()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
