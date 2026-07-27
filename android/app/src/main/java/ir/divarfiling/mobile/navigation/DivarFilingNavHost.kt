@@ -49,6 +49,7 @@ import ir.divarfiling.mobile.feature.extract.cloud.CloudExtractScreen
 import ir.divarfiling.mobile.feature.filing.insights.DatasetInsightsScreen
 import ir.divarfiling.mobile.feature.filing.map.DatasetMapScreen
 import ir.divarfiling.mobile.feature.more.MoreHubScreen
+import ir.divarfiling.mobile.feature.support.SupportTicketsScreen
 import ir.divarfiling.mobile.feature.tools.SmartToolCalculatorScreen
 import ir.divarfiling.mobile.feature.tools.ToolsScreen
 import ir.divarfiling.mobile.feature.tools.smartToolIdFromKey

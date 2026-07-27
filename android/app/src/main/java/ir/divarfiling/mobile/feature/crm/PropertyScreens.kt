@@ -58,6 +58,7 @@ import ir.divarfiling.mobile.feature.crm.components.PropertiesStatsRow
 import ir.divarfiling.mobile.feature.crm.components.PropertyContactMatchesSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyDetailTabbedContent
 import ir.divarfiling.mobile.feature.crm.components.PropertyEditSheet
+import ir.divarfiling.mobile.feature.crm.components.PropertyCreateSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyLinkContactSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFilters
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
