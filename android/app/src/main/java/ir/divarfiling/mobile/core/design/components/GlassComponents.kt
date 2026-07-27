@@ -39,6 +39,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 
 enum class DfGlassButtonVariant {
     Secondary,
@@ -127,10 +128,9 @@ fun Modifier.liquidGlassSurface(
 }
 
 @Composable
-@Composable
 fun DfLiquidBackground(modifier: Modifier = Modifier) {
-    val bg = ir.divarfiling.mobile.core.design.DfThemeColors.background()
-    val wash = ir.divarfiling.mobile.core.design.DfThemeColors.primary().copy(alpha = 0.06f)
+    val bg = DfThemeColors.background()
+    val wash = DfThemeColors.primary().copy(alpha = 0.06f)
     Box(
         modifier = modifier
             .fillMaxSize()
