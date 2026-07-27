@@ -618,6 +618,36 @@ Base path همان `/api/mobile/v1/`.
 | POST | `/ai/summarize-listing` | خلاصه آگهی |
 | GET/POST | `/extractions/cloud` | لیست / ایجاد Job استخراج ابری |
 | GET | `/extractions/cloud/{id}` | وضعیت Job ابری |
+| GET | `/app/version` | متادیتای نسخه اندروید برای آپدیت داخلی |
+
+### آپدیت داخلی اپ
+
+```http
+GET /app/version?current_build=36
+```
+
+عمومی (بدون لاگین). پاسخ نمونه:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "package_id": "ir.divarfiling.mobile",
+    "version_name": "2.5.1",
+    "version_code": 36,
+    "min_supported_version_code": 30,
+    "force_update": false,
+    "available": true,
+    "update_available": false,
+    "apk_url": "https://divarfiling.ir/download/android/",
+    "apk_size_label": "18.2 MB",
+    "apk_sha256": "",
+    "release_notes": "…"
+  }
+}
+```
+
+دانلود باینری: `GET https://divarfiling.ir/download/android/`
 
 حریم خصوصی وب: `https://divarfiling.ir/privacy/`
 

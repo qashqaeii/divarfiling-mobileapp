@@ -1123,3 +1123,23 @@ data class CloudExtractionJobDto(
     @SerialName("finished_at") val finishedAt: String? = null,
     val filters: Map<String, kotlinx.serialization.json.JsonElement> = emptyMap(),
 )
+
+@Serializable
+data class AppVersionData(
+    @SerialName("package_id") val packageId: String = "ir.divarfiling.mobile",
+    @SerialName("version_name") val versionName: String = "",
+    @SerialName("version_code") val versionCode: Int = 0,
+    @SerialName("min_supported_version_code") val minSupportedVersionCode: Int = 0,
+    @SerialName("force_update") val forceUpdate: Boolean = false,
+    val available: Boolean = false,
+    @SerialName("update_available") val updateAvailable: Boolean = false,
+    @SerialName("apk_url") val apkUrl: String = "",
+    @SerialName("apk_filename") val apkFilename: String = "",
+    @SerialName("apk_size_bytes") val apkSizeBytes: Long = 0,
+    @SerialName("apk_size_label") val apkSizeLabel: String = "",
+    @SerialName("apk_sha256") val apkSha256: String = "",
+    @SerialName("release_notes") val releaseNotes: String = "",
+    @SerialName("min_android") val minAndroid: String = "",
+    @SerialName("store_url") val storeUrl: String = "",
+    @SerialName("website_url") val websiteUrl: String = "",
+)

@@ -31,6 +31,11 @@ interface MobileApi {
     @GET("license/status")
     suspend fun licenseStatus(): ApiEnvelope
 
+    @GET("app/version")
+    suspend fun getAppVersion(
+        @Query("current_build") currentBuild: Int,
+    ): ApiEnvelope
+
     @GET("settings/profile")
     suspend fun getProfile(): ApiEnvelope
 

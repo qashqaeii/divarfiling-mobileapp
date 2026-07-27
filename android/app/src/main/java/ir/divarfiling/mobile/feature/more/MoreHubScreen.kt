@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.feature.more
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.ComponentActivity
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorSize
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.feature.update.AppUpdateViewModel
 
 private data class MoreHubItem(
     val title: String,
@@ -51,6 +53,7 @@ private data class MoreHubItem(
 private sealed class MoreHubAction {
     data class Navigate(val route: String) : MoreHubAction()
     data class External(val url: String) : MoreHubAction()
+    data object CheckUpdate : MoreHubAction()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +72,8 @@ fun MoreHubScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val activity = context as ComponentActivity
+    val updateViewModel: AppUpdateViewModel = hiltViewModel(activity)
 
     val items = listOf(
         MoreHubItem("ابزارهای هوشمند", "محاسبه‌گرها و ابزار مشاور", DfDecorIcons.Calculator, DfColors.Purple, DfColors.PurpleContainer, MoreHubAction.Navigate("tools")),
@@ -79,6 +84,7 @@ fun MoreHubScreen(
         MoreHubItem("دستیار AI", "به‌زودی — در حال توسعه", DfDecorIcons.Sparkles, DfColors.Purple, DfColors.PurpleContainer, MoreHubAction.Navigate("ai")),
         MoreHubItem("آکادمی", "آموزش و راهنما", DfDecorIcons.Rocket, DfColors.Blue, DfColors.BlueLight, MoreHubAction.External(AppLinks.ACADEMY)),
         MoreHubItem("پشتیبانی", "تیکت و درخواست کمک", DfDecorIcons.Phone, DfColors.Amber, DfColors.AmberLight, MoreHubAction.Navigate("support")),
+        MoreHubItem("بروزرسانی اپ", "بررسی نسخه جدید و نصب", DfDecorIcons.Download, DfColors.Green, DfColors.GreenLight, MoreHubAction.CheckUpdate),
         MoreHubItem("حریم خصوصی", "سیاست حفظ حریم", DfDecorIcons.Database, DfColors.TextSecondary, DfColors.SurfaceVariant, MoreHubAction.External(AppLinks.PRIVACY)),
         MoreHubItem("تنظیمات", "پروفایل و اعلان‌ها", DfDecorIcons.Settings, DfColors.TextSecondary, DfColors.SurfaceVariant, MoreHubAction.Navigate("settings")),
     )
@@ -95,6 +101,7 @@ fun MoreHubScreen(
                 "support" -> onNavigateSupport()
                 "settings" -> onNavigateSettings()
             }
+            MoreHubAction.CheckUpdate -> updateViewModel.checkManually()
         }
     }
 

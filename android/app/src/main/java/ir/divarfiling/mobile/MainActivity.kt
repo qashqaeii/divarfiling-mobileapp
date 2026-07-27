@@ -13,6 +13,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.feature.onboarding.NotificationPermissionGate
+import ir.divarfiling.mobile.feature.update.AppUpdateGate
 import ir.divarfiling.mobile.navigation.DeepLinkParser
 import ir.divarfiling.mobile.navigation.DeepLinkTarget
 import ir.divarfiling.mobile.navigation.DivarFilingNavHost
@@ -31,10 +32,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             DivarFilingTheme {
                 NotificationPermissionGate(sessionStore = sessionStore) {
-                    DivarFilingNavHost(
-                        deepLink = pendingDeepLink,
-                        onDeepLinkHandled = { pendingDeepLink = null },
-                    )
+                    AppUpdateGate {
+                        DivarFilingNavHost(
+                            deepLink = pendingDeepLink,
+                            onDeepLinkHandled = { pendingDeepLink = null },
+                        )
+                    }
                 }
             }
         }

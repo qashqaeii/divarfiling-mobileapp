@@ -30,6 +30,17 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @Named("download")
+    fun provideDownloadOkHttp(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.MINUTES)
+            .writeTimeout(2, TimeUnit.MINUTES)
+            .build()
+    }
+
+    @Provides
+    @Singleton
     @Named("plain")
     fun providePlainOkHttp(): OkHttpClient {
         return OkHttpClient.Builder()
