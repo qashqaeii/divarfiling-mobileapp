@@ -1,11 +1,9 @@
 package ir.divarfiling.mobile.feature.team
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,10 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,8 +30,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -145,6 +141,7 @@ fun TeamAnnouncementsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var filter by remember { mutableStateOf(AnnouncementFilter.All) }
+    val pad = teamHorizontalPadding()
 
     LaunchedEffect(state.error) {
         state.error?.let { snackbar.showSnackbar(it) }
@@ -158,7 +155,9 @@ fun TeamAnnouncementsScreen(
                 onClose = viewModel::dismissDetail,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    androidx.compose.foundation.layout.Row(
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    ) {
                         if (detail.importance == "important" || detail.importance == "urgent") {
                             DfBadge(text = "مهم", color = DfColors.RoseLight, textColor = DfColors.Rose)
                         }
@@ -166,11 +165,16 @@ fun TeamAnnouncementsScreen(
                             DfBadge(text = "سنجاق", color = DfColors.AmberLight, textColor = DfColors.Amber)
                         }
                     }
-                    Text(detail.body, style = AppTypography.bodyDescription)
+                    Text(
+                        detail.body,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textPrimary(),
+                    )
                     Text(
                         DateUtils.formatRelativeFa(detail.publishedAt),
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
+                        color = DfThemeColors.textMuted(),
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -181,82 +185,62 @@ fun TeamAnnouncementsScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        DfPullRefresh(
-            isRefreshing = state.isRefreshing,
-            onRefresh = { viewModel.refresh() },
-            modifier = Modifier.fillMaxSize().padding(padding).statusBarsPadding(),
-        ) {
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            TeamAmbientBackground()
+            DfPullRefresh(
+                isRefreshing = state.isRefreshing,
+                onRefresh = { viewModel.refresh() },
+                modifier = Modifier.fillMaxSize().statusBarsPadding(),
             ) {
-                item {
-                    DfHubPageHeader(
-                        title = "اعلامیه‌ها",
-                        subtitle = if (state.unread > 0) "${state.unread} خوانده‌نشده" else "تابلو اطلاع‌رسانی تیم",
-                        titleIconRes = DfDecorIcons.Sparkles,
-                        onBack = onBack,
-                    )
-                }
-                item {
-                    DfFilterChipRow(
-                        options = listOf(
-                            DfFilterOption(AnnouncementFilter.All, "همه"),
-                            DfFilterOption(AnnouncementFilter.Unread, "خوانده‌نشده"),
-                            DfFilterOption(AnnouncementFilter.Important, "مهم"),
-                        ),
-                        selected = filter,
-                        onSelect = {
-                            filter = it
-                            viewModel.setFilter(it)
-                        },
-                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                    )
-                }
-                when {
-                    state.isLoading -> item {
-                        DfCardListSkeleton(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal))
-                    }
-                    state.items.isEmpty() -> item {
-                        DfEmptyState(
-                            title = "اعلامیه‌ای نیست",
-                            subtitle = "وقتی مدیر اعلامیه بگذارد اینجا می‌بینید.",
-                            variant = DfEmptyVariant.Empty,
-                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                LazyColumn(
+                    contentPadding = teamListContentPadding(),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                ) {
+                    item {
+                        DfHubPageHeader(
+                            title = "اعلامیه‌ها",
+                            subtitle = if (state.unread > 0) {
+                                "${state.unread} خوانده‌نشده"
+                            } else {
+                                "تابلو اطلاع‌رسانی تیم"
+                            },
+                            titleIconRes = DfDecorIcons.Sparkles,
+                            onBack = onBack,
                         )
                     }
-                    else -> items(state.items, key = { it.id }) { item ->
-                        DfCard(
-                            onClick = { viewModel.open(item) },
-                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            containerColor = if (item.isRead) DfColors.Surface else DfColors.AmberLight.copy(alpha = 0.35f),
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        item.title,
-                                        style = AppTypography.cardTitle,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    if (!item.isRead) {
-                                        DfBadge(text = "جدید", color = DfColors.AmberLight, textColor = DfColors.Amber)
-                                    }
-                                }
-                                Text(
-                                    item.bodyPreview.ifBlank { item.body },
-                                    style = AppTypography.bodyDescription,
-                                    color = DfColors.TextSecondary,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
+                    item {
+                        DfFilterChipRow(
+                            options = listOf(
+                                DfFilterOption(AnnouncementFilter.All, "همه"),
+                                DfFilterOption(AnnouncementFilter.Unread, "خوانده‌نشده"),
+                                DfFilterOption(AnnouncementFilter.Important, "مهم"),
+                            ),
+                            selected = filter,
+                            onSelect = {
+                                filter = it
+                                viewModel.setFilter(it)
+                            },
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
+                    }
+                    when {
+                        state.isLoading -> item {
+                            DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
+                        }
+                        state.items.isEmpty() -> item {
+                            DfEmptyState(
+                                title = "اعلامیه‌ای نیست",
+                                subtitle = "وقتی مدیر اعلامیه بگذارد اینجا می‌بینید.",
+                                variant = DfEmptyVariant.Empty,
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
+                        }
+                        else -> items(state.items, key = { it.id }) { item ->
+                            TeamAnnouncementListCard(
+                                item = item,
+                                onClick = { viewModel.open(item) },
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
                         }
                     }
                 }

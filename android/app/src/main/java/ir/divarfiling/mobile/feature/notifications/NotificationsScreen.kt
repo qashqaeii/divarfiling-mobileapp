@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.notifications
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background

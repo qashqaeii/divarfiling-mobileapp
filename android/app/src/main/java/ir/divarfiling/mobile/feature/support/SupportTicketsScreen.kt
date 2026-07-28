@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -20,7 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,7 +56,7 @@ import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.network.SupportTicketDto
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SupportTicketsScreen(
     onBack: () -> Unit,
@@ -62,7 +65,7 @@ fun SupportTicketsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    var selectedFilter by remember { androidx.compose.runtime.mutableStateOf(SupportTicketFilter.All) }
+    var selectedFilter by remember { mutableStateOf(SupportTicketFilter.All) }
     val filteredTickets = remember(state.tickets, selectedFilter) {
         when (selectedFilter) {
             SupportTicketFilter.All -> state.tickets
@@ -337,6 +340,7 @@ private fun TicketCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SupportChipGroup(
     options: List<Pair<String, String>>,
@@ -360,15 +364,14 @@ private fun SupportChipGroup(
     }
 }
 
-@Composable
 private fun ticketStatusColors(status: String): Pair<Color, Color> =
     when (status) {
         "open" -> AppColors.BlueLight to AppColors.Blue
         "in_review" -> AppColors.AmberLight to AppColors.Amber
         "answered" -> AppColors.GreenLight to AppColors.Green
         "waiting_user" -> AppColors.PurpleContainer to AppColors.PurpleDark
-        "closed" -> DfThemeColors.lockedContainer() to DfThemeColors.onLocked()
-        else -> DfThemeColors.primaryContainer() to DfThemeColors.onPrimaryContainer()
+        "closed" -> AppColors.LockedContainer to AppColors.OnLocked
+        else -> AppColors.PurpleContainer to AppColors.PurpleDark
     }
 
 private val supportCategoryOptions = listOf(

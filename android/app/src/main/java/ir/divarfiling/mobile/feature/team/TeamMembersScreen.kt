@@ -1,11 +1,8 @@
 package ir.divarfiling.mobile.feature.team
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,24 +11,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -94,6 +84,7 @@ fun TeamMembersScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val pad = teamHorizontalPadding()
 
     LaunchedEffect(state.error) {
         state.error?.let { snackbar.showSnackbar(it) }
@@ -103,68 +94,46 @@ fun TeamMembersScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        DfPullRefresh(
-            isRefreshing = state.isRefreshing,
-            onRefresh = { viewModel.refresh() },
-            modifier = Modifier.fillMaxSize().padding(padding).statusBarsPadding(),
-        ) {
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            TeamAmbientBackground()
+            DfPullRefresh(
+                isRefreshing = state.isRefreshing,
+                onRefresh = { viewModel.refresh() },
+                modifier = Modifier.fillMaxSize().statusBarsPadding(),
             ) {
-                item {
-                    DfHubPageHeader(
-                        title = "اعضای تیم",
-                        subtitle = "${state.members.size} نفر فعال در آژانس",
-                        titleIconRes = DfDecorIcons.Users,
-                        onBack = onBack,
-                    )
-                }
-                when {
-                    state.isLoading -> item {
-                        DfCardListSkeleton(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal))
-                    }
-                    state.members.isEmpty() -> item {
-                        DfEmptyState(
-                            title = "عضوی نیست",
-                            subtitle = "هنوز عضوی در آژانس ثبت نشده است.",
-                            variant = DfEmptyVariant.Empty,
-                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                LazyColumn(
+                    contentPadding = teamListContentPadding(),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                ) {
+                    item {
+                        DfHubPageHeader(
+                            title = "اعضای تیم",
+                            subtitle = "${state.members.size} نفر فعال در آژانس",
+                            titleIconRes = DfDecorIcons.Users,
+                            onBack = onBack,
                         )
                     }
-                    else -> items(state.members, key = { it.id }) { member ->
-                        DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(member.name, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-                                    if (member.title.isNotBlank()) {
-                                        Text(member.title, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
-                                    }
-                                    if (member.phone.isNotBlank()) {
-                                        Text(member.phone, style = AppTypography.labelSmall, color = DfColors.TextSecondary)
-                                    }
-                                }
-                                DfBadge(
-                                    text = member.roleLabel.ifBlank { member.role },
-                                    color = roleColor(member.role).copy(alpha = 0.15f),
-                                    textColor = roleColor(member.role),
-                                )
-                            }
+                    when {
+                        state.isLoading -> item {
+                            DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
+                        }
+                        state.members.isEmpty() -> item {
+                            DfEmptyState(
+                                title = "عضوی نیست",
+                                subtitle = "هنوز عضوی در آژانس ثبت نشده است.",
+                                variant = DfEmptyVariant.Empty,
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
+                        }
+                        else -> items(state.members, key = { it.id }) { member ->
+                            TeamMemberListCard(
+                                member = member,
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
                         }
                     }
                 }
             }
         }
     }
-}
-
-private fun roleColor(role: String) = when (role) {
-    "owner" -> DfColors.Amber
-    "manager" -> DfColors.Purple
-    "secretary" -> DfColors.Blue
-    else -> DfColors.Green
 }

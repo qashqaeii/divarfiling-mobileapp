@@ -200,8 +200,9 @@ class ListingDetailViewModel @Inject constructor(
                     ReminderCreateRequest(
                         title = title,
                         dueAt = dueAt,
-                        note = state.reminderNote.trim().ifBlank { null },
+                        note = state.reminderNote.trim(),
                         recurrence = state.reminderRecurrence,
+                        token = token,
                     ),
                 )
             ) {

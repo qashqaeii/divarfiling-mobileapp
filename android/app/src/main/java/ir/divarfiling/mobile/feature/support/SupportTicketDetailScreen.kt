@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -30,11 +31,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
@@ -390,11 +393,11 @@ private fun supportPriorityLabel(value: String): String = when (value) {
     else -> "عادی"
 }
 
-private fun ticketStatusColors(status: String) = when (status) {
-    "open" -> DfThemeColors.infoContainer() to DfThemeColors.onInfoContainer()
-    "in_review" -> DfThemeColors.warningContainer() to DfThemeColors.onWarningContainer()
-    "answered" -> DfThemeColors.successContainer() to DfThemeColors.onSuccessContainer()
-    "waiting_user" -> DfThemeColors.primaryContainer() to DfThemeColors.onPrimaryContainer()
-    "closed" -> DfThemeColors.lockedContainer() to DfThemeColors.onLocked()
-    else -> DfThemeColors.surfaceVariant() to DfThemeColors.textSecondary()
+private fun ticketStatusColors(status: String): Pair<Color, Color> = when (status) {
+    "open" -> AppColors.BlueLight to AppColors.Blue
+    "in_review" -> AppColors.AmberLight to AppColors.Amber
+    "answered" -> AppColors.GreenLight to AppColors.Green
+    "waiting_user" -> AppColors.PurpleContainer to AppColors.PurpleDark
+    "closed" -> AppColors.LockedContainer to AppColors.OnLocked
+    else -> AppColors.SurfaceVariant to AppColors.TextSecondary
 }

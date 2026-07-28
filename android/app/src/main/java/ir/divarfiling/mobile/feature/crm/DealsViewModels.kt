@@ -21,6 +21,7 @@ import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
 import ir.divarfiling.mobile.core.network.PropertyUpdateRequest
+import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterCreateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterDto
 import ir.divarfiling.mobile.core.datastore.SessionStore
@@ -498,7 +499,17 @@ class PropertiesViewModel @Inject constructor(
                 is ApiResult.Error -> Unit
             }
         }
+        loadSavedFilters()
         load()
+    }
+
+    fun loadSavedFilters() {
+        viewModelScope.launch {
+            when (val result = extrasRepository.getSavedFilters(entity = "properties", includeNewCount = true)) {
+                is ApiResult.Success -> _uiState.update { it.copy(savedFilters = result.data) }
+                is ApiResult.Error -> Unit
+            }
+        }
     }
 
     fun load(refreshing: Boolean = false) {

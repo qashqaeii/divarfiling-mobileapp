@@ -2,7 +2,6 @@ package ir.divarfiling.mobile.feature.team
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,25 +10,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +39,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
@@ -53,11 +51,7 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
-import ir.divarfiling.mobile.core.design.components.DfStatusBanner
-import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.network.TeamPanelNotificationDto
-import ir.divarfiling.mobile.feature.crm.components.CrmHubFeatureCard
-import ir.divarfiling.mobile.feature.crm.components.CrmHubStatChip
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +67,7 @@ fun TeamHubScreen(
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     val overview = state.overview
+    val pad = teamHorizontalPadding()
 
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
@@ -83,221 +78,229 @@ fun TeamHubScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        DfPullRefresh(
-            isRefreshing = state.isRefreshing,
-            onRefresh = { viewModel.refresh() },
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .statusBarsPadding(),
+                .padding(padding),
         ) {
-            when {
-                state.isLoading -> {
-                    Column {
-                        DfHubPageHeader(
-                            title = "تیم",
-                            subtitle = "هاب آژانس",
-                            titleIconRes = DfDecorIcons.Users,
-                            onBack = onBack,
-                        )
-                        DfCardListSkeleton(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal))
-                    }
-                }
-                overview?.hasAgency != true -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
-                    ) {
-                        item {
+            TeamAmbientBackground()
+            DfPullRefresh(
+                isRefreshing = state.isRefreshing,
+                onRefresh = { viewModel.refresh() },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding(),
+            ) {
+                when {
+                    state.isLoading -> {
+                        Column {
                             DfHubPageHeader(
                                 title = "تیم",
-                                subtitle = "هنوز به آژانسی وصل نیستید",
+                                subtitle = "هاب آژانس",
                                 titleIconRes = DfDecorIcons.Users,
-                                userName = state.userName,
                                 onBack = onBack,
                             )
-                        }
-                        item {
-                            DfEmptyState(
-                                title = "آژانسی پیدا نشد",
-                                subtitle = "برای پیام داخلی، اعضا و اعلامیه‌ها باید عضو یک آژانس باشید. ساخت یا عضویت فعلاً از وب‌ورک‌اسپیس انجام می‌شود.",
-                                variant = DfEmptyVariant.Empty,
-                                actionLabel = "باز کردن میزکار تیم",
-                                onAction = {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_TEAM)),
-                                    )
-                                },
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            )
+                            DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
                         }
                     }
-                }
-                else -> {
-                    val agency = overview.agency
-                    val membership = overview.membership
-                    val perms = overview.permissions
-                    val unread = overview.unread
-                    LazyColumn(
-                        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
-                    ) {
-                        item {
-                            DfHubPageHeader(
-                                title = agency?.name ?: "تیم",
-                                subtitle = listOfNotNull(
-                                    membership?.roleLabel,
-                                    membership?.title?.takeIf { it.isNotBlank() },
-                                ).joinToString(" · ").ifBlank { "میزکار آژانس" },
-                                titleIconRes = DfDecorIcons.Users,
-                                userName = state.userName,
-                                onBack = onBack,
-                            )
-                        }
-                        item {
-                            TeamPulseStrip(
-                                messages = unread.messages,
-                                announcements = unread.announcements,
-                                notifications = unread.notifications,
-                                members = overview.membersCount,
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            )
-                        }
-                        if (perms.messagesEnabled) {
+                    overview?.hasAgency != true -> {
+                        LazyColumn(
+                            contentPadding = teamListContentPadding(),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                        ) {
                             item {
-                                CrmHubFeatureCard(
-                                    title = "صندوق پیام",
-                                    subtitle = "گفت‌وگوی داخلی تیم",
-                                    tint = DfColors.Blue,
-                                    background = DfColors.BlueLight,
-                                    icon = DfIcons.MessageCircle,
-                                    stats = listOf(
-                                        CrmHubStatChip("خوانده‌نشده", unread.messages.toString(), icon = DfIcons.Bell),
-                                    ),
-                                    onClick = onOpenMessages,
-                                    illustration = {
-                                        TeamTileGlyph(DfIcons.MessageCircle, DfColors.Blue, DfColors.BlueLight)
+                                DfHubPageHeader(
+                                    title = "تیم",
+                                    subtitle = "هنوز به آژانسی وصل نیستید",
+                                    titleIconRes = DfDecorIcons.Users,
+                                    userName = state.userName,
+                                    onBack = onBack,
+                                )
+                            }
+                            item {
+                                DfEmptyState(
+                                    title = "آژانسی پیدا نشد",
+                                    subtitle = "برای پیام داخلی، اعضا و اعلامیه‌ها باید عضو یک آژانس باشید.",
+                                    variant = DfEmptyVariant.Empty,
+                                    actionLabel = "باز کردن میزکار تیم",
+                                    onAction = {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_TEAM)),
+                                        )
                                     },
-                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    modifier = Modifier.padding(horizontal = pad),
                                 )
                             }
                         }
-                        if (perms.announcementsEnabled) {
+                    }
+                    else -> {
+                        val agency = overview.agency
+                        val membership = overview.membership
+                        val perms = overview.permissions
+                        val unread = overview.unread
+                        LazyColumn(
+                            contentPadding = teamListContentPadding(),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                        ) {
                             item {
-                                CrmHubFeatureCard(
-                                    title = "اعلامیه‌ها",
-                                    subtitle = "تابلو اطلاع‌رسانی آژانس",
-                                    tint = DfColors.Amber,
-                                    background = DfColors.AmberLight,
-                                    icon = DfIcons.Sparkles,
-                                    stats = listOf(
-                                        CrmHubStatChip("جدید", unread.announcements.toString(), icon = DfIcons.Sparkles),
-                                    ),
-                                    onClick = onOpenAnnouncements,
-                                    illustration = {
-                                        TeamTileGlyph(DfIcons.Sparkles, DfColors.Amber, DfColors.AmberLight)
-                                    },
-                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                DfHubPageHeader(
+                                    title = "میزکار تیم",
+                                    subtitle = "نبض روزانه آژانس",
+                                    titleIconRes = DfDecorIcons.Users,
+                                    userName = state.userName,
+                                    onBack = onBack,
                                 )
                             }
-                        }
-                        item {
-                            CrmHubFeatureCard(
-                                title = "اعضا",
-                                subtitle = "نقش‌ها و دسترسی‌های تیم",
-                                tint = DfColors.Purple,
-                                background = DfColors.PurpleContainer,
-                                icon = DfIcons.Users,
-                                stats = listOf(
-                                    CrmHubStatChip("نفر", overview.membersCount.toString(), icon = DfIcons.Users),
-                                ),
-                                onClick = onOpenMembers,
-                                illustration = {
-                                    TeamTileGlyph(DfIcons.Users, DfColors.Purple, DfColors.PurpleLight)
-                                },
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            )
-                        }
-                        if (perms.canOperateInbox) {
                             item {
-                                CrmHubFeatureCard(
-                                    title = "صندوق سرنخ",
-                                    subtitle = "تخصیص سریع لیدهای تیم",
-                                    tint = DfColors.Green,
-                                    background = DfColors.GreenLight,
-                                    icon = DfIcons.UserPlus,
-                                    stats = listOf(
-                                        CrmHubStatChip("در صف", overview.inboxLeadsCount.toString(), icon = DfIcons.UserPlus),
-                                    ),
-                                    onClick = onOpenInbox,
-                                    illustration = {
-                                        TeamTileGlyph(DfIcons.UserPlus, DfColors.Green, DfColors.GreenLight)
-                                    },
-                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                TeamIdentityHero(
+                                    agencyName = agency?.name ?: "آژانس",
+                                    roleLabel = membership?.roleLabel.orEmpty(),
+                                    title = membership?.title.orEmpty(),
+                                    unreadTotal = unread.total,
+                                    modifier = Modifier.padding(horizontal = pad),
                                 )
                             }
-                        }
-                        if (state.notifications.isNotEmpty()) {
                             item {
-                                DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Text(
-                                                "اعلان‌های پنل",
-                                                style = AppTypography.cardTitle,
-                                                fontWeight = FontWeight.Bold,
-                                            )
+                                TeamMetricsRow(
+                                    metrics = listOf(
+                                        TeamMetric("پیام", unread.messages.toString(), DfColors.Blue, DfIcons.MessageCircle),
+                                        TeamMetric("اعلامیه", unread.announcements.toString(), DfColors.Amber, DfIcons.Sparkles),
+                                        TeamMetric("اعلان", unread.notifications.toString(), DfColors.Rose, DfIcons.Bell),
+                                        TeamMetric("اعضا", overview.membersCount.toString(), DfColors.Purple, DfIcons.Users),
+                                    ),
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                            item {
+                                TeamSectionLabel(
+                                    title = "میانبرهای روزانه",
+                                    subtitle = "از اینجا مستقیم وارد جریان کار تیم شوید",
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                            if (perms.messagesEnabled) {
+                                item {
+                                    TeamDestinationCard(
+                                        destination = TeamDestination(
+                                            title = "صندوق پیام",
+                                            subtitle = "گفت‌وگوی داخلی و پیگیری سریع همکاران",
+                                            metricLabel = "خوانده‌نشده",
+                                            metricValue = unread.messages.toString(),
+                                            tint = DfColors.Blue,
+                                            wash = DfColors.BlueLight,
+                                            icon = DfIcons.MessageCircle,
+                                            onClick = onOpenMessages,
+                                        ),
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
+                            if (perms.announcementsEnabled) {
+                                item {
+                                    TeamDestinationCard(
+                                        destination = TeamDestination(
+                                            title = "اعلامیه‌ها",
+                                            subtitle = "تابلو اطلاع‌رسانی و نکات مهم آژانس",
+                                            metricLabel = "جدید",
+                                            metricValue = unread.announcements.toString(),
+                                            tint = DfColors.Amber,
+                                            wash = DfColors.AmberLight,
+                                            icon = DfIcons.Sparkles,
+                                            onClick = onOpenAnnouncements,
+                                        ),
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
+                            item {
+                                TeamDestinationCard(
+                                    destination = TeamDestination(
+                                        title = "اعضا",
+                                        subtitle = "نقش‌ها، عنوان‌ها و دسترسی‌های تیم",
+                                        metricLabel = "نفر",
+                                        metricValue = overview.membersCount.toString(),
+                                        tint = DfColors.Purple,
+                                        wash = DfColors.PurpleLight,
+                                        icon = DfIcons.Users,
+                                        onClick = onOpenMembers,
+                                    ),
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                            if (perms.canOperateInbox) {
+                                item {
+                                    TeamDestinationCard(
+                                        destination = TeamDestination(
+                                            title = "صندوق سرنخ",
+                                            subtitle = "تخصیص سریع لیدهای در صف",
+                                            metricLabel = "در صف",
+                                            metricValue = overview.inboxLeadsCount.toString(),
+                                            tint = DfColors.Green,
+                                            wash = DfColors.GreenLight,
+                                            icon = DfIcons.UserPlus,
+                                            onClick = onOpenInbox,
+                                        ),
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
+                            if (state.notifications.isNotEmpty()) {
+                                item {
+                                    TeamSectionLabel(
+                                        title = "اعلان‌های پنل",
+                                        subtitle = if (unread.notifications > 0) {
+                                            "${unread.notifications} مورد منتظر بررسی"
+                                        } else {
+                                            "آخرین رویدادهای آژانس"
+                                        },
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                                item {
+                                    DfCard(modifier = Modifier.padding(horizontal = pad)) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                                             if (unread.notifications > 0) {
-                                                androidx.compose.material3.TextButton(
+                                                TextButton(
                                                     onClick = viewModel::markAllNotificationsRead,
+                                                    modifier = Modifier.align(Alignment.End),
                                                 ) {
                                                     Text("همه خوانده شد", color = DfColors.Blue)
                                                 }
                                             }
-                                        }
-                                        state.notifications.forEach { note ->
-                                            TeamNotificationRow(
-                                                note = note,
-                                                onClick = { viewModel.markNotificationRead(note.id) },
-                                            )
+                                            state.notifications.forEach { note ->
+                                                TeamNotificationRow(
+                                                    note = note,
+                                                    onClick = { viewModel.markNotificationRead(note.id) },
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        item {
-                            DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                    Text(
-                                        "ابزارهای پیشرفته وب",
-                                        style = AppTypography.cardTitle,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                    Text(
-                                        "TV Mode، گزارش CSV و تنظیمات کامل آژانس روی وب باقی مانده‌اند.",
-                                        style = AppTypography.bodyDescription,
-                                        color = DfColors.TextSecondary,
-                                    )
-                                    DfPrimaryButton(
-                                        text = "TV Mode",
-                                        onClick = {
-                                            context.startActivity(
-                                                Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_TEAM_TV)),
-                                            )
-                                        },
-                                    )
-                                    DfSecondaryButton(
-                                        text = "گزارش عملکرد CSV",
-                                        onClick = {
-                                            context.startActivity(
-                                                Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_TEAM_REPORT)),
-                                            )
-                                        },
-                                    )
+                            item {
+                                DfCard(modifier = Modifier.padding(horizontal = pad)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                                        TeamSectionLabel(
+                                            title = "ابزارهای پیشرفته",
+                                            subtitle = "TV Mode و گزارش کامل روی وب باقی مانده‌اند",
+                                        )
+                                        DfPrimaryButton(
+                                            text = "TV Mode",
+                                            onClick = {
+                                                context.startActivity(
+                                                    Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_TEAM_TV)),
+                                                )
+                                            },
+                                        )
+                                        DfSecondaryButton(
+                                            text = "گزارش عملکرد CSV",
+                                            onClick = {
+                                                context.startActivity(
+                                                    Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_TEAM_REPORT)),
+                                                )
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -308,81 +311,20 @@ fun TeamHubScreen(
     }
 }
 
-@Composable
-private fun TeamPulseStrip(
-    messages: Int,
-    announcements: Int,
-    notifications: Int,
-    members: Int,
-    modifier: Modifier = Modifier,
-) {
-    DfCard(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-            Text("نبض امروز تیم", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                TeamPulseChip("پیام", messages, DfColors.Blue, Modifier.weight(1f))
-                TeamPulseChip("اعلامیه", announcements, DfColors.Amber, Modifier.weight(1f))
-                TeamPulseChip("اعلان", notifications, DfColors.Rose, Modifier.weight(1f))
-                TeamPulseChip("اعضا", members, DfColors.Purple, Modifier.weight(1f))
-            }
-            if (messages + announcements + notifications > 0) {
-                DfStatusBanner(
-                    message = "چند مورد خوانده‌نشده دارید؛ از کارت‌های زیر شروع کنید.",
-                    tone = DfStatusTone.Info,
-                    title = "کارهای باز تیم",
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TeamPulseChip(
-    label: String,
-    value: Int,
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .background(tint.copy(alpha = 0.12f), shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
-            .padding(vertical = AppSpacing.sm),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            value.toString(),
-            style = AppTypography.cardTitle,
-            fontWeight = FontWeight.Bold,
-            color = tint,
-        )
-        Text(label, style = AppTypography.labelSmall, color = DfColors.TextSecondary)
-    }
-}
-
-@Composable
-private fun TeamTileGlyph(icon: ImageVector, tint: Color, background: Color) {
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .background(background, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(28.dp))
-    }
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TeamNotificationRow(
     note: TeamPanelNotificationDto,
     onClick: () -> Unit,
 ) {
-    androidx.compose.material3.Surface(
+    Surface(
         onClick = onClick,
-        color = if (note.isRead) Color.Transparent else DfColors.BlueLight.copy(alpha = 0.35f),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        color = if (note.isRead) {
+            DfThemeColors.surfaceVariant().copy(alpha = 0.35f)
+        } else {
+            DfColors.BlueLight.copy(alpha = 0.45f)
+        },
+        shape = RoundedCornerShape(14.dp),
     ) {
         Row(
             modifier = Modifier
@@ -391,19 +333,26 @@ private fun TeamNotificationRow(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(note.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            TeamAvatar(name = note.title, size = 36.dp, accent = DfColors.Blue)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    note.title,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = DfThemeColors.textPrimary(),
+                )
                 Text(
                     note.body,
                     style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
+                    color = DfThemeColors.textSecondary(),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     DateUtils.formatRelativeFa(note.createdAt),
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextSecondary,
+                    color = DfThemeColors.textMuted(),
                 )
             }
             if (!note.isRead) {
@@ -413,7 +362,6 @@ private fun TeamNotificationRow(
     }
 }
 
-/** Backward-compatible entry used by older navigation imports. */
 @Composable
 fun TeamWorkspaceScreen(
     onBack: () -> Unit,

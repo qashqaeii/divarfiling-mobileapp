@@ -232,7 +232,7 @@ fun DossierShareSheet(
                     DfGlassButton(
                         text = "تلگرام",
                         onClick = telegram,
-                        icon = DfIcons.Send,
+                        icon = DfIcons.Share2,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
