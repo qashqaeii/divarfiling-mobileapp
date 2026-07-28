@@ -480,7 +480,7 @@ private fun buildPrimaryActions(
     )
     if (CrmConstants.isMatchEligible(contact.customerType)) {
         add(
-            ContactQuickActionItem("پیشنهاد", DfColors.Purple, icon = DfIcons.Sparkles) {
+            ContactQuickActionItem("تطبیق", DfColors.Purple, icon = DfIcons.Sparkles) {
                 viewModel.toggleMatchesSheet(true)
             },
         )

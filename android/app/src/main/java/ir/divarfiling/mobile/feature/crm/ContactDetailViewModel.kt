@@ -199,6 +199,9 @@ class ContactDetailViewModel @Inject constructor(
                             selectedActivityStatus = defaultStatusForActivityType(it.selectedActivityType),
                         )
                     }
+                    if (statusResult is ApiResult.Success && statusToApply != null) {
+                        maybeOpenSmartMatchAfterStatus(statusToApply)
+                    }
                     load()
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -395,6 +398,7 @@ class ContactDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(isSubmitting = false, successMessage = "وضعیت به‌روز شد", editStatus = newStatus)
                     }
+                    maybeOpenSmartMatchAfterStatus(newStatus)
                     load()
                 }
                 is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false) }
@@ -789,6 +793,13 @@ class ContactDetailViewModel @Inject constructor(
     }
 
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
+
+    private fun maybeOpenSmartMatchAfterStatus(status: String) {
+        val customerType = _uiState.value.data?.contact?.customerType
+        if (!CrmConstants.isMatchEligible(customerType)) return
+        if (!CrmConstants.shouldPromptSmartMatch(status)) return
+        toggleMatchesSheet(true)
+    }
 
     private fun parseMoneyInput(raw: String): Long? = FormatUtils.parseLocalizedLong(raw)
 

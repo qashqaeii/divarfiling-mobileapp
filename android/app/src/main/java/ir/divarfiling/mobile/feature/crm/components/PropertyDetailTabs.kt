@@ -124,14 +124,10 @@ fun PropertyDetailTabbedContent(
         }
 
         item {
-            Button(
+            SmartMatchEntryCard(
                 onClick = onContactMatches,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppSpacing.screenHorizontal),
-            ) {
-                Text("مشتریان مناسب")
-            }
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+            )
         }
 
         item {
@@ -228,6 +224,82 @@ private fun buildPropertyTabs(detail: PropertyDetailData): List<PropertyDetailTa
         if (hasSpecs) add(PropertyDetailTab.SPECS)
         add(PropertyDetailTab.NOTES)
         add(PropertyDetailTab.DOCS)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SmartMatchEntryCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = Color.Transparent,
+        shadowElevation = 2.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(AppShapes.Card)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            DfColors.Purple.copy(alpha = 0.14f),
+                            DfColors.Blue.copy(alpha = 0.10f),
+                            DfColors.Green.copy(alpha = 0.08f),
+                        ),
+                    ),
+                )
+                .padding(AppSpacing.md),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(DfColors.PurpleContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        DfIcons.Sparkles,
+                        contentDescription = null,
+                        tint = DfColors.Purple,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        "پیشنهاد هوشمند",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.TextPrimary,
+                    )
+                    Text(
+                        "مشتریان هم‌خوان با این فایل را پیدا و پیشنهاد کنید",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Icon(
+                    DfIcons.ChevronLeft,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
     }
 }
 
