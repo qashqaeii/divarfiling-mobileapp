@@ -10,6 +10,7 @@ import ir.divarfiling.mobile.core.network.ContactMatchesData
 import ir.divarfiling.mobile.core.network.ContactUpdateRequest
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest
+import ir.divarfiling.mobile.core.network.MessageTemplateDto
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.network.ListingDto
@@ -18,6 +19,7 @@ import ir.divarfiling.mobile.core.network.SendListingRequest
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.FilingRepository
+import ir.divarfiling.mobile.data.repository.WorkspaceExtrasRepository
 import android.net.Uri
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,6 +43,7 @@ data class ContactDetailUiState(
     val successMessage: String? = null,
     val showNoteDialog: Boolean = false,
     val showReminderDialog: Boolean = false,
+    val editingReminderId: Long? = null,
     val showEditSheet: Boolean = false,
     val showActivitySheet: Boolean = false,
     val noteText: String = "",
@@ -59,6 +62,7 @@ data class ContactDetailUiState(
     val editNotes: String = "",
     val activityContent: String = "",
     val selectedActivityType: String = "پیگیری",
+    val selectedActivityStatus: String = "در حال پیگیری",
     val showSendFilingSheet: Boolean = false,
     val sendListingNote: String = "",
     val filingPickerStep: Int = 0,
@@ -66,16 +70,29 @@ data class ContactDetailUiState(
     val filingListings: List<ListingDto> = emptyList(),
     val selectedDatasetId: String? = null,
     val isFilingLoading: Boolean = false,
+    val messageTemplates: List<MessageTemplateDto> = emptyList(),
+    val templatesLoading: Boolean = false,
+    val showTemplatePicker: Boolean = false,
     val pendingWhatsAppShare: String? = null,
     val showMatchesSheet: Boolean = false,
     val matchesData: ContactMatchesData? = null,
     val matchesLoading: Boolean = false,
+    val matchSuggestNote: String = "",
+    val showMatchTemplatePicker: Boolean = false,
+    val showTeamAssignSheet: Boolean = false,
+    val teamAssignMode: String = "assign",
+    val teamMembers: List<ir.divarfiling.mobile.core.network.TeamMemberDto> = emptyList(),
+    val selectedTeamMemberId: Long? = null,
+    val teamTransferNote: String = "",
+    val teamMembersLoading: Boolean = false,
 )
 
 @HiltViewModel
 class ContactDetailViewModel @Inject constructor(
     private val crmRepository: CrmRepository,
     private val filingRepository: FilingRepository,
+    private val extrasRepository: WorkspaceExtrasRepository,
+    private val teamRepository: ir.divarfiling.mobile.data.repository.TeamRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val contactId: Long = savedStateHandle.get<Long>("contactId") ?: 0L
@@ -160,12 +177,26 @@ class ContactDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             when (val result = crmRepository.createActivity(contactId, type, content, title)) {
                 is ApiResult.Success -> {
+                    val statusToApply = _uiState.value.selectedActivityStatus.takeIf { it.isNotBlank() }
+                    val statusResult = if (statusToApply != null) {
+                        crmRepository.updateContact(
+                            contactId,
+                            ContactUpdateRequest(status = statusToApply),
+                        )
+                    } else {
+                        ApiResult.Success(_uiState.value.data?.contact)
+                    }
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            successMessage = "فعالیت ثبت شد",
+                            successMessage = when (statusResult) {
+                                is ApiResult.Success ->
+                                    if (statusToApply != null) "فعالیت و وضعیت مخاطب ثبت شد" else "فعالیت ثبت شد"
+                                is ApiResult.Error -> "فعالیت ثبت شد، ولی وضعیت مخاطب به‌روزرسانی نشد"
+                            },
                             showActivitySheet = false,
                             activityContent = "",
+                            selectedActivityStatus = defaultStatusForActivityType(it.selectedActivityType),
                         )
                     }
                     load()
@@ -200,32 +231,84 @@ class ContactDetailViewModel @Inject constructor(
     }
 
     fun submitReminder() {
-        val title = _uiState.value.reminderTitle.trim()
+        val state = _uiState.value
+        val title = state.reminderTitle.trim()
         if (title.isBlank()) return
-        val dueAt = millisToIso(_uiState.value.reminderDueMillis)
+        val dueAt = millisToIso(state.reminderDueMillis)
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (crmRepository.createReminder(
-                contactId,
-                title,
-                dueAt,
-                _uiState.value.reminderNote,
-                _uiState.value.reminderRecurrence,
-            )) {
+            val editingReminderId = state.editingReminderId
+            val result = if (editingReminderId == null) {
+                crmRepository.createReminder(
+                    contactId,
+                    title,
+                    dueAt,
+                    state.reminderNote,
+                    state.reminderRecurrence,
+                )
+            } else {
+                crmRepository.patchReminder(
+                    editingReminderId,
+                    ir.divarfiling.mobile.core.network.ReminderPatchRequest(
+                        title = title,
+                        note = state.reminderNote,
+                        dueAt = dueAt,
+                        recurrence = state.reminderRecurrence,
+                    ),
+                )
+            }
+            when (result) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             showReminderDialog = false,
+                            editingReminderId = null,
                             reminderTitle = "",
                             reminderNote = "",
                             reminderRecurrence = "",
-                            successMessage = "یادآور ثبت شد",
+                            successMessage = if (editingReminderId == null) "یادآور ثبت شد" else "یادآور ویرایش شد",
                         )
                     }
                     load()
                 }
                 is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = it.error) }
+            }
+        }
+    }
+
+    fun openReminderEditor(reminder: ir.divarfiling.mobile.core.network.ReminderDto) {
+        _uiState.update {
+            it.copy(
+                showReminderDialog = true,
+                editingReminderId = reminder.id,
+                reminderTitle = reminder.title.orEmpty(),
+                reminderNote = reminder.note.orEmpty(),
+                reminderRecurrence = reminder.recurrence,
+                reminderDueMillis = reminder.dueAt?.let(::isoToMillis) ?: it.reminderDueMillis,
+            )
+        }
+    }
+
+    fun deleteReminder(reminderId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            when (val result = crmRepository.deleteReminder(reminderId)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showReminderDialog = false,
+                            editingReminderId = null,
+                            reminderTitle = "",
+                            reminderNote = "",
+                            reminderRecurrence = "",
+                            successMessage = "یادآور حذف شد",
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = result.message) }
             }
         }
     }
@@ -339,9 +422,27 @@ class ContactDetailViewModel @Inject constructor(
                 selectedDatasetId = null,
                 filingListings = emptyList(),
                 sendListingNote = if (show) it.sendListingNote else "",
+                showTemplatePicker = false,
             )
         }
-        if (show) loadFilingDatasets()
+        if (show) {
+            loadFilingDatasets()
+            if (_uiState.value.messageTemplates.isEmpty()) loadMessageTemplates()
+        }
+    }
+
+    fun loadMessageTemplates() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(templatesLoading = true) }
+            when (val result = extrasRepository.getMessageTemplates()) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(messageTemplates = result.data, templatesLoading = false)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(templatesLoading = false, error = result.message)
+                }
+            }
+        }
     }
 
     fun loadFilingDatasets() {
@@ -424,7 +525,13 @@ class ContactDetailViewModel @Inject constructor(
     }
 
     fun toggleMatchesSheet(show: Boolean) {
-        _uiState.update { it.copy(showMatchesSheet = show) }
+        _uiState.update {
+            it.copy(
+                showMatchesSheet = show,
+                matchSuggestNote = if (show) it.matchSuggestNote else "",
+                showMatchTemplatePicker = false,
+            )
+        }
         if (show && _uiState.value.matchesData == null) {
             loadMatches(openSheet = true)
         }
@@ -452,14 +559,17 @@ class ContactDetailViewModel @Inject constructor(
 
     fun suggestMatches(matches: List<PropertyMatchDto>, shareViaWhatsApp: Boolean = false) {
         if (matches.isEmpty()) return
+        val note = _uiState.value.matchSuggestNote.trim().ifBlank { null }
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (val result = crmRepository.suggestContactMatches(contactId, matches)) {
+            when (val result = crmRepository.suggestContactMatches(contactId, matches, note)) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             showMatchesSheet = false,
+                            matchSuggestNote = "",
+                            showMatchTemplatePicker = false,
                             successMessage = "${result.data.suggestedCount} ملک پیشنهاد شد",
                             pendingWhatsAppShare = if (shareViaWhatsApp) {
                                 result.data.whatsappText
@@ -520,11 +630,62 @@ class ContactDetailViewModel @Inject constructor(
     }
 
     fun onSendListingNoteChange(v: String) = _uiState.update { it.copy(sendListingNote = v) }
+    fun toggleTemplatePicker(show: Boolean) = _uiState.update { it.copy(showTemplatePicker = show) }
+    fun applyMessageTemplate(template: MessageTemplateDto) = _uiState.update {
+        val current = it.sendListingNote.trim()
+        val next = if (current.isBlank()) {
+            template.body.trim()
+        } else {
+            "$current\n\n${template.body.trim()}"
+        }
+        it.copy(sendListingNote = next, showTemplatePicker = false)
+    }
+    fun onMatchSuggestNoteChange(v: String) = _uiState.update { it.copy(matchSuggestNote = v) }
+    fun toggleMatchTemplatePicker(show: Boolean) = _uiState.update { it.copy(showMatchTemplatePicker = show) }
+    fun applyMatchMessageTemplate(template: MessageTemplateDto) = _uiState.update {
+        val current = it.matchSuggestNote.trim()
+        val next = if (current.isBlank()) {
+            template.body.trim()
+        } else {
+            "$current\n\n${template.body.trim()}"
+        }
+        it.copy(matchSuggestNote = next, showMatchTemplatePicker = false)
+    }
     fun clearPendingWhatsAppShare() = _uiState.update { it.copy(pendingWhatsAppShare = null) }
     fun toggleNoteDialog(show: Boolean) = _uiState.update { it.copy(showNoteDialog = show) }
-    fun toggleReminderDialog(show: Boolean) = _uiState.update { it.copy(showReminderDialog = show) }
+    fun toggleReminderDialog(show: Boolean) = _uiState.update {
+        if (show) {
+            it.copy(showReminderDialog = true, editingReminderId = null)
+        } else {
+            it.copy(
+                showReminderDialog = false,
+                editingReminderId = null,
+                reminderTitle = "",
+                reminderNote = "",
+                reminderRecurrence = "",
+            )
+        }
+    }
     fun toggleEditSheet(show: Boolean) = _uiState.update { it.copy(showEditSheet = show) }
-    fun toggleActivitySheet(show: Boolean) = _uiState.update { it.copy(showActivitySheet = show) }
+    fun openActivitySheet(type: String = "پیگیری", content: String = "") = _uiState.update {
+        it.copy(
+            showActivitySheet = true,
+            selectedActivityType = type,
+            activityContent = content,
+            selectedActivityStatus = defaultStatusForActivityType(type),
+        )
+    }
+
+    fun toggleActivitySheet(show: Boolean) = _uiState.update {
+        if (show) {
+            it.copy(
+                showActivitySheet = true,
+                selectedActivityStatus = defaultStatusForActivityType(it.selectedActivityType),
+            )
+        } else {
+            it.copy(showActivitySheet = false, activityContent = "")
+        }
+    }
     fun onNoteChange(v: String) = _uiState.update { it.copy(noteText = v) }
     fun onReminderTitleChange(v: String) = _uiState.update { it.copy(reminderTitle = v) }
     fun onReminderNoteChange(v: String) = _uiState.update { it.copy(reminderNote = v) }
@@ -554,7 +715,79 @@ class ContactDetailViewModel @Inject constructor(
     fun onEditBuilderBuyTypesChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyPropertyTypes = v)) }
     fun onEditNotesChange(v: String) = _uiState.update { it.copy(editNotes = v) }
     fun onActivityContentChange(v: String) = _uiState.update { it.copy(activityContent = v) }
-    fun onActivityTypeChange(v: String) = _uiState.update { it.copy(selectedActivityType = v) }
+    fun onActivityTypeChange(v: String) = _uiState.update {
+        it.copy(
+            selectedActivityType = v,
+            selectedActivityStatus = defaultStatusForActivityType(v),
+        )
+    }
+    fun onActivityStatusChange(v: String) = _uiState.update { it.copy(selectedActivityStatus = v) }
+
+    fun openTeamAssign(mode: String) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    showTeamAssignSheet = true,
+                    teamAssignMode = mode,
+                    teamMembersLoading = true,
+                    teamTransferNote = "",
+                )
+            }
+            when (val result = teamRepository.getMembers(excludeSelf = true)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        teamMembers = result.data.members,
+                        selectedTeamMemberId = result.data.members.firstOrNull()?.id,
+                        teamMembersLoading = false,
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(
+                        showTeamAssignSheet = false,
+                        teamMembersLoading = false,
+                        error = result.message,
+                    )
+                }
+            }
+        }
+    }
+
+    fun dismissTeamAssign() = _uiState.update { it.copy(showTeamAssignSheet = false) }
+    fun onTeamMemberSelect(id: Long) = _uiState.update { it.copy(selectedTeamMemberId = id) }
+    fun onTeamTransferNoteChange(value: String) = _uiState.update { it.copy(teamTransferNote = value) }
+
+    fun submitTeamAssign() {
+        val state = _uiState.value
+        val memberId = state.selectedTeamMemberId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            val result = if (state.teamAssignMode == "transfer") {
+                teamRepository.transferContact(contactId, memberId, state.teamTransferNote.ifBlank { null })
+            } else {
+                teamRepository.assignContact(contactId, memberId)
+            }
+            when (result) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showTeamAssignSheet = false,
+                            successMessage = if (state.teamAssignMode == "transfer") {
+                                "پرونده منتقل شد"
+                            } else {
+                                "مخاطب تخصیص داده شد"
+                            },
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 
     private fun parseMoneyInput(raw: String): Long? = FormatUtils.parseLocalizedLong(raw)
@@ -565,4 +798,16 @@ class ContactDetailViewModel @Inject constructor(
             .toLocalDateTime()
             .format(isoFormatter)
     }
+}
+
+private fun defaultStatusForActivityType(type: String): String = when (type) {
+    "بازدید" -> "بازدید انجام شد"
+    "تماس", "واتساپ", "پیامک", "پیگیری", "جلسه" -> "در حال پیگیری"
+    else -> ""
+}
+
+private fun isoToMillis(value: String): Long? {
+    return runCatching { java.time.OffsetDateTime.parse(value).toInstant().toEpochMilli() }
+        .recoverCatching { Instant.parse(value).toEpochMilli() }
+        .getOrNull()
 }

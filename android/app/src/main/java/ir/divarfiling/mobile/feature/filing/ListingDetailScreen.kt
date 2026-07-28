@@ -43,7 +43,9 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.feature.crm.ContactPickerSheet
+import ir.divarfiling.mobile.feature.crm.components.ContactReminderSheet
 import ir.divarfiling.mobile.core.filing.ListingImageUtils
+import ir.divarfiling.mobile.feature.share.PublicShareSettingsSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailGallerySection
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailHeader
 import ir.divarfiling.mobile.feature.filing.components.ListingEditSheet
@@ -56,6 +58,8 @@ import ir.divarfiling.mobile.feature.filing.components.ListingSpecsCard
 @Composable
 fun ListingDetailScreen(
     onBack: () -> Unit,
+    onOpenCreatedProperty: (Long) -> Unit = {},
+    onOpenAi: (String) -> Unit = {},
     viewModel: ListingDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -67,6 +71,12 @@ fun ListingDetailScreen(
         val message = state.pendingWhatsAppShare ?: return@LaunchedEffect
         openWhatsApp(context, message)
         viewModel.clearPendingWhatsAppShare()
+    }
+
+    LaunchedEffect(state.pendingCreatedPropertyId) {
+        val propertyId = state.pendingCreatedPropertyId ?: return@LaunchedEffect
+        viewModel.clearPendingCreatedProperty()
+        onOpenCreatedProperty(propertyId)
     }
 
     LaunchedEffect(state.successMessage, state.error) {
@@ -130,8 +140,9 @@ fun ListingDetailScreen(
                         onOpenDivar = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
                             { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
                         },
-                        onSetReminder = { viewModel.toggleContactPicker(true) },
+                        onSetReminder = viewModel::openReminderSheet,
                         onSaveAsPersonal = viewModel::saveAsPersonalProperty,
+                        onOpenAi = { onOpenAi(listing.token) },
                         onCopyLink = {
                             val publicUrl = listing.publicShare?.shareUrl?.takeIf { it.isNotBlank() }
                             if (publicUrl != null) {
@@ -187,6 +198,8 @@ fun ListingDetailScreen(
                 onIncludeAmenitiesChange = viewModel::onShareIncludeAmenitiesChange,
                 onShare = { DossierShareActions.shareText(context, preview) },
                 onWhatsApp = { DossierShareActions.openWhatsApp(context, preview) },
+                onTelegram = { DossierShareActions.openTelegram(context, preview) },
+                onSms = { DossierShareActions.openSms(context, preview) },
                 onCopy = {
                     DossierShareActions.copyToClipboard(context, preview)
                     viewModel.showMessage("متن پیام کپی شد")
@@ -201,6 +214,10 @@ fun ListingDetailScreen(
                     {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                     }
+                },
+                onManagePublicShare = {
+                    viewModel.toggleShareSheet(false)
+                    viewModel.togglePublicShareSettingsSheet(true)
                 },
                 onSendToContact = {
                     viewModel.toggleShareSheet(false)
@@ -242,12 +259,33 @@ fun ListingDetailScreen(
     if (state.showOwnerPhoneSheet) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissOwnerPhoneSheet) {
             ListingOwnerPhoneSheet(
+                name = state.ownerNameDraft,
                 phone = state.ownerPhoneDraft,
                 isSaving = state.isSavingPhone,
+                onNameChange = viewModel::onOwnerNameChange,
                 onPhoneChange = viewModel::onOwnerPhoneChange,
                 onSave = viewModel::saveOwnerPhone,
                 onCall = { phone -> dialPhone(context, phone) },
                 onDismiss = viewModel::dismissOwnerPhoneSheet,
+            )
+        }
+    }
+
+    if (state.showReminderSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissReminderSheet) {
+            ContactReminderSheet(
+                title = state.reminderTitle,
+                note = state.reminderNote,
+                dueMillis = state.reminderDueMillis,
+                recurrence = state.reminderRecurrence,
+                isSubmitting = state.isSavingReminder,
+                sheetTitle = "یادآور آگهی",
+                onTitleChange = viewModel::onReminderTitleChange,
+                onNoteChange = viewModel::onReminderNoteChange,
+                onDueChange = viewModel::onReminderDueChange,
+                onRecurrenceChange = viewModel::onReminderRecurrenceChange,
+                onDismiss = viewModel::dismissReminderSheet,
+                onSubmit = viewModel::createStandaloneReminder,
             )
         }
     }
@@ -268,6 +306,7 @@ fun ListingDetailScreen(
                 neighborhood = form.neighborhood,
                 city = form.city,
                 description = form.description,
+                ownerName = form.ownerName,
                 ownerPhone = form.ownerPhone,
                 isSubmitting = state.isSavingEdit,
                 onTitleChange = { viewModel.onEditFormChange { f -> f.copy(title = it) } },
@@ -281,12 +320,37 @@ fun ListingDetailScreen(
                 onNeighborhoodChange = { viewModel.onEditFormChange { f -> f.copy(neighborhood = it) } },
                 onCityChange = { viewModel.onEditFormChange { f -> f.copy(city = it) } },
                 onDescriptionChange = { viewModel.onEditFormChange { f -> f.copy(description = it) } },
+                onOwnerNameChange = { viewModel.onEditFormChange { f -> f.copy(ownerName = it) } },
                 onOwnerPhoneChange = { viewModel.onEditFormChange { f -> f.copy(ownerPhone = it) } },
                 onCallOwner = form.ownerPhone.trim().takeIf { it.isNotBlank() }?.let { phone ->
                     { dialPhone(context, phone) }
                 },
                 onSave = viewModel::saveEdit,
                 onDismiss = viewModel::dismissEditSheet,
+            )
+        }
+    }
+
+    if (state.showPublicShareSettingsSheet) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.togglePublicShareSettingsSheet(false) }) {
+            PublicShareSettingsSheet(
+                consultantName = state.shareConsultantName,
+                consultantPhone = state.shareConsultantPhone,
+                welcomeMessage = state.shareWelcomeMessage,
+                isActive = state.sharePublicIsActive,
+                showDivarLink = state.sharePublicShowDivarLink,
+                showFullAddress = state.sharePublicShowFullAddress,
+                showInternalNotes = state.sharePublicShowInternalNotes,
+                isSubmitting = state.isSavingEdit,
+                onConsultantNameChange = viewModel::onShareConsultantNameChange,
+                onConsultantPhoneChange = viewModel::onShareConsultantPhoneChange,
+                onWelcomeMessageChange = viewModel::onShareWelcomeMessageChange,
+                onIsActiveChange = viewModel::onSharePublicIsActiveChange,
+                onShowDivarLinkChange = viewModel::onSharePublicShowDivarLinkChange,
+                onShowFullAddressChange = viewModel::onSharePublicShowFullAddressChange,
+                onShowInternalNotesChange = viewModel::onSharePublicShowInternalNotesChange,
+                onSave = viewModel::savePublicShareSettings,
+                onDismiss = { viewModel.togglePublicShareSettingsSheet(false) },
             )
         }
     }
@@ -304,6 +368,7 @@ private fun ListingDetailContent(
     onOpenDivar: (() -> Unit)?,
     onSetReminder: () -> Unit,
     onSaveAsPersonal: () -> Unit,
+    onOpenAi: () -> Unit,
     onCopyLink: () -> Unit,
     onCopyAdCode: () -> Unit,
     onNavigate: () -> Unit,
@@ -343,6 +408,7 @@ private fun ListingDetailContent(
                     onOpenDivar = onOpenDivar,
                     onSetReminder = onSetReminder,
                     onSaveAsPersonal = onSaveAsPersonal,
+                    onOpenAi = onOpenAi,
                     showSaveAsPersonal = false,
                 )
             }

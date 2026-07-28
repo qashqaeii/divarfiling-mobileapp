@@ -998,6 +998,13 @@ private fun PropertyDetailSummarySidebar(
             PropertySpecRow("معامله", property.dealMode ?: "—")
             PropertySpecRow("وضعیت", property.transactionStatus ?: "فعال")
             PropertySpecRow("انتشار", property.publishStatus ?: "—")
+            PropertySpecRow(
+                "مالک",
+                listOfNotNull(
+                    property.ownerName?.takeIf { it.isNotBlank() },
+                    property.phone?.takeIf { it.isNotBlank() },
+                ).joinToString(" · ").ifBlank { "—" },
+            )
             PropertySpecRow("مخاطبین", detail.contactCount.toString())
             PropertySpecRow(
                 "امکانات",
@@ -1019,9 +1026,12 @@ private fun PropertyDetailSummarySidebar(
 @Composable
 fun PropertyLinkContactSheet(
     contactId: String,
+    contactName: String,
+    contactPhone: String,
     role: String,
     isSubmitting: Boolean,
     onContactIdChange: (String) -> Unit,
+    onPickContact: () -> Unit,
     onRoleChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
@@ -1034,15 +1044,39 @@ fun PropertyLinkContactSheet(
     ) {
         Text("پیوند مخاطب به ملک", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
         Text(
-            "شناسه مخاطب را از صفحه مخاطبین وارد کنید",
+            "مالک یا مخاطب مرتبط را از CRM انتخاب کنید و نقش او را مشخص کنید",
             style = AppTypography.bodyDescription,
             color = DfColors.TextMuted,
         )
+        Button(
+            onClick = onPickContact,
+            enabled = !isSubmitting,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(if (contactName.isBlank()) "انتخاب از مخاطبین CRM" else "تغییر مخاطب")
+        }
+        if (contactName.isNotBlank() || contactPhone.isNotBlank()) {
+            DfPremiumCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(AppSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(contactName.ifBlank { "مخاطب انتخاب‌شده" }, style = AppTypography.cardTitle)
+                    if (contactPhone.isNotBlank()) {
+                        Text(contactPhone, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
+                    }
+                    if (contactId.isNotBlank()) {
+                        Text("شناسه: $contactId", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                    }
+                }
+            }
+        }
         OutlinedTextField(
             value = contactId,
             onValueChange = onContactIdChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("شناسه مخاطب") },
+            supportingText = { Text("در صورت نیاز می‌توانید شناسه را دستی هم وارد کنید") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
         )

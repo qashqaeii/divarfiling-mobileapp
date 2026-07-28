@@ -18,12 +18,15 @@ import ir.divarfiling.mobile.feature.crm.CrmConstants
 fun ActivityLogSheet(
     activityType: String,
     content: String,
+    selectedStatus: String,
     isSubmitting: Boolean,
     onTypeChange: (String) -> Unit,
     onContentChange: (String) -> Unit,
+    onStatusChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val statusPlaceholder = "بدون تغییر"
     DfSheetScaffold(
         title = "ثبت فعالیت",
         subtitle = "تماس، بازدید یا پیگیری را در تایم‌لاین مخاطب ثبت کنید",
@@ -51,10 +54,28 @@ fun ActivityLogSheet(
                 value = content,
                 onValueChange = onContentChange,
                 label = { Text("توضیحات") },
+                placeholder = { Text(activityPlaceholder(activityType)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 enabled = !isSubmitting,
             )
+            DfDropdown(
+                label = "وضعیت مخاطب بعد از ثبت",
+                value = selectedStatus.ifBlank { statusPlaceholder },
+                options = listOf(statusPlaceholder) + CrmConstants.STATUSES,
+                enabled = !isSubmitting,
+                onSelect = { onStatusChange(if (it == statusPlaceholder) "" else it) },
+            )
         }
     }
+}
+
+private fun activityPlaceholder(type: String): String = when (type) {
+    "تماس" -> "مثلاً تماس برقرار شد و قرار شد فردا فایل‌ها ارسال شود"
+    "واتساپ" -> "مثلاً فایل‌ها ارسال شد و منتظر بازخورد هستیم"
+    "پیامک" -> "مثلاً پیام معرفی و زمان پیگیری بعدی ارسال شد"
+    "بازدید" -> "مثلاً بازدید انجام شد، مشتری نور و پلان را پسندید"
+    "پیگیری" -> "مثلاً نیاز مشتری مرور شد و قرار شد عصر تماس بگیریم"
+    "جلسه" -> "مثلاً جلسه حضوری برگزار شد و موارد تصمیم‌گیری ثبت شد"
+    else -> "جزئیات این فعالیت را بنویسید"
 }

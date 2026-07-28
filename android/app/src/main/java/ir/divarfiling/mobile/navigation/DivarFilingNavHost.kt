@@ -41,6 +41,7 @@ import ir.divarfiling.mobile.feature.filing.ListingDetailScreen
 import ir.divarfiling.mobile.feature.filing.ListingsScreen
 import ir.divarfiling.mobile.feature.home.HomeScreen
 import ir.divarfiling.mobile.feature.notifications.NotificationsScreen
+import ir.divarfiling.mobile.feature.settings.InstallHelpScreen
 import ir.divarfiling.mobile.feature.settings.SettingsScreen
 import ir.divarfiling.mobile.feature.ai.AiAssistantScreen
 import ir.divarfiling.mobile.feature.crm.calendar.CrmCalendarScreen
@@ -54,6 +55,12 @@ import ir.divarfiling.mobile.feature.support.SupportTicketsScreen
 import ir.divarfiling.mobile.feature.tools.SmartToolCalculatorScreen
 import ir.divarfiling.mobile.feature.tools.ToolsScreen
 import ir.divarfiling.mobile.feature.tools.smartToolIdFromKey
+import ir.divarfiling.mobile.feature.team.TeamAnnouncementsScreen
+import ir.divarfiling.mobile.feature.team.TeamHubScreen
+import ir.divarfiling.mobile.feature.team.TeamInboxScreen
+import ir.divarfiling.mobile.feature.team.TeamMembersScreen
+import ir.divarfiling.mobile.feature.team.TeamMessagesScreen
+import ir.divarfiling.mobile.feature.team.TeamThreadDetailScreen
 import kotlinx.coroutines.flow.first
 
 object Routes {
@@ -61,7 +68,7 @@ object Routes {
     const val MAIN = "main"
     const val HOME = "home"
     const val CRM = "crm"
-    const val CRM_CONTACTS = "crm/contacts"
+    const val CRM_CONTACTS = "crm/contacts?customerType={customerType}"
     const val CRM_CONTACT_DETAIL = "crm/contacts/{contactId}?openMatches={openMatches}"
     const val CRM_TODAY = "crm/today"
     const val FILING = "filing"
@@ -71,12 +78,13 @@ object Routes {
     const val EXTRACT = "extract"
     const val EXTRACT_SCHEDULES = "extract/schedules"
     const val SETTINGS = "settings"
+    const val SETTINGS_INSTALL_HELP = "settings/install-help"
     const val MORE = "more"
     const val FILING_INSIGHTS = "filing/{datasetId}/insights"
     const val FILING_MAP = "filing/{datasetId}/map"
     const val TEMPLATES = "templates"
     const val CALENDAR = "calendar"
-    const val AI = "ai"
+    const val AI = "ai?contactId={contactId}&listingToken={listingToken}&mode={mode}"
     const val SUPPORT = "support"
     const val SUPPORT_DETAIL = "support/{ticketId}"
     const val CLOUD_EXTRACT = "cloud-extract"
@@ -87,8 +95,16 @@ object Routes {
     const val NOTIFICATIONS = "notifications"
     const val TOOLS = "tools"
     const val TOOL_CALCULATOR = "tools/{toolId}"
+    const val TEAM = "team"
+    const val TEAM_MESSAGES = "team/messages"
+    const val TEAM_THREAD = "team/messages/{threadId}"
+    const val TEAM_MEMBERS = "team/members"
+    const val TEAM_ANNOUNCEMENTS = "team/announcements"
+    const val TEAM_INBOX = "team/inbox"
 
     fun listings(datasetId: String) = "filing/$datasetId"
+    fun contacts(customerType: String? = null) =
+        "crm/contacts?customerType=${Uri.encode(customerType.orEmpty())}"
     fun toolCalculator(toolId: String) = "tools/$toolId"
     fun filingSearch(query: String = "") = "filing/search?query=${Uri.encode(query)}"
     fun contactDetail(contactId: Long, openMatches: Boolean = false) =
@@ -99,6 +115,17 @@ object Routes {
     fun datasetInsights(datasetId: String) = "filing/$datasetId/insights"
     fun datasetMap(datasetId: String) = "filing/$datasetId/map"
     fun supportDetail(ticketId: Long) = "support/$ticketId"
+    fun ai(
+        contactId: Long? = null,
+        listingToken: String? = null,
+        mode: String? = null,
+    ): String {
+        val contact = Uri.encode(contactId?.toString().orEmpty())
+        val token = Uri.encode(listingToken.orEmpty())
+        val action = Uri.encode(mode.orEmpty())
+        return "ai?contactId=$contact&listingToken=$token&mode=$action"
+    }
+    fun teamThread(threadId: Long) = "team/messages/$threadId"
 
     val mainTabs = setOf(HOME, CRM, FILING, MORE, CRM_TODAY)
 }
@@ -179,7 +206,7 @@ fun DivarFilingNavHost(
                         HomeScreen(
                             onNavigateToday = { navController.navigate(Routes.CRM_TODAY) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
-                            onNavigateContacts = { navController.navigate(Routes.CRM_CONTACTS) },
+                            onNavigateContacts = { navController.navigate(Routes.contacts()) },
                             onNavigateFiling = { navController.navigate(Routes.FILING) },
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
@@ -192,13 +219,24 @@ fun DivarFilingNavHost(
                     }
                     composable(Routes.CRM) {
                         CrmHubScreen(
-                            onContacts = { navController.navigate(Routes.CRM_CONTACTS) },
+                            onContacts = { navController.navigate(Routes.contacts()) },
                             onToday = { navController.navigate(Routes.CRM_TODAY) },
                             onDeals = { navController.navigate(Routes.CRM_DEALS) },
                             onProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
+                            onOwners = { navController.navigate(Routes.contacts("مالک")) },
+                            onTemplates = { navController.navigate(Routes.TEMPLATES) },
+                            onCalendar = { navController.navigate(Routes.CALENDAR) },
                         )
                     }
-                    composable(Routes.CRM_CONTACTS) {
+                    composable(
+                        route = Routes.CRM_CONTACTS,
+                        arguments = listOf(
+                            navArgument("customerType") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                        ),
+                    ) {
                         ContactsScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
@@ -223,13 +261,16 @@ fun DivarFilingNavHost(
                             onBack = { navController.popBackStack() },
                             onDealClick = { id -> navController.navigate(Routes.dealDetail(id)) },
                             onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                            onOpenAi = { contactId ->
+                                navController.navigate(Routes.ai(contactId = contactId, mode = "draft"))
+                            },
                         )
                     }
                     composable(Routes.CRM_DEALS) {
                         DealsScreen(
                             onBack = { navController.popBackStack() },
                             onDealClick = { id -> navController.navigate(Routes.dealDetail(id)) },
-                            onNavigateContacts = { navController.navigate(Routes.CRM_CONTACTS) },
+                            onNavigateContacts = { navController.navigate(Routes.contacts()) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                         )
@@ -308,7 +349,15 @@ fun DivarFilingNavHost(
                         route = Routes.FILING_LISTING_DETAIL,
                         arguments = listOf(navArgument("token") { type = NavType.StringType }),
                     ) {
-                        ListingDetailScreen(onBack = { navController.popBackStack() })
+                        ListingDetailScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenCreatedProperty = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                            onOpenAi = { token ->
+                                navController.navigate(
+                                    Routes.ai(listingToken = token, mode = "summarize"),
+                                )
+                            },
+                        )
                     }
                     composable(
                         route = Routes.FILING_INSIGHTS,
@@ -345,19 +394,57 @@ fun DivarFilingNavHost(
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateTools = { navController.navigate(Routes.TOOLS) },
                             onNavigateSupport = { navController.navigate(Routes.SUPPORT) },
+                            onNavigateInstallHelp = { navController.navigate(Routes.SETTINGS_INSTALL_HELP) },
                         )
+                    }
+                    composable(Routes.SETTINGS_INSTALL_HELP) {
+                        InstallHelpScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.MORE) {
                         MoreHubScreen(
                             onNavigateTools = { navController.navigate(Routes.TOOLS) },
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
+                            onNavigateFilingSearch = { navController.navigate(Routes.filingSearch()) },
                             onNavigateTemplates = { navController.navigate(Routes.TEMPLATES) },
                             onNavigateCalendar = { navController.navigate(Routes.CALENDAR) },
-                            onNavigateAi = { navController.navigate(Routes.AI) },
+                            onNavigateAi = { navController.navigate(Routes.ai()) },
+                            onNavigateCloudExtract = { navController.navigate(Routes.CLOUD_EXTRACT) },
+                            onNavigateTeam = { navController.navigate(Routes.TEAM) },
                             onNavigateSupport = { navController.navigate(Routes.SUPPORT) },
+                            onNavigateInstallHelp = { navController.navigate(Routes.SETTINGS_INSTALL_HELP) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                         )
+                    }
+                    composable(Routes.TEAM) {
+                        TeamHubScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenMessages = { navController.navigate(Routes.TEAM_MESSAGES) },
+                            onOpenMembers = { navController.navigate(Routes.TEAM_MEMBERS) },
+                            onOpenAnnouncements = { navController.navigate(Routes.TEAM_ANNOUNCEMENTS) },
+                            onOpenInbox = { navController.navigate(Routes.TEAM_INBOX) },
+                        )
+                    }
+                    composable(Routes.TEAM_MESSAGES) {
+                        TeamMessagesScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenThread = { id -> navController.navigate(Routes.teamThread(id)) },
+                        )
+                    }
+                    composable(
+                        route = Routes.TEAM_THREAD,
+                        arguments = listOf(navArgument("threadId") { type = NavType.LongType }),
+                    ) {
+                        TeamThreadDetailScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.TEAM_MEMBERS) {
+                        TeamMembersScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.TEAM_ANNOUNCEMENTS) {
+                        TeamAnnouncementsScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.TEAM_INBOX) {
+                        TeamInboxScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.TEMPLATES) {
                         MessageTemplatesScreen(onBack = { navController.popBackStack() })
@@ -368,7 +455,23 @@ fun DivarFilingNavHost(
                             onOpenContact = { id -> navController.navigate(Routes.contactDetail(id)) },
                         )
                     }
-                    composable(Routes.AI) {
+                    composable(
+                        route = Routes.AI,
+                        arguments = listOf(
+                            navArgument("contactId") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                            navArgument("listingToken") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                            navArgument("mode") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                        ),
+                    ) {
                         AiAssistantScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.SUPPORT) {

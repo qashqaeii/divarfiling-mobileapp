@@ -21,8 +21,8 @@
 |--------|--------|--------|
 | 1 | Ticket Thread · Reminder CRUD/recurrence · Calendar · Push deep-link | ✅ انجام‌شده |
 | 2 | فیلتر عمیق فایلینگ · Saved Filters · Chip/Badge · Sort/Reset | ✅ انجام‌شده |
-| 3 | AI quota · خلاصه آگهی/ملک · پیش‌نویس مخاطب · copy/regenerate/tone | بعدی |
-| 4 | قالب CRUD · بازدید ساخت‌یافته · Log تماس · Global Search | — |
+| 3 | AI quota · خلاصه آگهی/ملک · پیش‌نویس مخاطب · copy/regenerate/tone | ✅ انجام‌شده |
+| 4 | قالب integration · Global Search · CRM/support/settings polish | ✅ انجام‌شده |
 
 ---
 
@@ -31,6 +31,22 @@
 - **B:** قالب CRUD + متغیر · بازدید ساخت‌یافته · Global Search · Merge سبک · تصاویر/نقشه ملک · Saved Filters ملک شخصی  
 - **C:** پاکسازی دیتاست با پیش‌نمایش · Smart Tools کارت‌محور · زمان‌بندی استخراج کاربرپسند + Push  
 - **D تیم MVP:** Inbox · Assign · انتقال · اعلان · عملکرد امروز من · اعلامیه — بقیه وب  
+
+## اجرای انجام‌شده تا اینجا
+
+- Reminder lifecycle در `Calendar` و `Contact Detail` تا سطح create/edit/delete/snooze/complete بالا رفت.
+- Support ticket flow برای `Thread`, `reply attachment`, `close/reopen`, `category/priority`, filter list و metadata detail کامل‌تر شد.
+- AI از placeholder به flow واقعی `quota + draft + summarize` تبدیل شد.
+- Saved Filters علاوه بر فایلینگ/مخاطبین برای `Properties` و `Deals` هم پیاده‌سازی شد.
+- Share/Public Share/Social Sharing در `Listing` و `Property` کامل‌تر شد و Telegram/SMS هم اضافه شد.
+- Templateها از حالت copy-only خارج شدند و داخل flowهای واقعی CRM مصرف می‌شوند.
+- Team از redirect خام به native bridge معنادار رسید.
+- Install / Update help به‌صورت native screen وارد `Settings` و `More` شد.
+- Owner-as-contact برای `مالکین` از داخل `CRM hub` به یک ورودی نیتیو و server-backed تبدیل شد.
+- `Global Filing Search` از `More` هم discoverable شد و فقط داخل shell فایلینگ نماند.
+- `Save as Personal Property` بعد از create موفق، مستقیم کاربر را به `Property Detail` همان فایل تازه‌ساخته‌شده می‌برد.
+- Sprint 7 (gap-audit): AI Workspace با `quota/enabled`, `tone`, `fallback labeling`, `regenerate/copy` و entry point از `Contact Detail` / `Listing Detail` production-ready شد.
+- Sprint 8 (gap-audit): Team native module برای overview، messages/thread، members، announcements، lead inbox، unread badge و assign/transfer مخاطب اضافه شد.
 
 ## ساخته نمی‌شود (فعلاً)
 

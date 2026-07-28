@@ -32,6 +32,7 @@ fun ListingEditSheet(
     neighborhood: String,
     city: String,
     description: String,
+    ownerName: String,
     ownerPhone: String,
     isSubmitting: Boolean,
     onTitleChange: (String) -> Unit,
@@ -45,6 +46,7 @@ fun ListingEditSheet(
     onNeighborhoodChange: (String) -> Unit,
     onCityChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
+    onOwnerNameChange: (String) -> Unit,
     onOwnerPhoneChange: (String) -> Unit,
     onCallOwner: (() -> Unit)?,
     onSave: () -> Unit,
@@ -80,6 +82,13 @@ fun ListingEditSheet(
                 value = title,
                 onValueChange = onTitleChange,
                 label = { Text("عنوان") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = ownerName,
+                onValueChange = onOwnerNameChange,
+                label = { Text("نام مالک") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )

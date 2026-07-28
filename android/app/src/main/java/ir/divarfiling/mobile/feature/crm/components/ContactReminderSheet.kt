@@ -47,6 +47,8 @@ fun ContactReminderSheet(
     recurrence: String = "",
     isSubmitting: Boolean,
     sheetTitle: String = "یادآور جدید",
+    primaryText: String = "ثبت یادآور",
+    onDelete: (() -> Unit)? = null,
     onTitleChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
     onDueChange: (Long) -> Unit,
@@ -64,7 +66,7 @@ fun ContactReminderSheet(
         onClose = onDismiss,
         footer = {
             DfSheetActions(
-                primaryText = if (isSubmitting) "در حال ثبت…" else "ثبت یادآور",
+                primaryText = if (isSubmitting) "در حال ثبت…" else primaryText,
                 onPrimary = onSubmit,
                 primaryEnabled = !isSubmitting && title.isNotBlank(),
                 isSubmitting = isSubmitting,
@@ -128,6 +130,12 @@ fun ContactReminderSheet(
                 color = DfColors.TextMuted,
                 modifier = Modifier.padding(top = 4.dp),
             )
+            onDelete?.let {
+                DfGlassTextButton(
+                    text = "حذف یادآور",
+                    onClick = it,
+                )
+            }
         }
     }
 }

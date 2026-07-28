@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -60,6 +62,16 @@ fun SupportTicketsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var selectedFilter by remember { androidx.compose.runtime.mutableStateOf(SupportTicketFilter.All) }
+    val filteredTickets = remember(state.tickets, selectedFilter) {
+        when (selectedFilter) {
+            SupportTicketFilter.All -> state.tickets
+            SupportTicketFilter.Unread -> state.tickets.filter { it.userHasUnread }
+            SupportTicketFilter.Open -> state.tickets.filter { it.status == "open" || it.status == "in_review" }
+            SupportTicketFilter.WaitingUser -> state.tickets.filter { it.status == "waiting_user" }
+            SupportTicketFilter.Closed -> state.tickets.filter { it.status == "closed" }
+        }
+    }
 
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
@@ -101,6 +113,22 @@ fun SupportTicketsScreen(
                         enabled = !state.isSubmitting,
                     )
                 }
+                DfSheetSection(title = "دسته‌بندی") {
+                    SupportChipGroup(
+                        options = supportCategoryOptions,
+                        selected = state.category,
+                        onSelect = viewModel::onCategoryChange,
+                        enabled = !state.isSubmitting,
+                    )
+                }
+                DfSheetSection(title = "اولویت") {
+                    SupportChipGroup(
+                        options = supportPriorityOptions,
+                        selected = state.priority,
+                        onSelect = viewModel::onPriorityChange,
+                        enabled = !state.isSubmitting,
+                    )
+                }
             }
         }
     }
@@ -137,6 +165,28 @@ fun SupportTicketsScreen(
                         onBack = onBack,
                     )
                 }
+                if (state.tickets.isNotEmpty()) {
+                    item {
+                        FlowRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppSpacing.screenHorizontal),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            SupportTicketFilter.entries.forEach { filter ->
+                                val count = filter.count(state.tickets)
+                                FilterChip(
+                                    selected = selectedFilter == filter,
+                                    onClick = { selectedFilter = filter },
+                                    label = {
+                                        Text(if (count > 0) "${filter.label} $count" else filter.label)
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
                 state.error?.let { error ->
                     item {
                         DfStatusBanner(
@@ -164,8 +214,17 @@ fun SupportTicketsScreen(
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
+                } else if (filteredTickets.isEmpty()) {
+                    item {
+                        DfEmptyState(
+                            title = "تیکتی با این فیلتر نیست",
+                            subtitle = "فیلتر دیگری را انتخاب کنید یا همه تیکت‌ها را ببینید.",
+                            variant = DfEmptyVariant.NoResults,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 } else {
-                    items(state.tickets, key = { it.id }) { ticket ->
+                    items(filteredTickets, key = { it.id }) { ticket ->
                         TicketCard(
                             ticket = ticket,
                             onClick = { onOpenTicket(ticket.id) },
@@ -175,6 +234,22 @@ fun SupportTicketsScreen(
                 }
             }
         }
+    }
+}
+
+private enum class SupportTicketFilter(val label: String) {
+    All("همه"),
+    Unread("جدید"),
+    Open("باز"),
+    WaitingUser("منتظر شما"),
+    Closed("بسته");
+
+    fun count(items: List<SupportTicketDto>): Int = when (this) {
+        All -> items.size
+        Unread -> items.count { it.userHasUnread }
+        Open -> items.count { it.status == "open" || it.status == "in_review" }
+        WaitingUser -> items.count { it.status == "waiting_user" }
+        Closed -> items.count { it.status == "closed" }
     }
 }
 
@@ -230,6 +305,20 @@ private fun TicketCard(
                     color = badgeBg,
                     textColor = badgeFg,
                 )
+                ticket.priority.takeIf { it.isNotBlank() }?.let {
+                    DfBadge(
+                        text = supportPriorityLabel(it),
+                        color = AppColors.PurpleContainer,
+                        textColor = AppColors.PurpleDark,
+                    )
+                }
+            }
+            ticket.category.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    supportCategoryLabel(it),
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
             }
             ticket.lastMessageAt?.let {
                 Text(
@@ -249,6 +338,29 @@ private fun TicketCard(
 }
 
 @Composable
+private fun SupportChipGroup(
+    options: List<Pair<String, String>>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    enabled: Boolean,
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        options.forEach { (value, label) ->
+            FilterChip(
+                selected = selected == value,
+                onClick = { onSelect(value) },
+                label = { Text(label) },
+                enabled = enabled,
+            )
+        }
+    }
+}
+
+@Composable
 private fun ticketStatusColors(status: String): Pair<Color, Color> =
     when (status) {
         "open" -> AppColors.BlueLight to AppColors.Blue
@@ -258,3 +370,24 @@ private fun ticketStatusColors(status: String): Pair<Color, Color> =
         "closed" -> DfThemeColors.lockedContainer() to DfThemeColors.onLocked()
         else -> DfThemeColors.primaryContainer() to DfThemeColors.onPrimaryContainer()
     }
+
+private val supportCategoryOptions = listOf(
+    "other" to "عمومی",
+    "billing" to "پرداخت و اشتراک",
+    "technical" to "مشکل فنی",
+    "crm" to "CRM",
+    "filing" to "فایلینگ و استخراج",
+)
+
+private val supportPriorityOptions = listOf(
+    "low" to "کم",
+    "normal" to "عادی",
+    "high" to "زیاد",
+    "urgent" to "فوری",
+)
+
+private fun supportCategoryLabel(value: String): String =
+    supportCategoryOptions.firstOrNull { it.first == value }?.second ?: value
+
+private fun supportPriorityLabel(value: String): String =
+    supportPriorityOptions.firstOrNull { it.first == value }?.second ?: value

@@ -17,12 +17,13 @@ data class ToolsUiState(
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
     val tools: List<SmartTool> = smartToolsCatalog,
+    val isRefreshing: Boolean = false,
 )
 
 @HiltViewModel
 class ToolsViewModel @Inject constructor(
     sessionStore: SessionStore,
-    dashboardRepository: DashboardRepository,
+    private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ToolsUiState())
     val uiState: StateFlow<ToolsUiState> = _uiState.asStateFlow()
@@ -36,10 +37,22 @@ class ToolsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            refresh()
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
             when (val result = dashboardRepository.getDashboard()) {
                 is ApiResult.Success ->
-                    _uiState.update { it.copy(notificationBadgeCount = result.data.notificationsUnread) }
-                is ApiResult.Error -> Unit
+                    _uiState.update {
+                        it.copy(
+                            notificationBadgeCount = result.data.notificationsUnread,
+                            isRefreshing = false,
+                        )
+                    }
+                is ApiResult.Error -> _uiState.update { it.copy(isRefreshing = false) }
             }
         }
     }

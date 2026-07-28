@@ -575,6 +575,7 @@ fun ContactReminderCard(
     reminder: ReminderDto,
     onComplete: () -> Unit,
     onPostpone: () -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     DfCard(
@@ -616,6 +617,7 @@ fun ContactReminderCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     TextButton(onClick = onComplete) { Text("انجام شد", color = DfColors.Green) }
                     TextButton(onClick = onPostpone) { Text("فردا", color = DfThemeColors.textMuted()) }
+                    TextButton(onClick = onEdit) { Text("ویرایش", color = DfColors.Purple) }
                 }
             }
         }

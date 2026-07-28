@@ -497,12 +497,38 @@ fun FilingSearchScreen(
         if (initialQuery.isNotBlank()) viewModel.setInitialQuery(initialQuery)
     }
 
+    if (state.showSaveFilterDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissSaveFilterDialog,
+            title = { Text("ذخیره فیلتر") },
+            text = {
+                OutlinedTextField(
+                    value = state.saveFilterName,
+                    onValueChange = viewModel::onSaveFilterNameChange,
+                    label = { Text("نام فیلتر") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::saveCurrentFilter) { Text("ذخیره") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissSaveFilterDialog) { Text("انصراف") }
+            },
+        )
+    }
+
     ListingFiltersSheet(
         visible = showFilters,
         state = state.filters,
         onDismiss = { showFilters = false },
         onApply = viewModel::applyFilters,
         onClear = viewModel::clearFilters,
+        onSaveFilter = {
+            viewModel.applyFilters(it)
+            viewModel.openSaveFilterDialog()
+        },
     )
 
     Scaffold(
@@ -536,6 +562,15 @@ fun FilingSearchScreen(
                         onSearch = { viewModel.search(reset = true) },
                         activeFilterCount = filterCount,
                         onOpenFilters = { showFilters = true },
+                        savedFiltersSlot = {
+                            SavedFiltersChipRow(
+                                filters = state.savedFilters,
+                                activeId = state.activeSavedFilterId,
+                                onSelect = viewModel::applySavedFilter,
+                                onPin = viewModel::pinSavedFilter,
+                                onDelete = viewModel::deleteSavedFilter,
+                            )
+                        },
                         activeFilterChips = {
                             ListingsActiveFilterChips(
                                 filters = state.filters,

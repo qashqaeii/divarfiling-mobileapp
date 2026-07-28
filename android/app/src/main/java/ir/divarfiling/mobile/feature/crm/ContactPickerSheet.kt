@@ -36,6 +36,7 @@ import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.network.MessageTemplateDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import androidx.lifecycle.ViewModel
@@ -93,7 +94,12 @@ fun SendFilingSheet(
     note: String,
     isLoading: Boolean,
     isSubmitting: Boolean,
+    templates: List<MessageTemplateDto>,
+    templatesLoading: Boolean,
+    showTemplatePicker: Boolean,
     onNoteChange: (String) -> Unit,
+    onToggleTemplatePicker: (Boolean) -> Unit,
+    onApplyTemplate: (MessageTemplateDto) -> Unit,
     onDismiss: () -> Unit,
     onDatasetSelected: (String) -> Unit,
     onBackToDatasets: () -> Unit,
@@ -117,6 +123,55 @@ fun SendFilingSheet(
                         minLines = 2,
                         placeholder = { Text("مثلاً: این ملک مناسب بودجه شماست") },
                     )
+                    DfGlassTextButton(
+                        text = if (showTemplatePicker) "بستن قالب‌های پیام" else "استفاده از قالب پیام",
+                        onClick = { onToggleTemplatePicker(!showTemplatePicker) },
+                    )
+                    if (showTemplatePicker) {
+                        when {
+                            templatesLoading -> DfCardListSkeleton(count = 3, itemHeight = 72.dp)
+                            templates.isEmpty() -> DfEmptyState(
+                                title = "قالبی آماده نیست",
+                                subtitle = "قالب‌های پیام از workspace همگام می‌شوند.",
+                            )
+                            else -> {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentPadding = PaddingValues(bottom = AppSpacing.sm),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    items(templates, key = { it.id }) { template ->
+                                        DfPremiumCard(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { onApplyTemplate(template) },
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(4.dp),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                            ) {
+                                                Text(template.title, style = AppTypography.cardTitle)
+                                                template.category.takeIf { it.isNotBlank() }?.let {
+                                                    Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                                                }
+                                                Text(
+                                                    template.body,
+                                                    style = AppTypography.bodyDescription,
+                                                    color = DfColors.TextSecondary,
+                                                    maxLines = 3,
+                                                )
+                                                DfPrimaryButton(
+                                                    text = "جایگذاری در پیام",
+                                                    onClick = { onApplyTemplate(template) },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     DfGlassTextButton(text = "بازگشت به لیست فایلینگ", onClick = onBackToDatasets)
                 }
             }

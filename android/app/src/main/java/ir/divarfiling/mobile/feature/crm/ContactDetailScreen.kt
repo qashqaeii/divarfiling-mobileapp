@@ -30,10 +30,16 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
+import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfSheetActions
+import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
+import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.design.components.DfSnackbarHost
+import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.design.components.rememberDfSnackbarHostState
 import ir.divarfiling.mobile.core.design.components.showDfMessage
 import ir.divarfiling.mobile.feature.crm.components.ActivityLogSheet
@@ -60,6 +66,7 @@ fun ContactDetailScreen(
     onBack: () -> Unit,
     onDealClick: (Long) -> Unit = {},
     onPropertyClick: (Long) -> Unit = {},
+    onOpenAi: (Long) -> Unit = {},
     viewModel: ContactDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -118,7 +125,12 @@ fun ContactDetailScreen(
                     val detail = state.data!!
                     val contactInfo = detail.contact
                     val primaryActions = buildPrimaryActions(contactInfo, context, viewModel, haptics)
-                    val secondaryActions = buildSecondaryActions(contactInfo, viewModel, documentPicker::launch)
+                    val secondaryActions = buildSecondaryActions(
+                        contact = contactInfo,
+                        viewModel = viewModel,
+                        pickDocument = documentPicker::launch,
+                        onOpenAi = { onOpenAi(contactInfo.id) },
+                    )
 
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -155,6 +167,7 @@ fun ContactDetailScreen(
                                         reminder = reminder,
                                         onComplete = { viewModel.completeReminder(id) },
                                         onPostpone = { viewModel.postponeReminder(id) },
+                                        onEdit = { viewModel.openReminderEditor(reminder) },
                                     )
                                 }
                             }
@@ -247,6 +260,11 @@ fun ContactDetailScreen(
                 dueMillis = state.reminderDueMillis,
                 recurrence = state.reminderRecurrence,
                 isSubmitting = state.isSubmitting,
+                sheetTitle = if (state.editingReminderId == null) "یادآور جدید" else "ویرایش یادآور",
+                primaryText = if (state.editingReminderId == null) "ثبت یادآور" else "ذخیره تغییرات",
+                onDelete = state.editingReminderId?.let { reminderId ->
+                    { viewModel.deleteReminder(reminderId) }
+                },
                 onTitleChange = viewModel::onReminderTitleChange,
                 onNoteChange = viewModel::onReminderNoteChange,
                 onDueChange = viewModel::onReminderDueChange,
@@ -307,9 +325,11 @@ fun ContactDetailScreen(
             ActivityLogSheet(
                 activityType = state.selectedActivityType,
                 content = state.activityContent,
+                selectedStatus = state.selectedActivityStatus,
                 isSubmitting = state.isSubmitting,
                 onTypeChange = viewModel::onActivityTypeChange,
                 onContentChange = viewModel::onActivityContentChange,
+                onStatusChange = viewModel::onActivityStatusChange,
                 onSubmit = {
                     viewModel.logActivity(
                         state.selectedActivityType,
@@ -330,12 +350,72 @@ fun ContactDetailScreen(
             note = state.sendListingNote,
             isLoading = state.isFilingLoading,
             isSubmitting = state.isSubmitting,
+            templates = state.messageTemplates,
+            templatesLoading = state.templatesLoading,
+            showTemplatePicker = state.showTemplatePicker,
             onNoteChange = viewModel::onSendListingNoteChange,
+            onToggleTemplatePicker = viewModel::toggleTemplatePicker,
+            onApplyTemplate = viewModel::applyMessageTemplate,
             onDismiss = { viewModel.toggleSendFilingSheet(false) },
             onDatasetSelected = viewModel::selectFilingDataset,
             onBackToDatasets = viewModel::backToFilingDatasets,
             onListingSend = viewModel::sendListingFromFiling,
         )
+    }
+
+    if (state.showTeamAssignSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissTeamAssign) {
+            DfSheetScaffold(
+                title = if (state.teamAssignMode == "transfer") "انتقال پرونده" else "تخصیص به تیم",
+                subtitle = if (state.teamAssignMode == "transfer") {
+                    "مالکیت مخاطب به عضو دیگر منتقل می‌شود"
+                } else {
+                    "مخاطب با مشاور هم‌رسانی و تخصیص می‌شود"
+                },
+                icon = DfIcons.Users,
+                onClose = viewModel::dismissTeamAssign,
+                footer = {
+                    DfSheetActions(
+                        primaryText = if (state.isSubmitting) {
+                            "در حال ثبت…"
+                        } else if (state.teamAssignMode == "transfer") {
+                            "انتقال"
+                        } else {
+                            "تخصیص"
+                        },
+                        onPrimary = viewModel::submitTeamAssign,
+                        primaryEnabled = !state.isSubmitting &&
+                            !state.teamMembersLoading &&
+                            state.selectedTeamMemberId != null,
+                        isSubmitting = state.isSubmitting,
+                        onSecondary = viewModel::dismissTeamAssign,
+                    )
+                },
+            ) {
+                DfSheetSection(title = "عضو تیم") {
+                    if (state.teamMembersLoading) {
+                        Text("در حال بارگذاری اعضا…")
+                    } else {
+                        DfFilterChipRow(
+                            options = state.teamMembers.map { DfFilterOption(it.id, it.name) },
+                            selected = state.selectedTeamMemberId ?: -1L,
+                            onSelect = viewModel::onTeamMemberSelect,
+                        )
+                    }
+                }
+                if (state.teamAssignMode == "transfer") {
+                    DfSheetSection(title = "یادداشت انتقال") {
+                        DfTextField(
+                            value = state.teamTransferNote,
+                            onValueChange = viewModel::onTeamTransferNoteChange,
+                            label = "توضیح اختیاری",
+                            singleLine = false,
+                            minLines = 2,
+                        )
+                    }
+                }
+            }
+        }
     }
 
     ContactMatchesSheet(
@@ -344,6 +424,13 @@ fun ContactDetailScreen(
         isLoading = state.matchesLoading,
         isSubmitting = state.isSubmitting,
         contactPhone = contact?.phone,
+        note = state.matchSuggestNote,
+        templates = state.messageTemplates,
+        templatesLoading = state.templatesLoading,
+        showTemplatePicker = state.showMatchTemplatePicker,
+        onNoteChange = viewModel::onMatchSuggestNoteChange,
+        onToggleTemplatePicker = viewModel::toggleMatchTemplatePicker,
+        onApplyTemplate = viewModel::applyMatchMessageTemplate,
         onDismiss = { viewModel.toggleMatchesSheet(false) },
         onSuggest = { selected, viaWhatsApp ->
             viewModel.suggestMatches(selected, shareViaWhatsApp = viaWhatsApp)
@@ -403,12 +490,22 @@ private fun buildSecondaryActions(
     contact: ir.divarfiling.mobile.core.network.ContactDto,
     viewModel: ContactDetailViewModel,
     pickDocument: (String) -> Unit,
+    onOpenAi: () -> Unit,
 ): List<ContactQuickActionItem> = buildList {
     if (CrmConstants.isMatchEligible(contact.customerType)) {
         add(ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
             viewModel.toggleReminderDialog(true)
         })
     }
+    add(ContactQuickActionItem("AI", DfColors.Purple, icon = DfIcons.Sparkles) {
+        onOpenAi()
+    })
+    add(ContactQuickActionItem("تخصیص", DfColors.Blue, icon = DfIcons.UserPlus) {
+        viewModel.openTeamAssign("assign")
+    })
+    add(ContactQuickActionItem("انتقال", DfColors.Amber, icon = DfIcons.Share2) {
+        viewModel.openTeamAssign("transfer")
+    })
     add(ContactQuickActionItem("یادداشت", DfColors.Purple, icon = DfIcons.StickyNote) {
         viewModel.toggleNoteDialog(true)
     })
@@ -418,7 +515,10 @@ private fun buildSecondaryActions(
     add(ContactQuickActionItem("مدرک", DfColors.TextSecondary, icon = DfIcons.Paperclip) {
         pickDocument("*/*")
     })
+    add(ContactQuickActionItem("بازدید", DfColors.Green, icon = DfIcons.MapPin) {
+        viewModel.openActivitySheet(type = "بازدید")
+    })
     add(ContactQuickActionItem("فعالیت", DfColors.Blue, icon = DfIcons.ClipboardList) {
-        viewModel.toggleActivitySheet(true)
+        viewModel.openActivitySheet()
     })
 }

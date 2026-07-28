@@ -25,6 +25,19 @@ object DossierShareActions {
         context.startActivity(Intent(Intent.ACTION_VIEW, uri))
     }
 
+    fun openTelegram(context: Context, message: String) {
+        val uri = Uri.parse("https://t.me/share/url?url=&text=${Uri.encode(message)}")
+        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+    }
+
+    fun openSms(context: Context, message: String) {
+        context.startActivity(
+            Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")).apply {
+                putExtra("sms_body", message)
+            },
+        )
+    }
+
     fun copyToClipboard(context: Context, text: String, label: String = "dossier_share") {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText(label, text))

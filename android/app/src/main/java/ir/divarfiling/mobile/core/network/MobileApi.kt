@@ -421,6 +421,78 @@ interface MobileApi {
     @POST("ai/summarize-listing")
     suspend fun aiSummarizeListing(@Body body: AiSummarizeListingRequest): ApiEnvelope
 
+    @GET("crm/team/overview")
+    suspend fun getTeamOverview(): ApiEnvelope
+
+    @GET("crm/team/members")
+    suspend fun getTeamMembers(@Query("exclude_self") excludeSelf: Int? = null): ApiEnvelope
+
+    @GET("crm/team/unread")
+    suspend fun getTeamUnread(): ApiEnvelope
+
+    @GET("crm/team/messages")
+    suspend fun getTeamMessages(
+        @Query("folder") folder: String? = null,
+        @Query("page") page: Int? = null,
+    ): ApiEnvelope
+
+    @POST("crm/team/messages")
+    suspend fun sendTeamMessage(@Body body: TeamSendMessageRequest): ApiEnvelope
+
+    @GET("crm/team/messages/{id}")
+    suspend fun getTeamThread(@Path("id") threadId: Long): ApiEnvelope
+
+    @PATCH("crm/team/messages/{id}")
+    suspend fun patchTeamThread(
+        @Path("id") threadId: Long,
+        @Body body: TeamThreadStateRequest,
+    ): ApiEnvelope
+
+    @POST("crm/team/messages/{id}")
+    suspend fun replyTeamThread(
+        @Path("id") threadId: Long,
+        @Body body: TeamReplyRequest,
+    ): ApiEnvelope
+
+    @GET("crm/team/announcements")
+    suspend fun getTeamAnnouncements(
+        @Query("unread") unread: Int? = null,
+        @Query("important") important: Int? = null,
+    ): ApiEnvelope
+
+    @GET("crm/team/announcements/{id}")
+    suspend fun getTeamAnnouncement(@Path("id") announcementId: Long): ApiEnvelope
+
+    @POST("crm/team/announcements/{id}")
+    suspend fun markTeamAnnouncementRead(
+        @Path("id") announcementId: Long,
+        @Body body: TeamActionRequest = TeamActionRequest(action = "read"),
+    ): ApiEnvelope
+
+    @GET("crm/team/notifications")
+    suspend fun getTeamPanelNotifications(@Query("unread") unread: Int? = null): ApiEnvelope
+
+    @POST("crm/team/notifications")
+    suspend fun markTeamPanelNotifications(@Body body: TeamActionRequest): ApiEnvelope
+
+    @GET("crm/team/inbox")
+    suspend fun getTeamLeadInbox(): ApiEnvelope
+
+    @POST("crm/team/inbox")
+    suspend fun assignTeamLeads(@Body body: TeamAssignLeadsRequest): ApiEnvelope
+
+    @POST("crm/contacts/{id}/assign")
+    suspend fun assignContact(
+        @Path("id") contactId: Long,
+        @Body body: ContactTeamAssignRequest,
+    ): ApiEnvelope
+
+    @POST("crm/contacts/{id}/transfer")
+    suspend fun transferContact(
+        @Path("id") contactId: Long,
+        @Body body: ContactTeamTransferRequest,
+    ): ApiEnvelope
+
     @POST("extractions/cloud")
     suspend fun createCloudExtraction(@Body body: CloudExtractionCreateRequest): ApiEnvelope
 

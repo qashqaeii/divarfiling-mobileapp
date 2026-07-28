@@ -28,16 +28,18 @@ import ir.divarfiling.mobile.core.design.components.DfSheetSection
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListingOwnerPhoneSheet(
+    name: String,
     phone: String,
     isSaving: Boolean,
+    onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onSave: () -> Unit,
     onCall: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     DfSheetScaffold(
-        title = "تلفن مالک",
-        subtitle = "شماره تماس مالک آگهی را ثبت یا ویرایش کنید",
+        title = "مالک آگهی",
+        subtitle = "نام و شماره تماس مالک را برای پیگیری سریع نگه دارید",
         icon = DfIcons.Phone,
         onClose = onDismiss,
         footer = {
@@ -50,7 +52,16 @@ fun ListingOwnerPhoneSheet(
             )
         },
     ) {
-        DfSheetSection(title = "شماره تماس") {
+        DfSheetSection(title = "اطلاعات مالک") {
+            OutlinedTextField(
+                value = name,
+                onValueChange = onNameChange,
+                label = { Text("نام مالک") },
+                placeholder = { Text("مثلاً علی رضایی") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSaving,
+            )
             OutlinedTextField(
                 value = phone,
                 onValueChange = onPhoneChange,

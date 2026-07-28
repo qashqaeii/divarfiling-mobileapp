@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.data.repository
 
 import ir.divarfiling.mobile.core.network.AiDraftMessageRequest
 import ir.divarfiling.mobile.core.network.AiQuotaData
+import ir.divarfiling.mobile.core.network.AiSummarizeListingRequest
 import ir.divarfiling.mobile.core.network.AiTextResult
 import ir.divarfiling.mobile.core.network.ApiEnvelope
 import ir.divarfiling.mobile.core.network.CloudExtractionCreateRequest
@@ -14,6 +15,7 @@ import ir.divarfiling.mobile.core.network.SupportTicketCreateRequest
 import ir.divarfiling.mobile.core.network.SupportTicketDto
 import ir.divarfiling.mobile.core.network.SupportTicketReplyResult
 import ir.divarfiling.mobile.core.network.requireData
+import ir.divarfiling.mobile.core.network.toUserMessage
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -65,7 +67,7 @@ class WorkspaceExtrasRepository @Inject constructor(
             if (!response.ok) ApiResult.Error(response.error ?: "حذف فیلتر ناموفق")
             else ApiResult.Success(Unit)
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه")
+            ApiResult.Error(e.toUserMessage("خطای شبکه"))
         }
     }
 
@@ -106,7 +108,7 @@ class WorkspaceExtrasRepository @Inject constructor(
             if (!response.ok) ApiResult.Error(response.error ?: "ارسال پاسخ ناموفق")
             else ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه")
+            ApiResult.Error(e.toUserMessage("خطای شبکه"))
         }
     }
 
@@ -120,6 +122,9 @@ class WorkspaceExtrasRepository @Inject constructor(
 
     suspend fun aiDraftMessage(request: AiDraftMessageRequest): ApiResult<AiTextResult> =
         single { api.aiDraftMessage(request) }
+
+    suspend fun aiSummarizeListing(request: AiSummarizeListingRequest): ApiResult<AiTextResult> =
+        single { api.aiSummarizeListing(request) }
 
     suspend fun createCloudExtraction(request: CloudExtractionCreateRequest): ApiResult<CloudExtractionJobDto> =
         single { api.createCloudExtraction(request) }
@@ -138,7 +143,7 @@ class WorkspaceExtrasRepository @Inject constructor(
         if (!response.ok) ApiResult.Error(response.error ?: "خطا")
         else ApiResult.Success(response.requireData(json))
     } catch (e: Exception) {
-        ApiResult.Error(e.message ?: "خطای شبکه")
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
     }
 
     private suspend inline fun <reified T> single(
@@ -148,7 +153,7 @@ class WorkspaceExtrasRepository @Inject constructor(
         if (!response.ok) ApiResult.Error(response.error ?: "خطا")
         else ApiResult.Success(response.requireData(json))
     } catch (e: Exception) {
-        ApiResult.Error(e.message ?: "خطای شبکه")
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
     }
 
     private suspend fun <T> decodeList(
@@ -164,7 +169,7 @@ class WorkspaceExtrasRepository @Inject constructor(
                 ApiResult.Success(list)
             }
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه")
+            ApiResult.Error(e.toUserMessage("خطای شبکه"))
         }
     }
 }

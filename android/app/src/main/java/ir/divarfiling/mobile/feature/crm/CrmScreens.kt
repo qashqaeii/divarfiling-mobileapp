@@ -19,6 +19,7 @@ import ir.divarfiling.mobile.core.design.FormatUtils
 import androidx.compose.foundation.layout.statusBarsPadding
 import android.content.Intent
 import android.net.Uri
+import ir.divarfiling.mobile.core.AppLinks
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -60,8 +61,11 @@ import ir.divarfiling.mobile.feature.crm.components.CrmQuickAction
 import ir.divarfiling.mobile.feature.crm.components.CrmQuickActionsBar
 import ir.divarfiling.mobile.feature.crm.components.CrmTodayIllustration
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -78,6 +82,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.feature.crm.components.CrmContactsIllustration
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfContactListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
@@ -85,6 +90,7 @@ import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfStatChip
 import ir.divarfiling.mobile.core.design.components.DfTopBar
 import ir.divarfiling.mobile.core.network.ContactDto
@@ -105,11 +111,19 @@ fun ContactsScreen(
     val context = LocalContext.current
     var priorityFilter by remember { mutableStateOf(ContactsFilters.ALL_PRIORITIES) }
     var statusFilter by remember { mutableStateOf(ContactsFilters.ALL_STATUSES) }
-    var typeFilter by remember { mutableStateOf(ContactsFilters.ALL_TYPES) }
+    var typeFilter by remember(state.customerTypeFilter) {
+        mutableStateOf(state.customerTypeFilter ?: ContactsFilters.ALL_TYPES)
+    }
     var quickFilter by remember { mutableStateOf(ContactsFilters.QuickFilter.ALL) }
+    var showSaveFilterDialog by remember { mutableStateOf(false) }
+    var saveFilterName by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val snackbar = remember { SnackbarHostState() }
     val haptics = DfHaptics.rememberPerformer()
+    val ownerMode = state.customerTypeFilter == "مالک"
+    val hasSavableCriteria = state.query.isNotBlank() ||
+        (state.statusFilter?.isNotBlank() == true) ||
+        (state.customerTypeFilter?.isNotBlank() == true)
 
     LaunchedEffect(state.exportMessage, state.error) {
         state.exportMessage?.let {
@@ -117,6 +131,44 @@ fun ContactsScreen(
             viewModel.clearExportMessage()
         }
         state.error?.let { snackbar.showSnackbar(it) }
+    }
+
+    LaunchedEffect(state.customerTypeFilter, state.statusFilter) {
+        typeFilter = state.customerTypeFilter ?: ContactsFilters.ALL_TYPES
+        statusFilter = state.statusFilter ?: ContactsFilters.ALL_STATUSES
+    }
+
+    if (showSaveFilterDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveFilterDialog = false },
+            title = { Text("ذخیره فیلتر مخاطبین") },
+            text = {
+                OutlinedTextField(
+                    value = saveFilterName,
+                    onValueChange = { saveFilterName = it },
+                    label = { Text("نام فیلتر") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.saveCurrentAsFilter(saveFilterName)
+                        showSaveFilterDialog = false
+                        saveFilterName = ""
+                    },
+                ) { Text("ذخیره") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showSaveFilterDialog = false
+                        saveFilterName = ""
+                    },
+                ) { Text("انصراف") }
+            },
+        )
     }
 
     val statusForFilter = remember(statusFilter) {
@@ -158,7 +210,7 @@ fun ContactsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             DfExtendedFab(
-                text = "مخاطب جدید",
+                text = if (ownerMode) "مالک جدید" else "مخاطب جدید",
                 icon = DfIcons.UserPlus,
                 onClick = { viewModel.toggleQuickLead(true) },
             )
@@ -187,6 +239,28 @@ fun ContactsScreen(
                         onBack = onBack,
                     )
                 }
+                if (ownerMode) {
+                    item {
+                        DfCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppSpacing.screenHorizontal),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                                Text(
+                                    "نمای مالکین",
+                                    style = AppTypography.cardTitle,
+                                    color = DfColors.TextPrimary,
+                                )
+                                Text(
+                                    "این بخش فقط مخاطب‌هایی را نشان می‌دهد که در CRM با نقش مالک ثبت شده‌اند تا پیگیری و لینک‌کردن آن‌ها سریع‌تر باشد.",
+                                    style = AppTypography.bodyDescription,
+                                    color = DfColors.TextMuted,
+                                )
+                            }
+                        }
+                    }
+                }
                 item {
                     ContactsStatsRow(
                         todayCount = ContactsFilters.todayCount(state.contacts),
@@ -204,6 +278,52 @@ fun ContactsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = AppSpacing.screenHorizontal),
                     )
+                }
+                item {
+                    DfCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                            Text(
+                                "ورود گروهی مخاطبین",
+                                style = AppTypography.cardTitle,
+                                color = DfColors.TextPrimary,
+                            )
+                            Text(
+                                "برای import اکسل/فایل، از workflow کامل CRM وب استفاده کنید. بعد از import، مخاطبین بلافاصله در موبایل قابل مدیریت‌اند.",
+                                style = AppTypography.bodyDescription,
+                                color = DfColors.TextMuted,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                                DfSecondaryButton(
+                                    text = "دانلود قالب",
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(
+                                                Intent.ACTION_VIEW,
+                                                Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT_TEMPLATE),
+                                            ),
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                DfSecondaryButton(
+                                    text = "ورود مخاطبین",
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(
+                                                Intent.ACTION_VIEW,
+                                                Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT),
+                                            ),
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
                 }
                 item {
                     ContactsSearchFilterPanel(
@@ -231,6 +351,16 @@ fun ContactsScreen(
                             )
                         },
                     )
+                }
+                if (hasSavableCriteria) {
+                    item {
+                        TextButton(
+                            onClick = { showSaveFilterDialog = true },
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        ) {
+                            Text("ذخیره فیلتر فعلی")
+                        }
+                    }
                 }
                 if (state.savedFilters.isNotEmpty()) {
                     item {
@@ -268,14 +398,22 @@ fun ContactsScreen(
                 } else if (!state.isLoading && filteredContacts.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
-                            title = if (state.contacts.isEmpty()) "مخاطبی ثبت نشده" else "نتیجه‌ای با این فیلتر نیست",
+                            title = if (state.contacts.isEmpty()) {
+                                if (ownerMode) "مالکی ثبت نشده" else "مخاطبی ثبت نشده"
+                            } else {
+                                "نتیجه‌ای با این فیلتر نیست"
+                            },
                             subtitle = if (state.contacts.isEmpty()) {
-                                "با دکمه پایین صفحه، اولین مخاطب را اضافه کنید"
+                                if (ownerMode) {
+                                    "با دکمه پایین صفحه، اولین مالک را به CRM اضافه کنید"
+                                } else {
+                                    "با دکمه پایین صفحه، اولین مخاطب را اضافه کنید"
+                                }
                             } else {
                                 "فیلترها یا جستجو را تغییر دهید"
                             },
                             variant = if (state.contacts.isEmpty()) DfEmptyVariant.Empty else DfEmptyVariant.NoResults,
-                            actionLabel = "مخاطب جدید",
+                            actionLabel = if (ownerMode) "مالک جدید" else "مخاطب جدید",
                             onAction = { viewModel.toggleQuickLead(true) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
@@ -591,6 +729,7 @@ fun TodayScreen(
                                             )
                                         }
                                     }
+                                    entry.item.contact?.id?.let { viewModel.logWhatsAppActivity(it) }
                                 },
                                 onViewContact = { entry.item.contact?.id?.let(onContactClick) },
                                 onComplete = {
@@ -649,9 +788,9 @@ fun CrmHubScreen(
     onToday: () -> Unit,
     onDeals: () -> Unit = {},
     onProperties: () -> Unit = {},
-    onQuickFilter: () -> Unit = onContacts,
-    onQuickNote: () -> Unit = onContacts,
-    onQuickReminder: () -> Unit = onToday,
+    onOwners: () -> Unit = onContacts,
+    onTemplates: () -> Unit = onContacts,
+    onCalendar: () -> Unit = onToday,
     onQuickContact: () -> Unit = onContacts,
     viewModel: CrmHubViewModel = hiltViewModel(),
 ) {
@@ -682,23 +821,23 @@ fun CrmHubScreen(
                 CrmQuickActionsBar(
                     actions = listOf(
                         CrmQuickAction(
-                            title = "فیلتر",
-                            iconRes = DfDecorIcons.Filter,
-                            onClick = onQuickFilter,
+                            title = "مالکین",
+                            iconRes = DfDecorIcons.Building,
+                            onClick = onOwners,
                             tint = DfColors.Purple,
                             background = DfColors.PurpleContainer,
                         ),
                         CrmQuickAction(
-                            title = "یادداشت",
+                            title = "قالب‌ها",
                             iconRes = DfDecorIcons.StickyNote,
-                            onClick = onQuickNote,
+                            onClick = onTemplates,
                             tint = DfColors.Blue,
                             background = DfColors.BlueLight,
                         ),
                         CrmQuickAction(
-                            title = "یادآور",
-                            iconRes = DfDecorIcons.Upload,
-                            onClick = onQuickReminder,
+                            title = "تقویم",
+                            iconRes = DfDecorIcons.Calendar,
+                            onClick = onCalendar,
                             tint = DfColors.Amber,
                             background = DfColors.AmberLight,
                         ),

@@ -22,6 +22,8 @@ data class SupportTicketsUiState(
     val showCreateDialog: Boolean = false,
     val subject: String = "",
     val body: String = "",
+    val category: String = "other",
+    val priority: String = "normal",
     val error: String? = null,
     val successMessage: String? = null,
 )
@@ -55,11 +57,19 @@ class SupportTicketsViewModel @Inject constructor(
     }
 
     fun toggleCreateDialog(show: Boolean) = _uiState.update {
-        it.copy(showCreateDialog = show, subject = if (!show) "" else it.subject, body = if (!show) "" else it.body)
+        it.copy(
+            showCreateDialog = show,
+            subject = if (!show) "" else it.subject,
+            body = if (!show) "" else it.body,
+            category = if (!show) "other" else it.category,
+            priority = if (!show) "normal" else it.priority,
+        )
     }
 
     fun onSubjectChange(value: String) = _uiState.update { it.copy(subject = value) }
     fun onBodyChange(value: String) = _uiState.update { it.copy(body = value) }
+    fun onCategoryChange(value: String) = _uiState.update { it.copy(category = value) }
+    fun onPriorityChange(value: String) = _uiState.update { it.copy(priority = value) }
 
     fun createTicket() {
         val subject = _uiState.value.subject.trim()
@@ -70,13 +80,24 @@ class SupportTicketsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (val result = repository.createSupportTicket(SupportTicketCreateRequest(subject, body))) {
+            when (
+                val result = repository.createSupportTicket(
+                    SupportTicketCreateRequest(
+                        subject = subject,
+                        body = body,
+                        category = _uiState.value.category,
+                        priority = _uiState.value.priority,
+                    ),
+                )
+            ) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(
                         isSubmitting = false,
                         showCreateDialog = false,
                         subject = "",
                         body = "",
+                        category = "other",
+                        priority = "normal",
                         successMessage = "تیکت ثبت شد",
                     )
                 }

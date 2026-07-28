@@ -9,10 +9,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +53,7 @@ import ir.divarfiling.mobile.feature.crm.components.DealsStatsRow
 import ir.divarfiling.mobile.feature.crm.components.DealDetailHeroCard
 import ir.divarfiling.mobile.feature.crm.components.DealDetailQuickActions
 import ir.divarfiling.mobile.feature.crm.components.DealStageSection
+import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +68,7 @@ fun DealsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var ownerFilter by remember { mutableStateOf(DealsFilters.ALL_OWNERS) }
     var sortLabel by remember { mutableStateOf(DealsFilters.NEWEST) }
+    val hasSavableCriteria = state.query.isNotBlank() || state.selectedStage != null
 
     val sortOrder = if (sortLabel == DealsFilters.OLDEST) DealsSortOrder.Oldest else DealsSortOrder.Newest
     val displayedDeals = remember(state.deals, ownerFilter, sortOrder, state.query) {
@@ -73,6 +79,18 @@ fun DealsScreen(
             localQuery = state.query,
         )
     }
+    val groupedDeals = remember(displayedDeals, state.pipelineColumns) {
+        val stageOrder = state.pipelineColumns.map { it.stage }
+        val grouped = displayedDeals.groupBy { it.stage.orEmpty().ifBlank { "سایر" } }
+        buildList {
+            stageOrder.forEach { stage ->
+                grouped[stage]?.takeIf { it.isNotEmpty() }?.let { add(stage to it) }
+            }
+            grouped.filterKeys { it !in stageOrder }.forEach { (stage, deals) ->
+                if (deals.isNotEmpty()) add(stage to deals)
+            }
+        }
+    }
 
     val snackbar = remember { SnackbarHostState() }
 
@@ -81,6 +99,28 @@ fun DealsScreen(
             snackbar.showSnackbar(it)
             viewModel.clearError()
         }
+    }
+
+    if (state.showSaveFilterDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissSaveFilterDialog,
+            title = { Text("ذخیره فیلتر معاملات") },
+            text = {
+                OutlinedTextField(
+                    value = state.saveFilterName,
+                    onValueChange = viewModel::onSaveFilterNameChange,
+                    label = { Text("نام فیلتر") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::saveCurrentFilter) { Text("ذخیره") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissSaveFilterDialog) { Text("انصراف") }
+            },
+        )
     }
 
     Scaffold(
@@ -137,6 +177,7 @@ fun DealsScreen(
                     item {
                         DealsPipelineBar(
                             columns = state.pipelineColumns,
+                            selectedStage = state.selectedStage,
                             onStageClick = viewModel::selectStage,
                         )
                     }
@@ -158,6 +199,28 @@ fun DealsScreen(
                         onQueryChange = viewModel::onQueryChange,
                         onSearch = viewModel::search,
                     )
+                }
+                if (hasSavableCriteria) {
+                    item {
+                        TextButton(
+                            onClick = viewModel::openSaveFilterDialog,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        ) {
+                            Text("ذخیره فیلتر فعلی")
+                        }
+                    }
+                }
+                if (state.savedFilters.isNotEmpty()) {
+                    item {
+                        SavedFiltersChipRow(
+                            filters = state.savedFilters,
+                            activeId = state.activeSavedFilterId,
+                            onSelect = viewModel::applySavedFilter,
+                            onPin = viewModel::pinSavedFilter,
+                            onDelete = viewModel::deleteSavedFilter,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 state.error?.let { error ->
                     item {
@@ -194,20 +257,40 @@ fun DealsScreen(
                         )
                     }
                 } else {
-                    item {
-                        Box(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                            DfSectionHeader(
-                                title = "معاملات",
-                                count = displayedDeals.size,
+                    if (state.selectedStage != null || groupedDeals.size <= 1) {
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                                DfSectionHeader(
+                                    title = state.selectedStage ?: "معاملات",
+                                    count = displayedDeals.size,
+                                )
+                            }
+                        }
+                        items(displayedDeals, key = { it.id }) { deal ->
+                            DealListCard(
+                                deal = deal,
+                                onClick = { onDealClick(deal.id) },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
-                    }
-                    items(displayedDeals, key = { it.id }) { deal ->
-                        DealListCard(
-                            deal = deal,
-                            onClick = { onDealClick(deal.id) },
-                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                        )
+                    } else {
+                        groupedDeals.forEach { (stage, deals) ->
+                            item(key = "section-$stage") {
+                                Box(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                                    DfSectionHeader(
+                                        title = stage,
+                                        count = deals.size,
+                                    )
+                                }
+                            }
+                            items(deals, key = { it.id }) { deal ->
+                                DealListCard(
+                                    deal = deal,
+                                    onClick = { onDealClick(deal.id) },
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                )
+                            }
+                        }
                     }
                 }
             }

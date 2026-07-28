@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Icon
@@ -42,6 +44,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -51,8 +54,11 @@ import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.feature.share.PublicShareSettingsSheet
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.feature.crm.components.PropertiesSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.PropertiesStatsRow
@@ -63,6 +69,7 @@ import ir.divarfiling.mobile.feature.crm.components.PropertyCreateSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyLinkContactSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFilters
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
+import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,6 +84,32 @@ fun PropertiesScreen(
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val hasSavableCriteria = state.query.isNotBlank() ||
+        state.transactionStatus != null ||
+        state.dealMode != null ||
+        state.propertyType != null
+
+    if (state.showSaveFilterDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissSaveFilterDialog,
+            title = { Text("ذخیره فیلتر فایل‌های شخصی") },
+            text = {
+                OutlinedTextField(
+                    value = state.saveFilterName,
+                    onValueChange = viewModel::onSaveFilterNameChange,
+                    label = { Text("نام فیلتر") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::saveCurrentFilter) { Text("ذخیره") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissSaveFilterDialog) { Text("انصراف") }
+            },
+        )
+    }
 
     LaunchedEffect(listState, state.hasMore, state.isLoadingMore, state.isLoading) {
         val layoutInfo = listState.layoutInfo
@@ -167,6 +200,28 @@ fun PropertiesScreen(
                         onPropertyTypeChange = viewModel::onPropertyTypeChange,
                         onResetFilters = viewModel::clearFilters,
                     )
+                }
+                if (hasSavableCriteria) {
+                    item {
+                        TextButton(
+                            onClick = viewModel::openSaveFilterDialog,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        ) {
+                            Text("ذخیره فیلتر فعلی")
+                        }
+                    }
+                }
+                if (state.savedFilters.isNotEmpty()) {
+                    item {
+                        SavedFiltersChipRow(
+                            filters = state.savedFilters,
+                            activeId = state.activeSavedFilterId,
+                            onSelect = viewModel::applySavedFilter,
+                            onPin = viewModel::pinSavedFilter,
+                            onDelete = viewModel::deleteSavedFilter,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 state.error?.let {
                     item {
@@ -391,6 +446,12 @@ fun PropertyDetailScreen(
                 onWhatsApp = {
                     DossierShareActions.openWhatsApp(context, preview)
                 },
+                onTelegram = {
+                    DossierShareActions.openTelegram(context, preview)
+                },
+                onSms = {
+                    DossierShareActions.openSms(context, preview)
+                },
                 onCopy = {
                     DossierShareActions.copyToClipboard(context, preview)
                     scope.launch { snackbar.showSnackbar("متن پیام کپی شد") }
@@ -405,6 +466,10 @@ fun PropertyDetailScreen(
                     {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                     }
+                },
+                onManagePublicShare = {
+                    viewModel.toggleShareSheet(false)
+                    viewModel.togglePublicShareSettingsSheet(true)
                 },
                 onDismiss = { viewModel.toggleShareSheet(false) },
             )
@@ -461,18 +526,52 @@ fun PropertyDetailScreen(
         )
     }
 
+    if (state.showPublicShareSettingsSheet) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.togglePublicShareSettingsSheet(false) }) {
+            PublicShareSettingsSheet(
+                consultantName = state.shareConsultantName,
+                consultantPhone = state.shareConsultantPhone,
+                welcomeMessage = state.shareWelcomeMessage,
+                isActive = state.sharePublicIsActive,
+                showDivarLink = state.sharePublicShowDivarLink,
+                showFullAddress = state.sharePublicShowFullAddress,
+                showInternalNotes = state.sharePublicShowInternalNotes,
+                isSubmitting = state.isSubmitting,
+                onConsultantNameChange = viewModel::onShareConsultantNameChange,
+                onConsultantPhoneChange = viewModel::onShareConsultantPhoneChange,
+                onWelcomeMessageChange = viewModel::onShareWelcomeMessageChange,
+                onIsActiveChange = viewModel::onSharePublicIsActiveChange,
+                onShowDivarLinkChange = viewModel::onSharePublicShowDivarLinkChange,
+                onShowFullAddressChange = viewModel::onSharePublicShowFullAddressChange,
+                onShowInternalNotesChange = viewModel::onSharePublicShowInternalNotesChange,
+                onSave = viewModel::savePublicShareSettings,
+                onDismiss = { viewModel.togglePublicShareSettingsSheet(false) },
+            )
+        }
+    }
+
     if (state.showLinkContactSheet) {
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleLinkContactSheet(false) }) {
             PropertyLinkContactSheet(
                 contactId = state.linkContactId,
+                contactName = state.linkContactName,
+                contactPhone = state.linkContactPhone,
                 role = state.linkContactRole,
                 isSubmitting = state.isSubmitting,
                 onContactIdChange = viewModel::onLinkContactIdChange,
+                onPickContact = { viewModel.toggleLinkContactPicker(true) },
                 onRoleChange = viewModel::onLinkContactRoleChange,
                 onSubmit = viewModel::linkContact,
                 onDismiss = { viewModel.toggleLinkContactSheet(false) },
             )
         }
+    }
+
+    if (state.showLinkContactPicker) {
+        ContactPickerSheet(
+            onDismiss = { viewModel.toggleLinkContactPicker(false) },
+            onContactSelected = viewModel::onLinkContactSelected,
+        )
     }
 
     PropertyContactMatchesSheet(
@@ -483,6 +582,62 @@ fun PropertyDetailScreen(
         onDismiss = { viewModel.toggleContactMatchesSheet(false) },
         onSuggest = viewModel::suggestContactMatches,
     )
+
+    state.contactSuggestionResult?.let { result ->
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissContactSuggestionResult) {
+            DfCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.screenHorizontal)
+                    .padding(bottom = AppSpacing.xl),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    Text(
+                        text = "پیشنهاد برای مشتری‌ها ثبت شد",
+                        style = ir.divarfiling.mobile.core.design.AppTypography.cardTitle,
+                    )
+                    Text(
+                        text = when {
+                            result.publicUrl.isNullOrBlank() && result.whatsappText.isNullOrBlank() ->
+                                "پیشنهاد برای ${result.suggestedCount} مشتری ذخیره شد."
+                            else ->
+                                "پیشنهاد برای ${result.suggestedCount} مشتری ثبت شد. حالا می‌توانید متن آماده را مستقیم ارسال کنید یا لینک صفحه عمومی را باز و کپی کنید."
+                        },
+                        style = ir.divarfiling.mobile.core.design.AppTypography.bodyDescription,
+                    )
+                    result.whatsappText?.takeIf { it.isNotBlank() }?.let { text ->
+                        DfPrimaryButton(
+                            text = "ارسال در واتساپ",
+                            onClick = { DossierShareActions.openWhatsApp(context, text) },
+                        )
+                        DfSecondaryButton(
+                            text = "کپی متن پیام",
+                            onClick = {
+                                DossierShareActions.copyToClipboard(context, text)
+                                scope.launch { snackbar.showSnackbar("متن پیام کپی شد") }
+                            },
+                        )
+                    }
+                    result.publicUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                        DfSecondaryButton(
+                            text = "باز کردن لینک عمومی",
+                            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+                        )
+                        DfSecondaryButton(
+                            text = "کپی لینک عمومی",
+                            onClick = {
+                                DossierShareActions.copyToClipboard(context, url)
+                                scope.launch { snackbar.showSnackbar("لینک عمومی کپی شد") }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 private fun copyToClipboard(context: Context, text: String) {

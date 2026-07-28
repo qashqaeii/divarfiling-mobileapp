@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.crm
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -55,8 +56,16 @@ class ContactsViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
     private val extrasRepository: ir.divarfiling.mobile.data.repository.WorkspaceExtrasRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(ContactsUiState())
+    private val initialCustomerType = savedStateHandle.get<String>("customerType")
+        ?.takeIf { it.isNotBlank() }
+    private val _uiState = MutableStateFlow(
+        ContactsUiState(
+            customerTypeFilter = initialCustomerType,
+            leadCustomerType = initialCustomerType ?: "سرنخ",
+        ),
+    )
     val uiState: StateFlow<ContactsUiState> = _uiState.asStateFlow()
 
     init {
@@ -465,7 +474,13 @@ class TodayViewModel @Inject constructor(
 
     fun logCallActivity(contactId: Long) {
         viewModelScope.launch {
-            crmRepository.createActivity(contactId, "call", "تماس از صفحه امروز")
+            crmRepository.createActivity(contactId, "تماس", "تماس از صفحه امروز", "تماس")
+        }
+    }
+
+    fun logWhatsAppActivity(contactId: Long) {
+        viewModelScope.launch {
+            crmRepository.createActivity(contactId, "واتساپ", "پیام واتساپ از صفحه امروز", "واتساپ")
         }
     }
 }

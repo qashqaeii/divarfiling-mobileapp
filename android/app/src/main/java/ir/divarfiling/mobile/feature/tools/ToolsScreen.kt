@@ -38,8 +38,8 @@ fun ToolsScreen(
         containerColor = DfScreenContainerColor,
     ) { padding ->
         DfPullRefresh(
-            isRefreshing = false,
-            onRefresh = {},
+            isRefreshing = state.isRefreshing,
+            onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)

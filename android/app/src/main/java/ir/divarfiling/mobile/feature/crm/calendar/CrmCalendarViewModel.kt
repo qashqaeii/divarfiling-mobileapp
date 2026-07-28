@@ -32,6 +32,7 @@ data class CrmCalendarUiState(
     val isRefreshing: Boolean = false,
     val isSubmitting: Boolean = false,
     val showCreateSheet: Boolean = false,
+    val editingReminderId: Long? = null,
     val draftTitle: String = "",
     val draftNote: String = "",
     val draftDueMillis: Long = System.currentTimeMillis() + 3_600_000L,
@@ -93,18 +94,42 @@ class CrmCalendarViewModel @Inject constructor(
         loadForVisibleRange()
     }
 
-    fun toggleCreateSheet(show: Boolean) = _uiState.update {
-        it.copy(
-            showCreateSheet = show,
-            draftTitle = if (!show) "" else it.draftTitle,
-            draftNote = if (!show) "" else it.draftNote,
-            draftRecurrence = if (!show) "" else it.draftRecurrence,
-            draftDueMillis = if (show) {
-                it.selectedDate.atTime(10, 0).atZone(zone).toInstant().toEpochMilli()
-            } else {
-                it.draftDueMillis
-            },
-        )
+    fun toggleCreateSheet(show: Boolean) {
+        if (show) {
+            _uiState.update {
+                it.copy(
+                    showCreateSheet = true,
+                    editingReminderId = null,
+                    draftTitle = "",
+                    draftNote = "",
+                    draftRecurrence = "",
+                    draftDueMillis = it.selectedDate.atTime(10, 0).atZone(zone).toInstant().toEpochMilli(),
+                )
+            }
+        } else {
+            _uiState.update {
+                it.copy(
+                    showCreateSheet = false,
+                    editingReminderId = null,
+                    draftTitle = "",
+                    draftNote = "",
+                    draftRecurrence = "",
+                )
+            }
+        }
+    }
+
+    fun openEditReminder(reminder: ReminderDto) {
+        _uiState.update {
+            it.copy(
+                showCreateSheet = true,
+                editingReminderId = reminder.id,
+                draftTitle = reminder.title,
+                draftNote = reminder.note.orEmpty(),
+                draftRecurrence = reminder.recurrence,
+                draftDueMillis = reminder.dueAt?.let(::isoToMillis) ?: it.draftDueMillis,
+            )
+        }
     }
 
     fun onDraftTitle(v: String) = _uiState.update { it.copy(draftTitle = v) }
@@ -112,7 +137,7 @@ class CrmCalendarViewModel @Inject constructor(
     fun onDraftDue(millis: Long) = _uiState.update { it.copy(draftDueMillis = millis) }
     fun onDraftRecurrence(v: String) = _uiState.update { it.copy(draftRecurrence = v) }
 
-    fun createReminder() {
+    fun submitReminder() {
         val state = _uiState.value
         val title = state.draftTitle.trim()
         if (title.isBlank()) {
@@ -122,8 +147,9 @@ class CrmCalendarViewModel @Inject constructor(
         val dueAt = Instant.ofEpochMilli(state.draftDueMillis).atZone(zone).format(iso)
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (
-                val result = crmRepository.createStandaloneReminder(
+            val reminderId = state.editingReminderId
+            val result = if (reminderId == null) {
+                crmRepository.createStandaloneReminder(
                     ReminderCreateRequest(
                         title = title,
                         dueAt = dueAt,
@@ -131,16 +157,28 @@ class CrmCalendarViewModel @Inject constructor(
                         recurrence = state.draftRecurrence,
                     ),
                 )
-            ) {
+            } else {
+                crmRepository.patchReminder(
+                    reminderId,
+                    ReminderPatchRequest(
+                        title = title,
+                        note = state.draftNote,
+                        dueAt = dueAt,
+                        recurrence = state.draftRecurrence,
+                    ),
+                )
+            }
+            when (result) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             showCreateSheet = false,
+                            editingReminderId = null,
                             draftTitle = "",
                             draftNote = "",
                             draftRecurrence = "",
-                            successMessage = "یادآور ثبت شد",
+                            successMessage = if (reminderId == null) "یادآور ثبت شد" else "یادآور ویرایش شد",
                         )
                     }
                     loadForVisibleRange()
@@ -148,6 +186,29 @@ class CrmCalendarViewModel @Inject constructor(
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmitting = false, error = result.message)
                 }
+            }
+        }
+    }
+
+    fun deleteReminder(id: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = crmRepository.deleteReminder(id)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showCreateSheet = false,
+                            editingReminderId = null,
+                            draftTitle = "",
+                            draftNote = "",
+                            draftRecurrence = "",
+                            successMessage = "یادآور حذف شد",
+                        )
+                    }
+                    loadForVisibleRange()
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = result.message) }
             }
         }
     }
@@ -218,6 +279,12 @@ class CrmCalendarViewModel @Inject constructor(
             }
         }
     }
+}
+
+private fun isoToMillis(value: String): Long? {
+    return runCatching { java.time.OffsetDateTime.parse(value).toInstant().toEpochMilli() }
+        .recoverCatching { Instant.parse(value).toEpochMilli() }
+        .getOrNull()
 }
 
 internal fun dueDate(isoDue: String): LocalDate? {

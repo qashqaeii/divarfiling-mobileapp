@@ -436,14 +436,32 @@ data class FilingSearchUiState(
     val error: String? = null,
     val query: String = "",
     val filters: ListingFilterState = ListingFilterState(),
+    val savedFilters: List<SavedFilterDto> = emptyList(),
+    val activeSavedFilterId: Long? = null,
+    val showSaveFilterDialog: Boolean = false,
+    val saveFilterName: String = "",
 )
 
 @HiltViewModel
 class FilingSearchViewModel @Inject constructor(
     private val filingRepository: FilingRepository,
+    private val extrasRepository: WorkspaceExtrasRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(FilingSearchUiState())
     val uiState: StateFlow<FilingSearchUiState> = _uiState.asStateFlow()
+
+    init {
+        loadSavedFilters()
+    }
+
+    fun loadSavedFilters() {
+        viewModelScope.launch {
+            when (val result = extrasRepository.getSavedFilters(entity = "listings", includeNewCount = true)) {
+                is ApiResult.Success -> _uiState.update { it.copy(savedFilters = result.data) }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
 
     fun onQueryChange(q: String) = _uiState.update { it.copy(query = q) }
 
@@ -502,10 +520,11 @@ class FilingSearchViewModel @Inject constructor(
     fun refresh() {
         _uiState.update { it.copy(page = 1) }
         search(reset = true)
+        loadSavedFilters()
     }
 
     fun applyFilters(filters: ListingFilterState) {
-        _uiState.update { it.copy(filters = filters, page = 1) }
+        _uiState.update { it.copy(filters = filters, page = 1, activeSavedFilterId = null) }
         search(reset = true)
     }
 
@@ -517,6 +536,80 @@ class FilingSearchViewModel @Inject constructor(
         if (query.isNotBlank() && _uiState.value.query.isBlank()) {
             _uiState.update { it.copy(query = query) }
             search(reset = true)
+        }
+    }
+
+    fun applySavedFilter(filter: SavedFilterDto) {
+        val params = filter.resolvedParams.toMutableMap()
+        val q = params.remove("q").orEmpty()
+        _uiState.update {
+            it.copy(
+                query = q.ifBlank { it.query },
+                filters = ListingFilterState.fromParams(params),
+                activeSavedFilterId = filter.id,
+                page = 1,
+            )
+        }
+        search(reset = true)
+    }
+
+    fun openSaveFilterDialog() = _uiState.update { it.copy(showSaveFilterDialog = true, saveFilterName = "") }
+    fun dismissSaveFilterDialog() = _uiState.update { it.copy(showSaveFilterDialog = false) }
+    fun onSaveFilterNameChange(v: String) = _uiState.update { it.copy(saveFilterName = v) }
+
+    fun saveCurrentFilter() {
+        val state = _uiState.value
+        val name = state.saveFilterName.trim()
+        if (name.isBlank()) {
+            _uiState.update { it.copy(error = "نام فیلتر الزامی است") }
+            return
+        }
+        val params = state.filters.toQueryMap().toMutableMap()
+        if (state.query.isNotBlank()) params["q"] = state.query.trim()
+        viewModelScope.launch {
+            when (
+                val result = extrasRepository.createSavedFilter(
+                    SavedFilterCreateRequest(
+                        name = name,
+                        scope = "listings",
+                        params = params,
+                    ),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            showSaveFilterDialog = false,
+                            activeSavedFilterId = result.data.id,
+                        )
+                    }
+                    loadSavedFilters()
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    fun pinSavedFilter(id: Long) {
+        viewModelScope.launch {
+            when (extrasRepository.pinSavedFilter(id)) {
+                is ApiResult.Success -> loadSavedFilters()
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    fun deleteSavedFilter(id: Long) {
+        viewModelScope.launch {
+            when (extrasRepository.deleteSavedFilter(id)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(activeSavedFilterId = it.activeSavedFilterId.takeUnless { active -> active == id })
+                    }
+                    loadSavedFilters()
+                }
+                is ApiResult.Error -> Unit
+            }
         }
     }
 }

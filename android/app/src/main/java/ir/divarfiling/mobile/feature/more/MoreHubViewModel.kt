@@ -16,12 +16,15 @@ import javax.inject.Inject
 data class MoreHubUiState(
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
+    val teamUnreadCount: Int = 0,
+    val isRefreshing: Boolean = false,
 )
 
 @HiltViewModel
 class MoreHubViewModel @Inject constructor(
     sessionStore: SessionStore,
-    dashboardRepository: DashboardRepository,
+    private val dashboardRepository: DashboardRepository,
+    private val teamRepository: ir.divarfiling.mobile.data.repository.TeamRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MoreHubUiState())
     val uiState: StateFlow<MoreHubUiState> = _uiState.asStateFlow()
@@ -35,10 +38,30 @@ class MoreHubViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            when (val result = dashboardRepository.getDashboard()) {
+            refresh()
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            val dashboard = dashboardRepository.getDashboard()
+            val teamUnread = when (val unread = teamRepository.getUnread()) {
+                is ApiResult.Success -> unread.data.total
+                is ApiResult.Error -> 0
+            }
+            when (dashboard) {
                 is ApiResult.Success ->
-                    _uiState.update { it.copy(notificationBadgeCount = result.data.notificationsUnread) }
-                is ApiResult.Error -> Unit
+                    _uiState.update {
+                        it.copy(
+                            notificationBadgeCount = dashboard.data.notificationsUnread,
+                            teamUnreadCount = teamUnread,
+                            isRefreshing = false,
+                        )
+                    }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(teamUnreadCount = teamUnread, isRefreshing = false)
+                }
             }
         }
     }

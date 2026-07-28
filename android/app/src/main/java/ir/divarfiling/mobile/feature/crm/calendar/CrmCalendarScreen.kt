@@ -85,13 +85,17 @@ fun CrmCalendarScreen(
                 dueMillis = state.draftDueMillis,
                 recurrence = state.draftRecurrence,
                 isSubmitting = state.isSubmitting,
-                sheetTitle = "یادآور جدید",
+                sheetTitle = if (state.editingReminderId == null) "یادآور جدید" else "ویرایش یادآور",
+                primaryText = if (state.editingReminderId == null) "ثبت یادآور" else "ذخیره تغییرات",
+                onDelete = state.editingReminderId?.let { reminderId ->
+                    { viewModel.deleteReminder(reminderId) }
+                },
                 onTitleChange = viewModel::onDraftTitle,
                 onNoteChange = viewModel::onDraftNote,
                 onDueChange = viewModel::onDraftDue,
                 onRecurrenceChange = viewModel::onDraftRecurrence,
                 onDismiss = { viewModel.toggleCreateSheet(false) },
-                onSubmit = viewModel::createReminder,
+                onSubmit = viewModel::submitReminder,
             )
         }
     }
@@ -202,6 +206,7 @@ fun CrmCalendarScreen(
                             reminder = reminder,
                             onComplete = { reminder.id?.let(viewModel::completeReminder) },
                             onSnooze = { reminder.id?.let { viewModel.snoozeReminder(it) } },
+                            onEdit = { viewModel.openEditReminder(reminder) },
                             onOpenContact = { id -> onOpenContact(id) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
@@ -426,6 +431,7 @@ private fun ReminderCard(
     reminder: ReminderDto,
     onComplete: () -> Unit,
     onSnooze: () -> Unit,
+    onEdit: () -> Unit,
     onOpenContact: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -495,6 +501,11 @@ private fun ReminderCard(
                     modifier = Modifier.weight(1f),
                 )
             }
+            DfTextButton(
+                text = "ویرایش یا حذف",
+                onClick = onEdit,
+                compact = true,
+            )
         }
     }
 }

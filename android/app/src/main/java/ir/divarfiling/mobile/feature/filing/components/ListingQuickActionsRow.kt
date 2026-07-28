@@ -47,6 +47,7 @@ fun ListingQuickActionsRow(
     onOpenDivar: (() -> Unit)?,
     onSetReminder: () -> Unit,
     onSaveAsPersonal: () -> Unit,
+    onOpenAi: (() -> Unit)? = null,
     showSaveAsPersonal: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
@@ -80,6 +81,17 @@ fun ListingQuickActionsRow(
                 onClick = onSendToContact,
             ),
         )
+        onOpenAi?.let { openAi ->
+            add(
+                QuickActionSpec(
+                    label = "AI",
+                    icon = DfIcons.Sparkles,
+                    tint = DfColors.PurpleDark,
+                    background = DfColors.PurpleLight,
+                    onClick = openAi,
+                ),
+            )
+        }
         add(
             QuickActionSpec(
                 label = "تلفن مالک",

@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.NotificationPrefsDto
 import ir.divarfiling.mobile.core.network.UserDto
@@ -30,6 +31,7 @@ data class SettingsUiState(
     val showProfileSheet: Boolean = false,
     val editFullName: String = "",
     val editPhone: String = "",
+    val deviceId: String = "",
     val successMessage: String? = null,
     val error: String? = null,
     val notificationBadgeCount: Int = 0,
@@ -41,6 +43,7 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val licenseRepository: LicenseRepository,
     private val dashboardRepository: DashboardRepository,
+    private val sessionStore: SessionStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -87,6 +90,9 @@ class SettingsViewModel @Inject constructor(
                 is ApiResult.Error -> if (_uiState.value.error == null) {
                     _uiState.update { it.copy(error = prefs.message) }
                 }
+            }
+            _uiState.update {
+                it.copy(deviceId = sessionStore.getDeviceId().orEmpty())
             }
             _uiState.update { it.copy(isLoading = false, isRefreshing = false) }
         }

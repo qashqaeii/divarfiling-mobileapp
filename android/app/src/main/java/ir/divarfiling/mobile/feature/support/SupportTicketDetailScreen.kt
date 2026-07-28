@@ -2,6 +2,8 @@ package ir.divarfiling.mobile.feature.support
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -22,7 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +53,7 @@ import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.DfTextButton
 import ir.divarfiling.mobile.core.design.components.DfTextField
+import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.network.SupportTicketMessageDto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,10 +67,58 @@ fun SupportTicketDetailScreen(
     val context = LocalContext.current
     val ticket = state.ticket
     val isClosed = ticket?.status == "closed"
+    var showCloseConfirm by remember { mutableStateOf(false) }
+    var showReopenConfirm by remember { mutableStateOf(false) }
+    val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let(viewModel::selectAttachment)
+    }
 
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+    }
+
+    if (showCloseConfirm) {
+        AlertDialog(
+            onDismissRequest = { showCloseConfirm = false },
+            title = { Text("بستن تیکت") },
+            text = { Text("بعد از بستن، ادامه مکاتبه فقط با بازگشایی دوباره ممکن است. مطمئن هستید؟") },
+            confirmButton = {
+                DfDestructiveButton(
+                    text = "بستن تیکت",
+                    onClick = {
+                        showCloseConfirm = false
+                        viewModel.closeTicket()
+                    },
+                    enabled = !state.isSubmitting,
+                )
+            },
+            dismissButton = {
+                DfTextButton(text = "انصراف", onClick = { showCloseConfirm = false })
+            },
+        )
+    }
+
+    if (showReopenConfirm) {
+        AlertDialog(
+            onDismissRequest = { showReopenConfirm = false },
+            title = { Text("بازگشایی تیکت") },
+            text = { Text("تیکت دوباره باز می‌شود و می‌توانید پاسخ یا پیوست جدید ارسال کنید. ادامه می‌دهید؟") },
+            confirmButton = {
+                DfPrimaryButton(
+                    text = "بازگشایی تیکت",
+                    onClick = {
+                        showReopenConfirm = false
+                        viewModel.reopenTicket()
+                    },
+                    enabled = !state.isSubmitting,
+                    loading = state.isSubmitting,
+                )
+            },
+            dismissButton = {
+                DfTextButton(text = "انصراف", onClick = { showReopenConfirm = false })
+            },
+        )
     }
 
     Scaffold(
@@ -103,6 +157,49 @@ fun SupportTicketDetailScreen(
                     }
                 }
                 if (ticket != null) {
+                    item {
+                        DfCard(
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            containerColor = DfThemeColors.surface(),
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                            ) {
+                                Text(
+                                    "جزئیات تیکت",
+                                    style = AppTypography.bodyDescription,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = DfThemeColors.textPrimary(),
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    DfBadge(
+                                        text = ticketStatusLabel(ticket.status),
+                                        color = ticketStatusColors(ticket.status).first,
+                                        textColor = ticketStatusColors(ticket.status).second,
+                                    )
+                                    DfBadge(
+                                        text = supportPriorityLabel(ticket.priority),
+                                        color = DfThemeColors.primaryContainer(),
+                                        textColor = DfThemeColors.onPrimaryContainer(),
+                                    )
+                                    DfBadge(
+                                        text = supportCategoryLabel(ticket.category),
+                                        color = DfThemeColors.surfaceVariant(),
+                                        textColor = DfThemeColors.textSecondary(),
+                                    )
+                                }
+                                Text(
+                                    text = "شماره تیکت: #${ticket.ticketNumber}",
+                                    style = AppTypography.labelSmall,
+                                    color = DfThemeColors.textMuted(),
+                                )
+                            }
+                        }
+                    }
                     items(ticket.messages, key = { it.id }) { message ->
                         MessageBubble(
                             message = message,
@@ -136,15 +233,54 @@ fun SupportTicketDetailScreen(
                                         minLines = 3,
                                         enabled = !state.isSubmitting,
                                     )
+                                    DfSecondaryButton(
+                                        text = if (state.selectedAttachmentName.isBlank()) {
+                                            "افزودن پیوست"
+                                        } else {
+                                            "تغییر پیوست"
+                                        },
+                                        onClick = { attachmentPicker.launch("*/*") },
+                                        enabled = !state.isSubmitting,
+                                    )
+                                    if (state.selectedAttachmentName.isNotBlank()) {
+                                        Surface(
+                                            shape = AppShapes.Card,
+                                            color = DfThemeColors.surfaceVariant(),
+                                            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(AppSpacing.sm),
+                                                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                            ) {
+                                                Text(
+                                                    text = "پیوست انتخاب‌شده",
+                                                    style = AppTypography.labelSmall,
+                                                    color = DfThemeColors.textMuted(),
+                                                )
+                                                Text(
+                                                    text = state.selectedAttachmentName,
+                                                    style = AppTypography.bodyDescription,
+                                                    color = DfThemeColors.textPrimary(),
+                                                )
+                                                DfTextButton(
+                                                    text = "حذف پیوست",
+                                                    onClick = viewModel::clearAttachment,
+                                                    compact = true,
+                                                )
+                                            }
+                                        }
+                                    }
                                     DfPrimaryButton(
                                         text = "ارسال پاسخ",
-                                        onClick = { viewModel.sendReply() },
+                                        onClick = viewModel::sendReply,
                                         enabled = !state.isSubmitting,
                                         loading = state.isSubmitting,
                                     )
                                     DfDestructiveButton(
                                         text = "بستن تیکت",
-                                        onClick = viewModel::closeTicket,
+                                        onClick = { showCloseConfirm = true },
                                         enabled = !state.isSubmitting,
                                     )
                                 }
@@ -163,7 +299,7 @@ fun SupportTicketDetailScreen(
                                 )
                                 DfSecondaryButton(
                                     text = "بازگشایی تیکت",
-                                    onClick = viewModel::reopenTicket,
+                                    onClick = { showReopenConfirm = true },
                                     enabled = !state.isSubmitting,
                                     loading = state.isSubmitting,
                                 )
@@ -237,4 +373,28 @@ fun ticketStatusLabel(status: String): String = when (status) {
     "waiting_user" -> "منتظر شما"
     "closed" -> "بسته"
     else -> status
+}
+
+private fun supportCategoryLabel(value: String): String = when (value) {
+    "billing" -> "پرداخت و اشتراک"
+    "technical" -> "مشکل فنی"
+    "crm" -> "CRM"
+    "filing" -> "فایلینگ و استخراج"
+    else -> "عمومی"
+}
+
+private fun supportPriorityLabel(value: String): String = when (value) {
+    "low" -> "کم"
+    "high" -> "زیاد"
+    "urgent" -> "فوری"
+    else -> "عادی"
+}
+
+private fun ticketStatusColors(status: String) = when (status) {
+    "open" -> DfThemeColors.infoContainer() to DfThemeColors.onInfoContainer()
+    "in_review" -> DfThemeColors.warningContainer() to DfThemeColors.onWarningContainer()
+    "answered" -> DfThemeColors.successContainer() to DfThemeColors.onSuccessContainer()
+    "waiting_user" -> DfThemeColors.primaryContainer() to DfThemeColors.onPrimaryContainer()
+    "closed" -> DfThemeColors.lockedContainer() to DfThemeColors.onLocked()
+    else -> DfThemeColors.surfaceVariant() to DfThemeColors.textSecondary()
 }

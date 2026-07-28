@@ -13,6 +13,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,9 +30,13 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
+import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.network.ContactMatchesData
+import ir.divarfiling.mobile.core.network.MessageTemplateDto
 import ir.divarfiling.mobile.core.network.PropertyMatchDto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +47,13 @@ fun ContactMatchesSheet(
     isLoading: Boolean,
     isSubmitting: Boolean,
     contactPhone: String?,
+    note: String,
+    templates: List<MessageTemplateDto>,
+    templatesLoading: Boolean,
+    showTemplatePicker: Boolean,
+    onNoteChange: (String) -> Unit,
+    onToggleTemplatePicker: (Boolean) -> Unit,
+    onApplyTemplate: (MessageTemplateDto) -> Unit,
     onDismiss: () -> Unit,
     onSuggest: (List<PropertyMatchDto>, shareViaWhatsApp: Boolean) -> Unit,
 ) {
@@ -152,6 +164,69 @@ fun ContactMatchesSheet(
                                 .padding(AppSpacing.sm),
                             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                         ) {
+                            OutlinedTextField(
+                                value = note,
+                                onValueChange = onNoteChange,
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("پیام همراه پیشنهاد") },
+                                placeholder = { Text("مثلاً چند فایل نزدیک به بودجه شما انتخاب کردم") },
+                                minLines = 2,
+                                enabled = !isSubmitting,
+                            )
+                            DfGlassTextButton(
+                                text = if (showTemplatePicker) "بستن قالب‌های پیام" else "استفاده از قالب پیام",
+                                onClick = { onToggleTemplatePicker(!showTemplatePicker) },
+                            )
+                            if (showTemplatePicker) {
+                                when {
+                                    templatesLoading -> DfCardListSkeleton(count = 3, itemHeight = 72.dp)
+                                    templates.isEmpty() -> DfEmptyState(
+                                        title = "قالبی آماده نیست",
+                                        subtitle = "قالب‌های پیام از workspace همگام می‌شوند.",
+                                    )
+                                    else -> {
+                                        LazyColumn(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 220.dp),
+                                            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                        ) {
+                                            items(templates, key = { it.id }) { template ->
+                                                Surface(
+                                                    shape = AppShapes.Card,
+                                                    color = DfColors.Surface.copy(alpha = 0.85f),
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                ) {
+                                                    Column(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(AppSpacing.sm),
+                                                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                                    ) {
+                                                        Text(template.title, style = AppTypography.cardTitle)
+                                                        template.category.takeIf { it.isNotBlank() }?.let {
+                                                            Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                                                        }
+                                                        Text(
+                                                            template.body,
+                                                            style = AppTypography.bodyDescription,
+                                                            color = DfColors.TextSecondary,
+                                                            maxLines = 3,
+                                                        )
+                                                        OutlinedButton(
+                                                            onClick = { onApplyTemplate(template) },
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            enabled = !isSubmitting,
+                                                        ) {
+                                                            Text("جایگذاری در پیام")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             Text(
                                 text = if (selected.isEmpty()) {
                                     "ملک‌های مناسب را انتخاب کنید"

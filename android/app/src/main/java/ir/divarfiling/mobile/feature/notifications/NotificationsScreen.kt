@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.notifications
 
 import android.net.Uri
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +49,9 @@ import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.feature.home.HomeNotificationType
+import ir.divarfiling.mobile.feature.update.AppUpdateInlineBanner
+import ir.divarfiling.mobile.feature.update.AppUpdatePhase
+import ir.divarfiling.mobile.feature.update.AppUpdateViewModel
 import ir.divarfiling.mobile.navigation.DeepLinkParser
 import ir.divarfiling.mobile.navigation.DeepLinkTarget
 
@@ -59,6 +63,10 @@ fun NotificationsScreen(
     viewModel: NotificationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = context as ComponentActivity
+    val updateViewModel: AppUpdateViewModel = hiltViewModel(activity)
+    val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = DfScreenContainerColor,
@@ -142,6 +150,26 @@ fun NotificationsScreen(
                                 titleIconRes = DfDecorIcons.Bell,
                                 onBack = onBack,
                             )
+                        }
+                        if (updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
+                            item {
+                                AppUpdateInlineBanner(
+                                    state = updateState,
+                                    onPrimaryClick = {
+                                        when (updateState.phase) {
+                                            AppUpdatePhase.Available, AppUpdatePhase.Error -> updateViewModel.startUpdate()
+                                            AppUpdatePhase.ReadyToInstall -> updateViewModel.installNow()
+                                            AppUpdatePhase.AwaitingInstallPermission ->
+                                                context.startActivity(updateViewModel.openInstallPermissionSettings())
+                                            else -> Unit
+                                        }
+                                    },
+                                    onOpenStore = { url ->
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                    },
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                )
+                            }
                         }
                         items(state.items, key = { it.id }) { item ->
                             NotificationListRow(

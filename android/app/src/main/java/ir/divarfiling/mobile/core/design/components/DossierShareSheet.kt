@@ -47,9 +47,12 @@ fun DossierShareSheet(
     onIncludeAmenitiesChange: (Boolean) -> Unit,
     onShare: () -> Unit,
     onWhatsApp: () -> Unit,
+    onTelegram: (() -> Unit)? = null,
+    onSms: (() -> Unit)? = null,
     onCopy: () -> Unit,
     onCopyPublicLink: (() -> Unit)? = null,
     onOpenPublicPreview: (() -> Unit)? = null,
+    onManagePublicShare: (() -> Unit)? = null,
     onSendToContact: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
@@ -144,6 +147,14 @@ fun DossierShareSheet(
                                 )
                             }
                         }
+                        onManagePublicShare?.let { managePublicShare ->
+                            DfGlassButton(
+                                text = "تنظیمات صفحه عمومی",
+                                onClick = managePublicShare,
+                                icon = DfIcons.Settings,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
                 onIncludePublicPageLinkChange?.let { onChange ->
@@ -217,6 +228,22 @@ fun DossierShareSheet(
                     icon = DfIcons.Copy,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                onTelegram?.let { telegram ->
+                    DfGlassButton(
+                        text = "تلگرام",
+                        onClick = telegram,
+                        icon = DfIcons.Send,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                onSms?.let { sms ->
+                    DfGlassButton(
+                        text = "پیامک",
+                        onClick = sms,
+                        icon = DfIcons.MessageCircle,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 onSendToContact?.let { sendToContact ->
                     DfGlassButton(
                         text = "ارسال به مخاطب CRM",
@@ -231,7 +258,7 @@ fun DossierShareSheet(
 }
 
 @Composable
-private fun ShareToggleRow(
+fun ShareToggleRow(
     title: String,
     subtitle: String,
     checked: Boolean,

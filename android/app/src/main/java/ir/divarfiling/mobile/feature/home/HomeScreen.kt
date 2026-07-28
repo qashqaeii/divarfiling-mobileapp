@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.ComponentActivity
 import ir.divarfiling.mobile.core.AppLinks
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +43,9 @@ import ir.divarfiling.mobile.feature.home.components.RecentListingsSection
 import ir.divarfiling.mobile.feature.home.components.StatsSection
 import ir.divarfiling.mobile.feature.home.components.SyncStatusBanner
 import ir.divarfiling.mobile.feature.home.components.TodayTasksSectionContent
+import ir.divarfiling.mobile.feature.update.AppUpdateInlineBanner
+import ir.divarfiling.mobile.feature.update.AppUpdatePhase
+import ir.divarfiling.mobile.feature.update.AppUpdateViewModel
 import ir.divarfiling.mobile.navigation.DeepLinkParser
 import ir.divarfiling.mobile.navigation.DeepLinkTarget
 
@@ -63,6 +67,9 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val activity = context as ComponentActivity
+    val updateViewModel: AppUpdateViewModel = hiltViewModel(activity)
+    val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
     fun openShop() {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.SHOP_BOT)))
     }
@@ -104,6 +111,28 @@ fun HomeScreen(
                     SyncStatusBanner(
                         isSyncing = state.isSyncing,
                         pendingCount = state.syncPendingCount,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+
+            if (updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
+                item {
+                    AppUpdateInlineBanner(
+                        state = updateState,
+                        onPrimaryClick = {
+                            when (updateState.phase) {
+                                AppUpdatePhase.Available, AppUpdatePhase.Error -> updateViewModel.startUpdate()
+                                AppUpdatePhase.ReadyToInstall -> updateViewModel.installNow()
+                                AppUpdatePhase.AwaitingInstallPermission -> {
+                                    context.startActivity(updateViewModel.openInstallPermissionSettings())
+                                }
+                                else -> Unit
+                            }
+                        },
+                        onOpenStore = { url ->
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

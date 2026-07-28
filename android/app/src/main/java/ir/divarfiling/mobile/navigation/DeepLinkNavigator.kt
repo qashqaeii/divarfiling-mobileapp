@@ -18,7 +18,7 @@ fun NavHostController.navigateDeepLink(target: DeepLinkTarget) {
         DeepLinkTarget.CloudExtract -> navigate(Routes.CLOUD_EXTRACT)
         DeepLinkTarget.More -> navigate(Routes.MORE)
         DeepLinkTarget.Tools -> navigate(Routes.TOOLS)
-        DeepLinkTarget.Ai -> navigate(Routes.AI)
+        DeepLinkTarget.Ai -> navigate(Routes.ai())
         DeepLinkTarget.Support -> navigate(Routes.SUPPORT)
         is DeepLinkTarget.SupportTicket -> navigate(Routes.supportDetail(target.ticketId))
         DeepLinkTarget.Calendar -> navigate(Routes.CALENDAR)

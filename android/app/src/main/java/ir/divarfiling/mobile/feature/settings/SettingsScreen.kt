@@ -34,6 +34,7 @@ import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.share.DossierShareActions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +43,7 @@ fun SettingsScreen(
     onNavigateNotifications: () -> Unit = {},
     onNavigateTools: () -> Unit = {},
     onNavigateSupport: () -> Unit = {},
+    onNavigateInstallHelp: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -287,6 +289,41 @@ fun SettingsScreen(
 
                 item {
                     SettingsSectionTitle(
+                        title = "دستگاه و نشست",
+                        subtitle = "اطلاعات این دستگاه برای پشتیبانی و اتصال به حساب",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+
+                item {
+                    DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                        Column {
+                            SettingsInfoRow(
+                                title = "شناسه دستگاه",
+                                subtitle = if (state.deviceId.isBlank()) {
+                                    "هنوز ثبت نشده"
+                                } else {
+                                    state.deviceId
+                                },
+                                icon = DfIcons.Phone,
+                                trailing = if (state.deviceId.isBlank()) null else "کپی",
+                                onClick = state.deviceId.takeIf { it.isNotBlank() }?.let { deviceId ->
+                                    {
+                                        DossierShareActions.copyToClipboard(context, deviceId, "device_id")
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "شناسه دستگاه کپی شد",
+                                            android.widget.Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    SettingsSectionTitle(
                         title = "درباره اپ",
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
@@ -313,6 +350,8 @@ fun SettingsScreen(
                                 title = "نصب امن",
                                 subtitle = "در صورت هشدار Play Protect گزینه Install anyway",
                                 icon = DfIcons.Lock,
+                                onClick = onNavigateInstallHelp,
+                                trailing = "راهنما",
                                 showDivider = true,
                             )
                         }

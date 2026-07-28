@@ -211,6 +211,7 @@ data class ContactSuggestRequest(
 data class ContactSuggestResponse(
     @SerialName("suggested_count") val suggestedCount: Int = 0,
     @SerialName("whatsapp_text") val whatsappText: String? = null,
+    @SerialName("public_url") val publicUrl: String? = null,
 )
 
 @Serializable
@@ -589,6 +590,8 @@ data class PropertyDto(
     val notes: String? = null,
     val token: String? = null,
     val link: String? = null,
+    val phone: String? = null,
+    @SerialName("owner_name") val ownerName: String? = null,
     val images: List<String> = emptyList(),
     @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
@@ -644,6 +647,8 @@ data class PropertyCreateRequest(
     @SerialName("contact_id") val contactId: Long? = null,
     val token: String = "",
     val link: String = "",
+    @SerialName("owner_phone") val ownerPhone: String = "",
+    @SerialName("owner_name") val ownerName: String = "",
     val notes: String = "",
 )
 
@@ -815,6 +820,7 @@ data class ListingDetailDto(
     @SerialName("dataset_id") val datasetId: String? = null,
     @SerialName("is_expired") val isExpired: Boolean = false,
     @SerialName("owner_phone") val ownerPhone: String? = null,
+    @SerialName("owner_name") val ownerName: String? = null,
     @SerialName("unit_status") val unitStatus: String? = null,
     @SerialName("has_parking") val hasParking: Boolean? = null,
     @SerialName("has_storage") val hasStorage: Boolean? = null,
@@ -838,6 +844,7 @@ data class ListingUpdateRequest(
     val description: String? = null,
     val link: String? = null,
     @SerialName("owner_phone") val ownerPhone: String? = null,
+    @SerialName("owner_name") val ownerName: String? = null,
 )
 
 @Serializable
@@ -1151,13 +1158,15 @@ data class AiQuotaData(
     val remaining: Int = 0,
     val limit: Int = 0,
     @SerialName("plan_label") val planLabel: String? = null,
+    val enabled: Boolean = true,
 )
 
 @Serializable
 data class AiDraftMessageRequest(
     @SerialName("contact_id") val contactId: Long? = null,
     @SerialName("listing_token") val listingToken: String? = null,
-    val intent: String = "followup",
+    val tone: String = "رسمی",
+    val intent: String? = null,
     val notes: String? = null,
 )
 
@@ -1170,6 +1179,8 @@ data class AiSummarizeListingRequest(
 data class AiTextResult(
     val text: String = "",
     @SerialName("quota_remaining") val quotaRemaining: Int? = null,
+    @SerialName("is_fallback") val isFallback: Boolean = false,
+    val source: String? = null,
 )
 
 @Serializable
@@ -1216,4 +1227,215 @@ data class AppVersionData(
     @SerialName("min_android") val minAndroid: String = "",
     @SerialName("store_url") val storeUrl: String = "",
     @SerialName("website_url") val websiteUrl: String = "",
+)
+
+@Serializable
+data class TeamUnreadDto(
+    val messages: Int = 0,
+    val notifications: Int = 0,
+    val announcements: Int = 0,
+    val total: Int = 0,
+)
+
+@Serializable
+data class TeamAgencyDto(
+    val id: Long = 0,
+    val name: String = "",
+    val slug: String = "",
+)
+
+@Serializable
+data class TeamMembershipDto(
+    val id: Long = 0,
+    val role: String = "",
+    @SerialName("role_label") val roleLabel: String = "",
+    val title: String = "",
+)
+
+@Serializable
+data class TeamPermissionsDto(
+    @SerialName("can_manage") val canManage: Boolean = false,
+    @SerialName("can_operate_inbox") val canOperateInbox: Boolean = false,
+    @SerialName("can_broadcast") val canBroadcast: Boolean = false,
+    @SerialName("messages_enabled") val messagesEnabled: Boolean = false,
+    @SerialName("announcements_enabled") val announcementsEnabled: Boolean = false,
+)
+
+@Serializable
+data class TeamOverviewDto(
+    @SerialName("has_agency") val hasAgency: Boolean = false,
+    val agency: TeamAgencyDto? = null,
+    val membership: TeamMembershipDto? = null,
+    val permissions: TeamPermissionsDto = TeamPermissionsDto(),
+    val unread: TeamUnreadDto = TeamUnreadDto(),
+    @SerialName("members_count") val membersCount: Int = 0,
+    @SerialName("inbox_leads_count") val inboxLeadsCount: Int = 0,
+)
+
+@Serializable
+data class TeamMemberDto(
+    val id: Long,
+    @SerialName("user_id") val userId: Long = 0,
+    val name: String = "",
+    val phone: String = "",
+    val role: String = "",
+    @SerialName("role_label") val roleLabel: String = "",
+    val title: String = "",
+    @SerialName("is_active") val isActive: Boolean = true,
+)
+
+@Serializable
+data class TeamMembersPayload(
+    val members: List<TeamMemberDto> = emptyList(),
+    val count: Int = 0,
+)
+
+@Serializable
+data class TeamMessageAttachmentDto(
+    val id: Long = 0,
+    val name: String = "",
+    val size: Long = 0,
+    @SerialName("content_type") val contentType: String = "",
+    val url: String = "",
+)
+
+@Serializable
+data class TeamChatMessageDto(
+    val id: Long,
+    val body: String = "",
+    @SerialName("sender_id") val senderId: Long? = null,
+    @SerialName("sender_name") val senderName: String = "",
+    @SerialName("is_mine") val isMine: Boolean = false,
+    @SerialName("can_delete") val canDelete: Boolean = false,
+    @SerialName("created_at") val createdAt: String = "",
+    val attachments: List<TeamMessageAttachmentDto> = emptyList(),
+)
+
+@Serializable
+data class TeamThreadDto(
+    val id: Long,
+    val kind: String = "direct",
+    val subject: String = "",
+    @SerialName("participants_label") val participantsLabel: String = "",
+    @SerialName("is_starred") val isStarred: Boolean = false,
+    @SerialName("is_archived") val isArchived: Boolean = false,
+    @SerialName("unread_count") val unreadCount: Int = 0,
+    @SerialName("updated_at") val updatedAt: String = "",
+    @SerialName("last_message") val lastMessage: TeamChatMessageDto? = null,
+)
+
+@Serializable
+data class TeamThreadsPayload(
+    val threads: List<TeamThreadDto> = emptyList(),
+    val total: Int = 0,
+    val page: Int = 1,
+    val folder: String = "inbox",
+)
+
+@Serializable
+data class TeamThreadDetailDto(
+    val thread: TeamThreadDto? = null,
+    val messages: List<TeamChatMessageDto> = emptyList(),
+)
+
+@Serializable
+data class TeamSendMessageRequest(
+    val kind: String = "direct",
+    val body: String = "",
+    val subject: String? = null,
+    @SerialName("recipient_member_id") val recipientMemberId: Long? = null,
+    @SerialName("target_roles") val targetRoles: List<String> = emptyList(),
+)
+
+@Serializable
+data class TeamReplyRequest(
+    val body: String,
+)
+
+@Serializable
+data class TeamThreadStateRequest(
+    @SerialName("is_starred") val isStarred: Boolean? = null,
+    @SerialName("is_archived") val isArchived: Boolean? = null,
+)
+
+@Serializable
+data class TeamAnnouncementDto(
+    val id: Long,
+    val title: String = "",
+    val body: String = "",
+    @SerialName("body_preview") val bodyPreview: String = "",
+    val importance: String = "normal",
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+    @SerialName("is_read") val isRead: Boolean = false,
+    val status: String = "active",
+    @SerialName("published_at") val publishedAt: String = "",
+    @SerialName("created_by") val createdBy: String = "",
+    @SerialName("attachment_url") val attachmentUrl: String = "",
+)
+
+@Serializable
+data class TeamAnnouncementsPayload(
+    val announcements: List<TeamAnnouncementDto> = emptyList(),
+    val total: Int = 0,
+    val unread: Int = 0,
+)
+
+@Serializable
+data class TeamAnnouncementDetailPayload(
+    val announcement: TeamAnnouncementDto? = null,
+)
+
+@Serializable
+data class TeamPanelNotificationDto(
+    val id: Long,
+    val kind: String = "",
+    val title: String = "",
+    val body: String = "",
+    val link: String = "",
+    @SerialName("is_read") val isRead: Boolean = false,
+    @SerialName("created_at") val createdAt: String = "",
+)
+
+@Serializable
+data class TeamPanelNotificationsPayload(
+    val notifications: List<TeamPanelNotificationDto> = emptyList(),
+    val unread: Int = 0,
+)
+
+@Serializable
+data class TeamLeadDto(
+    val id: Long,
+    val name: String = "",
+    val phone: String = "",
+    val source: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+)
+
+@Serializable
+data class TeamLeadsPayload(
+    val leads: List<TeamLeadDto> = emptyList(),
+    val count: Int = 0,
+)
+
+@Serializable
+data class TeamAssignLeadsRequest(
+    @SerialName("member_id") val memberId: Long,
+    @SerialName("customer_ids") val customerIds: List<Long>,
+)
+
+@Serializable
+data class ContactTeamAssignRequest(
+    @SerialName("member_id") val memberId: Long,
+)
+
+@Serializable
+data class ContactTeamTransferRequest(
+    @SerialName("member_id") val memberId: Long,
+    val note: String? = null,
+)
+
+@Serializable
+data class TeamActionRequest(
+    val action: String = "read",
+    @SerialName("notification_id") val notificationId: Long? = null,
 )

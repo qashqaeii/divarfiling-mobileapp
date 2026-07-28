@@ -11,6 +11,10 @@ object AppLinks {
     const val WORKSPACE_AI = "https://divarfiling.ir/workspace/ai/"
     const val WORKSPACE_SUPPORT = "https://divarfiling.ir/workspace/support/"
     const val WORKSPACE_TEAM = "https://divarfiling.ir/workspace/crm/team/"
+    const val WORKSPACE_TEAM_TV = "https://divarfiling.ir/workspace/crm/team/tv/"
+    const val WORKSPACE_TEAM_REPORT = "https://divarfiling.ir/workspace/crm/team/report.csv"
     const val WORKSPACE_TEMPLATES = "https://divarfiling.ir/workspace/crm/templates/"
     const val WORKSPACE_CALENDAR = "https://divarfiling.ir/workspace/crm/calendar/"
+    const val WORKSPACE_CONTACT_IMPORT = "https://divarfiling.ir/workspace/crm/contacts/import/"
+    const val WORKSPACE_CONTACT_IMPORT_TEMPLATE = "https://divarfiling.ir/workspace/crm/contacts/import/template/"
 }

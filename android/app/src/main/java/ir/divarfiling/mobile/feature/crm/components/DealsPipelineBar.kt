@@ -33,6 +33,7 @@ import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
 @Composable
 fun DealsPipelineBar(
     columns: List<DealPipelineColumnDto>,
+    selectedStage: String?,
     onStageClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -68,10 +69,11 @@ fun DealsPipelineBar(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             columns.filter { it.count > 0 }.forEach { column ->
+                val selected = column.stage == selectedStage
                 Surface(
                     onClick = { onStageClick(column.stage) },
                     shape = AppShapes.Chip,
-                    color = DfColors.Surface,
+                    color = if (selected) stageColor(column.stage).copy(alpha = 0.14f) else DfColors.Surface,
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -87,8 +89,8 @@ fun DealsPipelineBar(
                         Text(
                             text = "${column.stage} ${column.count}",
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextSecondary,
-                            fontWeight = FontWeight.Medium,
+                            color = if (selected) stageColor(column.stage) else DfColors.TextSecondary,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         )
                     }
                 }
