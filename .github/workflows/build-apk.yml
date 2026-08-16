@@ -111,15 +111,15 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew lintRelease --no-daemon
+        run: ./gradlew lintBazaarRelease lintDirectRelease --no-daemon
 
-      - name: Build signed release APK
+      - name: Build signed release APKs
         env:
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/android/divarfiling-release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleBazaarRelease assembleDirectRelease --no-daemon
 
       - name: Read version info
         id: version
@@ -129,15 +129,16 @@ jobs:
           echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
 
-      - name: Rename release APK
+      - name: Rename release APKs
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/release/app-release.apk \
-            "release-output/divar-filing-v${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}-release.apk"
+          cp app/build/outputs/apk/bazaar/release/app-bazaar-release.apk \
+            "release-output/divar-filing-v${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}-bazaar-release.apk"
+          cp app/build/outputs/apk/direct/release/app-direct-release.apk \
+            "release-output/divar-filing-v${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}-direct-release.apk"
 
-      - name: Verify APK signature
+      - name: Verify APK signatures
         run: |
-          APK="release-output/divar-filing-v${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}-release.apk"
           APKSIGNER="${ANDROID_HOME}/build-tools/35.0.0/apksigner"
           if [ ! -x "$APKSIGNER" ]; then
             APKSIGNER="$(find "${ANDROID_HOME}/build-tools" -name apksigner -type f | sort -V | tail -1)"
@@ -146,9 +147,12 @@ jobs:
             echo "::error::apksigner not found under ${ANDROID_HOME}/build-tools"
             exit 1
           fi
-          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          for APK in release-output/*.apk; do
+            echo "Verifying $APK"
+            "$APKSIGNER" verify --verbose --print-certs "$APK"
+          done
 
-      - name: Upload release APK
+      - name: Upload release APKs
         uses: actions/upload-artifact@v4
         with:
           name: divar-filing-v${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}-release
