@@ -38,6 +38,7 @@ import android.content.Intent
 import android.net.Uri
 import ir.divarfiling.mobile.BuildConfig
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.update.UpdateDistribution
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
@@ -56,6 +57,11 @@ fun AppUpdateGate(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
+
+    if (!UpdateDistribution.usesInAppApkUpdate) {
+        content()
+        return
+    }
 
     LaunchedEffect(Unit) {
         viewModel.checkOnLaunch()

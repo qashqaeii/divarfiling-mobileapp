@@ -49,6 +49,7 @@ import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
+import ir.divarfiling.mobile.core.update.UpdateDistribution
 import ir.divarfiling.mobile.feature.home.HomeNotificationType
 import ir.divarfiling.mobile.feature.update.AppUpdateInlineBanner
 import ir.divarfiling.mobile.feature.update.AppUpdatePhase
@@ -68,6 +69,7 @@ fun NotificationsScreen(
     val activity = context as ComponentActivity
     val updateViewModel: AppUpdateViewModel = hiltViewModel(activity)
     val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
+    val usesInAppApkUpdate = UpdateDistribution.usesInAppApkUpdate
 
     Scaffold(
         containerColor = DfScreenContainerColor,
@@ -152,7 +154,7 @@ fun NotificationsScreen(
                                 onBack = onBack,
                             )
                         }
-                        if (updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
+                        if (usesInAppApkUpdate && updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
                             item {
                                 AppUpdateInlineBanner(
                                     state = updateState,

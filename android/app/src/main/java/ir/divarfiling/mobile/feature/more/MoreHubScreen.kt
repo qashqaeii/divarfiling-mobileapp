@@ -44,6 +44,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.update.UpdateDistribution
 import ir.divarfiling.mobile.feature.update.AppUpdateViewModel
 import ir.divarfiling.mobile.feature.update.AppUpdateInlineBanner
 import ir.divarfiling.mobile.feature.update.AppUpdatePhase
@@ -86,6 +87,7 @@ fun MoreHubScreen(
     val activity = context as ComponentActivity
     val updateViewModel: AppUpdateViewModel = hiltViewModel(activity)
     val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
+    val usesInAppApkUpdate = UpdateDistribution.usesInAppApkUpdate
 
     val items = listOf(
         MoreHubItem("ابزارهای هوشمند", "محاسبه‌گرها و ابزار مشاور", DfDecorIcons.Calculator, AppColors.PurpleContainer, MoreHubAction.Navigate("tools")),
@@ -106,14 +108,30 @@ fun MoreHubScreen(
         MoreHubItem("راهنمای نصب", "Play Protect، نصب release و آپدیت داخلی", DfDecorIcons.Download, AppColors.SurfaceVariant, MoreHubAction.Navigate("install-help")),
         MoreHubItem("آکادمی", "آموزش و راهنما", DfDecorIcons.Rocket, AppColors.BlueLight, MoreHubAction.External(AppLinks.ACADEMY)),
         MoreHubItem("پشتیبانی", "تیکت و درخواست کمک", DfDecorIcons.Phone, AppColors.AmberLight, MoreHubAction.Navigate("support")),
-        MoreHubItem("بروزرسانی اپ", "بررسی نسخه جدید و نصب", DfDecorIcons.Download, AppColors.GreenLight, MoreHubAction.CheckUpdate),
+        MoreHubItem(
+            "بروزرسانی اپ",
+            if (usesInAppApkUpdate) "بررسی نسخه جدید و نصب" else "دریافت آخرین نسخه از کافه‌بازار",
+            DfDecorIcons.Download,
+            AppColors.GreenLight,
+            if (usesInAppApkUpdate) {
+                MoreHubAction.CheckUpdate
+            } else {
+                MoreHubAction.External(AppLinks.CAFE_BAZAAR)
+            },
+        ),
         MoreHubItem("حریم خصوصی", "سیاست حفظ حریم", DfDecorIcons.Database, AppColors.SurfaceVariant, MoreHubAction.External(AppLinks.PRIVACY)),
         MoreHubItem("تنظیمات", "پروفایل و اعلان‌ها", DfDecorIcons.Settings, AppColors.SurfaceVariant, MoreHubAction.Navigate("settings")),
     )
 
     fun handleItem(item: MoreHubItem) {
         when (val action = item.action) {
-            is MoreHubAction.External -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(action.url)))
+            is MoreHubAction.External -> {
+                if (!usesInAppApkUpdate && action.url == AppLinks.CAFE_BAZAAR) {
+                    UpdateDistribution.openStorePage(context)
+                } else {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(action.url)))
+                }
+            }
             is MoreHubAction.Navigate -> when (action.route) {
                 "tools" -> onNavigateTools()
                 "extract" -> onNavigateExtract()
@@ -151,7 +169,7 @@ fun MoreHubScreen(
                     onMenuClick = onNavigateSettings,
                     onBack = onBack,
                 )
-                if (updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
+                if (usesInAppApkUpdate && updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
                     AppUpdateInlineBanner(
                         state = updateState,
                         onPrimaryClick = {

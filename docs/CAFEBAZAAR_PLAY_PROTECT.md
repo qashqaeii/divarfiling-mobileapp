@@ -5,14 +5,24 @@
 
 ## قوانین ساخت APK برای بازار
 
-1. فقط `assembleRelease` با keystore رسمی (`ANDROID_KEYSTORE_*`)
-2. هرگز APK دیباگ یا keystore موقت آپلود نکنید
-3. همان certificate را برای همه نسخه‌های بعدی نگه دارید و بکاپ بگیرید
-4. قبل از ارسال مجدد، `versionCode` را از نسخه ردشده بالاتر ببرید
+1. فقط `assembleBazaarRelease` با keystore رسمی (`ANDROID_KEYSTORE_*`)
+2. flavor `bazaar` آپدیت داخلی APK و مجوز `REQUEST_INSTALL_PACKAGES` ندارد
+3. «بیشتر → بروزرسانی اپ» مستقیماً صفحهٔ کافه‌بازار را باز می‌کند
+4. هرگز APK دیباگ یا keystore موقت آپلود نکنید
+5. همان certificate را برای همه نسخه‌های بعدی نگه دارید و بکاپ بگیرید
+6. قبل از ارسال مجدد، `versionCode` را از نسخه ردشده بالاتر ببرید
+
+```bash
+cd android
+./gradlew assembleBazaarRelease
+# خروجی: app/build/outputs/apk/bazaar/release/app-bazaar-release.apk
+```
+
+برای دانلود مستقیم از سایت (آپدیت داخلی): `./gradlew assembleDirectRelease`
 
 ## چک‌لیست ارسال مجدد
 
-- [ ] APK = release امضاشده
+- [ ] APK = `assembleBazaarRelease` امضاشده (نه direct)
 - [ ] آپلود در [VirusTotal](https://www.virustotal.com) → کپی SHA-256 از Details
 - [ ] ارسال [Play Protect Appeals](https://support.google.com/googleplay/android-developer/contact/protectappeals) با IP خارج از ایران
 - [ ] ۷–۱۰ روز صبر و تست نصب با Play Protect روشن

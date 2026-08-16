@@ -43,6 +43,7 @@ import ir.divarfiling.mobile.feature.home.components.RecentListingsSection
 import ir.divarfiling.mobile.feature.home.components.StatsSection
 import ir.divarfiling.mobile.feature.home.components.SyncStatusBanner
 import ir.divarfiling.mobile.feature.home.components.TodayTasksSectionContent
+import ir.divarfiling.mobile.core.update.UpdateDistribution
 import ir.divarfiling.mobile.feature.update.AppUpdateInlineBanner
 import ir.divarfiling.mobile.feature.update.AppUpdatePhase
 import ir.divarfiling.mobile.feature.update.AppUpdateViewModel
@@ -70,6 +71,7 @@ fun HomeScreen(
     val activity = context as ComponentActivity
     val updateViewModel: AppUpdateViewModel = hiltViewModel(activity)
     val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
+    val usesInAppApkUpdate = UpdateDistribution.usesInAppApkUpdate
     fun openShop() {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.SHOP_BOT)))
     }
@@ -116,7 +118,7 @@ fun HomeScreen(
                 }
             }
 
-            if (updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
+            if (usesInAppApkUpdate && updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
                 item {
                     AppUpdateInlineBanner(
                         state = updateState,
