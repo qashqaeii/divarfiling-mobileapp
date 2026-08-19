@@ -16,7 +16,7 @@ data class HomeUiState(
     val recentFiles: List<RecentFileItem> = emptyList(),
     val license: LicenseState = LicenseState(),
     val notificationBadgeCount: Int = 0,
-    val maxExtractItems: Int = 250,
+    val maxExtractItems: Int = 500,
     val canExtract: Boolean = false,
     val syncPendingCount: Int = 0,
     val isSyncing: Boolean = false,

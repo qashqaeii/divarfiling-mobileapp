@@ -69,11 +69,42 @@ class DivarLightClient @Inject constructor(
         val limitedTokens = tokens.take(maxItems)
         onProgress(0, limitedTokens.size)
 
+        val firstPass = fetchDetailsForTokens(
+            tokens = limitedTokens,
+            listThumbnails = listThumbnails,
+            onProgress = onProgress,
+            isCancelled = isCancelled,
+        )
+        if (isCancelled()) return@withContext firstPass.values.toList()
+
+        val missing = limitedTokens.filter { it !in firstPass }
+        val retried = if (missing.isNotEmpty()) {
+            fetchDetailsForTokens(
+                tokens = missing,
+                listThumbnails = listThumbnails,
+                onProgress = { completed, _ ->
+                    onProgress((firstPass.size + completed).coerceAtMost(limitedTokens.size), limitedTokens.size)
+                },
+                isCancelled = isCancelled,
+            )
+        } else {
+            emptyMap()
+        }
+
+        limitedTokens.mapNotNull { token -> firstPass[token] ?: retried[token] }
+    }
+
+    private suspend fun fetchDetailsForTokens(
+        tokens: List<String>,
+        listThumbnails: Map<String, String>,
+        onProgress: (Int, Int) -> Unit,
+        isCancelled: () -> Boolean,
+    ): Map<String, RawExtractedItem> {
+        if (tokens.isEmpty()) return emptyMap()
         val semaphore = Semaphore(ExtractLightLimits.MAX_CONCURRENT)
         var completed = 0
-
-        coroutineScope {
-            limitedTokens.map { token ->
+        return coroutineScope {
+            tokens.map { token ->
                 async {
                     if (isCancelled()) return@async null
                     semaphore.withPermit {
@@ -86,7 +117,7 @@ class DivarLightClient @Inject constructor(
                             thumbnailUrl?.let { add(it) }
                             addAll(imageUrls.filter { it != thumbnailUrl })
                         }
-                        RawExtractedItem(
+                        token to RawExtractedItem(
                             token = token,
                             raw = detail,
                             thumbnailUrl = thumbnailUrl,
@@ -94,10 +125,10 @@ class DivarLightClient @Inject constructor(
                         )
                     }?.also {
                         completed++
-                        onProgress(completed, limitedTokens.size)
+                        onProgress(completed, tokens.size)
                     }
                 }
-            }.awaitAll().filterNotNull()
+            }.awaitAll().filterNotNull().toMap()
         }
     }
 
@@ -138,12 +169,11 @@ class DivarLightClient @Inject constructor(
             val listWidgets = root["list_widgets"]?.jsonArray ?: break
 
             val pageTokens = listWidgets.mapNotNull { widget ->
-                val obj = widget.jsonObject
-                if (obj["widget_type"]?.jsonPrimitive?.content != "POST_ROW") return@mapNotNull null
-                val data = obj["data"]?.jsonObject ?: return@mapNotNull null
-                val token = data["token"]?.jsonPrimitive?.content
-                    ?: data["action"]?.jsonObject?.get("payload")?.jsonObject
-                        ?.get("token")?.jsonPrimitive?.content
+                val obj = widget.asObject() ?: return@mapNotNull null
+                if (obj.str("widget_type") != "POST_ROW") return@mapNotNull null
+                val data = obj["data"]?.asObject() ?: return@mapNotNull null
+                val token = data.str("token")
+                    ?: data["action"]?.asObject()?.get("payload")?.asObject()?.str("token")
                 token?.let { tok ->
                     DivarImageExtractor.extractListThumbnail(data)?.let { thumb ->
                         listThumbnails[tok] = thumb
@@ -162,22 +192,16 @@ class DivarLightClient @Inject constructor(
                 val remaining = maxItems - tokens.size
                 tokens.addAll(newOnes.take(remaining))
 
-                val first = listWidgets.first().jsonObject
-                val last = listWidgets.last().jsonObject
-                val firstInfo = first["action_log"]?.jsonObject
-                    ?.get("server_side_info")?.jsonObject?.get("info")?.jsonObject
-                val lastInfo = last["action_log"]?.jsonObject
-                    ?.get("server_side_info")?.jsonObject?.get("info")?.jsonObject
-                lastPostDate = lastInfo?.get("sort_date")?.jsonPrimitive?.content
-                    ?: firstInfo?.get("sort_date")?.jsonPrimitive?.content
-                    ?: lastPostDate
-                searchUid = firstInfo?.get("extra_data")?.jsonObject
-                    ?.get("search_uid")?.jsonPrimitive?.content ?: searchUid
+                val first = listWidgets.first().asObject()
+                val last = listWidgets.last().asObject()
+                val firstInfo = first?.nested("action_log", "server_side_info", "info")
+                val lastInfo = last?.nested("action_log", "server_side_info", "info")
+                lastPostDate = lastInfo?.str("sort_date") ?: firstInfo?.str("sort_date") ?: lastPostDate
+                searchUid = firstInfo?.nested("extra_data")?.str("search_uid") ?: searchUid
                 cumulativeWidgets += listWidgets.size
 
-                val paginationData = root["pagination_data"]?.jsonObject
-                viewedTokens = paginationData?.get("viewed_tokens")?.jsonPrimitive?.content
-                    ?: viewedTokens
+                val paginationData = root["pagination_data"]?.asObject()
+                viewedTokens = paginationData?.str("viewed_tokens") ?: viewedTokens
             }
 
             if (tokens.size >= maxItems) break
@@ -235,16 +259,16 @@ class DivarLightClient @Inject constructor(
         val sections = detailObj["sections"]?.jsonArray ?: return fallbackBusinessLazyRequest(detailObj, token)
 
         for (section in sections) {
-            val sec = section.jsonObject
-            if (sec["section_name"]?.jsonPrimitive?.content != "BUSINESS_SECTION") continue
+            val sec = section.asObject() ?: continue
+            if (sec.str("section_name") != "BUSINESS_SECTION") continue
             val widgets = sec["widgets"]?.jsonArray ?: continue
             for (widget in widgets) {
-                val w = widget.jsonObject
-                if (w["widget_type"]?.jsonPrimitive?.content != "LAZY_SECTION") continue
-                val data = w["data"]?.jsonObject ?: continue
-                val path = data["rest_request_path"]?.jsonPrimitive?.content?.trim().orEmpty()
+                val w = widget.asObject() ?: continue
+                if (w.str("widget_type") != "LAZY_SECTION") continue
+                val data = w["data"]?.asObject() ?: continue
+                val path = data.str("rest_request_path")?.trim().orEmpty()
                 if (path.isBlank()) continue
-                val reqData = data["request_data"]?.jsonObject
+                val reqData = data["request_data"]?.asObject()
                 val body = if (reqData != null) {
                     buildJsonObject { put("request_data", reqData) }
                 } else {
@@ -257,8 +281,7 @@ class DivarLightClient @Inject constructor(
     }
 
     private fun fallbackBusinessLazyRequest(detailObj: JsonObject, token: String): Pair<String, String>? {
-        val businessType = detailObj["webengage"]?.jsonObject
-            ?.get("business_type")?.jsonPrimitive?.content?.lowercase().orEmpty()
+        val businessType = detailObj["webengage"]?.asObject()?.str("business_type")?.lowercase().orEmpty()
         if (businessType != "premium-panel" && businessType != "premium_panel") return null
         val path = "/v8/premium-user/post-page/business-data/$token/lazy"
         val body = defaultBusinessLazyBody(tokenFromDetail(detailObj, token))
@@ -266,8 +289,7 @@ class DivarLightClient @Inject constructor(
     }
 
     private fun tokenFromDetail(detailObj: JsonObject, fallback: String): String =
-        detailObj["webengage"]?.jsonObject?.get("token")?.jsonPrimitive?.content?.trim()
-            ?.takeIf { it.isNotEmpty() } ?: fallback
+        detailObj["webengage"]?.asObject()?.str("token")?.trim()?.takeIf { it.isNotEmpty() } ?: fallback
 
     private fun defaultBusinessLazyBody(token: String): JsonObject = buildJsonObject {
         put("request_data", buildJsonObject {
@@ -410,6 +432,19 @@ class DivarLightClient @Inject constructor(
         return try { block() } catch (_: Exception) { null }
     }
 
+    private fun JsonElement.asObject(): JsonObject? = runCatching { jsonObject }.getOrNull()
+
+    private fun JsonObject.str(key: String): String? =
+        runCatching { get(key)?.jsonPrimitive?.content }.getOrNull()?.takeIf { it.isNotBlank() }
+
+    private fun JsonObject.nested(vararg keys: String): JsonObject? {
+        var current: JsonObject? = this
+        for (key in keys) {
+            current = current?.get(key)?.asObject() ?: return null
+        }
+        return current
+    }
+
     companion object {
         private const val MOBILE_USER_AGENT =
             "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 " +
@@ -417,7 +452,7 @@ class DivarLightClient @Inject constructor(
         private const val DESKTOP_USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
                 "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-        private const val MAX_LIST_PAGES = 60
+        private const val MAX_LIST_PAGES = 80
         private const val MAX_RETRIES = 3
         private const val RETRY_BACKOFF_MS = 400L
         private val RETRYABLE_CODES = setOf(429, 500, 502, 503, 504)

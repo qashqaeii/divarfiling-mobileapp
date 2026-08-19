@@ -34,6 +34,7 @@ import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.LicenseGateBanner
+import ir.divarfiling.mobile.feature.extract.components.ExtractBatchCard
 import ir.divarfiling.mobile.feature.extract.components.ExtractFiltersCard
 import ir.divarfiling.mobile.feature.extract.components.ExtractHeader
 import ir.divarfiling.mobile.feature.extract.components.ExtractLoadingExperience
@@ -178,6 +179,16 @@ fun ExtractScreen(
                 )
             }
 
+            item {
+                ExtractBatchCard(
+                    state = state,
+                    enabled = canExtract && !state.isRunning,
+                    onPresetChange = viewModel::onBatchPresetChange,
+                    onJobToggle = viewModel::onCustomJobToggle,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
             if (state.isRunning) {
                 item {
                     Column(
@@ -192,6 +203,9 @@ fun ExtractScreen(
                             ),
                             progressCurrent = state.progressCurrent,
                             progressTotal = state.progressTotal,
+                            batchJobLabel = state.batchJobLabel,
+                            batchJobIndex = state.batchJobIndex,
+                            batchJobTotal = state.batchJobTotal,
                         )
                         DfPrimaryButton(text = "لغو استخراج", onClick = viewModel::cancel)
                     }
@@ -199,8 +213,15 @@ fun ExtractScreen(
             } else {
                 item {
                     ExtractStartButton(
-                        enabled = canExtract && state.canExtractNow && state.maxItems > 0,
+                        enabled = canExtract && state.canExtractNow && state.maxItems > 0 &&
+                            (state.batchPreset == ExtractBatchPreset.SINGLE || state.selectedBatchJobs.isNotEmpty()),
                         onClick = viewModel::startExtraction,
+                        title = if (state.isBatchMode) "شروع استخراج گروهی" else "شروع استخراج",
+                        subtitle = if (state.isBatchMode) {
+                            "${state.selectedBatchJobs.size} زیردسته با حداکثر ${state.maxItems} آگهی در هر دسته"
+                        } else {
+                            "استخراج آگهی‌ها را با تنظیمات فوق آغاز کنید"
+                        },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

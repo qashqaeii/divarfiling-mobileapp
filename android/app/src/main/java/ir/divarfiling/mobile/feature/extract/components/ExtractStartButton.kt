@@ -38,6 +38,8 @@ fun ExtractStartButton(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    title: String = "شروع استخراج",
+    subtitle: String = "استخراج آگهی‌ها را با تنظیمات فوق آغاز کنید",
 ) {
     Row(
         modifier = modifier
@@ -90,7 +92,7 @@ fun ExtractStartButton(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "شروع استخراج",
+                    text = title,
                     style = AppTypography.cardTitle,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -106,7 +108,7 @@ fun ExtractStartButton(
                 )
             }
             Text(
-                text = "استخراج آگهی‌ها را با تنظیمات فوق آغاز کنید",
+                text = subtitle,
                 style = AppTypography.labelSmall,
                 color = Color.White.copy(alpha = 0.88f),
                 maxLines = 2,

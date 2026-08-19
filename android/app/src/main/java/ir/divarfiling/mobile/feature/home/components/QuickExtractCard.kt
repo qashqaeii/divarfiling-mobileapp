@@ -155,7 +155,7 @@ fun QuickExtractCard(
 private fun QuickExtractCardPreview() {
     DivarFilingTheme {
         QuickExtractCard(
-            maxItems = 250,
+            maxItems = 500,
             enabled = true,
             onStartClick = {},
         )

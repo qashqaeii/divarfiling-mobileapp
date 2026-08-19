@@ -392,7 +392,7 @@ data class ExtractionUploadData(
 
 @Serializable
 data class ExtractionLimitsData(
-    @SerialName("max_items") val maxItems: Int = 250,
+    @SerialName("max_items") val maxItems: Int = 500,
     @SerialName("max_concurrent_hint") val maxConcurrentHint: Int = 2,
     @SerialName("extractions_today") val extractionsToday: Int = 0,
     @SerialName("extractions_daily_limit") val extractionsDailyLimit: Int = 10,
@@ -1048,10 +1048,26 @@ data class DatasetMapMarkerDto(
     val lng: Double? = null,
     val token: String? = null,
     val title: String? = null,
-    val price: String? = null,
+    val price: Long? = null,
     @SerialName("price_label") val priceLabel: String? = null,
+    @SerialName("deposit_label") val depositLabel: String? = null,
+    @SerialName("rent_label") val rentLabel: String? = null,
+    val area: Double? = null,
+    @SerialName("area_label") val areaLabel: String? = null,
+    val rooms: String? = null,
+    @SerialName("pps_label") val ppsLabel: String? = null,
+    val neighborhood: String? = null,
+    val city: String? = null,
     val thumb: String? = null,
     @SerialName("is_consultant") val isConsultant: Boolean = false,
+    @SerialName("is_disguised") val isDisguised: Boolean = false,
+    @SerialName("seller_type") val sellerType: String? = null,
+    @SerialName("advertiser_signal") val advertiserSignal: String? = null,
+    @SerialName("market_tier") val marketTier: String? = null,
+    val verdict: String? = null,
+    @SerialName("value_score") val valueScore: Double? = null,
+    @SerialName("filter_value") val filterValue: Long? = null,
+    @SerialName("location_label") val locationLabel: String? = null,
     val color: String? = null,
     val quartile: Int? = null,
 )
@@ -1062,6 +1078,17 @@ data class DatasetMapData(
     val markers: List<DatasetMapMarkerDto> = emptyList(),
     @SerialName("geo_count") val geoCount: Int = 0,
     @SerialName("markers_shown") val markersShown: Int = 0,
+    @SerialName("consultant_count") val consultantCount: Int = 0,
+    @SerialName("personal_count") val personalCount: Int = 0,
+    val config: DatasetMapConfigDto? = null,
+)
+
+@Serializable
+data class DatasetMapConfigDto(
+    @SerialName("dataset_name") val datasetName: String? = null,
+    @SerialName("dataset_city") val datasetCity: String? = null,
+    @SerialName("is_rent") val isRent: Boolean = false,
+    @SerialName("filter_value_label") val filterValueLabel: String? = null,
 )
 
 @Serializable

@@ -79,14 +79,17 @@ object DossierShareFormatter {
         hasParking = listing.hasParking,
         hasStorage = listing.hasStorage,
         hasElevator = listing.hasElevator,
-        featureHighlights = emptyList(),
+        featureHighlights = listing.listingHighlights,
         propertyType = listing.businessType,
         dealMode = null,
         transactionStatus = listing.unitStatus,
         address = null,
         internalNotes = null,
         link = listing.shareLink,
-        options = options,
+        options = options.copy(
+            publicPageUrl = options.publicPageUrl.ifBlank { listing.publicShare?.shareUrl.orEmpty() },
+            includePublicPageLink = true,
+        ),
     )
 
     fun fromProperty(property: PropertyDto, options: DossierShareOptions = DossierShareOptions()): String = build(
@@ -207,7 +210,7 @@ object DossierShareFormatter {
 
         if (options.includePublicPageLink) {
             options.publicPageUrl.trim().takeIf { it.isNotBlank() }?.let {
-                lines += "\n🌐 مشاهده جزئیات کامل ملک:"
+                lines += "\n🌐 صفحه عمومی ملک:"
                 lines += it
             }
         }

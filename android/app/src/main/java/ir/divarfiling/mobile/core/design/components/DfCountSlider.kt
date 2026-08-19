@@ -67,7 +67,7 @@ fun DfCountSlider(
         else -> 5
     }
     val presets = remember(min, max) {
-        listOf(50, 100, 150, 200, max)
+        listOf(50, 100, 250, 500, max)
             .filter { it in min..max }
             .distinct()
     }

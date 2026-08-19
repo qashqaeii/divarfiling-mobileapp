@@ -390,6 +390,19 @@ private fun ListingDetailContent(
                     onEdit = onEdit,
                     onSaveAsPersonal = onSaveAsPersonal,
                     onCopyLink = onCopyLink,
+                    quickActions = {
+                        ListingQuickActionsRow(
+                            onSendToContact = onSendToContact,
+                            onShare = onShare,
+                            onOwnerPhone = onOwnerPhone,
+                            onWhatsAppShare = onWhatsAppShare,
+                            onOpenDivar = onOpenDivar,
+                            onSetReminder = onSetReminder,
+                            onSaveAsPersonal = onSaveAsPersonal,
+                            onOpenAi = onOpenAi,
+                            showSaveAsPersonal = false,
+                        )
+                    },
                 )
             }
 
@@ -397,20 +410,6 @@ private fun ListingDetailContent(
                 ListingDetailHeader(
                     listing = listing,
                     onCopyAdCode = onCopyAdCode,
-                )
-            }
-
-            item {
-                ListingQuickActionsRow(
-                    onSendToContact = onSendToContact,
-                    onShare = onShare,
-                    onOwnerPhone = onOwnerPhone,
-                    onWhatsAppShare = onWhatsAppShare,
-                    onOpenDivar = onOpenDivar,
-                    onSetReminder = onSetReminder,
-                    onSaveAsPersonal = onSaveAsPersonal,
-                    onOpenAi = onOpenAi,
-                    showSaveAsPersonal = false,
                 )
             }
 

@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.core.design.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -75,33 +77,7 @@ fun FeatureProfilePanels(
         FeatureProfileHeader(title = title, subtitle = subtitle)
 
         if (hasHighlights) {
-            DfPremiumCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(AppSpacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        DfDecorImage(resId = DfDecorIcons.Sparkles, size = 16.dp)
-                        Text(
-                            text = "نکات برجسته",
-                            style = AppTypography.cardTitle,
-                            fontWeight = FontWeight.Bold,
-                            color = DfThemeColors.textPrimary(),
-                        )
-                    }
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        highlights.forEach { highlight ->
-                            DfBadge(text = highlight)
-                        }
-                    }
-                }
-            }
+            HighlightsShowcase(highlights = highlights)
         }
 
         profile?.core?.filter { !it.value.isNullOrBlank() && it.value != "—" }.orEmpty().let { core ->
@@ -137,6 +113,92 @@ fun FeatureProfilePanels(
                         )
                     },
             )
+        }
+    }
+}
+
+@Composable
+private fun HighlightsShowcase(
+    highlights: List<String>,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfColors.PurpleContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, DfColors.Purple.copy(alpha = 0.18f)),
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    shape = AppShapes.IconContainer,
+                    color = DfColors.Purple.copy(alpha = 0.14f),
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                        DfDecorImage(resId = DfDecorIcons.Sparkles, size = 18.dp)
+                    }
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "نکات برجسته ملک",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.PurpleDark,
+                    )
+                    Text(
+                        text = "${highlights.size} ویژگی شاخص برای ارائه به مشتری",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.Purple.copy(alpha = 0.8f),
+                    )
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                highlights.forEachIndexed { index, highlight ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = AppShapes.CardSmall,
+                        color = DfThemeColors.surface(),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = DfColors.Purple,
+                                modifier = Modifier.size(22.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = "${index + 1}",
+                                        style = AppTypography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                    )
+                                }
+                            }
+                            Text(
+                                text = highlight,
+                                style = AppTypography.bodyDescription,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DfThemeColors.textPrimary(),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

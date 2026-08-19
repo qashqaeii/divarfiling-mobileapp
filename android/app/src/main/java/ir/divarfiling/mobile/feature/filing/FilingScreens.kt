@@ -58,7 +58,6 @@ import ir.divarfiling.mobile.feature.filing.components.FilingDatasetsSection
 import ir.divarfiling.mobile.feature.filing.components.FilingExtractFab
 import ir.divarfiling.mobile.feature.filing.components.FilingHubHeader
 import ir.divarfiling.mobile.feature.filing.components.FilingSearchFilterPanel
-import ir.divarfiling.mobile.feature.filing.components.FilingStatsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingsActiveFilterChips
 import ir.divarfiling.mobile.feature.filing.components.ListingsSearchFilterPanel
 import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
@@ -101,7 +100,6 @@ fun DatasetsScreen(
         )
     }
 
-    val totalAds = remember(state.datasets) { FilingDatasetFilters.totalAds(state.datasets) }
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
@@ -143,14 +141,6 @@ fun DatasetsScreen(
                         notificationCount = state.notificationBadgeCount,
                         onNotificationsClick = onNavigateNotifications,
                         onMenuClick = onNavigateSettings,
-                    )
-                }
-                item {
-                    FilingStatsRow(
-                        totalAds = totalAds,
-                        filesCount = state.datasets.size,
-                        estimatedSizeGb = FilingDatasetFilters.estimatedSizeGb(totalAds),
-                        datasetsThisMonth = FilingDatasetFilters.datasetsThisMonth(state.datasets),
                     )
                 }
                 item {

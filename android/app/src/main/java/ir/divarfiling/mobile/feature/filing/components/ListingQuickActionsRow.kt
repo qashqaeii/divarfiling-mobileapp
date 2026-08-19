@@ -2,7 +2,6 @@ package ir.divarfiling.mobile.feature.filing.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -141,24 +139,34 @@ fun ListingQuickActionsRow(
         color = DfColors.Surface,
         shadowElevation = AppElevations.subtle,
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
                 .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            actions.forEach { action ->
-                ListingQuickActionButton(
-                    label = action.label,
-                    icon = action.icon,
-                    iconRes = action.iconRes,
-                    tintIconRes = action.tintIconRes,
-                    tint = action.tint,
-                    background = action.background,
-                    onClick = action.onClick,
-                )
+            actions.chunked(4).forEach { rowActions ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    rowActions.forEach { action ->
+                        ListingQuickActionButton(
+                            label = action.label,
+                            icon = action.icon,
+                            iconRes = action.iconRes,
+                            tintIconRes = action.tintIconRes,
+                            tint = action.tint,
+                            background = action.background,
+                            onClick = action.onClick,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    repeat(4 - rowActions.size) {
+                        Box(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
@@ -181,6 +189,7 @@ private fun ListingQuickActionButton(
     tint: Color,
     background: Color,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     iconRes: Int? = null,
     tintIconRes: Boolean = false,
@@ -188,7 +197,7 @@ private fun ListingQuickActionButton(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.padding(horizontal = 2.dp),
+        modifier = modifier.padding(horizontal = 2.dp),
     ) {
         Surface(
             onClick = onClick,

@@ -79,4 +79,52 @@ object ExtractCategories {
     }
 
     fun isRentCategory(slug: String): Boolean = "rent" in slug
+
+    data class ExtractJob(
+        val transactionType: String,
+        val subcategoryLabel: String,
+        val apiSlug: String,
+    ) {
+        val displayName: String get() = "$transactionType — $subcategoryLabel"
+        val key: String get() = "$transactionType|$subcategoryLabel"
+    }
+
+    val allJobs: List<ExtractJob> = transactionTypes.flatMap { tx ->
+        tx.subcategories.map { sub ->
+            ExtractJob(
+                transactionType = tx.label,
+                subcategoryLabel = sub.label,
+                apiSlug = sub.apiSlug,
+            )
+        }
+    }
+
+    private val residentialLabels = setOf("اجاره مسکونی", "فروش مسکونی")
+    private val commercialLabels = setOf(
+        "اجاره اداری و تجاری",
+        "فروش اداری و تجاری",
+        "پروژه‌های ساخت‌وساز",
+    )
+
+    val residentialJobs: List<ExtractJob>
+        get() = allJobs.filter { it.transactionType in residentialLabels }
+
+    val commercialJobs: List<ExtractJob>
+        get() = allJobs.filter { it.transactionType in commercialLabels }
+
+    fun jobsForPreset(preset: ExtractBatchPreset): List<ExtractJob> = when (preset) {
+        ExtractBatchPreset.ALL -> allJobs
+        ExtractBatchPreset.RESIDENTIAL -> residentialJobs
+        ExtractBatchPreset.COMMERCIAL -> commercialJobs
+        ExtractBatchPreset.CUSTOM -> emptyList()
+        ExtractBatchPreset.SINGLE -> emptyList()
+    }
+}
+
+enum class ExtractBatchPreset {
+    SINGLE,
+    ALL,
+    RESIDENTIAL,
+    COMMERCIAL,
+    CUSTOM,
 }

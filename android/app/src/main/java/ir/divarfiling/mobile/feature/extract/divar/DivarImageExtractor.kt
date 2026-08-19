@@ -104,7 +104,7 @@ object DivarImageExtractor {
         urls: LinkedHashSet<String>,
         depth: Int,
     ) {
-        if (depth > 12 || urls.size >= 8) return
+        if (depth > 12 || urls.size >= 40) return
         when (element) {
             is JsonObject -> {
                 element.forEach { (key, value) ->

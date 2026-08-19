@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import kotlinx.coroutines.delay
@@ -45,6 +46,9 @@ fun ExtractLoadingExperience(
     progressCurrent: Int,
     progressTotal: Int,
     modifier: Modifier = Modifier,
+    batchJobLabel: String? = null,
+    batchJobIndex: Int = 0,
+    batchJobTotal: Int = 0,
 ) {
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) {
@@ -86,11 +90,23 @@ fun ExtractLoadingExperience(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
                     Text(
-                        "در حال استخراج…",
+                        if (batchJobTotal > 1) "استخراج گروهی…" else "در حال استخراج…",
                         style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
                         color = DfThemeColors.textPrimary(),
                     )
+                    if (!batchJobLabel.isNullOrBlank()) {
+                        Text(
+                            if (batchJobTotal > 1) {
+                                "دسته ${DateUtils.toPersianDigits(batchJobIndex.toString())} از ${DateUtils.toPersianDigits(batchJobTotal.toString())} — $batchJobLabel"
+                            } else {
+                                batchJobLabel
+                            },
+                            style = AppTypography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DfThemeColors.primary(),
+                        )
+                    }
                     Text(
                         "$percentLabel · ${formatDuration(elapsedSeconds)}",
                         style = AppTypography.bodyDescription,

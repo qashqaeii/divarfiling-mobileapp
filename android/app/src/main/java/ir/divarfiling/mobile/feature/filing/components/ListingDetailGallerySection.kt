@@ -38,6 +38,7 @@ fun ListingDetailGallerySection(
     onSaveAsPersonal: () -> Unit,
     onCopyLink: () -> Unit,
     modifier: Modifier = Modifier,
+    quickActions: @Composable () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -61,6 +62,8 @@ fun ListingDetailGallerySection(
             onCopyLink = onCopyLink,
             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
         )
+
+        quickActions()
 
         ListingMosaicGallery(
             images = images,

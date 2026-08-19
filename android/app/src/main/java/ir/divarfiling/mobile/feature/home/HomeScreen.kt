@@ -285,7 +285,7 @@ internal fun HomeScreenContentPreview() {
             )
         }
         item {
-            QuickExtractCard(maxItems = 250, enabled = true, onStartClick = {})
+            QuickExtractCard(maxItems = 500, enabled = true, onStartClick = {})
         }
         item {
             QuickActionsRow(

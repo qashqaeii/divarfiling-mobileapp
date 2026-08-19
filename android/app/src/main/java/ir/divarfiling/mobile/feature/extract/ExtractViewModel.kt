@@ -82,12 +82,27 @@ data class ExtractUiState(
     val lastSuccessfulIngestedCount: Int? = null,
     val averageExtractionDurationMinutes: Double? = null,
     val lastExtractionAtMs: Long? = null,
+    val batchPreset: ExtractBatchPreset = ExtractBatchPreset.SINGLE,
+    val customJobKeys: Set<String> = emptySet(),
+    val batchJobIndex: Int = 0,
+    val batchJobTotal: Int = 0,
+    val batchJobLabel: String? = null,
 ) {
     val categorySlug: String
         get() = ExtractCategories.slugFor(transactionType, subcategoryLabel).orEmpty()
 
     val isRent: Boolean
         get() = ExtractCategories.isRentCategory(categorySlug)
+
+    val selectedBatchJobs: List<ExtractCategories.ExtractJob>
+        get() = when (batchPreset) {
+            ExtractBatchPreset.SINGLE -> emptyList()
+            ExtractBatchPreset.CUSTOM -> ExtractCategories.allJobs.filter { it.key in customJobKeys }
+            else -> ExtractCategories.jobsForPreset(batchPreset)
+        }
+
+    val isBatchMode: Boolean
+        get() = batchPreset != ExtractBatchPreset.SINGLE && selectedBatchJobs.isNotEmpty()
 }
 
 @HiltViewModel
@@ -252,6 +267,27 @@ class ExtractViewModel @Inject constructor(
     fun onRoomsChange(v: String) = _uiState.update { it.copy(rooms = v) }
     fun onSearchQueryChange(v: String) = _uiState.update { it.copy(searchQuery = v) }
 
+    fun onBatchPresetChange(preset: ExtractBatchPreset) {
+        _uiState.update {
+            it.copy(
+                batchPreset = preset,
+                customJobKeys = if (preset == ExtractBatchPreset.CUSTOM && it.customJobKeys.isEmpty()) {
+                    ExtractCategories.allJobs.map { job -> job.key }.toSet()
+                } else {
+                    it.customJobKeys
+                },
+            )
+        }
+    }
+
+    fun onCustomJobToggle(jobKey: String, selected: Boolean) {
+        _uiState.update { state ->
+            val next = state.customJobKeys.toMutableSet()
+            if (selected) next.add(jobKey) else next.remove(jobKey)
+            state.copy(batchPreset = ExtractBatchPreset.CUSTOM, customJobKeys = next)
+        }
+    }
+
     fun onScheduleIntervalSelect(hours: Double) {
         _uiState.update { it.copy(scheduleIntervalHours = hours) }
         viewModelScope.launch { extractPreferences.setScheduleIntervalHours(hours) }
@@ -402,9 +438,28 @@ class ExtractViewModel @Inject constructor(
             }
             return
         }
-        val slug = state.categorySlug
-        if (slug.isBlank()) {
-            _uiState.update { it.copy(error = "دسته‌بندی نامعتبر است") }
+        val jobs = if (state.isBatchMode) state.selectedBatchJobs else {
+            val slug = state.categorySlug
+            if (slug.isBlank()) {
+                _uiState.update { it.copy(error = "دسته‌بندی نامعتبر است") }
+                return
+            }
+            listOf(
+                ExtractCategories.ExtractJob(
+                    transactionType = state.transactionType,
+                    subcategoryLabel = state.subcategoryLabel,
+                    apiSlug = slug,
+                ),
+            )
+        }
+        if (jobs.isEmpty()) {
+            _uiState.update { it.copy(error = "حداقل یک زیردسته برای استخراج گروهی انتخاب کنید") }
+            return
+        }
+        val remaining = state.remainingToday
+        val runnableJobs = if (remaining != null) jobs.take(remaining.coerceAtLeast(0)) else jobs
+        if (runnableJobs.isEmpty()) {
+            _uiState.update { it.copy(error = "سقف استخراج روزانه تکمیل شده است. فردا دوباره تلاش کنید.") }
             return
         }
         cancelled = false
@@ -412,20 +467,83 @@ class ExtractViewModel @Inject constructor(
         job = viewModelScope.launch {
             extractionStartedAt = System.currentTimeMillis()
             _uiState.update {
-                it.copy(isRunning = true, error = null, message = null, progressCurrent = 0, progressTotal = 0)
-            }
-            val filters = buildFiltersFromState(state)
-            when (
-                val result = extractionRepository.runLightExtraction(
-                    filters = filters,
-                    onProgress = { current, total ->
-                        _uiState.update { it.copy(progressCurrent = current, progressTotal = total) }
-                    },
-                    isCancelled = { cancelled },
+                it.copy(
+                    isRunning = true,
+                    error = null,
+                    message = null,
+                    progressCurrent = 0,
+                    progressTotal = 0,
+                    batchJobIndex = 0,
+                    batchJobTotal = runnableJobs.size,
+                    batchJobLabel = runnableJobs.first().displayName,
+                    lastDatasetId = null,
+                    lastUploadStats = null,
                 )
-            ) {
-                is ApiResult.Success -> {
-                    val stats = result.data
+            }
+            var lastSuccess: ExtractionUploadData? = null
+            var ingestedTotal = 0
+            var successJobs = 0
+            var lastError: String? = null
+            jobLoop@ for ((index, extractJob) in runnableJobs.withIndex()) {
+                if (cancelled) break@jobLoop
+                _uiState.update {
+                    it.copy(
+                        batchJobIndex = index + 1,
+                        batchJobTotal = runnableJobs.size,
+                        batchJobLabel = extractJob.displayName,
+                        progressCurrent = 0,
+                        progressTotal = 0,
+                    )
+                }
+                val filters = buildFiltersFromState(_uiState.value).copy(
+                    category = extractJob.apiSlug,
+                    categoryLabel = extractJob.subcategoryLabel,
+                    transactionTypeLabel = extractJob.transactionType,
+                ).let { base -> base.copy(outputNameHint = OutputNameHint.build(base)) }
+                when (
+                    val result = extractionRepository.runLightExtraction(
+                        filters = filters,
+                        onProgress = { current, total ->
+                            _uiState.update { it.copy(progressCurrent = current, progressTotal = total) }
+                        },
+                        isCancelled = { cancelled },
+                    )
+                ) {
+                    is ApiResult.Success -> {
+                        lastSuccess = result.data
+                        ingestedTotal += result.data.ingestedCount
+                        successJobs++
+                        if (result.data.ingestedCount > 0) {
+                            val durationMs = extractionStartedAt?.let { started ->
+                                (System.currentTimeMillis() - started).coerceAtLeast(0)
+                            } ?: 0L
+                            extractPreferences.recordSuccessfulExtraction(
+                                ingestedCount = result.data.ingestedCount,
+                                durationMinutes = (durationMs / 60_000.0).coerceAtLeast(0.05),
+                            )
+                        }
+                    }
+                    is ApiResult.Error -> {
+                        lastError = result.message
+                        if (result.code == "DAILY_LIMIT" || result.code == "LICENSE_REQUIRED") {
+                            break@jobLoop
+                        }
+                    }
+                }
+            }
+            val sessionStats = extractPreferences.getSessionStats()
+            val durationMinutes = extractionStartedAt?.let { started ->
+                (System.currentTimeMillis() - started).coerceAtLeast(0) / 60_000.0
+            }
+            val skippedDaily = jobs.size - runnableJobs.size
+            val summary = buildString {
+                if (cancelled) {
+                    append("استخراج لغو شد")
+                    if (successJobs > 0) append(" — $successJobs دسته ذخیره شد")
+                    return@buildString
+                }
+                if (runnableJobs.size == 1 && lastSuccess != null) {
+                    val stats = lastSuccess!!
                     val mergeNote = if (stats.datasetMerged) " (ادغام با فایلینگ موجود)" else ""
                     val ownerNote = when {
                         stats.genuinePersonalCount > 0 ->
@@ -434,35 +552,40 @@ class ExtractViewModel @Inject constructor(
                             " — ${stats.disguisedConsultantCount} مشاور پنهان شناسایی شد"
                         else -> ""
                     }
-                    val durationMs = extractionStartedAt?.let { started ->
-                        (System.currentTimeMillis() - started).coerceAtLeast(0)
-                    } ?: 0L
-                    val durationMinutes = durationMs / 60_000.0
-                    if (stats.ingestedCount > 0) {
-                        extractPreferences.recordSuccessfulExtraction(
-                            ingestedCount = stats.ingestedCount,
-                            durationMinutes = durationMinutes.coerceAtLeast(0.05),
-                        )
-                    }
-                    val sessionStats = extractPreferences.getSessionStats()
-                    _uiState.update {
-                        it.copy(
-                            isRunning = false,
-                            message = "آپلود موفق — ${stats.ingestedCount} آگهی پردازش شد$mergeNote$ownerNote",
-                            lastDatasetId = stats.datasetId,
-                            lastUploadStats = stats,
-                            lastExtractionDurationMinutes = durationMinutes.takeIf { it > 0 },
-                            lastSuccessfulIngestedCount = sessionStats.lastSuccessfulCount
-                                .takeIf { count -> count > 0 },
-                            averageExtractionDurationMinutes = sessionStats.averageDurationMinutes
-                                .takeIf { avg -> avg > 0 },
-                            lastExtractionAtMs = sessionStats.lastExtractionAtMs.takeIf { ts -> ts > 0 },
-                        )
-                    }
+                    append("آپلود موفق — ${stats.ingestedCount} آگهی پردازش شد$mergeNote$ownerNote")
+                    return@buildString
                 }
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(isRunning = false, error = result.message)
+                append("استخراج گروهی: $successJobs از ${runnableJobs.size} دسته انجام شد")
+                append(" — مجموع $ingestedTotal آگهی")
+                if (skippedDaily > 0) {
+                    append(" — $skippedDaily دسته به‌خاطر سقف روزانه باقی ماند")
                 }
+                lastError?.let { append(" — آخرین خطا: $it") }
+            }
+            extractionRepository.getLimits()?.let { limits ->
+                _uiState.update {
+                    it.copy(
+                        remainingToday = limits.remainingToday,
+                        extractionsToday = limits.extractionsToday,
+                        extractionsDailyLimit = limits.extractionsDailyLimit,
+                        canExtractNow = limits.canExtractNow,
+                    )
+                }
+            }
+            _uiState.update {
+                it.copy(
+                    isRunning = false,
+                    message = if (successJobs > 0) summary else null,
+                    error = if (successJobs == 0) lastError ?: summary else null,
+                    lastDatasetId = lastSuccess?.datasetId,
+                    lastUploadStats = lastSuccess,
+                    lastExtractionDurationMinutes = durationMinutes?.takeIf { it > 0 },
+                    lastSuccessfulIngestedCount = sessionStats.lastSuccessfulCount.takeIf { count -> count > 0 },
+                    averageExtractionDurationMinutes = sessionStats.averageDurationMinutes
+                        .takeIf { avg -> avg > 0 },
+                    lastExtractionAtMs = sessionStats.lastExtractionAtMs.takeIf { ts -> ts > 0 },
+                    batchJobLabel = null,
+                )
             }
         }
     }
