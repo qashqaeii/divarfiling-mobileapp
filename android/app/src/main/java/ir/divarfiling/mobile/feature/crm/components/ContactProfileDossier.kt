@@ -15,6 +15,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DossierGroupPanel
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.feature.crm.CrmTypeProfiles
+import ir.divarfiling.mobile.feature.crm.MoneyMode
 
 @Composable
 fun ContactProfileDossier(
@@ -51,7 +52,7 @@ private data class ContactDossierSection(
 
 private fun buildContactDossierSections(
     contact: ContactDto,
-    moneyMode: String,
+    moneyMode: MoneyMode,
 ): List<ContactDossierSection> {
     val sections = mutableListOf<ContactDossierSection>()
 
