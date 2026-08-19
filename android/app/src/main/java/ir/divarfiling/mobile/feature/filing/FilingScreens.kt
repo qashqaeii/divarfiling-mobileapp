@@ -160,12 +160,12 @@ fun DatasetsScreen(
                         onApplyFilters = { },
                     )
                 }
-                item {
-                    FilingCategoryTabsRow(
-                        selectedTabId = selectedCategory,
-                        onTabSelected = { selectedCategory = it },
-                    )
-                }
+                    item {
+                        FilingCategoryTabsRow(
+                            selectedTabId = selectedCategory,
+                            onTabSelected = { selectedCategory = it },
+                        )
+                    }
                 state.error?.let { error ->
                     item { DfErrorBanner(error, modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) }
                 }
@@ -187,19 +187,23 @@ fun DatasetsScreen(
                         )
                     }
                 } else {
-                    item {
-                        FilingDatasetsSection(
-                            title = "همه فایل‌ها",
-                            count = filteredDatasets.size,
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                filteredDatasets.forEach { dataset ->
-                                    FilingDatasetCard(
-                                        dataset = dataset,
-                                        onClick = { onDatasetClick(dataset.id) },
-                                        onExport = { viewModel.openExportSheet(dataset) },
-                                        onDelete = { viewModel.openDeleteSheet(dataset) },
-                                    )
+                    val groupedDatasets = FilingDatasetFilters.groupByLocation(filteredDatasets)
+                    groupedDatasets.forEach { (location, datasets) ->
+                        item(key = "group-$location") {
+                            FilingDatasetsSection(
+                                title = location,
+                                count = datasets.size,
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                                    datasets.forEach { dataset ->
+                                        FilingDatasetCard(
+                                            dataset = dataset,
+                                            onClick = { onDatasetClick(dataset.id) },
+                                            onExport = { viewModel.openExportSheet(dataset) },
+                                            onDelete = { viewModel.openDeleteSheet(dataset) },
+                                            showLocation = location == FilingDatasetFilters.UNGROUPED_LOCATION,
+                                        )
+                                    }
                                 }
                             }
                         }

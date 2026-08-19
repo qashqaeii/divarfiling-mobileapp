@@ -15,7 +15,7 @@ data class ListingFilterState(
     val parking: String = "", // "" | "1" | "0"
     val elevator: String = "",
     val storage: String = "",
-    val consultant: String = "", // "" | "1" | "0" | genuine_personal | disguised
+    val consultant: String = "", // "" | "1" | "0" | genuine_personal | disguised_consultant
     val value: String = "", // "" | below | fair | above
     val unique: Boolean = false,
     val newOnly: Boolean = false,
@@ -77,7 +77,10 @@ data class ListingFilterState(
             parking = params["parking"].orEmpty(),
             elevator = params["elevator"].orEmpty(),
             storage = params["storage"].orEmpty(),
-            consultant = params["consultant"].orEmpty(),
+            consultant = when (val raw = params["consultant"].orEmpty()) {
+                "disguised" -> "disguised_consultant"
+                else -> raw
+            },
             value = params["value"].orEmpty(),
             unique = params["unique"] == "1",
             newOnly = params["new_only"] == "1",
@@ -100,10 +103,10 @@ val ListingSortOptions = listOf(
 
 val ListingAdvertiserOptions = listOf(
     "" to "همه",
-    "0" to "شخصی/مالک",
+    "genuine_personal" to "مالک واقعی",
+    "0" to "شخصی",
     "1" to "مشاور",
-    "genuine_personal" to "شخصی واقعی",
-    "disguised" to "مشاور پنهان",
+    "disguised_consultant" to "مشاور پنهان",
 )
 
 val ListingValueOptions = listOf(

@@ -88,8 +88,8 @@ fun ListingsActiveFilterChips(
             when (filters.consultant) {
                 "1" -> DfBadge(text = "مشاور")
                 "0" -> DfBadge(text = "شخصی")
-                "genuine_personal" -> DfBadge(text = "شخصی واقعی")
-                "disguised" -> DfBadge(text = "مشاور پنهان")
+                "genuine_personal" -> DfBadge(text = "مالک واقعی")
+                "disguised", "disguised_consultant" -> DfBadge(text = "مشاور پنهان")
             }
             when (filters.value) {
                 "below" -> DfBadge(text = "زیر ارزش")

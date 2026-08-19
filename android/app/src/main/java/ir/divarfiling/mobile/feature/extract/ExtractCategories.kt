@@ -59,6 +59,7 @@ object ExtractCategories {
 
     val advertiserOptions = listOf(
         "all" to "همه آگهی‌ها",
+        "genuine_personal" to "مالک واقعی",
         "personal" to "شخصی",
         "consultant" to "مشاور",
     )

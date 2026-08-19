@@ -398,6 +398,14 @@ class DivarLightClient @Inject constructor(
                 })
             })
         }
+        val advertiser = adv.advertiserFilter.trim().lowercase()
+        if (advertiser == "personal" || advertiser == "genuine_personal") {
+            put("business-type", buildJsonObject {
+                put("repeated_string", buildJsonObject {
+                    put("value", buildJsonArray { add("personal") })
+                })
+            })
+        }
     }
 
     private fun kotlinx.serialization.json.JsonObjectBuilder.putNumRange(

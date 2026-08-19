@@ -8,6 +8,7 @@ object FilingDatasetFilters {
     const val ALL_FORMATS = "همه فرمت‌ها"
     const val ALL_CITIES = "همه شهرها"
     const val ALL_TRANSACTIONS = "همه معاملات"
+    const val UNGROUPED_LOCATION = "سایر مناطق"
 
     fun filterDatasets(
         datasets: List<DatasetDto>,
@@ -35,6 +36,26 @@ object FilingDatasetFilters {
 
     fun uniqueTransactions(datasets: List<DatasetDto>): List<String> =
         listOf(ALL_TRANSACTIONS) + datasets.mapNotNull { it.transactionType?.takeIf { tx -> tx.isNotBlank() } }.distinct()
+
+    fun groupByLocation(datasets: List<DatasetDto>): List<Pair<String, List<DatasetDto>>> {
+        return datasets
+            .groupBy { dataset ->
+                dataset.district?.takeIf { it.isNotBlank() }
+                    ?: dataset.city?.takeIf { it.isNotBlank() }
+                    ?: UNGROUPED_LOCATION
+            }
+            .toList()
+            .sortedWith(compareBy({ it.first == UNGROUPED_LOCATION }, { it.first }))
+            .map { (location, group) ->
+                location to group.sortedWith(
+                    compareBy(
+                        { it.transactionType.orEmpty() },
+                        { it.subcategory.orEmpty() },
+                        { it.name },
+                    ),
+                )
+            }
+    }
 
     fun totalAds(datasets: List<DatasetDto>): Int = datasets.sumOf { it.itemCount }
 
@@ -86,6 +107,8 @@ object FilingDatasetFilters {
         return dataset.name.contains(q, ignoreCase = true) ||
             dataset.city?.contains(q, ignoreCase = true) == true ||
             dataset.district?.contains(q, ignoreCase = true) == true ||
+            dataset.transactionType?.contains(q, ignoreCase = true) == true ||
+            dataset.subcategory?.contains(q, ignoreCase = true) == true ||
             dataset.originalFilename?.contains(q, ignoreCase = true) == true
     }
 }

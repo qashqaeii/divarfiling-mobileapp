@@ -86,11 +86,13 @@ fun FilingDatasetCard(
     onClick: () -> Unit,
     onExport: () -> Unit = {},
     onDelete: () -> Unit = {},
+    showLocation: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val location = listOfNotNull(dataset.city, dataset.district).joinToString("، ")
     val format = dataset.fileFormat?.uppercase() ?: "JSON"
+    val cardTitle = datasetDisplayTitle(dataset)
 
     Surface(
         onClick = onClick,
@@ -131,7 +133,7 @@ fun FilingDatasetCard(
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                     ) {
                         Text(
-                            text = dataset.name,
+                            text = cardTitle,
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
                             color = DfThemeColors.textPrimary(),
@@ -175,7 +177,7 @@ fun FilingDatasetCard(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                     FormatBadge(format)
-                    dataset.transactionType?.let {
+                    dataset.transactionType?.takeIf { it.isNotBlank() }?.let {
                         Surface(shape = AppShapes.Chip, color = DfColors.BlueLight) {
                             Text(
                                 text = it,
@@ -185,13 +187,24 @@ fun FilingDatasetCard(
                             )
                         }
                     }
+                    dataset.subcategory?.takeIf { it.isNotBlank() }?.let {
+                        Surface(shape = AppShapes.Chip, color = DfColors.PurpleContainer) {
+                            Text(
+                                text = it,
+                                modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = 3.dp),
+                                style = AppTypography.labelSmall,
+                                color = DfColors.Purple,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (location.isNotBlank()) {
+                    if (showLocation && location.isNotBlank()) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
                             verticalAlignment = Alignment.CenterVertically,
@@ -243,6 +256,15 @@ fun FilingDatasetCard(
             }
         }
     }
+}
+
+internal fun datasetDisplayTitle(dataset: DatasetDto): String {
+    val tx = dataset.transactionType?.trim().orEmpty()
+    val sub = dataset.subcategory?.trim().orEmpty()
+    if (tx.isNotBlank() && sub.isNotBlank()) return "$tx — $sub"
+    if (sub.isNotBlank()) return sub
+    if (tx.isNotBlank()) return tx
+    return dataset.name
 }
 
 @Composable

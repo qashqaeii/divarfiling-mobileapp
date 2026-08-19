@@ -32,6 +32,9 @@ object AdvertiserFilter {
             "personal" -> !isConsultant && (
                 businessType == "personal" || (businessType.isBlank() && consultantName.isBlank())
             )
+            "genuine_personal" -> !isConsultant && (
+                businessType == "personal" || (businessType.isBlank() && consultantName.isBlank())
+            )
             "consultant" -> isConsultant
             else -> true
         }
