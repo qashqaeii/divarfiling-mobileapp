@@ -157,6 +157,20 @@ data class ContactDto(
     @SerialName("builder_buy_areas") val builderBuyAreas: String? = null,
     @SerialName("builder_buy_min_area") val builderBuyMinArea: Int? = null,
     @SerialName("builder_buy_max_area") val builderBuyMaxArea: Int? = null,
+    @SerialName("rooms_min") val roomsMin: Int? = null,
+    @SerialName("rooms_max") val roomsMax: Int? = null,
+    @SerialName("year_min") val yearMin: Int? = null,
+    @SerialName("year_max") val yearMax: Int? = null,
+    @SerialName("floor_min") val floorMin: Int? = null,
+    @SerialName("floor_max") val floorMax: Int? = null,
+    @SerialName("want_parking") val wantParking: Boolean = false,
+    @SerialName("want_storage") val wantStorage: Boolean = false,
+    @SerialName("want_elevator") val wantElevator: Boolean = false,
+    val email: String? = null,
+    val city: String? = null,
+    val address: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("matching_tolerance_percent") val matchingTolerancePercent: Int? = null,
 )
 
 @Serializable
@@ -826,6 +840,11 @@ data class ListingDetailDto(
     @SerialName("has_storage") val hasStorage: Boolean? = null,
     @SerialName("has_elevator") val hasElevator: Boolean? = null,
     @SerialName("public_share") val publicShare: ListingPublicShareDto? = null,
+    @SerialName("feature_profile") val featureProfile: ListingFeatureProfileDto? = null,
+    @SerialName("listing_highlights") val listingHighlights: List<String> = emptyList(),
+    @SerialName("published_at") val publishedAt: String? = null,
+    @SerialName("expires_at") val expiresAt: String? = null,
+    @SerialName("transaction_type") val transactionType: String? = null,
 )
 
 @Serializable

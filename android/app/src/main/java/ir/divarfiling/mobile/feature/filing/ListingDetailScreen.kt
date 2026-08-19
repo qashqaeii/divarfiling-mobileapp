@@ -53,6 +53,7 @@ import ir.divarfiling.mobile.feature.filing.components.ListingLocationSection
 import ir.divarfiling.mobile.feature.filing.components.ListingOwnerPhoneSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingQuickActionsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingSpecsCard
+import ir.divarfiling.mobile.core.design.components.FeatureProfilePanels
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -417,6 +418,16 @@ private fun ListingDetailContent(
                 ListingSpecsCard(
                     listing = listing,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
+            item {
+                FeatureProfilePanels(
+                    profile = listing.featureProfile,
+                    highlights = listing.listingHighlights,
+                    title = "مشخصات کامل ملک",
+                    subtitle = "ساختمان، امکانات، سند، شرایط سکونت و تأسیسات",
+                    emptyMessage = null,
                 )
             }
 

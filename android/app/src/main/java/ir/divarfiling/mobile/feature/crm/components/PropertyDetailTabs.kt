@@ -58,8 +58,8 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
+import ir.divarfiling.mobile.core.design.components.FeatureProfilePanels
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
-import ir.divarfiling.mobile.core.network.ListingFeatureGroupDto
 import ir.divarfiling.mobile.core.network.PropertyContactLinkDto
 import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
@@ -538,6 +538,15 @@ private fun PropertyDossierPanel(
             elevator = elevator,
         )
 
+        FeatureProfilePanels(
+            profile = profile,
+            highlights = detail.listingHighlights,
+            title = "مشخصات تفصیلی ملک",
+            subtitle = "ویژگی‌های استخراج‌شده از آگهی منبع یا ثبت دستی",
+            modifier = Modifier.fillMaxWidth(),
+            emptyMessage = "برای این فایل مشخصات تفصیلی ثبت نشده است.",
+        )
+
         PropertyDossierGroup(
             title = "معامله و قیمت",
             iconRes = DfDecorIcons.Coins,
@@ -799,83 +808,19 @@ private fun PropertySpecsPanel(
     val property = detail.property
     val profile = detail.featureProfile
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)) {
-        Text("مشخصات آگهی منبع", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-        Text(
-            "جزئیات استخراج‌شده از آگهی دیوار متصل به این فایل",
-            style = AppTypography.bodyDescription,
-            color = DfColors.TextMuted,
-        )
-
         PropertyAmenitiesPanel(
             parking = PropertyAmenityResolver.effectiveParking(property, profile),
             storage = PropertyAmenityResolver.effectiveStorage(property, profile),
             elevator = PropertyAmenityResolver.effectiveElevator(property, profile),
         )
-
-        if (profile == null || !profile.hasDetails) {
-            if (detail.listingHighlights.isEmpty()) {
-                DfEmptyState(
-                    title = "مشخصات تکمیلی ندارد",
-                    subtitle = "این فایل به آگهی دیوار متصل نیست یا ویژگی ثبت نشده",
-                )
-            } else {
-                DfPremiumCard {
-                    Column(
-                        modifier = Modifier.padding(AppSpacing.sm),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text("برچسب‌های آگهی", style = AppTypography.labelSmall, color = DfColors.TextMuted)
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            detail.listingHighlights.forEach { DfBadge(it) }
-                        }
-                    }
-                }
-            }
-            return
-        }
-        if (profile.core.isNotEmpty()) {
-            DfPremiumCard {
-                Column(
-                    modifier = Modifier.padding(AppSpacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text("مشخصات اصلی", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-                    profile.core.filter { !it.value.isNullOrBlank() && it.value != "—" }.forEach { item ->
-                        PropertySpecRow(item.label ?: item.key.orEmpty(), item.value.orEmpty())
-                    }
-                }
-            }
-        }
-        profile.groups.forEach { group ->
-            PropertyFeatureGroupCard(group)
-        }
-    }
-}
-
-@Composable
-private fun PropertyFeatureGroupCard(group: ListingFeatureGroupDto) {
-    DfPremiumCard {
-        Column(
-            modifier = Modifier.padding(AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(group.title ?: "جزئیات", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-            group.items.forEach { item ->
-                Surface(
-                    shape = AppShapes.CardSmall,
-                    color = DfColors.SurfaceVariant.copy(alpha = 0.4f),
-                ) {
-                    PropertySpecRow(
-                        label = item.label ?: item.key.orEmpty(),
-                        value = item.value.orEmpty(),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    )
-                }
-            }
-        }
+        FeatureProfilePanels(
+            profile = profile,
+            highlights = detail.listingHighlights,
+            title = "مشخصات کامل آگهی منبع",
+            subtitle = "ساختمان، امکانات، سند، شرایط سکونت و تأسیسات",
+            modifier = Modifier.fillMaxWidth(),
+            emptyMessage = "این فایل به آگهی دیوار متصل نیست یا ویژگی تفصیلی ثبت نشده.",
+        )
     }
 }
 

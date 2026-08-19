@@ -57,6 +57,7 @@ import ir.divarfiling.mobile.feature.crm.components.ContactLinkedListingCard
 import ir.divarfiling.mobile.feature.crm.components.ContactMatchesSheet
 import ir.divarfiling.mobile.feature.crm.components.ContactNoteSheet
 import ir.divarfiling.mobile.feature.crm.components.ContactQuickActionItem
+import ir.divarfiling.mobile.feature.crm.components.ContactProfileDossier
 import ir.divarfiling.mobile.feature.crm.components.ContactReminderCard
 import ir.divarfiling.mobile.feature.crm.components.ContactReminderSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
@@ -158,6 +159,10 @@ fun ContactDetailScreen(
                                 currentStatus = contactInfo.status,
                                 onStatusChange = viewModel::changeStatus,
                             )
+                        }
+
+                        item {
+                            ContactProfileDossier(contact = contactInfo)
                         }
 
                         val reminders = detail.reminders
