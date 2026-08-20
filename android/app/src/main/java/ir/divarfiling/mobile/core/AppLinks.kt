@@ -1,7 +1,6 @@
 package ir.divarfiling.mobile.core
 
 object AppLinks {
-    const val CAFE_BAZAAR = "https://cafebazaar.ir/app/ir.divarfiling.mobile"
     const val SITE = "https://divarfiling.ir/"
     const val SHOP_BOT = "https://divarfiling.ir/products/divar-extraction-bot/"
     const val DASHBOARD_LICENSES = "https://divarfiling.ir/accounts/dashboard/?tab=licenses#licenses"

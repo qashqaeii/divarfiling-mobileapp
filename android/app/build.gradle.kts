@@ -23,27 +23,18 @@ android {
 
         buildConfigField("String", "API_BASE_URL", "\"https://divarfiling.ir/api/mobile/v1/\"")
         buildConfigField("String", "DIVAR_API_HOST", "\"https://api.divar.ir\"")
+        buildConfigField("boolean", "USE_STORE_UPDATE", "false")
+        buildConfigField(
+            "String",
+            "STORE_UPDATE_URL",
+            "\"https://divarfiling.ir/download/android/\"",
+        )
     }
 
     flavorDimensions += "distribution"
     productFlavors {
         create("direct") {
             dimension = "distribution"
-            buildConfigField("boolean", "USE_STORE_UPDATE", "false")
-            buildConfigField(
-                "String",
-                "STORE_UPDATE_URL",
-                "\"https://divarfiling.ir/download/android/\"",
-            )
-        }
-        create("bazaar") {
-            dimension = "distribution"
-            buildConfigField("boolean", "USE_STORE_UPDATE", "true")
-            buildConfigField(
-                "String",
-                "STORE_UPDATE_URL",
-                "\"https://cafebazaar.ir/app/ir.divarfiling.mobile\"",
-            )
         }
     }
 

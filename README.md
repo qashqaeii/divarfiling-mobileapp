@@ -20,7 +20,7 @@ Django (مرکز + استخراج ابری)
 | نقشه / insights / تطبیق ملک | ✅ |
 | استخراج ابری | ✅ |
 | تیم / AI / پشتیبانی / قالب‌ها | ✅ |
-| انتشار کافه‌بازار / Play Protect | 📄 [راهنما](docs/CAFEBAZAAR_PLAY_PROTECT.md) |
+| آپدیت داخلی APK | 📄 [راهنما](docs/IN_APP_UPDATE.md) |
 
 ## ساختار پروژه
 
@@ -45,14 +45,12 @@ export ANDROID_KEYSTORE_PATH=/path/to/divarfiling-release.keystore
 export ANDROID_KEYSTORE_PASSWORD=...
 export ANDROID_KEY_ALIAS=divarfiling
 export ANDROID_KEY_PASSWORD=...
-./gradlew assembleRelease
+./gradlew assembleDirectRelease
 ```
 
-خروجی release: `app/build/outputs/apk/release/app-release.apk`
+خروجی release: `app/build/outputs/apk/direct/release/app-direct-release.apk`
 
 نیازمند: JDK 17، Android SDK (API 35)
-
-**هرگز APK دیباگ به کافه‌بازار نفرستید.** جزئیات: [docs/CAFEBAZAAR_PLAY_PROTECT.md](docs/CAFEBAZAAR_PLAY_PROTECT.md)
 
 ## قابلیت‌های کلیدی
 
@@ -70,7 +68,7 @@ export ANDROID_KEY_PASSWORD=...
 | نقش اکوسیستم | [docs/ECOSYSTEM_ROLES.md](docs/ECOSYSTEM_ROLES.md) |
 | قرارداد API | [docs/MOBILE_API_SPEC.md](docs/MOBILE_API_SPEC.md) |
 | نصب و Play Protect | [docs/INSTALL_GUIDE_FA.md](docs/INSTALL_GUIDE_FA.md) |
-| کافه‌بازار | [docs/CAFEBAZAAR_PLAY_PROTECT.md](docs/CAFEBAZAAR_PLAY_PROTECT.md) |
+| آپدیت داخلی | [docs/IN_APP_UPDATE.md](docs/IN_APP_UPDATE.md) |
 
 ## پشتیبانی
 

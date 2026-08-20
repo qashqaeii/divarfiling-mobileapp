@@ -8,7 +8,7 @@
 | [MOBILE_API_SPEC.md](./MOBILE_API_SPEC.md) | Backend + Android | REST کامل (+ insights/map/cloud/AI) |
 | [NOTIFICATIONS.md](./NOTIFICATIONS.md) | همه | FCM و رویدادها |
 | [INSTALL_GUIDE_FA.md](./INSTALL_GUIDE_FA.md) | انتشار | نصب و Play Protect |
-| [CAFEBAZAAR_PLAY_PROTECT.md](./CAFEBAZAAR_PLAY_PROTECT.md) | انتشار | Appeal گوگل + ریویو کافه‌بازار |
+| [IN_APP_UPDATE.md](./IN_APP_UPDATE.md) | انتشار | آپدیت داخلی APK |
 | [reference/](./reference/) | Android dev | مرجع HTTP دیوار |
 
 ## اصل معماری v3
@@ -27,5 +27,5 @@ Android → REST API → Django → PostgreSQL → Workspace / CRM / Cloud Extra
 1. ECOSYSTEM_ROLES — مرز مسئولیت‌ها (v3)
 2. ROADMAP — برنامه اجرا
 3. MOBILE_API_SPEC — قرارداد API
-4. CAFEBAZAAR_PLAY_PROTECT — قبل از انتشار بازار
+4. INSTALL_GUIDE_FA / IN_APP_UPDATE — قبل از انتشار
 5. ARCHITECTURE / NOTIFICATIONS

@@ -4,7 +4,7 @@
 **تاریخ:** ۲۷ تیر ۱۴۰۵ / ۲۷ ژوئیه ۲۰۲۶  
 **هدف:** اپ اندروید به‌عنوان میزکار روزانه کامل برای کاربر بدون ویندوز
 
-> جزئیات فازها و Play Protect در پلن اجرایی پروژه و [docs/CAFEBAZAAR_PLAY_PROTECT.md](docs/CAFEBAZAAR_PLAY_PROTECT.md).  
+> جزئیات فازها و Play Protect در پلن اجرایی پروژه و [docs/INSTALL_GUIDE_FA.md](docs/INSTALL_GUIDE_FA.md).  
 > نقش اجزا: [docs/ECOSYSTEM_ROLES.md](docs/ECOSYSTEM_ROLES.md) (نسخه ۳).
 
 ---

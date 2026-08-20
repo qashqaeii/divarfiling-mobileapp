@@ -142,10 +142,10 @@ fun MoreHubScreen(
                 MoreHubItem("آکادمی", "آموزش و راهنما", DfDecorIcons.Rocket, AppColors.BlueLight, MoreHubAction.External(AppLinks.ACADEMY)),
                 MoreHubItem(
                     "بروزرسانی اپ",
-                    if (usesInAppApkUpdate) "بررسی نسخه جدید و نصب" else "دریافت آخرین نسخه از کافه‌بازار",
+                    "بررسی نسخه جدید و نصب",
                     DfDecorIcons.Download,
                     AppColors.GreenLight,
-                    if (usesInAppApkUpdate) MoreHubAction.CheckUpdate else MoreHubAction.External(AppLinks.CAFE_BAZAAR),
+                    MoreHubAction.CheckUpdate,
                 ),
                 MoreHubItem("حریم خصوصی", "سیاست حفظ حریم", DfDecorIcons.Database, AppColors.SurfaceVariant, MoreHubAction.External(AppLinks.PRIVACY)),
             ),
@@ -155,11 +155,7 @@ fun MoreHubScreen(
     fun handleItem(item: MoreHubItem) {
         when (val action = item.action) {
             is MoreHubAction.External -> {
-                if (!usesInAppApkUpdate && action.url == AppLinks.CAFE_BAZAAR) {
-                    UpdateDistribution.openStorePage(context)
-                } else {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(action.url)))
-                }
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(action.url)))
             }
             is MoreHubAction.Navigate -> when (action.route) {
                 "tools" -> onNavigateTools()

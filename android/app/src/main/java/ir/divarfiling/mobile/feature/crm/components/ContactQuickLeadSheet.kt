@@ -61,6 +61,7 @@ fun ContactQuickLeadSheet(
                 enabled = !isSubmitting,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             )
+            DfDropdown(
                 label = "نوع مشتری",
                 value = customerType.ifBlank { CrmConstants.CUSTOMER_TYPES.last() },
                 options = CrmConstants.CUSTOMER_TYPES,

@@ -9,15 +9,14 @@
 
 این به معنی خراب بودن برنامه نیست. گوگل توسعه‌دهندگان تازه‌وارد / کم‌نصب را هشدار می‌دهد (دسته Uncommon).
 
-### رفع برای انتشار کافه‌بازار
+### رفع هشدار Play Protect
 
-جزئیات کامل: [CAFEBAZAAR_PLAY_PROTECT.md](./CAFEBAZAAR_PLAY_PROTECT.md)
+جزئیات نصب: همین راهنما.
 
 خلاصه:
-1. فقط APK **release** امضاشده با keystore رسمی بسازید
+1. فقط APK **release** امضاشده با keystore رسمی بسازید (`assembleDirectRelease`)
 2. SHA-256 را از VirusTotal بگیرید و فرم Play Protect Appeals را ارسال کنید
 3. ۷–۱۰ روز صبر کنید و با Play Protect روشن تست کنید
-4. حساب demo ریویو را در توضیح انتشار بازار بگذارید
 
 ### روش نصب (سایدلود)
 
@@ -34,12 +33,12 @@
 
 | نوع | توضیح |
 |-----|--------|
-| `app-debug.apk` | برای توسعه — هشدار Play Protect محتمل‌تر — **هرگز به بازار نفرستید** |
-| `app-release.apk` | امضا‌شده — برای کافه‌بازار و مشاوران |
+| `app-debug.apk` | برای توسعه — هشدار Play Protect محتمل‌تر |
+| `app-direct-release.apk` | امضا‌شده — انتشار مستقیم برای مشاوران |
 
 ## CI / ساخت Release
 
-Workflow فقط **`app-release.apk` امضا‌شده** می‌سازد (دیگر debug artifact ندارد).
+Workflow فقط **`app-direct-release.apk` امضا‌شده** می‌سازد.
 
 Secrets در GitHub → Settings → Secrets and variables → Actions:
 

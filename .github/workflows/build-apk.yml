@@ -111,7 +111,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew lintBazaarRelease lintDirectRelease --no-daemon
+        run: ./gradlew lintDirectRelease --no-daemon
 
       - name: Build signed release APKs
         env:
@@ -119,7 +119,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleBazaarRelease assembleDirectRelease --no-daemon
+        run: ./gradlew assembleDirectRelease --no-daemon
 
       - name: Read version info
         id: version
@@ -132,8 +132,6 @@ jobs:
       - name: Rename release APKs
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/bazaar/release/app-bazaar-release.apk \
-            "release-output/divar-filing-v${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}-bazaar-release.apk"
           cp app/build/outputs/apk/direct/release/app-direct-release.apk \
             "release-output/divar-filing-v${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}-direct-release.apk"
 
