@@ -280,7 +280,7 @@ private fun FeatureChips(license: LicenseState) {
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
-        FeatureChip("CRM", license.valid && license.crmEnabled)
+        FeatureChip("مدیریت مشتری", license.valid && license.crmEnabled)
         FeatureChip("فایلینگ", license.valid && license.filingEnabled)
         FeatureChip("استخراج فایل", license.canUseLightExtract)
         FeatureChip("Push", license.valid)

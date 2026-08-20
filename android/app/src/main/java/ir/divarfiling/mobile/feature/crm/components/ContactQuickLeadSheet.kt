@@ -6,6 +6,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
@@ -28,7 +30,7 @@ fun ContactQuickLeadSheet(
 ) {
     DfSheetScaffold(
         title = "مخاطب جدید",
-        subtitle = "ثبت سریع سرنخ یا مشتری جدید در CRM",
+        subtitle = "ثبت سریع مخاطب برای پیگیری",
         icon = DfIcons.UserPlus,
         onClose = onDismiss,
         footer = {
@@ -57,8 +59,8 @@ fun ContactQuickLeadSheet(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = !isSubmitting,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             )
-            DfDropdown(
                 label = "نوع مشتری",
                 value = customerType.ifBlank { CrmConstants.CUSTOMER_TYPES.last() },
                 options = CrmConstants.CUSTOMER_TYPES,

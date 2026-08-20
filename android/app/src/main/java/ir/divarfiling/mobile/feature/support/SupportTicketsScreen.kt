@@ -378,7 +378,7 @@ private val supportCategoryOptions = listOf(
     "other" to "عمومی",
     "billing" to "پرداخت و اشتراک",
     "technical" to "مشکل فنی",
-    "crm" to "CRM",
+    "crm" to "مدیریت مشتری",
     "filing" to "فایلینگ و استخراج",
 )
 

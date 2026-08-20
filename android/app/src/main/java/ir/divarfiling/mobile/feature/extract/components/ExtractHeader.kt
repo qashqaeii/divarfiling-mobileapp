@@ -19,7 +19,7 @@ fun ExtractHeader(
 ) {
     DfHubPageHeader(
         title = "استخراج جدید",
-        subtitle = "استخراج املاک دیوار",
+        subtitle = "استخراج روی گوشی",
         titleIconRes = DfDecorIcons.Sparkles,
         userName = userName,
         notificationCount = notificationCount,

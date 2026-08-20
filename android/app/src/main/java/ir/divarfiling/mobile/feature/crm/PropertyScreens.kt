@@ -245,7 +245,7 @@ fun PropertiesScreen(
                         state.propertyType != null
                     item {
                         DfEmptyState(
-                            title = if (hasActiveFilters) "نتیجه‌ای با این فیلتر نیست" else "فایل شخصی ثبت نشده",
+                            title = if (hasActiveFilters) "نتیجه‌ای با این فیلتر نیست" else "اولین فایل شخصی را ثبت کنید",
                             subtitle = if (hasActiveFilters) {
                                 "فیلترها یا جستجو را تغییر دهید"
                             } else {

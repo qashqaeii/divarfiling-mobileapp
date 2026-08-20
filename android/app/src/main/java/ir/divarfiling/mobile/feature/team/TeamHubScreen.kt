@@ -95,7 +95,7 @@ fun TeamHubScreen(
                     state.isLoading -> {
                         Column {
                             DfHubPageHeader(
-                                title = "تیم",
+                                title = "آژانس",
                                 subtitle = "هاب آژانس",
                                 titleIconRes = DfDecorIcons.Users,
                                 onBack = onBack,
@@ -110,7 +110,7 @@ fun TeamHubScreen(
                         ) {
                             item {
                                 DfHubPageHeader(
-                                    title = "تیم",
+                                    title = "آژانس",
                                     subtitle = "هنوز به آژانسی وصل نیستید",
                                     titleIconRes = DfDecorIcons.Users,
                                     userName = state.userName,
@@ -144,7 +144,7 @@ fun TeamHubScreen(
                         ) {
                             item {
                                 DfHubPageHeader(
-                                    title = "میزکار تیم",
+                                    title = "میزکار آژانس",
                                     subtitle = "نبض روزانه آژانس",
                                     titleIconRes = DfDecorIcons.Users,
                                     userName = state.userName,

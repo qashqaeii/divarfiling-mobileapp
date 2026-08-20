@@ -30,6 +30,8 @@ data class DashboardStats(
     val dealsDelta: Int = 0,
     val contacts: Int = 0,
     val contactsDelta: Int = 0,
+    val overdueCount: Int = 0,
+    val overdueFollowups: Int = 0,
     val todayTasksTotal: Int = 0,
     val todayTasksDone: Int = 0,
     val todayTasksRemaining: Int = 0,

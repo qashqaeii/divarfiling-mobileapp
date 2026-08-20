@@ -101,9 +101,9 @@ fun ContactMatchesSheet(
 
     DfModalBottomSheet(onDismissRequest = onDismiss) {
         DfSheetScaffold(
-            title = "پیشنهاد هوشمند",
+            title = "فایل‌های پیشنهادی",
             subtitle = when {
-                matches?.isBuilder == true -> "تأمین پروژه و بازار آپارتمان"
+                matches?.isBuilder == true -> "پروژه و آپارتمان مناسب این مخاطب"
                 else -> "ملک‌های هم‌خوان با بودجه، محله و متراژ"
             },
             icon = DfIcons.Sparkles,
@@ -140,20 +140,7 @@ fun ContactMatchesSheet(
         ) {
             when {
                 isLoading -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = AppSpacing.xl),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
-                    ) {
-                        CircularProgressIndicator(color = DfColors.Purple, strokeWidth = 3.dp)
-                        Text(
-                            "در حال تحلیل تطبیق‌ها…",
-                            style = AppTypography.bodyDescription,
-                            color = DfColors.TextSecondary,
-                        )
-                    }
+                    DfCardListSkeleton(count = 4)
                 }
                 matches?.eligible == false -> {
                     DfEmptyState(
@@ -537,62 +524,45 @@ private fun SmartMatchCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle),
-        shape = AppShapes.Card,
+        shape = AppShapes.CardSmall,
         color = bg,
-        border = BorderStroke(1.5.dp, borderColor),
-        shadowElevation = if (selected) AppElevations.raised else AppElevations.subtle,
+        border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
+        shadowElevation = AppElevations.subtle,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(AppSpacing.md),
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            MatchScoreRing(score = match.score, accent = scoreColor)
+            SelectionMark(selected = selected)
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    Text(
-                        match.title.orEmpty().ifBlank { "بدون عنوان" },
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    SelectionMark(selected = selected)
-                }
+                Text(
+                    match.title.orEmpty().ifBlank { "بدون عنوان" },
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 val meta = listOfNotNull(
                     match.priceLabel?.takeIf { it.isNotBlank() },
-                    match.area?.let { "${DateUtils.toPersianDigits(it.toInt().toString())} متر" },
                     match.neighborhood?.takeIf { it.isNotBlank() },
-                    match.rooms?.takeIf { it.isNotBlank() }?.let { "$it خواب" },
+                    if (match.source == "crm") "فایل شخصی" else "آگهی دیوار",
                 ).joinToString(" · ")
                 if (meta.isNotBlank()) {
-                    Text(meta, style = AppTypography.labelSmall, color = DfColors.TextSecondary)
-                }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    MatchChip(
-                        text = if (match.source == "crm") "فایل شخصی" else "دیوار",
-                        accent = if (match.source == "crm") DfColors.Purple else DfColors.Blue,
-                    )
-                    match.intentLabel?.takeIf { it.isNotBlank() }?.let {
-                        MatchChip(text = it, accent = DfColors.Amber)
-                    }
-                    match.reasons.take(3).forEach { reason ->
-                        MatchChip(text = reason, accent = DfColors.Green)
-                    }
+                    Text(meta, style = AppTypography.labelSmall, color = DfColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
+            Text(
+                DateUtils.toPersianDigits(match.score.toString()),
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = scoreColor,
+            )
         }
     }
 }

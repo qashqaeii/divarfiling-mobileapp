@@ -9,11 +9,11 @@ import ir.divarfiling.mobile.core.design.components.DfStandardPageHeader
 
 @Composable
 fun TodayHeader(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     DfStandardPageHeader(
-        title = "امروز",
+        title = "کارهای امروز",
         subtitle = "تماس، پیگیری و یادآورهای برنامه‌ریزی‌شده",
         titleIconRes = DfDecorIcons.ListTodo,
         onBack = onBack,
@@ -25,6 +25,6 @@ fun TodayHeader(
 @Composable
 private fun TodayHeaderPreview() {
     DivarFilingTheme {
-        TodayHeader(onBack = {})
+        TodayHeader(onBack = null)
     }
 }

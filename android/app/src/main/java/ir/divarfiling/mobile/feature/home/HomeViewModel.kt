@@ -134,6 +134,8 @@ class HomeViewModel @Inject constructor(
                                 dealsDelta = stats.todayTasksTotal,
                                 contacts = stats.contacts,
                                 contactsDelta = stats.contactsNew,
+                                overdueCount = stats.overdueCount,
+                                overdueFollowups = stats.overdueFollowups,
                                 todayTasksTotal = stats.todayTasksTotal,
                                 todayTasksDone = stats.todayTasksDone,
                                 todayTasksRemaining = remainingTasks,

@@ -8,8 +8,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import ir.divarfiling.mobile.core.design.components.DfSheetAdvancedBlock
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDropdown
@@ -90,6 +95,7 @@ fun ContactEditSheet(
     val showBudget = CrmTypeProfiles.showsBudget(profile.moneyMode)
     val showRent = CrmTypeProfiles.showsRent(profile.moneyMode)
     val showBuilderBuy = CrmTypeProfiles.showsBuilderBuy(profile.moneyMode)
+    var showAdvanced by remember { mutableStateOf(false) }
 
     DfSheetScaffold(
         title = "ویرایش مخاطب",
@@ -122,6 +128,7 @@ fun ContactEditSheet(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = !isSubmitting,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             )
             DfDropdown(
                 label = "نوع مخاطب",
@@ -146,6 +153,11 @@ fun ContactEditSheet(
             )
         }
 
+        DfSheetAdvancedBlock(
+            title = if (showAdvanced) "بستن جزئیات نیاز" else "جزئیات نیاز و بودجه",
+            expanded = showAdvanced,
+            onToggle = { showAdvanced = !showAdvanced },
+        ) {
         DfSheetSection(title = if (showBuilderBuy) "خط فروش — آپارتمان" else "اطلاعات مالی") {
             Text(
                 text = profile.sectionHint,
@@ -276,6 +288,7 @@ fun ContactEditSheet(
                 placeholder = { Text("نیازها، محدودیت‌ها یا نکات پیگیری…") },
             )
         }
+        }
     }
 }
 
@@ -300,6 +313,7 @@ private fun ContactMoneyRangeRow(
             modifier = Modifier.weight(1f),
             singleLine = true,
             enabled = enabled,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             placeholder = { Text("از", color = DfColors.TextMuted) },
         )
         OutlinedTextField(
@@ -309,6 +323,7 @@ private fun ContactMoneyRangeRow(
             modifier = Modifier.weight(1f),
             singleLine = true,
             enabled = enabled,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             placeholder = { Text("تا", color = DfColors.TextMuted) },
         )
     }

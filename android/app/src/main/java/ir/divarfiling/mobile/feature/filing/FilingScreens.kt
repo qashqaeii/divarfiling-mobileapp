@@ -174,9 +174,9 @@ fun DatasetsScreen(
                 } else if (!state.isLoading && filteredDatasets.isEmpty() && state.error == null) {
                     item {
                         DfEmptyState(
-                            title = if (state.datasets.isEmpty()) "فایلی یافت نشد" else "نتیجه‌ای با این فیلتر نیست",
+                            title = if (state.datasets.isEmpty()) "فایلینگ را از استخراج شروع کنید" else "نتیجه‌ای با این فیلتر نیست",
                             subtitle = if (state.datasets.isEmpty()) {
-                                "از استخراج جدید یک فایل بسازید یا از ویندوز آپلود کنید"
+                                "استخراج سبک روی گوشی، یا استخراج حرفه‌ای با ویندوز"
                             } else {
                                 "فیلترها یا جستجو را تغییر دهید"
                             },

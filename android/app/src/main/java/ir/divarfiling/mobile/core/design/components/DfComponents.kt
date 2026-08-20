@@ -538,11 +538,15 @@ fun DfSectionHeader(title: String, count: Int? = null) {
 fun DfErrorBanner(
     message: String,
     modifier: Modifier = Modifier,
+    onRetry: (() -> Unit)? = null,
 ) {
     DfStatusBanner(
-        message = message,
+        message = friendlyNetworkMessage(message),
         tone = DfStatusTone.Error,
+        title = "بارگذاری ناموفق",
         modifier = modifier,
+        actionLabel = if (onRetry != null) "تلاش مجدد" else null,
+        onAction = onRetry,
     )
 }
 

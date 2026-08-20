@@ -250,7 +250,7 @@ private fun LoginFeatureChips() {
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs, Alignment.CenterHorizontally),
     ) {
         LoginFeatureChip(iconRes = DfDecorIcons.Folder, label = "فایلینگ")
-        LoginFeatureChip(iconRes = DfDecorIcons.Users, label = "CRM")
+        LoginFeatureChip(iconRes = DfDecorIcons.Users, label = "مدیریت مشتری")
         LoginFeatureChip(iconRes = DfDecorIcons.Rocket, label = "استخراج")
     }
 }

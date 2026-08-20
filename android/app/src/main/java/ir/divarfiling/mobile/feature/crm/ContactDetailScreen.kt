@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import ir.divarfiling.mobile.core.design.components.DfNbaAction
+import ir.divarfiling.mobile.core.design.components.DfNbaCard
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -121,13 +123,15 @@ fun ContactDetailScreen(
                     )
                     DfErrorBanner(
                         state.error!!,
+                        onRetry = viewModel::refresh,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
                 state.data != null -> {
                     val detail = state.data!!
                     val contactInfo = detail.contact
-                    val primaryActions = buildPrimaryActions(contactInfo, context, viewModel, haptics)
+                    val nbaAction = resolveContactNba(contactInfo, deals = detail.deals, linkedListings = detail.linkedListings)
+                    val primaryActions = buildReachActions(contactInfo, context, viewModel, haptics)
                     val secondaryActions = buildSecondaryActions(
                         contact = contactInfo,
                         viewModel = viewModel,
@@ -148,6 +152,27 @@ fun ContactDetailScreen(
                             )
                         }
                         item { ContactDetailInsightStrip(contact = contactInfo) }
+                        item {
+                            DfNbaCard(
+                                action = DfNbaAction(
+                                    title = nbaAction.title,
+                                    subtitle = nbaAction.subtitle,
+                                    cta = nbaAction.cta,
+                                    tone = nbaAction.tone,
+                                    onClick = {
+                                        haptics.confirm()
+                                        performContactNba(
+                                            nba = nbaAction,
+                                            contact = contactInfo,
+                                            context = context,
+                                            viewModel = viewModel,
+                                            onDealClick = onDealClick,
+                                        )
+                                    },
+                                ),
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
                         item {
                             ContactDetailQuickActionsPanel(
                                 primary = primaryActions,
@@ -450,7 +475,27 @@ fun ContactDetailScreen(
     )
 }
 
-private fun buildPrimaryActions(
+private fun performContactNba(
+    nba: ContactNba,
+    contact: ir.divarfiling.mobile.core.network.ContactDto,
+    context: android.content.Context,
+    viewModel: ContactDetailViewModel,
+    onDealClick: (Long) -> Unit,
+) {
+    when (nba.kind) {
+        ContactNbaKind.Call -> contact.phone?.let { phone ->
+            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
+            viewModel.logActivity("تماس", "تماس تلفنی")
+        }
+        ContactNbaKind.RegisterNeed -> viewModel.toggleEditSheet(true)
+        ContactNbaKind.ContinueDeal -> nba.dealId?.let(onDealClick)
+        ContactNbaKind.ViewSuggestions -> viewModel.toggleMatchesSheet(true)
+        ContactNbaKind.SendFile -> viewModel.toggleSendFilingSheet(true)
+        ContactNbaKind.AddFollowUp -> viewModel.toggleReminderDialog(true)
+    }
+}
+
+private fun buildReachActions(
     contact: ir.divarfiling.mobile.core.network.ContactDto,
     context: android.content.Context,
     viewModel: ContactDetailViewModel,
@@ -483,19 +528,6 @@ private fun buildPrimaryActions(
             }
         },
     )
-    if (CrmConstants.isMatchEligible(contact.customerType)) {
-        add(
-            ContactQuickActionItem("تطبیق", DfColors.Purple, icon = DfIcons.Sparkles) {
-                viewModel.toggleMatchesSheet(true)
-            },
-        )
-    } else {
-        add(
-            ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
-                viewModel.toggleReminderDialog(true)
-            },
-        )
-    }
 }
 
 private fun buildSecondaryActions(
@@ -505,6 +537,13 @@ private fun buildSecondaryActions(
     onOpenAi: () -> Unit,
 ): List<ContactQuickActionItem> = buildList {
     if (CrmConstants.isMatchEligible(contact.customerType)) {
+        add(ContactQuickActionItem("پیشنهادها", DfColors.Purple, icon = DfIcons.Sparkles) {
+            viewModel.toggleMatchesSheet(true)
+        })
+        add(ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
+            viewModel.toggleReminderDialog(true)
+        })
+    } else {
         add(ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
             viewModel.toggleReminderDialog(true)
         })

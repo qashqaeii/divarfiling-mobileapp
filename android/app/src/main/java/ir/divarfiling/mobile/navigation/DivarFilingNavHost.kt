@@ -127,7 +127,7 @@ object Routes {
     }
     fun teamThread(threadId: Long) = "team/messages/$threadId"
 
-    val mainTabs = setOf(HOME, CRM, FILING, MORE, CRM_TODAY)
+    val mainTabs = setOf(HOME, FILING, MORE, CRM_TODAY, CRM_CONTACTS)
 }
 
 @Composable
@@ -162,16 +162,15 @@ fun DivarFilingNavHost(
                 }
             }
             val bottomItems = listOf(
+                DfNavItem(Routes.HOME, "میزکار", iconRes = DfDecorIcons.House),
                 DfNavItem(Routes.FILING, "فایلینگ", iconRes = DfDecorIcons.Folder),
-                DfNavItem(Routes.CRM, "CRM", iconRes = DfDecorIcons.Users),
-                DfNavItem(Routes.HOME, "میزکار", iconRes = DfDecorIcons.House, isCenter = true),
+                DfNavItem(Routes.CRM_CONTACTS, "مخاطبین", iconRes = DfDecorIcons.Users),
                 DfNavItem(Routes.CRM_TODAY, "امروز", iconRes = DfDecorIcons.Handshake),
                 DfNavItem(Routes.MORE, "بیشتر", iconRes = DfDecorIcons.Layers),
             )
             val navBackStack by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStack?.destination?.route
-            val showBottomBar = currentRoute in Routes.mainTabs ||
-                currentRoute == Routes.CRM_TODAY
+            val showBottomBar = currentRoute in Routes.mainTabs
 
             Scaffold(
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -179,13 +178,18 @@ fun DivarFilingNavHost(
                     if (showBottomBar) {
                         DfBottomNavigation(
                             items = bottomItems,
-                            selectedRoute = when (currentRoute) {
-                                Routes.CRM_CONTACTS -> Routes.CRM
-                                Routes.FILING_LISTINGS -> Routes.FILING
+                            selectedRoute = when {
+                                currentRoute == Routes.CRM_CONTACTS -> Routes.CRM_CONTACTS
+                                currentRoute == Routes.FILING_LISTINGS -> Routes.FILING
                                 else -> currentRoute ?: Routes.HOME
                             },
                             onItemClick = { route ->
-                                navController.navigate(route) {
+                                val destination = if (route == Routes.CRM_CONTACTS) {
+                                    Routes.contacts()
+                                } else {
+                                    route
+                                }
+                                navController.navigate(destination) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
@@ -208,8 +212,10 @@ fun DivarFilingNavHost(
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateContacts = { navController.navigate(Routes.contacts()) },
                             onNavigateFiling = { navController.navigate(Routes.FILING) },
+                            onNavigateFilingSearch = { navController.navigate(Routes.filingSearch()) },
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
+                            onNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                             onNavigateTools = { navController.navigate(Routes.TOOLS) },
                             onNavigateMore = { navController.navigate(Routes.MORE) },
@@ -219,6 +225,7 @@ fun DivarFilingNavHost(
                     }
                     composable(Routes.CRM) {
                         CrmHubScreen(
+                            onBack = { navController.popBackStack() },
                             onContacts = { navController.navigate(Routes.contacts()) },
                             onToday = { navController.navigate(Routes.CRM_TODAY) },
                             onDeals = { navController.navigate(Routes.CRM_DEALS) },
@@ -236,9 +243,14 @@ fun DivarFilingNavHost(
                                 defaultValue = ""
                             },
                         ),
-                    ) {
+                    ) { entry ->
+                        val ownerFilter = entry.arguments?.getString("customerType").orEmpty()
                         ContactsScreen(
-                            onBack = { navController.popBackStack() },
+                            onBack = if (ownerFilter.isNotBlank()) {
+                                { navController.popBackStack() }
+                            } else {
+                                null
+                            },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
                             onContactSuggest = { id ->
                                 navController.navigate(Routes.contactDetail(id, openMatches = true))
@@ -303,7 +315,7 @@ fun DivarFilingNavHost(
                     }
                     composable(Routes.CRM_TODAY) {
                         TodayScreen(
-                            onBack = { navController.popBackStack() },
+                            onBack = null,
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
                         )
                     }
@@ -414,6 +426,9 @@ fun DivarFilingNavHost(
                             onNavigateInstallHelp = { navController.navigate(Routes.SETTINGS_INSTALL_HELP) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                            onNavigateDeals = { navController.navigate(Routes.CRM_DEALS) },
+                            onNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
+                            onNavigateCrm = { navController.navigate(Routes.CRM) },
                         )
                     }
                     composable(Routes.TEAM) {

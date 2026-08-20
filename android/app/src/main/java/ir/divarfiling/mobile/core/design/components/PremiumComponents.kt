@@ -94,19 +94,11 @@ fun DfBottomNavigation(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             items.forEach { item ->
-                if (item.isCenter) {
-                    DfCenterNavItem(
-                        item = item,
-                        selected = selectedRoute == item.route,
-                        onClick = { onItemClick(item.route) },
-                    )
-                } else {
-                    DfSideNavItem(
-                        item = item,
-                        selected = selectedRoute == item.route,
-                        onClick = { onItemClick(item.route) },
-                    )
-                }
+                DfSideNavItem(
+                    item = item,
+                    selected = selectedRoute == item.route,
+                    onClick = { onItemClick(item.route) },
+                )
             }
         }
     }
@@ -419,7 +411,7 @@ private fun DfBottomNavigationPreview() {
         DfBottomNavigation(
             items = listOf(
                 DfNavItem("filing", "فایلینگ", iconRes = DfDecorIcons.Folder),
-                DfNavItem("crm", "CRM", iconRes = DfDecorIcons.Users),
+                DfNavItem("contacts", "مخاطبین", iconRes = DfDecorIcons.Users),
                 DfNavItem("home", "میزکار", iconRes = DfDecorIcons.House, isCenter = true),
                 DfNavItem("today", "امروز", iconRes = DfDecorIcons.Handshake),
                 DfNavItem("settings", "تنظیمات", iconRes = DfDecorIcons.Settings),

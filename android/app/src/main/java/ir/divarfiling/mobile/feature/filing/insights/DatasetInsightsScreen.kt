@@ -27,6 +27,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
@@ -108,10 +109,17 @@ fun DatasetInsightsScreen(
                     ) {
                         item {
                             DfHubPageHeader(
-                                title = insights.dataset?.name ?: "تحلیل فایل",
-                                subtitle = "بینش‌های هوشمند فایلینگ",
+                                title = insights.dataset?.name ?: "تحلیل پوشه استخراج",
+                                subtitle = "نمای سریع موبایل — تحلیل عمیق در میزکار وب",
                                 titleIconRes = DfDecorIcons.BarChart,
                                 onBack = onBack,
+                            )
+                        }
+                        item {
+                            DfContinueOnWebRow(
+                                title = "ادامه در میزکار وب",
+                                subtitle = "مقایسه و تحلیل عمیق این پوشه در مرورگر",
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
                         state.error?.let { error ->

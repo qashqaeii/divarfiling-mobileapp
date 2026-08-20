@@ -23,22 +23,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.ComponentActivity
-import ir.divarfiling.mobile.core.AppLinks
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.feature.home.components.HomeDashboardCard
 import ir.divarfiling.mobile.feature.home.components.HomeHeader
+import ir.divarfiling.mobile.feature.home.components.HomePrioritySection
 import ir.divarfiling.mobile.feature.home.components.NotificationsSectionContent
 import ir.divarfiling.mobile.feature.home.components.QuickAction
 import ir.divarfiling.mobile.feature.home.components.QuickActionsRow
-import ir.divarfiling.mobile.feature.home.components.QuickExtractCard
 import ir.divarfiling.mobile.feature.home.components.RecentListingsSection
 import ir.divarfiling.mobile.feature.home.components.StatsSection
 import ir.divarfiling.mobile.feature.home.components.SyncStatusBanner
@@ -57,8 +55,10 @@ fun HomeScreen(
     onNavigateNotifications: () -> Unit = onNavigateToday,
     onNavigateContacts: () -> Unit,
     onNavigateFiling: () -> Unit = {},
+    onNavigateFilingSearch: () -> Unit = {},
     onNavigateExtract: () -> Unit = {},
     onNavigateCrm: () -> Unit = {},
+    onNavigateProperties: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
     onNavigateTools: () -> Unit = {},
     onNavigateMore: () -> Unit = {},
@@ -72,9 +72,6 @@ fun HomeScreen(
     val updateViewModel: AppUpdateViewModel = hiltViewModel(activity)
     val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
     val usesInAppApkUpdate = UpdateDistribution.usesInAppApkUpdate
-    fun openShop() {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.SHOP_BOT)))
-    }
     var todayExpanded by remember { mutableStateOf(false) }
     var notificationsExpanded by remember { mutableStateOf(false) }
 
@@ -103,6 +100,7 @@ fun HomeScreen(
                 item {
                     DfErrorBanner(
                         message = error,
+                        onRetry = viewModel::refresh,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
@@ -142,21 +140,24 @@ fun HomeScreen(
 
             if (state.isLoading) {
                 item {
-                    QuickExtractCard(
-                        maxItems = state.maxExtractItems,
-                        enabled = state.canExtract,
-                        onStartClick = onNavigateExtract,
-                        onActivateLicense = ::openShop,
+                    HomePrioritySection(
+                        stats = state.stats,
+                        tasks = emptyList(),
+                        notifications = emptyList(),
+                        recentFilesCount = 0,
+                        onToday = onNavigateToday,
+                        onNotifications = onNavigateNotifications,
+                        onFiling = onNavigateFiling,
+                        onContacts = onNavigateContacts,
+                        onNotificationDeepLink = onNotificationDeepLink,
                     )
                 }
                 item {
                     QuickActionsRow(
                         actions = buildQuickActions(
                             onNavigateContacts = onNavigateContacts,
-                            onNavigateFiling = onNavigateFiling,
-                            onNavigateCrm = onNavigateCrm,
-                            onNavigateToday = onNavigateToday,
-                            onNavigateTools = onNavigateTools,
+                            onNavigateProperties = onNavigateProperties,
+                            onNavigateFilingSearch = onNavigateFilingSearch,
                         ),
                     )
                 }
@@ -164,21 +165,24 @@ fun HomeScreen(
                 item { RecentListingsSection(files = emptyList(), isLoading = true, onFileClick = {}) }
             } else {
                 item {
-                    QuickExtractCard(
-                        maxItems = state.maxExtractItems,
-                        enabled = state.canExtract,
-                        onStartClick = onNavigateExtract,
-                        onActivateLicense = ::openShop,
+                    HomePrioritySection(
+                        stats = state.stats,
+                        tasks = state.todayTasks,
+                        notifications = state.notifications,
+                        recentFilesCount = state.recentFiles.size,
+                        onToday = onNavigateToday,
+                        onNotifications = onNavigateNotifications,
+                        onFiling = onNavigateFiling,
+                        onContacts = onNavigateContacts,
+                        onNotificationDeepLink = onNotificationDeepLink,
                     )
                 }
                 item {
                     QuickActionsRow(
                         actions = buildQuickActions(
                             onNavigateContacts = onNavigateContacts,
-                            onNavigateFiling = onNavigateFiling,
-                            onNavigateCrm = onNavigateCrm,
-                            onNavigateToday = onNavigateToday,
-                            onNavigateTools = onNavigateTools,
+                            onNavigateProperties = onNavigateProperties,
+                            onNavigateFilingSearch = onNavigateFilingSearch,
                         ),
                     )
                 }
@@ -190,19 +194,21 @@ fun HomeScreen(
                         StatsSection(stats = state.stats, isLoading = false)
                     }
                 }
-                item {
-                    HomeDashboardCard(
-                        title = "کارهای امروز",
-                        iconRes = DfDecorIcons.ListTodo,
-                        expanded = todayExpanded,
-                        onToggle = { todayExpanded = !todayExpanded },
-                        footerLabel = "مشاهده همه کارها (${state.stats.todayTasksTotal.coerceAtLeast(state.todayTasks.size)})",
-                        onFooterClick = onNavigateToday,
-                    ) {
-                        TodayTasksSectionContent(
-                            tasks = state.todayTasks,
-                            onViewAll = onNavigateToday,
-                        )
+                if (state.todayTasks.isNotEmpty()) {
+                    item {
+                        HomeDashboardCard(
+                            title = "کارهای امروز",
+                            iconRes = DfDecorIcons.ListTodo,
+                            expanded = todayExpanded,
+                            onToggle = { todayExpanded = !todayExpanded },
+                            footerLabel = "مشاهده همه کارها (${state.stats.todayTasksTotal.coerceAtLeast(state.todayTasks.size)})",
+                            onFooterClick = onNavigateToday,
+                        ) {
+                            TodayTasksSectionContent(
+                                tasks = state.todayTasks,
+                                onViewAll = onNavigateToday,
+                            )
+                        }
                     }
                 }
                 if (state.notifications.isNotEmpty()) {
@@ -241,15 +247,12 @@ fun HomeScreen(
 
 private fun buildQuickActions(
     onNavigateContacts: () -> Unit,
-    onNavigateFiling: () -> Unit,
-    onNavigateCrm: () -> Unit,
-    onNavigateToday: () -> Unit,
-    onNavigateTools: () -> Unit,
+    onNavigateProperties: () -> Unit,
+    onNavigateFilingSearch: () -> Unit,
 ): List<QuickAction> = listOf(
-    QuickAction("یادآور جدید", DfColors.Pink, onNavigateToday, iconRes = DfDecorIcons.StickyNote),
     QuickAction("مخاطب جدید", DfColors.Amber, onNavigateContacts, iconRes = DfDecorIcons.Upload),
-    QuickAction("فایل‌ها", DfColors.Blue, onNavigateFiling, iconRes = DfDecorIcons.Layers),
-    QuickAction("ابزارها", DfColors.Purple, onNavigateTools, iconRes = DfDecorIcons.Calculator),
+    QuickAction("فایل شخصی جدید", DfColors.Blue, onNavigateProperties, iconRes = DfDecorIcons.Building),
+    QuickAction("پیدا کردن فایل", DfColors.Purple, onNavigateFilingSearch, iconRes = DfDecorIcons.Search),
 )
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")
@@ -285,11 +288,25 @@ internal fun HomeScreenContentPreview() {
             )
         }
         item {
-            QuickExtractCard(maxItems = 500, enabled = true, onStartClick = {})
+            HomePrioritySection(
+                stats = DashboardStats(
+                    todayTasksDone = 12,
+                    todayTasksRemaining = 8,
+                    overdueFollowups = 2,
+                ),
+                tasks = emptyList(),
+                notifications = emptyList(),
+                recentFilesCount = 2,
+                onToday = {},
+                onNotifications = {},
+                onFiling = {},
+                onContacts = {},
+                onNotificationDeepLink = {},
+            )
         }
         item {
             QuickActionsRow(
-                actions = buildQuickActions({}, {}, {}, {}, {}),
+                actions = buildQuickActions({}, {}, {}),
             )
         }
         item {

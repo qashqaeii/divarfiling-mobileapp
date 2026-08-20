@@ -151,6 +151,7 @@ fun DfGreetingHeader(
     notificationCount: Int = 0,
     onNotificationsClick: (() -> Unit)? = null,
     onMenuClick: (() -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
     showBrandLogo: Boolean = false,
     menuIcon: ImageVector = DfIcons.Menu,
 ) {
@@ -162,6 +163,7 @@ fun DfGreetingHeader(
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,
         onMenuClick = onMenuClick,
+        onBack = onBack,
         menuIcon = menuIcon,
         showBrandLogo = showBrandLogo,
         modifier = modifier,

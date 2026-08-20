@@ -100,7 +100,7 @@ import ir.divarfiling.mobile.core.network.TodayItemDto
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactsScreen(
-    onBack: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
     onContactClick: (Long) -> Unit = {},
     onContactSuggest: (Long) -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
@@ -385,6 +385,7 @@ fun ContactsScreen(
                     item {
                         DfErrorBanner(
                             error,
+                            onRetry = viewModel::refresh,
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -399,15 +400,15 @@ fun ContactsScreen(
                     item {
                         DfEmptyState(
                             title = if (state.contacts.isEmpty()) {
-                                if (ownerMode) "مالکی ثبت نشده" else "مخاطبی ثبت نشده"
+                                if (ownerMode) "اولین مالک را ثبت کنید" else "اولین مخاطب را ثبت کنید"
                             } else {
                                 "نتیجه‌ای با این فیلتر نیست"
                             },
                             subtitle = if (state.contacts.isEmpty()) {
                                 if (ownerMode) {
-                                    "با دکمه پایین صفحه، اولین مالک را به CRM اضافه کنید"
+                                    "مالک را برای اتصال به فایل شخصی اضافه کنید"
                                 } else {
-                                    "با دکمه پایین صفحه، اولین مخاطب را اضافه کنید"
+                                    "با دکمه پایین صفحه شروع کنید"
                                 }
                             } else {
                                 "فیلترها یا جستجو را تغییر دهید"
@@ -519,7 +520,7 @@ fun ContactsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(
-    onBack: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
     onContactClick: (Long) -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
@@ -687,11 +688,11 @@ fun TodayScreen(
                     } else if (displayedEntries.isEmpty()) {
                         item {
                             DfEmptyState(
-                                title = if (state.query.isNotBlank()) "نتیجه‌ای یافت نشد" else "کاری برای امروز نیست",
+                                title = if (state.query.isNotBlank()) "نتیجه‌ای یافت نشد" else "امروز کاری ندارید",
                                 subtitle = if (state.query.isNotBlank()) {
                                     "عبارت جستجو یا فیلتر را تغییر دهید"
                                 } else {
-                                    "همه پیگیری‌ها انجام شده — عالی!"
+                                    "پیگیری جدیدی برای امروز ثبت نشده"
                                 },
                                 variant = if (state.query.isNotBlank()) DfEmptyVariant.NoResults else DfEmptyVariant.Empty,
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -784,6 +785,7 @@ fun TodayScreen(
 
 @Composable
 fun CrmHubScreen(
+    onBack: (() -> Unit)? = null,
     onContacts: () -> Unit,
     onToday: () -> Unit,
     onDeals: () -> Unit = {},
@@ -814,7 +816,7 @@ fun CrmHubScreen(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
             item {
-                CrmHubHeader(userName = state.userName)
+                CrmHubHeader(userName = state.userName, onBack = onBack)
             }
 
             item {

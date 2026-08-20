@@ -82,7 +82,7 @@ fun FilingStatsRow(
             )
             FilingStatCard(
                 value = numberFormat.format(datasetsThisMonth),
-                label = "دیتاست‌های ایجادشده",
+                label = "پوشه‌های ایجادشده",
                 title = "ماه جاری",
                 iconRes = DfDecorIcons.Calendar,
                 background = DfColors.AmberLight,

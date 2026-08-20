@@ -75,7 +75,7 @@ fun RecentListingsSection(
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         HomeSectionTitle(
-            title = "آخرین فایل‌ها",
+            title = "آخرین پوشه‌های استخراج",
             icon = DfIcons.Folder,
             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
         )

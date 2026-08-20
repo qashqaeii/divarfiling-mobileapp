@@ -9,6 +9,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import ir.divarfiling.mobile.core.design.components.DfSheetAdvancedBlock
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
@@ -47,10 +54,11 @@ fun PropertyCreateSheet(
     onDismiss: () -> Unit,
 ) {
     val isRent = dealMode.contains("اجاره") || dealMode.contains("رهن")
+    var showAdvanced by remember { mutableStateOf(false) }
 
     DfSheetScaffold(
         title = "فایل شخصی جدید",
-        subtitle = "ثبت ملک در پرونده شخصی با جزئیات کامل",
+        subtitle = "عنوان، موقعیت و قیمت کافی است؛ جزئیات بعداً تکمیل می‌شود",
         icon = DfIcons.Building,
         onClose = onDismiss,
         scrollable = true,
@@ -99,6 +107,7 @@ fun PropertyCreateSheet(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = !isSubmitting,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
         }
 
@@ -115,19 +124,6 @@ fun PropertyCreateSheet(
             }
         }
 
-        DfSheetSection(title = "نوع ملک") {
-            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                CrmConstants.PROPERTY_TYPES.forEach { type ->
-                    DfSheetOptionRow(
-                        label = type,
-                        selected = type == propertyType,
-                        onClick = { if (!isSubmitting) onPropertyTypeChange(type) },
-                        icon = PropertyFilters.propertyTypeIcon(type),
-                    )
-                }
-            }
-        }
-
         DfSheetSection(title = "قیمت‌گذاری") {
             if (isRent) {
                 OutlinedTextField(
@@ -138,6 +134,7 @@ fun PropertyCreateSheet(
                     singleLine = true,
                     placeholder = { Text("مبلغ رهن") },
                     enabled = !isSubmitting,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 OutlinedTextField(
                     value = rent,
@@ -147,6 +144,7 @@ fun PropertyCreateSheet(
                     singleLine = true,
                     placeholder = { Text("مبلغ اجاره") },
                     enabled = !isSubmitting,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             } else {
                 OutlinedTextField(
@@ -157,20 +155,39 @@ fun PropertyCreateSheet(
                     singleLine = true,
                     placeholder = { Text("مبلغ فروش") },
                     enabled = !isSubmitting,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             }
         }
 
-        DfSheetSection(title = "یادداشت") {
-            OutlinedTextField(
-                value = notes,
-                onValueChange = onNotesChange,
-                label = { Text("یادداشت داخلی") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                placeholder = { Text("شرایط ویژه، یادآوری تماس یا توضیحات ملک…") },
-                enabled = !isSubmitting,
-            )
+        DfSheetAdvancedBlock(
+            title = if (showAdvanced) "بستن جزئیات بیشتر" else "نوع ملک و یادداشت",
+            expanded = showAdvanced,
+            onToggle = { showAdvanced = !showAdvanced },
+        ) {
+            DfSheetSection(title = "نوع ملک") {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    CrmConstants.PROPERTY_TYPES.forEach { type ->
+                        DfSheetOptionRow(
+                            label = type,
+                            selected = type == propertyType,
+                            onClick = { if (!isSubmitting) onPropertyTypeChange(type) },
+                            icon = PropertyFilters.propertyTypeIcon(type),
+                        )
+                    }
+                }
+            }
+            DfSheetSection(title = "یادداشت") {
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = onNotesChange,
+                    label = { Text("یادداشت داخلی") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    placeholder = { Text("شرایط ویژه، یادآوری تماس یا توضیحات ملک…") },
+                    enabled = !isSubmitting,
+                )
+            }
         }
     }
 }

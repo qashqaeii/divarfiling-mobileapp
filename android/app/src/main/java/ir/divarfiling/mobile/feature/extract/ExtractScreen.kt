@@ -27,6 +27,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -89,6 +90,14 @@ fun ExtractScreen(
                     onNotificationsClick = onNotificationsClick,
                     onMenuClick = onMenuClick,
                     onBack = onBack,
+                )
+            }
+            item {
+                DfContinueOnWebRow(
+                    title = "استخراج با ویندوز",
+                    subtitle = "استخراج حرفه‌ای و حجم بالا روی دسکتاپ انجام می‌شود",
+                    url = AppLinks.SHOP_BOT,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
 

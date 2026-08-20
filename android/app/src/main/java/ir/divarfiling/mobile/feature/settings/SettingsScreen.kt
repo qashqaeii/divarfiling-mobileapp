@@ -215,7 +215,7 @@ fun SettingsScreen(
                             )
                             NotificationPrefRow(
                                 title = "فایل جدید",
-                                subtitle = "dataset تازه از ویندوز یا موبایل",
+                                subtitle = "پوشه استخراج تازه از ویندوز یا موبایل",
                                 iconRes = DfDecorIcons.Folder,
                                 checked = state.notificationPrefs.newDataset,
                                 onCheckedChange = { v ->
@@ -237,7 +237,7 @@ fun SettingsScreen(
                             )
                             NotificationPrefRow(
                                 title = "فایل مناسب مشتری",
-                                subtitle = "تطبیق هوشمند فایلینگ",
+                                subtitle = "فایل‌های پیشنهادی برای مخاطب",
                                 icon = DfIcons.Star,
                                 checked = state.notificationPrefs.customerMatch,
                                 onCheckedChange = { v ->

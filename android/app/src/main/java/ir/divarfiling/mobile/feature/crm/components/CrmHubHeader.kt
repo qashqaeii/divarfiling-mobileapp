@@ -10,12 +10,14 @@ import ir.divarfiling.mobile.core.design.components.DfGreetingHeader
 fun CrmHubHeader(
     userName: String,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     DfGreetingHeader(
-        title = "میزکار CRM",
-        subtitle = "مخاطب، معامله و فایل شخصی — پیگیری حرفه‌ای در حرکت",
+        title = "مدیریت مشتری",
+        subtitle = "مخاطب، معامله و فایل شخصی — پیگیری روزانه",
         userName = userName,
         showBrandLogo = true,
+        onBack = onBack,
         modifier = modifier,
     )
 }

@@ -381,7 +381,7 @@ fun ticketStatusLabel(status: String): String = when (status) {
 private fun supportCategoryLabel(value: String): String = when (value) {
     "billing" -> "پرداخت و اشتراک"
     "technical" -> "مشکل فنی"
-    "crm" -> "CRM"
+    "crm" -> "مدیریت مشتری"
     "filing" -> "فایلینگ و استخراج"
     else -> "عمومی"
 }

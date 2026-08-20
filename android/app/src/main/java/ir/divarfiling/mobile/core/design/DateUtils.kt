@@ -117,6 +117,12 @@ object DateUtils {
         }
     }
 
+    fun isOverdue(value: String?): Boolean {
+        if (value.isNullOrBlank()) return false
+        val then = parseToInstant(value, ZoneId.systemDefault()) ?: return false
+        return then.isBefore(Instant.now())
+    }
+
     fun daysUntilExpiry(value: String?): Int? {
         if (value.isNullOrBlank()) return null
         val zone = ZoneId.systemDefault()

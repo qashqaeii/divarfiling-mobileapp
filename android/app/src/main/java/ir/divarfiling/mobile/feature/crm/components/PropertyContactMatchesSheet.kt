@@ -75,7 +75,7 @@ fun PropertyContactMatchesSheet(
 
     DfModalBottomSheet(onDismissRequest = onDismiss) {
         DfSheetScaffold(
-            title = "پیشنهاد هوشمند",
+            title = "مخاطب‌های پیشنهادی",
             subtitle = "مشتریانی که با این فایل شخصی هم‌خوانی دارند",
             icon = DfIcons.Users,
             iconContainerColor = DfColors.BlueLight,
@@ -307,83 +307,51 @@ private fun PropertySmartMatchCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle),
-        shape = AppShapes.Card,
+        shape = AppShapes.CardSmall,
         color = bg,
-        border = BorderStroke(1.5.dp, borderColor),
-        shadowElevation = if (selected) AppElevations.raised else AppElevations.subtle,
+        border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
+        shadowElevation = AppElevations.subtle,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(AppSpacing.md),
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            PropertyMatchScoreRing(score = match.score, accent = scoreColor)
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(if (selected) DfColors.Blue else DfColors.SurfaceVariant),
+                contentAlignment = Alignment.Center,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    Text(
-                        match.fullName.orEmpty().ifBlank { "بدون نام" },
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (selected) DfColors.Blue else DfColors.SurfaceVariant,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (selected) {
-                            Icon(
-                                DfIcons.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(14.dp),
-                            )
-                        }
-                    }
-                }
-                match.customerType?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = AppTypography.labelSmall, color = DfColors.TextSecondary)
-                }
-                match.phone?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-                }
-                if (match.reasons.isNotEmpty()) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        match.reasons.take(4).forEach { reason ->
-                            Surface(
-                                shape = AppShapes.Chip,
-                                color = DfColors.Green.copy(alpha = 0.12f),
-                            ) {
-                                Text(
-                                    reason,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = AppTypography.labelSmall,
-                                    color = DfColors.Green,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
+                if (selected) {
+                    Icon(DfIcons.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                 }
             }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    match.fullName.orEmpty().ifBlank { "بدون نام" },
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val meta = listOfNotNull(
+                    match.customerType?.takeIf { it.isNotBlank() },
+                    match.phone?.takeIf { it.isNotBlank() },
+                ).joinToString(" · ")
+                if (meta.isNotBlank()) {
+                    Text(meta, style = AppTypography.labelSmall, color = DfColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Text(
+                DateUtils.toPersianDigits(match.score.toString()),
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = scoreColor,
+            )
         }
     }
 }

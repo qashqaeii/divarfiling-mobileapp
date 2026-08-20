@@ -51,6 +51,8 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfNbaAction
+import ir.divarfiling.mobile.core.design.components.DfNbaCard
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfAsyncImage
 import ir.divarfiling.mobile.core.design.components.DfBadge
@@ -109,6 +111,28 @@ fun PropertyDetailTabbedContent(
                 statusBg = statusBg,
                 txStatus = txStatus,
                 onBack = onBack,
+            )
+        }
+
+        item {
+            val hasOwner = detail.contacts.isNotEmpty() || !property.ownerName.isNullOrBlank()
+            DfNbaCard(
+                action = if (!hasOwner) {
+                    DfNbaAction(
+                        title = "مالک مشخص نیست",
+                        subtitle = "مالک را به این ملک وصل کنید",
+                        cta = "اتصال مالک",
+                        onClick = onLinkContact,
+                    )
+                } else {
+                    DfNbaAction(
+                        title = "مخاطب‌های پیشنهادی",
+                        subtitle = "این ملک برای چه کسی مناسب است؟",
+                        cta = "مشاهده پیشنهادها",
+                        onClick = onContactMatches,
+                    )
+                },
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
         }
 
