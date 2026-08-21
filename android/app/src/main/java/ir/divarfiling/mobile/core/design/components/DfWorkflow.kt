@@ -49,6 +49,7 @@ data class DfNbaAction(
 fun DfNbaCard(
     action: DfNbaAction,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val colors = action.tone.colors()
     Surface(
@@ -62,8 +63,11 @@ fun DfNbaCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 56.dp)
-                .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+                .defaultMinSize(minHeight = if (compact) 48.dp else 56.dp)
+                .padding(
+                    horizontal = AppSpacing.md,
+                    vertical = if (compact) AppSpacing.xs else AppSpacing.sm,
+                ),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -71,14 +75,16 @@ fun DfNbaCard(
                 imageVector = action.tone.defaultIcon(),
                 contentDescription = null,
                 tint = colors.accent,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(if (compact) 18.dp else 22.dp),
             )
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    "قدم بعدی",
-                    style = AppTypography.labelSmall,
-                    color = colors.content.copy(alpha = 0.8f),
-                )
+                if (!compact) {
+                    Text(
+                        "قدم بعدی",
+                        style = AppTypography.labelSmall,
+                        color = colors.content.copy(alpha = 0.8f),
+                    )
+                }
                 Text(
                     action.title,
                     style = AppTypography.cardTitle,
@@ -91,7 +97,7 @@ fun DfNbaCard(
                     action.subtitle,
                     style = AppTypography.bodyDescription,
                     color = colors.content.copy(alpha = 0.86f),
-                    maxLines = 2,
+                    maxLines = if (compact) 1 else 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

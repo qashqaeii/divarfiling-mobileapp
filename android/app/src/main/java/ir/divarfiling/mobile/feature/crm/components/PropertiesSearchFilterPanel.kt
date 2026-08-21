@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -14,7 +13,6 @@ import androidx.compose.ui.text.font.FontWeight
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.components.DfFilterChipSection
 import ir.divarfiling.mobile.core.design.components.DfFilterDropdown
 import ir.divarfiling.mobile.core.design.components.DfFilterDropdownRow
 import ir.divarfiling.mobile.core.design.components.DfSearchFilterPanel
@@ -48,7 +46,6 @@ fun PropertiesSearchFilterPanel(
 
     DfSearchFilterPanel(
         modifier = modifier,
-        title = "جستجو",
         query = query,
         onQueryChange = onQueryChange,
         onSearch = onSearch,
@@ -56,46 +53,35 @@ fun PropertiesSearchFilterPanel(
         filters = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.2f))
-                DfFilterChipSection(label = "وضعیت معامله") {
-                    DfFilterDropdownRow {
-                        DfFilterDropdown(
-                            label = txLabel,
-                            options = listOf(ALL_TX) + PropertyConstants.TX_STATUSES,
-                            onSelect = { selected ->
-                                onTransactionStatusChange(
-                                    if (selected == ALL_TX) null else selected,
-                                )
-                                onSearch()
-                            },
-                        )
-                    }
-                }
-                DfFilterChipSection(label = "نوع معامله") {
-                    DfFilterDropdownRow {
-                        DfFilterDropdown(
-                            label = dealLabel,
-                            options = listOf(ALL_DEAL) + PropertyConstants.DEAL_MODES,
-                            onSelect = { selected ->
-                                onDealModeChange(if (selected == ALL_DEAL) null else selected)
-                                onSearch()
-                            },
-                        )
-                    }
-                }
-                DfFilterChipSection(label = "نوع ملک") {
-                    DfFilterDropdownRow {
-                        DfFilterDropdown(
-                            label = typeLabel,
-                            options = listOf(ALL_TYPE) + PropertyConstants.PROPERTY_TYPES,
-                            onSelect = { selected ->
-                                onPropertyTypeChange(if (selected == ALL_TYPE) null else selected)
-                                onSearch()
-                            },
-                        )
-                    }
+                DfFilterDropdownRow {
+                    DfFilterDropdown(
+                        label = txLabel,
+                        options = listOf(ALL_TX) + PropertyConstants.TX_STATUSES,
+                        onSelect = { selected ->
+                            onTransactionStatusChange(
+                                if (selected == ALL_TX) null else selected,
+                            )
+                            onSearch()
+                        },
+                    )
+                    DfFilterDropdown(
+                        label = dealLabel,
+                        options = listOf(ALL_DEAL) + PropertyConstants.DEAL_MODES,
+                        onSelect = { selected ->
+                            onDealModeChange(if (selected == ALL_DEAL) null else selected)
+                            onSearch()
+                        },
+                    )
+                    DfFilterDropdown(
+                        label = typeLabel,
+                        options = listOf(ALL_TYPE) + PropertyConstants.PROPERTY_TYPES,
+                        onSelect = { selected ->
+                            onPropertyTypeChange(if (selected == ALL_TYPE) null else selected)
+                            onSearch()
+                        },
+                    )
                 }
                 if (hasActiveFilters) {
                     Row(

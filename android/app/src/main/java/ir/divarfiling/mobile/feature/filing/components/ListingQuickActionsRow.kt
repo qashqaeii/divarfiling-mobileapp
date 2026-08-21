@@ -15,6 +15,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,7 +37,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfMoreAction
+import ir.divarfiling.mobile.core.design.components.DfMoreActionsSheet
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 
 @Composable
@@ -49,86 +54,43 @@ fun ListingQuickActionsRow(
     showSaveAsPersonal: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val actions = buildList {
-        if (showSaveAsPersonal) {
-            add(
-                QuickActionSpec(
-                    label = "شخصی",
-                    iconRes = DfDecorIcons.ClipboardList,
-                    tint = DfColors.Amber,
-                    background = DfColors.AmberLight,
-                    onClick = onSaveAsPersonal,
-                ),
-            )
-        }
-        add(
-            QuickActionSpec(
-                label = "اشتراک",
-                iconRes = DfDecorIcons.Share2,
-                tint = DfColors.Blue,
-                background = DfColors.BlueLight,
-                onClick = onShare,
-            ),
-        )
-        add(
-            QuickActionSpec(
-                label = "ارسال",
-                icon = DfIcons.UserPlus,
-                tint = DfColors.Purple,
-                background = DfColors.PurpleContainer,
-                onClick = onSendToContact,
-            ),
-        )
-        onOpenAi?.let { openAi ->
-            add(
-                QuickActionSpec(
-                    label = "AI",
-                    icon = DfIcons.Sparkles,
-                    tint = DfColors.PurpleDark,
-                    background = DfColors.PurpleLight,
-                    onClick = openAi,
-                ),
-            )
-        }
-        add(
-            QuickActionSpec(
-                label = "تلفن مالک",
-                iconRes = DfDecorIcons.Phone,
-                tint = DfColors.Green,
-                background = DfColors.GreenLight,
-                onClick = onOwnerPhone,
-            ),
-        )
-        add(
-            QuickActionSpec(
-                label = "واتساپ",
-                iconRes = R.drawable.ic_whatsapp,
-                tintIconRes = true,
-                tint = DfColors.Green,
-                background = DfColors.GreenLight,
-                onClick = onWhatsAppShare,
-            ),
-        )
-        onOpenDivar?.let { openDivar ->
-            add(
-                QuickActionSpec(
-                    label = "دیوار",
-                    iconRes = DfDecorIcons.ExternalLink,
-                    tint = DfColors.Blue,
-                    background = DfColors.BlueLight,
-                    onClick = openDivar,
-                ),
-            )
-        }
-        add(
-            QuickActionSpec(
-                label = "یادآور",
-                iconRes = DfDecorIcons.Bell,
-                tint = DfColors.PurpleDark,
-                background = DfColors.PurpleLight,
-                onClick = onSetReminder,
-            ),
-        )
+    var showMore by remember { mutableStateOf(false) }
+    val visible = listOf(
+        QuickActionSpec(
+            label = "ارسال",
+            icon = DfIcons.UserPlus,
+            tint = DfColors.Purple,
+            background = DfColors.PurpleContainer,
+            onClick = onSendToContact,
+        ),
+        QuickActionSpec(
+            label = "اشتراک",
+            icon = DfIcons.Share2,
+            tint = DfColors.TextSecondary,
+            background = DfColors.SurfaceVariant,
+            onClick = onShare,
+        ),
+        QuickActionSpec(
+            label = "تلفن مالک",
+            icon = DfIcons.Phone,
+            tint = DfColors.TextSecondary,
+            background = DfColors.SurfaceVariant,
+            onClick = onOwnerPhone,
+        ),
+        QuickActionSpec(
+            label = "بیشتر",
+            icon = DfIcons.MoreVertical,
+            tint = DfColors.TextSecondary,
+            background = DfColors.SurfaceVariant,
+            onClick = { showMore = true },
+        ),
+    )
+    val moreActions = buildList {
+        add(DfMoreAction("واتساپ", onWhatsAppShare, DfIcons.MessageCircle))
+        add(DfMoreAction("یادآور", onSetReminder, DfIcons.Bell))
+        if (showSaveAsPersonal) add(DfMoreAction("ذخیره شخصی", onSaveAsPersonal, DfIcons.ClipboardList))
+        onOpenAi?.let { add(DfMoreAction("دستیار AI", it, DfIcons.Sparkles)) }
+        onOpenDivar?.let { add(DfMoreAction("مشاهده در دیوار", it, DfIcons.ExternalLink)) }
     }
 
     Surface(
@@ -139,37 +101,32 @@ fun ListingQuickActionsRow(
         color = DfColors.Surface,
         shadowElevation = AppElevations.subtle,
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Top,
         ) {
-            actions.chunked(4).forEach { rowActions ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    rowActions.forEach { action ->
-                        ListingQuickActionButton(
-                            label = action.label,
-                            icon = action.icon,
-                            iconRes = action.iconRes,
-                            tintIconRes = action.tintIconRes,
-                            tint = action.tint,
-                            background = action.background,
-                            onClick = action.onClick,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    repeat(4 - rowActions.size) {
-                        Box(modifier = Modifier.weight(1f))
-                    }
-                }
+            visible.forEach { action ->
+                ListingQuickActionButton(
+                    label = action.label,
+                    icon = action.icon,
+                    iconRes = action.iconRes,
+                    tintIconRes = action.tintIconRes,
+                    tint = action.tint,
+                    background = action.background,
+                    onClick = action.onClick,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
+    DfMoreActionsSheet(
+        visible = showMore,
+        onDismiss = { showMore = false },
+        actions = moreActions,
+    )
 }
 
 private data class QuickActionSpec(
@@ -204,7 +161,7 @@ private fun ListingQuickActionButton(
             shape = CircleShape,
             color = background,
             shadowElevation = 0.dp,
-            modifier = Modifier.size(52.dp),
+            modifier = Modifier.size(44.dp),
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -77,8 +78,9 @@ fun ListingSpecsCard(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                visibleItems.forEach { item ->
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                visibleItems.forEachIndexed { index, item ->
+                    if (index > 0) HorizontalDivider(color = DfThemeColors.outlineSubtle())
                     SpecCard(item = item, modifier = Modifier.fillMaxWidth())
                 }
             }
@@ -140,50 +142,29 @@ private fun SpecCard(
     item: ListingSpecItem,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = AppShapes.Field,
-        color = DfThemeColors.surfaceVariant().copy(alpha = 0.55f),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.label,
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textMuted(),
-                    maxLines = 1,
-                )
-                Text(
-                    text = item.value,
-                    style = AppTypography.bodyDescription,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DfThemeColors.textPrimary(),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            when {
-                item.iconRes != null -> DfDecorImage(
-                    resId = item.iconRes,
-                    size = 16.dp,
-                    modifier = Modifier.padding(start = AppSpacing.xxs),
-                )
-                item.icon != null -> Icon(
-                    imageVector = item.icon,
-                    contentDescription = null,
-                    tint = DfThemeColors.primary(),
-                    modifier = Modifier
-                        .padding(start = AppSpacing.xxs)
-                        .size(16.dp),
-                )
-            }
-        }
+        Text(
+            text = item.label,
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textMuted(),
+            modifier = Modifier.weight(0.42f),
+            maxLines = 1,
+        )
+        Text(
+            text = item.value,
+            style = AppTypography.bodyDescription,
+            fontWeight = FontWeight.Medium,
+            color = DfThemeColors.textPrimary(),
+            modifier = Modifier.weight(0.58f),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

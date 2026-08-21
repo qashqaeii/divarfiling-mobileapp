@@ -56,8 +56,9 @@ fun HomePrioritySection(
                 onAction = onContacts,
             )
         } else {
-            actions.forEach { item ->
+            actions.forEachIndexed { index, item ->
                 DfNbaCard(
+                    compact = index > 0,
                     action = DfNbaAction(
                         title = item.title,
                         subtitle = item.subtitle,

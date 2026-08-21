@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.core.design.components
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,11 +11,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,16 +49,22 @@ fun FeatureProfilePanels(
     subtitle: String = "جزئیات ساختمان، امکانات، سند و شرایط سکونت",
     modifier: Modifier = Modifier,
     emptyMessage: String? = null,
+    applyHorizontalPadding: Boolean = true,
 ) {
     val hasProfile = profile?.hasDetails == true ||
         profile?.core?.any { !it.value.isNullOrBlank() && it.value != "—" } == true ||
         profile?.groups?.any { it.items.isNotEmpty() } == true
     val hasHighlights = highlights.isNotEmpty()
+    val paddedModifier = if (applyHorizontalPadding) {
+        modifier.padding(horizontal = AppSpacing.screenHorizontal)
+    } else {
+        modifier
+    }
 
     if (!hasProfile && !hasHighlights) {
         if (emptyMessage != null) {
             Column(
-                modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                modifier = paddedModifier,
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
                 FeatureProfileHeader(title = title, subtitle = subtitle)
@@ -71,8 +82,8 @@ fun FeatureProfilePanels(
     }
 
     Column(
-        modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+        modifier = paddedModifier,
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         FeatureProfileHeader(title = title, subtitle = subtitle)
 
@@ -102,6 +113,7 @@ fun FeatureProfilePanels(
             FeatureGroupPanel(
                 title = group.title ?: "جزئیات",
                 iconRes = featureGroupIconRes(group.id, group.title),
+                initiallyExpanded = false,
                 items = group.items
                     .filter { !it.value.isNullOrBlank() && it.value != "—" }
                     .map { item ->
@@ -122,82 +134,52 @@ private fun HighlightsShowcase(
     highlights: List<String>,
     modifier: Modifier = Modifier,
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    val visible = if (expanded) highlights else highlights.take(4)
+    val hiddenCount = (highlights.size - visible.size).coerceAtLeast(0)
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.PurpleContainer,
-        border = androidx.compose.foundation.BorderStroke(1.dp, DfColors.Purple.copy(alpha = 0.18f)),
+        color = DfThemeColors.surface(),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = 0.dp,
     ) {
         Column(
-            modifier = Modifier.padding(AppSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    shape = AppShapes.IconContainer,
-                    color = DfColors.Purple.copy(alpha = 0.14f),
-                    modifier = Modifier.size(36.dp),
+            Text(
+                text = "نکات برجسته",
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textPrimary(),
+            )
+            visible.forEach { highlight ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                        DfDecorImage(resId = DfDecorIcons.Sparkles, size = 18.dp)
-                    }
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("•", style = AppTypography.bodyDescription, color = DfColors.Purple)
                     Text(
-                        text = "نکات برجسته ملک",
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = DfColors.PurpleDark,
-                    )
-                    Text(
-                        text = "${highlights.size} ویژگی شاخص برای ارائه به مشتری",
-                        style = AppTypography.labelSmall,
-                        color = DfColors.Purple.copy(alpha = 0.8f),
+                        text = highlight,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textPrimary(),
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                highlights.forEachIndexed { index, highlight ->
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = AppShapes.CardSmall,
-                        color = DfThemeColors.surface(),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = DfColors.Purple,
-                                modifier = Modifier.size(22.dp),
-                            ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                                    Text(
-                                        text = "${index + 1}",
-                                        style = AppTypography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                    )
-                                }
-                            }
-                            Text(
-                                text = highlight,
-                                style = AppTypography.bodyDescription,
-                                fontWeight = FontWeight.SemiBold,
-                                color = DfThemeColors.textPrimary(),
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-                }
+            if (hiddenCount > 0 || expanded && highlights.size > 4) {
+                Text(
+                    text = if (expanded) "نمایش کمتر" else "مشاهده همه ($hiddenCount+)",
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfColors.Purple,
+                    modifier = Modifier
+                        .clickable { expanded = !expanded }
+                        .padding(vertical = 4.dp),
+                )
             }
         }
     }
@@ -260,57 +242,85 @@ private fun FeatureGroupPanel(
     @DrawableRes iconRes: Int? = null,
     icon: ImageVector? = null,
     accent: Color = DfColors.Purple,
+    initiallyExpanded: Boolean = true,
 ) {
     if (items.isEmpty()) return
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
 
     DfPremiumCard(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
         ) {
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = AppSpacing.xs),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 when {
-                    iconRes != null -> DfDecorImage(resId = iconRes, size = 18.dp)
+                    iconRes != null -> DfDecorImage(resId = iconRes, size = 16.dp)
                     icon != null -> Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accent,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                     )
                 }
                 Text(
                     text = title,
                     style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = DfThemeColors.textPrimary(),
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "${items.size}",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
+                Icon(
+                    imageVector = if (expanded) DfIcons.ChevronUp else DfIcons.ChevronDown,
+                    contentDescription = if (expanded) "بستن" else "باز کردن",
+                    tint = DfThemeColors.textMuted(),
+                    modifier = Modifier.size(16.dp),
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items.forEach { item ->
-                    if (item.chips.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                text = item.label,
-                                style = AppTypography.labelSmall,
-                                color = DfThemeColors.textMuted(),
-                            )
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            if (expanded) {
+                Column {
+                    items.forEachIndexed { index, item ->
+                        if (item.chips.isNotEmpty()) {
+                            Column(
+                                modifier = Modifier.padding(vertical = 6.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                item.chips.forEach { chip -> DfBadge(text = chip) }
+                                Text(
+                                    text = item.label,
+                                    style = AppTypography.labelSmall,
+                                    color = DfThemeColors.textMuted(),
+                                )
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    item.chips.take(6).forEach { chip -> DfBadge(text = chip) }
+                                    if (item.chips.size > 6) {
+                                        DfBadge(text = "+${item.chips.size - 6}")
+                                    }
+                                }
                             }
+                        } else {
+                            FeatureSpecRow(
+                                label = item.label,
+                                value = item.value,
+                                state = item.state,
+                            )
                         }
-                    } else {
-                        FeatureSpecRow(
-                            label = item.label,
-                            value = item.value,
-                            state = item.state,
-                        )
+                        if (index < items.lastIndex) {
+                            HorizontalDivider(color = DfThemeColors.outlineSubtle())
+                        }
                     }
                 }
             }
@@ -331,36 +341,30 @@ private fun FeatureSpecRow(
         else -> DfThemeColors.textPrimary()
     }
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = AppShapes.CardSmall,
-        color = DfThemeColors.surfaceVariant().copy(alpha = 0.45f),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = label,
-                style = AppTypography.labelSmall,
-                color = DfThemeColors.textMuted(),
-                modifier = Modifier.weight(0.42f),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = value,
-                style = AppTypography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = stateColor,
-                modifier = Modifier.weight(0.58f),
-                maxLines = 4,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        Text(
+            text = label,
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textMuted(),
+            modifier = Modifier.weight(0.42f),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = value,
+            style = AppTypography.labelLarge,
+            fontWeight = FontWeight.Medium,
+            color = stateColor,
+            modifier = Modifier.weight(0.58f),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

@@ -556,6 +556,15 @@ private fun SmartMatchCard(
                 if (meta.isNotBlank()) {
                     Text(meta, style = AppTypography.labelSmall, color = DfColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                if (match.reasons.isNotEmpty()) {
+                    Text(
+                        match.reasons.take(3).joinToString("  ·  "),
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Text(
                 DateUtils.toPersianDigits(match.score.toString()),

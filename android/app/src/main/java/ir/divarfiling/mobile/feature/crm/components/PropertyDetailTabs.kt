@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -105,7 +106,6 @@ fun PropertyDetailTabbedContent(
             PropertyDetailHero(
                 property = property,
                 contactCount = detail.contactCount,
-                highlights = detail.listingHighlights,
                 dealAccent = dealAccent,
                 statusColor = statusColor,
                 statusBg = statusBg,
@@ -143,13 +143,6 @@ fun PropertyDetailTabbedContent(
                 onWhatsApp = onWhatsApp,
                 onCopyLink = onCopyLink,
                 onOpenLink = onOpenLink,
-                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-            )
-        }
-
-        item {
-            SmartMatchEntryCard(
-                onClick = onContactMatches,
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
         }
@@ -212,12 +205,6 @@ fun PropertyDetailTabbedContent(
                     currentStatus = txStatus,
                     isSubmitting = isSubmitting,
                     onStatusChange = onStatusChange,
-                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                )
-            }
-            item {
-                PropertyDetailSummarySidebar(
-                    detail = detail,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
@@ -332,7 +319,6 @@ private fun SmartMatchEntryCard(
 private fun PropertyDetailHero(
     property: PropertyDto,
     contactCount: Int,
-    highlights: List<String>,
     dealAccent: Color,
     statusColor: Color,
     statusBg: Color,
@@ -345,7 +331,7 @@ private fun PropertyDetailHero(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(260.dp),
+                .height(196.dp),
         ) {
             DfListingImage(
                 thumbnailUrl = cover,
@@ -442,9 +428,6 @@ private fun PropertyDetailHero(
                         icon = DfIcons.Users,
                         modifier = Modifier.weight(1f),
                     )
-                    PropertyFilters.jalaliUpdated(property)?.let {
-                        PropertyHeroKpi(label = it, icon = DfIcons.Calendar, modifier = Modifier.weight(1f))
-                    }
                 }
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -457,16 +440,6 @@ private fun PropertyDetailHero(
                     }
                     property.propertyType?.let {
                         PropertyDetailBadge(it, Color.White, Color.White.copy(alpha = 0.2f))
-                    }
-                }
-                if (highlights.isNotEmpty()) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        highlights.take(6).forEach { tag ->
-                            PropertyDetailBadge(tag, Color.White, Color.White.copy(alpha = 0.15f))
-                        }
                     }
                 }
             }
@@ -560,15 +533,6 @@ private fun PropertyDossierPanel(
             parking = parking,
             storage = storage,
             elevator = elevator,
-        )
-
-        FeatureProfilePanels(
-            profile = profile,
-            highlights = detail.listingHighlights,
-            title = "مشخصات تفصیلی ملک",
-            subtitle = "ویژگی‌های استخراج‌شده از آگهی منبع یا ثبت دستی",
-            modifier = Modifier.fillMaxWidth(),
-            emptyMessage = "برای این فایل مشخصات تفصیلی ثبت نشده است.",
         )
 
         PropertyDossierGroup(
@@ -729,28 +693,26 @@ private fun PropertyDossierGroup(
                 }
                 Text(title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
             }
-            rows.forEach { (label, value) ->
-                Surface(
-                    shape = AppShapes.CardSmall,
-                    color = DfColors.SurfaceVariant.copy(alpha = 0.45f),
+            rows.forEachIndexed { index, (label, value) ->
+                if (index > 0) {
+                    HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.2f))
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-                        Text(
-                            value,
-                            style = AppTypography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f, fill = false),
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted, modifier = Modifier.weight(0.42f))
+                    Text(
+                        value,
+                        style = AppTypography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(0.58f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -844,6 +806,7 @@ private fun PropertySpecsPanel(
             subtitle = "ساختمان، امکانات، سند، شرایط سکونت و تأسیسات",
             modifier = Modifier.fillMaxWidth(),
             emptyMessage = "این فایل به آگهی دیوار متصل نیست یا ویژگی تفصیلی ثبت نشده.",
+            applyHorizontalPadding = false,
         )
     }
 }

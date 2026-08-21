@@ -280,49 +280,36 @@ fun ContactsScreen(
                     )
                 }
                 item {
-                    DfCard(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = AppSpacing.screenHorizontal),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                            Text(
-                                "ورود گروهی مخاطبین",
-                                style = AppTypography.cardTitle,
-                                color = DfColors.TextPrimary,
-                            )
-                            Text(
-                                "برای import اکسل/فایل، از workflow کامل CRM وب استفاده کنید. بعد از import، مخاطبین بلافاصله در موبایل قابل مدیریت‌اند.",
-                                style = AppTypography.bodyDescription,
-                                color = DfColors.TextMuted,
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                DfSecondaryButton(
-                                    text = "دانلود قالب",
-                                    onClick = {
-                                        context.startActivity(
-                                            Intent(
-                                                Intent.ACTION_VIEW,
-                                                Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT_TEMPLATE),
-                                            ),
-                                        )
-                                    },
-                                    modifier = Modifier.weight(1f),
+                        DfSecondaryButton(
+                            text = "قالب ورود",
+                            onClick = {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT_TEMPLATE),
+                                    ),
                                 )
-                                DfSecondaryButton(
-                                    text = "ورود مخاطبین",
-                                    onClick = {
-                                        context.startActivity(
-                                            Intent(
-                                                Intent.ACTION_VIEW,
-                                                Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT),
-                                            ),
-                                        )
-                                    },
-                                    modifier = Modifier.weight(1f),
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                        DfSecondaryButton(
+                            text = "ورود گروهی",
+                            onClick = {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT),
+                                    ),
                                 )
-                            }
-                        }
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
                 item {

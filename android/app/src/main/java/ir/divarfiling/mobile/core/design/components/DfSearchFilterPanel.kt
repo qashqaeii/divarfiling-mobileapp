@@ -47,7 +47,7 @@ import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 @Composable
 fun DfSearchFilterPanel(
     modifier: Modifier = Modifier,
-    title: String = "جستجو و فیلتر",
+    title: String = "",
     query: String? = null,
     onQueryChange: ((String) -> Unit)? = null,
     onSearch: (() -> Unit)? = null,
@@ -62,42 +62,24 @@ fun DfSearchFilterPanel(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = AppSpacing.screenHorizontal),
-        shape = AppShapes.Hero,
+        shape = AppShapes.Card,
         color = DfColors.Surface,
-        shadowElevation = AppElevations.card,
+        shadowElevation = AppElevations.subtle,
         tonalElevation = AppElevations.none,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, DfColors.GlassBorder.copy(alpha = 0.55f), AppShapes.Hero)
-                .padding(AppSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                .border(1.dp, DfColors.GlassBorder.copy(alpha = 0.55f), AppShapes.Card)
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    shape = AppShapes.IconContainer,
-                    color = DfColors.PurpleContainer,
-                    modifier = Modifier.size(30.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = DfIcons.SlidersHorizontal,
-                            contentDescription = null,
-                            tint = DfColors.Purple,
-                            modifier = Modifier.size(15.dp),
-                        )
-                    }
-                }
+            if (title.isNotBlank()) {
                 Text(
                     text = title,
-                    style = AppTypography.sectionTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfColors.TextMuted,
                 )
             }
 

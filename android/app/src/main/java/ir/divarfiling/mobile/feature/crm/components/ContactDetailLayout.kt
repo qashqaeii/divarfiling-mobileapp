@@ -26,7 +26,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +52,8 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfMoreAction
+import ir.divarfiling.mobile.core.design.components.DfMoreActionsSheet
 import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.DfGlassIconButton
 import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
@@ -377,25 +382,23 @@ fun ContactDetailQuickActionsPanel(
             }
         }
         if (secondary.isNotEmpty()) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = AppShapes.Card,
-                color = DfThemeColors.surface(),
-                border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
-                shadowElevation = AppElevations.subtle,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    secondary.forEach { action ->
-                        ContactQuickActionTile(action, emphasized = false, modifier = Modifier.width(72.dp))
-                    }
-                }
+            var showMore by remember { mutableStateOf(false) }
+            TextButton(onClick = { showMore = true }) {
+                Icon(
+                    imageVector = DfIcons.MoreVertical,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = DfThemeColors.textSecondary(),
+                )
+                Text("اقدامات بیشتر", color = DfThemeColors.textSecondary())
             }
+            DfMoreActionsSheet(
+                visible = showMore,
+                onDismiss = { showMore = false },
+                actions = secondary.map { action ->
+                    DfMoreAction(label = action.label, onClick = action.onClick, icon = action.icon)
+                },
+            )
         }
     }
 }
@@ -408,7 +411,7 @@ private fun ContactQuickActionTile(
 ) {
     Column(
         modifier = modifier
-            .defaultMinSize(minHeight = if (emphasized) 76.dp else 64.dp)
+            .defaultMinSize(minHeight = if (emphasized) 64.dp else 56.dp)
             .clip(AppShapes.CardSmall)
             .then(
                 if (emphasized) Modifier.background(action.tint.copy(alpha = 0.07f)) else Modifier,

@@ -75,7 +75,7 @@ fun DfStandardPageHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
+            .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

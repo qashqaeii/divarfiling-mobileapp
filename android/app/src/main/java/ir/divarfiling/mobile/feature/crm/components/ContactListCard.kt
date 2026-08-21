@@ -136,18 +136,12 @@ fun ContactListCard(
                     contact.customerType?.takeIf { it.isNotBlank() }?.let { type ->
                         ContactMetaChip(text = type, color = DfColors.Purple, background = DfColors.PurpleContainer)
                     }
-                    contact.priority?.takeIf { it.isNotBlank() }?.let { priority ->
-                        ContactMetaChip(text = priority, color = DfColors.Amber, background = DfColors.AmberLight)
-                    }
                     contact.budget?.let { budget ->
                         ContactMetaChip(
                             text = FormatUtils.formatPriceShort(budget),
-                            color = DfColors.Green,
-                            background = DfColors.GreenLight,
+                            color = DfColors.TextSecondary,
+                            background = DfColors.SurfaceVariant,
                         )
-                    }
-                    contact.source?.takeIf { it.isNotBlank() }?.let { source ->
-                        ContactMetaChip(text = source, color = DfColors.Blue, background = DfColors.BlueLight)
                     }
                 }
 

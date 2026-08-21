@@ -29,7 +29,7 @@ fun TodayNewTaskFab(
 ) {
     FloatingActionButton(
         onClick = onClick,
-        modifier = modifier.padding(AppSpacing.screenHorizontal),
+        modifier = modifier,
         shape = AppShapes.Hero,
         containerColor = DfColors.Purple,
         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),

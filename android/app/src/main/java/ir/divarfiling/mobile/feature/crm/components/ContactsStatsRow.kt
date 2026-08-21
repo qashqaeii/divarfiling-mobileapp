@@ -96,8 +96,8 @@ fun ContactsStatsRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 76.dp)
-                .padding(horizontal = 4.dp, vertical = 10.dp),
+                .defaultMinSize(minHeight = 52.dp)
+                .padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             stats.forEachIndexed { index, stat ->
@@ -159,27 +159,8 @@ private fun ContactsMiniStatCell(
             )
             .padding(horizontal = 3.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
     ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(
-                    if (selected) valueColor.copy(alpha = 0.16f) else DfColors.SurfaceVariant,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            when {
-                iconRes != null -> DfDecorImage(resId = iconRes, size = 13.dp)
-                icon != null -> Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (selected) valueColor else DfColors.TextMuted,
-                    modifier = Modifier.size(13.dp),
-                )
-            }
-        }
         Text(
             text = value,
             style = AppTypography.labelLarge,

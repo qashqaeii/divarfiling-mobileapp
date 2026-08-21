@@ -3,7 +3,6 @@ package ir.divarfiling.mobile.feature.more
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.ComponentActivity
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,13 +18,16 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,14 +35,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.AppLinks
-import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
-import ir.divarfiling.mobile.core.design.components.DfCard
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
-import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -53,10 +54,10 @@ import ir.divarfiling.mobile.feature.update.AppUpdatePhase
 private data class MoreHubItem(
     val title: String,
     val subtitle: String,
-    @DrawableRes val iconRes: Int,
-    val background: Color,
+    val icon: ImageVector,
     val action: MoreHubAction,
     val badgeCount: Int = 0,
+    val featured: Boolean = false,
 )
 
 private sealed class MoreHubAction {
@@ -102,19 +103,19 @@ fun MoreHubScreen(
         MoreHubSection(
             "پیگیری و پرونده",
             listOf(
-                MoreHubItem("معاملات", "پایپ‌لاین فروش و اجاره", DfDecorIcons.Handshake, AppColors.GreenLight, MoreHubAction.Navigate("deals")),
-                MoreHubItem("فایل‌های شخصی", "ملک‌های ثبت‌شده در پرونده شما", DfDecorIcons.Building, AppColors.AmberLight, MoreHubAction.Navigate("properties")),
-                MoreHubItem("تقویم", "یادآورها و برنامه روز", DfDecorIcons.Calendar, AppColors.GreenLight, MoreHubAction.Navigate("calendar")),
-                MoreHubItem("مدیریت مشتری", "نمای کلی مخاطب، معامله و ملک", DfDecorIcons.Users, AppColors.PurpleContainer, MoreHubAction.Navigate("crm")),
-                MoreHubItem("قالب پیام", "پیام‌های آماده برای مخاطب", DfDecorIcons.FileText, AppColors.AmberLight, MoreHubAction.Navigate("templates")),
+                MoreHubItem("معاملات", "پایپ‌لاین فروش و اجاره", DfIcons.Handshake, MoreHubAction.Navigate("deals"), featured = true),
+                MoreHubItem("فایل‌های شخصی", "ملک‌های ثبت‌شده در پرونده شما", DfIcons.Building, MoreHubAction.Navigate("properties"), featured = true),
+                MoreHubItem("تقویم", "یادآورها و برنامه روز", DfIcons.Calendar, MoreHubAction.Navigate("calendar")),
+                MoreHubItem("مدیریت مشتری", "نمای کلی مخاطب، معامله و ملک", DfIcons.Users, MoreHubAction.Navigate("crm")),
+                MoreHubItem("قالب پیام", "پیام‌های آماده برای مخاطب", DfIcons.File, MoreHubAction.Navigate("templates")),
             ),
         ),
         MoreHubSection(
             "استخراج و فایلینگ",
             listOf(
-                MoreHubItem("استخراج سبک", "استخراج آگهی دیوار روی گوشی", DfDecorIcons.Download, AppColors.BlueLight, MoreHubAction.Navigate("extract")),
-                MoreHubItem("استخراج ابری", "استخراج از سرور بدون درگیر کردن گوشی", DfDecorIcons.Download, AppColors.BlueLight, MoreHubAction.Navigate("cloud-extract")),
-                MoreHubItem("جستجوی فایلینگ", "جستجو در آگهی‌های استخراج‌شده", DfDecorIcons.Search, AppColors.SurfaceVariant, MoreHubAction.Navigate("filing-search")),
+                MoreHubItem("استخراج سبک", "استخراج آگهی دیوار روی گوشی", DfIcons.Download, MoreHubAction.Navigate("extract"), featured = true),
+                MoreHubItem("استخراج ابری", "استخراج از سرور بدون درگیر کردن گوشی", DfIcons.Cloud, MoreHubAction.Navigate("cloud-extract")),
+                MoreHubItem("جستجوی فایلینگ", "جستجو در آگهی‌های استخراج‌شده", DfIcons.Search, MoreHubAction.Navigate("filing-search")),
             ),
         ),
         MoreHubSection(
@@ -123,31 +124,25 @@ fun MoreHubScreen(
                 MoreHubItem(
                     "آژانس",
                     if (state.teamUnreadCount > 0) "${state.teamUnreadCount} مورد خوانده‌نشده" else "اعضا، پیام‌ها و اعلامیه‌ها",
-                    DfDecorIcons.Users,
-                    AppColors.PinkLight,
+                    DfIcons.Users,
                     MoreHubAction.Navigate("team"),
                     badgeCount = state.teamUnreadCount,
+                    featured = true,
                 ),
-                MoreHubItem("ابزارها", "محاسبه‌گرها و ابزار مشاور", DfDecorIcons.Calculator, AppColors.PurpleContainer, MoreHubAction.Navigate("tools")),
-                MoreHubItem("دستیار AI", "پیش‌نویس پیام و خلاصه آگهی", DfDecorIcons.Sparkles, AppColors.PurpleContainer, MoreHubAction.Navigate("ai")),
+                MoreHubItem("ابزارها", "محاسبه‌گرها و ابزار مشاور", DfIcons.Calculator, MoreHubAction.Navigate("tools"), featured = true),
+                MoreHubItem("دستیار AI", "پیش‌نویس پیام و خلاصه آگهی", DfIcons.Sparkles, MoreHubAction.Navigate("ai")),
             ),
         ),
         MoreHubSection(
             "حساب و پشتیبانی",
             listOf(
-                MoreHubItem("اعلان‌ها", "یادآور، تطبیق و هشدارها", DfDecorIcons.Bell, AppColors.SurfaceVariant, MoreHubAction.Navigate("notifications")),
-                MoreHubItem("پشتیبانی", "تیکت و درخواست کمک", DfDecorIcons.Phone, AppColors.AmberLight, MoreHubAction.Navigate("support")),
-                MoreHubItem("تنظیمات", "پروفایل و ترجیحات اعلان", DfDecorIcons.Settings, AppColors.SurfaceVariant, MoreHubAction.Navigate("settings")),
-                MoreHubItem("راهنمای نصب", "Play Protect و نصب نسخه", DfDecorIcons.Download, AppColors.SurfaceVariant, MoreHubAction.Navigate("install-help")),
-                MoreHubItem("آکادمی", "آموزش و راهنما", DfDecorIcons.Rocket, AppColors.BlueLight, MoreHubAction.External(AppLinks.ACADEMY)),
-                MoreHubItem(
-                    "بروزرسانی اپ",
-                    "بررسی نسخه جدید و نصب",
-                    DfDecorIcons.Download,
-                    AppColors.GreenLight,
-                    MoreHubAction.CheckUpdate,
-                ),
-                MoreHubItem("حریم خصوصی", "سیاست حفظ حریم", DfDecorIcons.Database, AppColors.SurfaceVariant, MoreHubAction.External(AppLinks.PRIVACY)),
+                MoreHubItem("اعلان‌ها", "یادآور، تطبیق و هشدارها", DfIcons.Bell, MoreHubAction.Navigate("notifications")),
+                MoreHubItem("پشتیبانی", "تیکت و درخواست کمک", DfIcons.Phone, MoreHubAction.Navigate("support")),
+                MoreHubItem("تنظیمات", "پروفایل و ترجیحات اعلان", DfIcons.Settings, MoreHubAction.Navigate("settings")),
+                MoreHubItem("راهنمای نصب", "Play Protect و نصب نسخه", DfIcons.Download, MoreHubAction.Navigate("install-help")),
+                MoreHubItem("آکادمی", "آموزش و راهنما", DfIcons.Rocket, MoreHubAction.External(AppLinks.ACADEMY)),
+                MoreHubItem("بروزرسانی اپ", "بررسی نسخه جدید و نصب", DfIcons.Download, MoreHubAction.CheckUpdate),
+                MoreHubItem("حریم خصوصی", "سیاست حفظ حریم", DfIcons.Database, MoreHubAction.External(AppLinks.PRIVACY)),
             ),
         ),
     )
@@ -190,13 +185,13 @@ fun MoreHubScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = AppSpacing.xxl),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
                 item {
                     DfHubPageHeader(
                         title = "بیشتر",
                         subtitle = "ابزارها، آژانس و میانبرهای کم‌استفاده",
-                        titleIconRes = DfDecorIcons.Layers,
+                        titleIcon = DfIcons.Layers,
                         userName = state.userName,
                         notificationCount = state.notificationBadgeCount,
                         onNotificationsClick = onNavigateNotifications,
@@ -243,40 +238,49 @@ fun MoreHubScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MoreHubRow(
     item: MoreHubItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DfCard(
+    val iconTint = if (item.featured) DfColors.Purple else DfThemeColors.textSecondary()
+    val iconBg = if (item.featured) DfColors.PurpleContainer else DfThemeColors.surfaceVariant()
+    Surface(
+        onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 64.dp),
-        onClick = onClick,
-        containerColor = DfThemeColors.surface(),
+            .defaultMinSize(minHeight = if (item.featured) 56.dp else 48.dp),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        shadowElevation = if (item.featured) AppElevations.subtle else AppElevations.none,
+        tonalElevation = AppElevations.none,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(item.background, AppShapes.IconContainer),
+                    .size(if (item.featured) 36.dp else 32.dp)
+                    .background(iconBg, AppShapes.IconContainer),
                 contentAlignment = Alignment.Center,
             ) {
-                DfDecorImage(
-                    resId = item.iconRes,
-                    size = 22.dp,
+                Icon(
+                    imageVector = item.icon,
                     contentDescription = item.title,
+                    tint = iconTint,
+                    modifier = Modifier.size(18.dp),
                 )
                 if (item.badgeCount > 0) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .background(AppColors.Rose, AppShapes.Chip)
+                            .background(DfColors.Rose, AppShapes.Chip)
                             .padding(horizontal = 5.dp, vertical = 1.dp),
                     ) {
                         Text(
@@ -297,14 +301,22 @@ private fun MoreHubRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    item.subtitle,
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textSecondary(),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                if (item.featured || item.badgeCount > 0) {
+                    Text(
+                        item.subtitle,
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textSecondary(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
+            Icon(
+                imageVector = DfIcons.ChevronLeft,
+                contentDescription = null,
+                tint = DfThemeColors.textMuted(),
+                modifier = Modifier.size(16.dp),
+            )
         }
     }
 }

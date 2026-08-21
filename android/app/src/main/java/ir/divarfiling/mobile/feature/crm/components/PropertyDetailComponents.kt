@@ -24,6 +24,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +49,8 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
+import ir.divarfiling.mobile.core.design.components.DfMoreAction
+import ir.divarfiling.mobile.core.design.components.DfMoreActionsSheet
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfAsyncImage
 import ir.divarfiling.mobile.core.design.components.DfListingImage
@@ -578,18 +584,47 @@ fun PropertyDetailQuickActions(
     onOpenLink: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    var showMore by remember { mutableStateOf(false) }
+    val moreActions = buildList {
+        add(DfMoreAction("ویرایش", onEdit, DfIcons.Pencil))
+        add(DfMoreAction("کپی لینک", onCopyLink, DfIcons.Copy))
+        if (onOpenLink != null) add(DfMoreAction("مشاهده در دیوار", onOpenLink, DfIcons.ExternalLink))
+    }
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        PropertyQuickAction(label = "ویرایش", icon = DfIcons.Pencil, bg = DfColors.PurpleContainer, tint = DfColors.Purple, onClick = onEdit, modifier = Modifier.weight(1f))
-        PropertyQuickAction(label = "اشتراک", icon = DfIcons.Share2, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onShare, modifier = Modifier.weight(1f))
-        PropertyQuickAction(label = "واتساپ", iconRes = R.drawable.ic_whatsapp, tintIconRes = true, bg = DfColors.GreenLight, tint = DfColors.Green, onClick = onWhatsApp, modifier = Modifier.weight(1f))
-        PropertyQuickAction(label = "کپی", icon = DfIcons.Copy, bg = DfColors.AmberLight, tint = DfColors.Amber, onClick = onCopyLink, modifier = Modifier.weight(1f))
-        if (onOpenLink != null) {
-            PropertyQuickAction(label = "دیوار", icon = DfIcons.ExternalLink, bg = DfColors.BlueLight, tint = DfColors.Blue, onClick = onOpenLink, modifier = Modifier.weight(1f))
-        }
+        PropertyQuickAction(
+            label = "اشتراک",
+            icon = DfIcons.Share2,
+            bg = DfColors.PurpleContainer,
+            tint = DfColors.Purple,
+            onClick = onShare,
+            modifier = Modifier.weight(1f),
+        )
+        PropertyQuickAction(
+            label = "واتساپ",
+            iconRes = R.drawable.ic_whatsapp,
+            tintIconRes = true,
+            bg = DfColors.SurfaceVariant,
+            tint = DfColors.Green,
+            onClick = onWhatsApp,
+            modifier = Modifier.weight(1f),
+        )
+        PropertyQuickAction(
+            label = "بیشتر",
+            icon = DfIcons.MoreVertical,
+            bg = DfColors.SurfaceVariant,
+            tint = DfColors.TextSecondary,
+            onClick = { showMore = true },
+            modifier = Modifier.weight(1f),
+        )
     }
+    DfMoreActionsSheet(
+        visible = showMore,
+        onDismiss = { showMore = false },
+        actions = moreActions,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

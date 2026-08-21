@@ -430,6 +430,48 @@ fun DfSheetOptionRow(
     }
 }
 
+data class DfMoreAction(
+    val label: String,
+    val onClick: () -> Unit,
+    val icon: ImageVector? = null,
+)
+
+@Composable
+fun DfMoreActionsSheet(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    actions: List<DfMoreAction>,
+    title: String = "اقدامات بیشتر",
+) {
+    if (!visible || actions.isEmpty()) return
+    DfModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.md)
+                .padding(bottom = AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            Text(
+                text = title,
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.SemiBold,
+            )
+            actions.forEach { action ->
+                DfSheetOptionRow(
+                    label = action.label,
+                    selected = false,
+                    onClick = {
+                        onDismiss()
+                        action.onClick()
+                    },
+                    icon = action.icon,
+                )
+            }
+        }
+    }
+}
+
 private enum class DfPickerStep { Date, Time }
 
 @OptIn(ExperimentalMaterial3Api::class)
