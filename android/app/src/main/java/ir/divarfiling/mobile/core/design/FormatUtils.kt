@@ -3,7 +3,15 @@ package ir.divarfiling.mobile.core.design
 object FormatUtils {
 
     fun formatPriceToman(value: Long): String =
-        "%,d تومان".format(value).replace(',', '٬')
+        "${formatGroupedNumber(value)} تومان"
+
+    fun formatGroupedNumber(value: Long): String =
+        "%,d".format(value).replace(',', '٬')
+
+    fun formatGroupedInput(raw: String): String {
+        val parsed = parseLocalizedLong(raw) ?: return ""
+        return formatGroupedNumber(parsed)
+    }
 
     fun formatPriceShort(value: Long): String {
         return when {

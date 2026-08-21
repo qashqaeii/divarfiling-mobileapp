@@ -1,25 +1,20 @@
 package ir.divarfiling.mobile.feature.crm.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.components.DfDateTimeSelector
 import ir.divarfiling.mobile.core.design.components.DfDropdown
-import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.network.ContactDto
-import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,30 +75,11 @@ fun TodayNewTaskSheet(
                 placeholder = { Text("مثلاً پیگیری تماس") },
                 enabled = !isSubmitting,
             )
-            OutlinedTextField(
-                value = formatDueLabel(dueMillis),
-                onValueChange = {},
-                label = { Text("زمان انجام (شمسی)") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false,
+            DfDateTimeSelector(
+                millis = dueMillis,
+                onChange = onDueChange,
+                enabled = !isSubmitting,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                DfGlassTextButton(text = "۱ ساعت دیگر", onClick = {
-                    onDueChange(System.currentTimeMillis() + 3_600_000L)
-                }, compact = true)
-                DfGlassTextButton(text = "فردا ۱۰:۰۰", onClick = {
-                    val tomorrow = java.time.LocalDate.now().plusDays(1)
-                        .atTime(10, 0)
-                        .atZone(ZoneId.systemDefault())
-                    onDueChange(tomorrow.toInstant().toEpochMilli())
-                }, compact = true)
-                DfGlassTextButton(text = "۳ روز دیگر", onClick = {
-                    onDueChange(System.currentTimeMillis() + 3 * 86_400_000L)
-                }, compact = true)
-            }
         }
     }
 }
-
-private fun formatDueLabel(millis: Long): String =
-    DateUtils.formatJalaliDateTimeFromMillis(millis)

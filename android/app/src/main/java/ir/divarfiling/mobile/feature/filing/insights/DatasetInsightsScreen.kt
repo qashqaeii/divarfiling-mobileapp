@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.AppLinks
@@ -39,9 +40,7 @@ import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
-import ir.divarfiling.mobile.core.util.displayText
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,22 +141,32 @@ fun DatasetInsightsScreen(
                             )
                         }
                         if (insights.quickSnapshot.isNotEmpty()) {
+                            val (blocks, kpis) = presentSnapshot(insights.quickSnapshot)
                             item {
                                 Box(Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                                    DfSectionHeader("خلاصه سریع")
+                                    DfSectionHeader("خلاصه تحلیل")
                                 }
                             }
-                            item {
-                                InsightsMapCard(
-                                    title = "وضعیت کلی",
-                                    entries = insights.quickSnapshot.entries.map { it.key to it.value.displayText() },
-                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                                )
+                            if (kpis.isNotEmpty()) {
+                                item {
+                                    InsightsKpiGrid(
+                                        items = kpis,
+                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    )
+                                }
+                            }
+                            blocks.forEach { block ->
+                                item {
+                                    InsightBlockCard(
+                                        block = block,
+                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    )
+                                }
                             }
                         }
-                        insightsSection("فرصت‌ها", insights.opportunities)
-                        insightsSection("بینش‌ها", insights.insights)
-                        insightsSection("مذاکره", insights.negotiation)
+                        presentedSection("فرصت‌ها", insights.opportunities)
+                        presentedSection("بینش‌ها", insights.insights)
+                        presentedSection("مذاکره", insights.negotiation)
                         if (
                             insights.opportunities.isEmpty() &&
                             insights.insights.isEmpty() &&
@@ -179,29 +188,20 @@ fun DatasetInsightsScreen(
     }
 }
 
-private fun LazyListScope.insightsSection(
+private fun LazyListScope.presentedSection(
     title: String,
     items: List<JsonElement>,
 ) {
-    if (items.isEmpty()) return
+    val blocks = presentElementList(items)
+    if (blocks.isEmpty()) return
     item {
         Box(Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-            DfSectionHeader(title, items.size)
+            DfSectionHeader(title, blocks.size)
         }
     }
-    itemsIndexed(items, key = { index, _ -> "$title-$index" }) { index, element ->
-        val obj = element as? JsonObject
-        val titleText = obj?.get("title")?.displayText()?.takeIf { it.isNotBlank() }
-            ?: "${title.dropLast(1)} ${index + 1}"
-        val entries = when (obj) {
-            null -> listOf("متن" to element.displayText())
-            else -> obj.entries
-                .filter { it.key != "title" }
-                .map { it.key to it.value.displayText() }
-        }
-        InsightsMapCard(
-            title = titleText,
-            entries = entries,
+    itemsIndexed(blocks, key = { index, block -> "$title-$index-${block.title}" }) { _, block ->
+        InsightBlockCard(
+            block = block,
             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
         )
     }
@@ -245,9 +245,40 @@ private fun MetaChip(label: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun InsightsMapCard(
-    title: String,
-    entries: List<Pair<String, String>>,
+private fun InsightsKpiGrid(
+    items: List<InsightKpi>,
+    modifier: Modifier = Modifier,
+) {
+    DfCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            items.chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    row.forEach { kpi ->
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(kpi.label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                            Text(
+                                kpi.value,
+                                style = AppTypography.cardTitle,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DfThemeColors.textPrimary(),
+                            )
+                        }
+                    }
+                    if (row.size == 1) {
+                        Box(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightBlockCard(
+    block: InsightBlock,
     modifier: Modifier = Modifier,
 ) {
     DfCard(modifier = modifier.fillMaxWidth()) {
@@ -256,17 +287,29 @@ private fun InsightsMapCard(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
             Text(
-                title,
+                block.title,
                 style = AppTypography.cardTitle,
                 fontWeight = FontWeight.Bold,
                 color = DfThemeColors.textPrimary(),
             )
-            entries.forEach { (key, value) ->
-                if (value.isNotBlank()) {
+            if (block.body.isNotBlank()) {
+                Text(
+                    block.body,
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+            }
+            block.facts.forEach { fact ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(fact.label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                     Text(
-                        "$key: $value",
-                        style = AppTypography.bodyDescription,
-                        color = DfThemeColors.textSecondary(),
+                        fact.value,
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DfThemeColors.textPrimary(),
                     )
                 }
             }

@@ -199,6 +199,7 @@ fun ListingDetailScreen(
                 onIncludeAmenitiesChange = viewModel::onShareIncludeAmenitiesChange,
                 onShare = { DossierShareActions.shareText(context, preview) },
                 onWhatsApp = { DossierShareActions.openWhatsApp(context, preview) },
+                onBale = { DossierShareActions.openBale(context, preview) },
                 onTelegram = { DossierShareActions.openTelegram(context, preview) },
                 onSms = { DossierShareActions.openSms(context, preview) },
                 onCopy = {
@@ -252,6 +253,10 @@ fun ListingDetailScreen(
                 onNoteChange = viewModel::onSendNoteChange,
                 onSend = { viewModel.sendToContact(false) },
                 onSendWhatsApp = { viewModel.sendToContact(true) },
+                onSendBale = {
+                    DossierShareActions.openBale(context, preview)
+                    viewModel.sendToContact(false)
+                },
                 onDismiss = viewModel::dismissSendDialog,
             )
         }
@@ -268,6 +273,10 @@ fun ListingDetailScreen(
                 onSave = viewModel::saveOwnerPhone,
                 onCall = { phone -> dialPhone(context, phone) },
                 onDismiss = viewModel::dismissOwnerPhoneSheet,
+                divarUrl = listing?.shareLink,
+                onOpenDivar = listing?.shareLink?.takeIf { it.contains("divar.ir", ignoreCase = true) }?.let { url ->
+                    { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                },
             )
         }
     }

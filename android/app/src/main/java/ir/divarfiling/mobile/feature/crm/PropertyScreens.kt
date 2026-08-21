@@ -446,6 +446,9 @@ fun PropertyDetailScreen(
                 onWhatsApp = {
                     DossierShareActions.openWhatsApp(context, preview)
                 },
+                onBale = {
+                    DossierShareActions.openBale(context, preview)
+                },
                 onTelegram = {
                     DossierShareActions.openTelegram(context, preview)
                 },
@@ -642,6 +645,10 @@ fun PropertyDetailScreen(
                         DfPrimaryButton(
                             text = "ارسال در واتساپ",
                             onClick = { DossierShareActions.openWhatsApp(context, text) },
+                        )
+                        DfSecondaryButton(
+                            text = "ارسال در بله",
+                            onClick = { DossierShareActions.openBale(context, text) },
                         )
                         DfSecondaryButton(
                             text = "کپی متن پیام",

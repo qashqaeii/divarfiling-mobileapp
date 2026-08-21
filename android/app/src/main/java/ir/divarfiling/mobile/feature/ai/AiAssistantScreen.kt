@@ -49,6 +49,7 @@ import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
+import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -57,6 +58,10 @@ import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.DfTextField
+import ir.divarfiling.mobile.core.share.DossierShareActions
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
+import ir.divarfiling.mobile.feature.crm.ContactPickerSheet
+import ir.divarfiling.mobile.feature.crm.ListingPickerSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,9 +72,30 @@ fun AiAssistantScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
-    val pad = aiHorizontalPadding()
+    val phone = PhoneNormalizer.normalize(state.contactPhone)
+
+    if (state.showContactPicker) {
+        ContactPickerSheet(
+            onDismiss = { viewModel.toggleContactPicker(false) },
+            onContactSelected = { contact ->
+                viewModel.selectContact(contact.id, contact.fullName, contact.phone)
+            },
+        )
+    }
+    if (state.showListingPicker) {
+        ListingPickerSheet(
+            onDismiss = { viewModel.toggleListingPicker(false) },
+            onListingSelected = { listing ->
+                viewModel.selectListing(
+                    listing.token,
+                    listing.title.orEmpty().ifBlank { "آگهی بدون عنوان" },
+                )
+            },
+        )
+    }
     val quotaExhausted = state.quota?.let { it.enabled && it.remaining <= 0 } == true
     val aiDisabled = state.quota?.enabled == false
+    val pad = aiHorizontalPadding()
 
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let {
@@ -179,17 +205,13 @@ fun AiAssistantScreen(
                                     onSelect = viewModel::onModeChange,
                                 )
 
-                                DfTextField(
-                                    value = state.contactId,
-                                    onValueChange = viewModel::onContactIdChange,
-                                    label = "شناسه مخاطب",
-                                    enabled = !state.isSubmitting,
+                                DfGlassTextButton(
+                                    text = state.contactLabel.ifBlank { "انتخاب مخاطب" },
+                                    onClick = { viewModel.toggleContactPicker(true) },
                                 )
-                                DfTextField(
-                                    value = state.listingToken,
-                                    onValueChange = viewModel::onListingTokenChange,
-                                    label = "توکن آگهی",
-                                    enabled = !state.isSubmitting,
+                                DfGlassTextButton(
+                                    text = state.listingLabel.ifBlank { "انتخاب آگهی / فایل" },
+                                    onClick = { viewModel.toggleListingPicker(true) },
                                 )
 
                                 if (state.mode == AiMode.Draft) {
@@ -243,11 +265,17 @@ fun AiAssistantScreen(
                                 title = if (state.draftIsFallback) "پیش‌نویس جایگزین" else "پیش‌نویس آماده ارسال",
                                 body = draft,
                                 isFallback = state.draftIsFallback,
+                                onBodyChange = viewModel::onDraftTextChange,
                                 copyLabel = "کپی متن",
                                 onCopy = {
                                     copyToClipboard(context, draft)
                                     viewModel.showMessage("متن پیش‌نویس کپی شد")
                                 },
+                                phone = phone,
+                                onWhatsApp = {
+                                    DossierShareActions.openWhatsApp(context, draft, phone)
+                                },
+                                onBale = { DossierShareActions.openBale(context, draft) },
                                 modifier = Modifier.padding(horizontal = pad),
                             )
                         }
@@ -259,11 +287,17 @@ fun AiAssistantScreen(
                                 title = if (state.summaryIsFallback) "خلاصه جایگزین" else "خلاصه آگهی",
                                 body = summary,
                                 isFallback = state.summaryIsFallback,
+                                onBodyChange = viewModel::onSummaryTextChange,
                                 copyLabel = "کپی خلاصه",
                                 onCopy = {
                                     copyToClipboard(context, summary)
                                     viewModel.showMessage("خلاصه آگهی کپی شد")
                                 },
+                                phone = phone,
+                                onWhatsApp = {
+                                    DossierShareActions.openWhatsApp(context, summary, phone)
+                                },
+                                onBale = { DossierShareActions.openBale(context, summary) },
                                 modifier = Modifier.padding(horizontal = pad),
                             )
                         }
@@ -380,6 +414,10 @@ private fun AiResultCard(
     isFallback: Boolean,
     copyLabel: String,
     onCopy: () -> Unit,
+    onBodyChange: (String) -> Unit,
+    phone: String,
+    onWhatsApp: () -> Unit,
+    onBale: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     DfCard(modifier = modifier) {
@@ -405,12 +443,18 @@ private fun AiResultCard(
                     textColor = if (isFallback) DfColors.Amber else DfColors.PurpleDark,
                 )
             }
-            Text(
-                body,
-                style = AppTypography.bodyDescription,
-                color = DfThemeColors.textPrimary(),
+            DfTextField(
+                value = body,
+                onValueChange = onBodyChange,
+                label = "متن قابل ویرایش",
+                singleLine = false,
+                minLines = 4,
             )
             DfSecondaryButton(text = copyLabel, onClick = onCopy)
+            if (phone.isNotBlank()) {
+                DfPrimaryButton(text = "ارسال واتساپ", onClick = onWhatsApp)
+                DfGlassTextButton(text = "ارسال در بله", onClick = onBale)
+            }
         }
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.R
+import ir.divarfiling.mobile.core.share.DossierShareActions
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
@@ -535,9 +536,17 @@ private fun buildReachActions(
         ContactQuickActionItem("واتساپ", DfColors.Green, iconRes = R.drawable.ic_whatsapp) {
             contact.phone?.let { phone ->
                 haptics.tick()
-                val wa = phone.removePrefix("0")
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/98$wa")))
+                DossierShareActions.openWhatsApp(context, "سلام", phone)
                 viewModel.logActivity("واتساپ", "پیام واتساپ")
+            }
+        },
+    )
+    add(
+        ContactQuickActionItem("بله", DfColors.Blue, icon = DfIcons.Share2) {
+            contact.phone?.let {
+                haptics.tick()
+                DossierShareActions.openBale(context, "سلام")
+                viewModel.logActivity("بله", "پیام بله")
             }
         },
     )

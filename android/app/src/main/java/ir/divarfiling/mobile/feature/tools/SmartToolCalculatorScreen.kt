@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.FormatUtils
+import ir.divarfiling.mobile.core.design.components.DfMoneyField
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
@@ -100,6 +101,13 @@ fun SmartToolCalculatorScreen(
     }
 }
 
+private data class ToolField(
+    val key: String,
+    val label: String,
+    val placeholder: String? = null,
+    val money: Boolean = false,
+)
+
 @Composable
 private fun ToolFormCard(
     fields: List<ToolField>,
@@ -110,14 +118,23 @@ private fun ToolFormCard(
     DfCard(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
             fields.forEach { field ->
-                DfTextField(
-                    value = values[field.key].orEmpty(),
-                    onValueChange = { values = values + (field.key to it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = field.label,
-                    placeholder = field.placeholder,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
+                if (field.money) {
+                    DfMoneyField(
+                        value = values[field.key].orEmpty(),
+                        onValueChange = { values = values + (field.key to it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = field.label,
+                    )
+                } else {
+                    DfTextField(
+                        value = values[field.key].orEmpty(),
+                        onValueChange = { values = values + (field.key to it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = field.label,
+                        placeholder = field.placeholder,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                }
             }
             DfPrimaryButton(
                 text = buttonLabel,
@@ -128,17 +145,11 @@ private fun ToolFormCard(
     }
 }
 
-private data class ToolField(
-    val key: String,
-    val label: String,
-    val placeholder: String? = null,
-)
-
 @Composable
 private fun RentCommissionForm(onResult: (String) -> Unit) {
     ToolFormCard(
         fields = listOf(
-            ToolField("rent", "اجاره ماهانه (تومان)"),
+            ToolField("rent", "اجاره ماهانه", money = true),
             ToolField("tenant", "سهم مستأجر (٪)", "۵۰"),
             ToolField("landlord", "سهم مالک (٪)", "۵۰"),
         ),
@@ -163,8 +174,8 @@ private fun RentCommissionForm(onResult: (String) -> Unit) {
 private fun DepositConvertForm(onResult: (String) -> Unit) {
     ToolFormCard(
         fields = listOf(
-            ToolField("deposit", "رهن کامل (تومان) — یا خالی"),
-            ToolField("rent", "اجاره ماهانه (تومان) — یا خالی"),
+            ToolField("deposit", "رهن کامل — یا خالی", money = true),
+            ToolField("rent", "اجاره ماهانه — یا خالی", money = true),
             ToolField("rate", "نرخ تبدیل", "۳۰"),
         ),
         buttonLabel = "تبدیل",
@@ -193,9 +204,9 @@ private fun DepositConvertForm(onResult: (String) -> Unit) {
 private fun CompareForm(onResult: (String) -> Unit) {
     ToolFormCard(
         fields = listOf(
-            ToolField("a_price", "آگهی الف — قیمت/رهن"),
+            ToolField("a_price", "آگهی الف — قیمت/رهن", money = true),
             ToolField("a_area", "آگهی الف — متراژ"),
-            ToolField("b_price", "آگهی ب — قیمت/رهن"),
+            ToolField("b_price", "آگهی ب — قیمت/رهن", money = true),
             ToolField("b_area", "آگهی ب — متراژ"),
             ToolField("rate", "نرخ رهن/اجاره (اجاره)", "۳۰"),
         ),
@@ -228,9 +239,9 @@ private fun CompareForm(onResult: (String) -> Unit) {
 private fun AreaPriceForm(onResult: (String) -> Unit) {
     ToolFormCard(
         fields = listOf(
-            ToolField("pps", "قیمت هر متر — یا خالی"),
+            ToolField("pps", "قیمت هر متر — یا خالی", money = true),
             ToolField("area", "متراژ — یا خالی"),
-            ToolField("total", "قیمت کل — یا خالی"),
+            ToolField("total", "قیمت کل — یا خالی", money = true),
         ),
         buttonLabel = "محاسبه",
     ) { values ->
@@ -253,7 +264,7 @@ private fun AreaPriceForm(onResult: (String) -> Unit) {
 private fun DiscountForm(onResult: (String) -> Unit) {
     ToolFormCard(
         fields = listOf(
-            ToolField("price", "قیمت آگهی (تومان)"),
+            ToolField("price", "قیمت آگهی", money = true),
             ToolField("pct", "درصد تخفیف"),
         ),
         buttonLabel = "محاسبه تخفیف",
@@ -275,7 +286,7 @@ private fun DiscountForm(onResult: (String) -> Unit) {
 private fun SalesCommissionForm(onResult: (String) -> Unit) {
     ToolFormCard(
         fields = listOf(
-            ToolField("price", "قیمت معامله (تومان)"),
+            ToolField("price", "قیمت معامله", money = true),
             ToolField("buyer", "کمیسیون خریدار (٪)", "۱"),
             ToolField("seller", "کمیسیون فروشنده (٪)", "۱"),
         ),

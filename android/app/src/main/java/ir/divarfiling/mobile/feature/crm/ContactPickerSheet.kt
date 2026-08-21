@@ -294,3 +294,92 @@ fun ContactPickerSheet(
         }
     }
 }
+
+data class ListingPickerUiState(
+    val listings: List<ListingDto> = emptyList(),
+    val query: String = "",
+    val isLoading: Boolean = false,
+    val error: String? = null,
+)
+
+@HiltViewModel
+class ListingPickerViewModel @Inject constructor(
+    private val filingRepository: ir.divarfiling.mobile.data.repository.FilingRepository,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(ListingPickerUiState())
+    val uiState: StateFlow<ListingPickerUiState> = _uiState.asStateFlow()
+
+    init { load() }
+
+    fun load(query: String = _uiState.value.query) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = filingRepository.searchListings(query = query, pageSize = 40)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(listings = result.data.items, isLoading = false)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isLoading = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun onQueryChange(query: String) {
+        _uiState.update { it.copy(query = query) }
+        load(query)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ListingPickerSheet(
+    onDismiss: () -> Unit,
+    onListingSelected: (ListingDto) -> Unit,
+    viewModel: ListingPickerViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    DfModalBottomSheet(onDismissRequest = onDismiss) {
+        DfSheetScaffold(
+            title = "انتخاب آگهی",
+            subtitle = "از فایلینگ خود یک آگهی انتخاب کنید",
+            icon = DfIcons.Home,
+            onClose = onDismiss,
+            scrollable = false,
+        ) {
+            DfSearchField(
+                value = state.query,
+                onValueChange = viewModel::onQueryChange,
+                placeholder = "جستجوی عنوان یا محله…",
+            )
+            when {
+                state.isLoading -> DfCardListSkeleton(count = 5)
+                state.listings.isEmpty() -> DfEmptyState(
+                    title = "آگهی‌ای یافت نشد",
+                    subtitle = "ابتدا از فایلینگ یک استخراج داشته باشید",
+                )
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = AppSpacing.xl),
+                    ) {
+                        items(state.listings, key = { it.token }) { listing ->
+                            DfPremiumCard(onClick = { onListingSelected(listing) }) {
+                                Text(
+                                    listing.title.orEmpty().ifBlank { "آگهی بدون عنوان" },
+                                    style = AppTypography.cardTitle,
+                                )
+                                Text(
+                                    listOfNotNull(listing.district, listing.city).joinToString("، "),
+                                    style = AppTypography.labelSmall,
+                                    color = DfColors.TextMuted,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

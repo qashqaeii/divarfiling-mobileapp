@@ -21,7 +21,9 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 
@@ -36,6 +38,8 @@ fun ListingOwnerPhoneSheet(
     onSave: () -> Unit,
     onCall: (String) -> Unit,
     onDismiss: () -> Unit,
+    divarUrl: String? = null,
+    onOpenDivar: (() -> Unit)? = null,
 ) {
     DfSheetScaffold(
         title = "مالک آگهی",
@@ -64,13 +68,19 @@ fun ListingOwnerPhoneSheet(
             )
             OutlinedTextField(
                 value = phone,
-                onValueChange = onPhoneChange,
+                onValueChange = { onPhoneChange(PhoneNormalizer.normalize(it)) },
                 label = { Text("شماره موبایل مالک") },
                 placeholder = { Text("مثلاً ۰۹۱۲۱۲۳۴۵۶۷") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = !isSaving,
             )
+            if (onOpenDivar != null && !divarUrl.isNullOrBlank()) {
+                DfGlassTextButton(
+                    text = "از دیوار ببین",
+                    onClick = onOpenDivar,
+                )
+            }
             if (phone.isNotBlank()) {
                 OwnerCallRow(phone = phone, onCall = onCall)
             }

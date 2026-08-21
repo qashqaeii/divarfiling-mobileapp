@@ -47,6 +47,7 @@ fun DossierShareSheet(
     onIncludeAmenitiesChange: (Boolean) -> Unit,
     onShare: () -> Unit,
     onWhatsApp: () -> Unit,
+    onBale: (() -> Unit)? = null,
     onTelegram: (() -> Unit)? = null,
     onSms: (() -> Unit)? = null,
     onCopy: () -> Unit,
@@ -222,6 +223,14 @@ fun DossierShareSheet(
                     icon = DfIcons.MessageCircle,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                onBale?.let { bale ->
+                    DfGlassButton(
+                        text = "بله",
+                        onClick = bale,
+                        icon = DfIcons.MessageCircle,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 DfGlassButton(
                     text = "کپی متن پیام",
                     onClick = onCopy,

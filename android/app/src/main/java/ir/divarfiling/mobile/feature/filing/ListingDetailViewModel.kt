@@ -12,6 +12,7 @@ import ir.divarfiling.mobile.core.network.ReminderCreateRequest
 import ir.divarfiling.mobile.core.network.ListingUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
 import ir.divarfiling.mobile.core.network.SendListingRequest
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.DealsRepository
@@ -136,7 +137,9 @@ class ListingDetailViewModel @Inject constructor(
     }
 
     fun onOwnerNameChange(name: String) = _uiState.update { it.copy(ownerNameDraft = name) }
-    fun onOwnerPhoneChange(phone: String) = _uiState.update { it.copy(ownerPhoneDraft = phone) }
+    fun onOwnerPhoneChange(phone: String) = _uiState.update {
+                it.copy(ownerPhoneDraft = PhoneNormalizer.normalize(phone))
+    }
 
     fun openOwnerPhoneSheet() {
         val listing = _uiState.value.listing
@@ -222,9 +225,13 @@ class ListingDetailViewModel @Inject constructor(
 
     fun saveOwnerPhone() {
         val name = _uiState.value.ownerNameDraft.trim()
-        val phone = _uiState.value.ownerPhoneDraft.trim()
+        val phone = PhoneNormalizer.normalize(_uiState.value.ownerPhoneDraft)
+        if (phone.isNotBlank() && !PhoneNormalizer.isValidIranMobile(phone)) {
+            _uiState.update { it.copy(error = "شماره موبایل مالک معتبر نیست") }
+            return
+        }
         viewModelScope.launch {
-            _uiState.update { it.copy(isSavingPhone = true) }
+            _uiState.update { it.copy(isSavingPhone = true, error = null) }
             when (val result = filingRepository.updateListing(token, ListingUpdateRequest(ownerName = name, ownerPhone = phone))) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(

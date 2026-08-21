@@ -160,11 +160,26 @@ object DateUtils {
         millis: Long,
         zone: ZoneId = ZoneId.systemDefault(),
     ): String {
+        val date = formatJalaliDateFromMillis(millis, zone)
+        val time = formatTimeFromMillis(millis, zone)
+        return "$date $time"
+    }
+
+    fun formatJalaliDateFromMillis(
+        millis: Long,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String {
         val zoned = Instant.ofEpochMilli(millis).atZone(zone)
         val (jy, jm, jd) = gregorianToJalali(zoned.year, zoned.monthValue, zoned.dayOfMonth)
-        val date = toPersianDigits(formatJalali(jy, jm, jd))
-        val time = toPersianDigits("%02d:%02d".format(zoned.hour, zoned.minute))
-        return "$date $time"
+        return toPersianDigits(formatJalali(jy, jm, jd))
+    }
+
+    fun formatTimeFromMillis(
+        millis: Long,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String {
+        val zoned = Instant.ofEpochMilli(millis).atZone(zone)
+        return toPersianDigits("%02d:%02d".format(zoned.hour, zoned.minute))
     }
 
     fun millisToJalali(

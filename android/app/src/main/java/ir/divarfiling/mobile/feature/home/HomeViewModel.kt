@@ -144,7 +144,14 @@ class HomeViewModel @Inject constructor(
                                 activeReminders = stats.activeReminders,
                             ),
                             todayTasks = mapTodayTasks(data.todayPreview).take(5),
-                            notifications = data.notifications.map { it.toHomeNotification() }.take(6),
+                            notifications = data.notifications
+                                .map { it.toHomeNotification() }
+                                .filterNot { item ->
+                                    item.type == HomeNotificationType.License &&
+                                        license?.valid == true &&
+                                        license.expiringSoon != true
+                                }
+                                .take(6),
                             recentFiles = data.latestDatasets.take(4).map { ds ->
                                 RecentFileItem(
                                     id = ds.id,

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -47,6 +48,7 @@ import ir.divarfiling.mobile.core.design.components.DfNotificationListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.update.UpdateDistribution
@@ -174,18 +176,14 @@ fun NotificationsScreen(
                                 )
                             }
                         }
-                        items(state.items, key = { it.id }) { item ->
-                            NotificationListRow(
-                                item = item,
-                                onClick = {
-                                    val deepLink = viewModel.markReadAndReturnDeepLink(item.id)
-                                    deepLink?.let { link ->
-                                        DeepLinkParser.parse(Uri.parse(link))?.let(onDeepLink)
-                                    }
-                                },
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            )
+                        val critical = state.items.filter {
+                            !it.isRead && (it.type == HomeNotificationType.License || it.type == HomeNotificationType.FollowUp)
                         }
+                        val unread = state.items.filter { !it.isRead && it !in critical }
+                        val read = state.items.filter { it.isRead }
+                        notificationGroup("نیاز به اقدام", critical, viewModel, onDeepLink)
+                        notificationGroup("خوانده‌نشده", unread, viewModel, onDeepLink)
+                        notificationGroup("قبلی", read, viewModel, onDeepLink)
                         if (state.hasMore) {
                             item {
                                 DfSecondaryButton(
@@ -201,6 +199,32 @@ fun NotificationsScreen(
                 }
             }
         }
+    }
+}
+
+private fun LazyListScope.notificationGroup(
+    title: String,
+    groupItems: List<NotificationListItem>,
+    viewModel: NotificationsViewModel,
+    onDeepLink: (DeepLinkTarget) -> Unit,
+) {
+    if (groupItems.isEmpty()) return
+    item {
+        Box(Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+            DfSectionHeader(title, groupItems.size)
+        }
+    }
+    items(groupItems, key = { "$title-${it.id}" }) { item ->
+        NotificationListRow(
+            item = item,
+            onClick = {
+                val deepLink = viewModel.markReadAndReturnDeepLink(item.id)
+                deepLink?.let { link ->
+                    DeepLinkParser.parse(Uri.parse(link))?.let(onDeepLink)
+                }
+            },
+            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+        )
     }
 }
 
@@ -227,12 +251,12 @@ private fun NotificationListRow(
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(36.dp)
                     .clip(AppShapes.IconContainer)
                     .background(bg),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
             }
             Column(
                 modifier = Modifier.weight(1f),

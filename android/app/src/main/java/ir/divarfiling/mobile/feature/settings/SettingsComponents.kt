@@ -44,10 +44,12 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfAsyncImage
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfDestructiveButton
+import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
@@ -104,12 +106,21 @@ fun SettingsHeroCard(
                         .background(AppColors.Surface.copy(alpha = 0.22f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        initials,
-                        style = AppTypography.sectionTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = AppColors.Surface,
-                    )
+                    if (!user?.avatarUrl.isNullOrBlank()) {
+                        DfAsyncImage(
+                            url = user?.avatarUrl,
+                            modifier = Modifier.size(56.dp),
+                            shape = CircleShape,
+                            contentDescription = "آواتار",
+                        )
+                    } else {
+                        Text(
+                            initials,
+                            style = AppTypography.sectionTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.Surface,
+                        )
+                    }
                 }
                 Column(
                     modifier = Modifier.weight(1f),
@@ -205,6 +216,16 @@ fun LicenseInsightCard(
                         fontWeight = FontWeight.Bold,
                         color = accent,
                     )
+                    license.expiresAt?.let { raw ->
+                        val formatted = DateUtils.formatJalaliDateTime(raw) ?: DateUtils.formatJalaliDate(raw)
+                        if (!formatted.isNullOrBlank()) {
+                            Text(
+                                "پایان: $formatted",
+                                style = AppTypography.labelSmall,
+                                color = DfThemeColors.textSecondary(),
+                            )
+                        }
+                    }
                 }
                 Icon(
                     DfIcons.Sparkles,
@@ -518,9 +539,13 @@ fun ProfileEditSheet(
     visible: Boolean,
     fullName: String,
     phone: String,
+    avatarUrl: String?,
     isSaving: Boolean,
+    isUploadingAvatar: Boolean,
     onFullNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
+    onPickAvatar: () -> Unit,
+    onRemoveAvatar: () -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
 ) {
@@ -528,19 +553,57 @@ fun ProfileEditSheet(
     DfModalBottomSheet(onDismissRequest = onDismiss) {
         DfSheetScaffold(
             title = "ویرایش پروفایل",
-            subtitle = "نام و شماره تماس نمایشی خود را به‌روز کنید",
+            subtitle = "نام، شماره و عکس نمایشی خود را به‌روز کنید",
             icon = DfIcons.Pencil,
             onClose = onDismiss,
             footer = {
                 DfSheetActions(
                     primaryText = if (isSaving) "در حال ذخیره…" else "ذخیره تغییرات",
                     onPrimary = onSave,
-                    primaryEnabled = !isSaving && fullName.isNotBlank(),
+                    primaryEnabled = !isSaving && !isUploadingAvatar && fullName.isNotBlank(),
                     isSubmitting = isSaving,
                     onSecondary = onDismiss,
                 )
             },
         ) {
+            DfSheetSection(title = "عکس پروفایل") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(AppColors.PurpleContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (!avatarUrl.isNullOrBlank()) {
+                            DfAsyncImage(
+                                url = avatarUrl,
+                                modifier = Modifier.size(64.dp),
+                                shape = CircleShape,
+                                contentDescription = "آواتار",
+                            )
+                        } else {
+                            Text("عکس", style = AppTypography.labelSmall)
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        DfGlassTextButton(
+                            text = if (isUploadingAvatar) "در حال بارگذاری…" else "انتخاب از گالری",
+                            onClick = onPickAvatar,
+                        )
+                        if (!avatarUrl.isNullOrBlank()) {
+                            DfGlassTextButton(
+                                text = "حذف عکس",
+                                onClick = onRemoveAvatar,
+                            )
+                        }
+                    }
+                }
+            }
             DfSheetSection(title = "اطلاعات کاربری") {
                 DfTextField(
                     value = fullName,

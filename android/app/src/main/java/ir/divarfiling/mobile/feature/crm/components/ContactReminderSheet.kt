@@ -1,8 +1,5 @@
 package ir.divarfiling.mobile.feature.crm.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
@@ -14,17 +11,12 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfDateTimePickerPanel
+import ir.divarfiling.mobile.core.design.components.DfDateTimeSelector
 import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
@@ -56,9 +48,6 @@ fun ContactReminderSheet(
     onDismiss: () -> Unit,
     onSubmit: () -> Unit,
 ) {
-    var showPicker by remember { mutableStateOf(false) }
-    val dueLabel = DateUtils.formatJalaliDateTimeFromMillis(dueMillis)
-
     DfSheetScaffold(
         title = sheetTitle,
         subtitle = "زمان پیگیری را تنظیم کنید",
@@ -89,22 +78,11 @@ fun ContactReminderSheet(
                 label = { Text("یادداشت (اختیاری)") },
                 enabled = !isSubmitting,
             )
-            DfGlassTextButton(
-                text = "زمان: $dueLabel",
-                onClick = { showPicker = true },
+            DfDateTimeSelector(
+                millis = dueMillis,
+                onChange = onDueChange,
+                enabled = !isSubmitting,
             )
-            AnimatedVisibility(
-                visible = showPicker,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
-            ) {
-                DfDateTimePickerPanel(
-                    dueMillis = dueMillis,
-                    onDueChange = onDueChange,
-                    onCancel = { showPicker = false },
-                    onFinished = { showPicker = false },
-                )
-            }
         }
         DfSheetSection(title = "تکرار") {
             FlowRow(

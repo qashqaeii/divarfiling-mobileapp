@@ -27,15 +27,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,11 +42,8 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import java.time.Instant
-import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,10 +137,9 @@ fun DfSheetScaffold(
             .fillMaxWidth()
             .then(
                 when {
-                    scrollable && footer != null -> Modifier
+                    scrollable -> Modifier
                         .heightIn(max = maxBodyHeight)
                         .verticalScroll(scrollState)
-                    scrollable -> Modifier.verticalScroll(scrollState)
                     else -> Modifier
                 },
             )
@@ -473,193 +462,3 @@ fun DfMoreActionsSheet(
     }
 }
 
-private enum class DfPickerStep { Date, Time }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DfDateTimePickerPanel(
-    dueMillis: Long,
-    onDueChange: (Long) -> Unit,
-    onCancel: () -> Unit,
-    onFinished: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val zone = ZoneId.systemDefault()
-    var step by remember { mutableStateOf(DfPickerStep.Date) }
-    var workingMillis by remember(dueMillis) { mutableStateOf(dueMillis) }
-    val (initJy, initJm, initJd) = remember(workingMillis) { DateUtils.millisToJalali(workingMillis, zone) }
-    var jalaliYear by remember(workingMillis) { mutableStateOf(initJy) }
-    var jalaliMonth by remember(workingMillis) { mutableStateOf(initJm) }
-    var jalaliDay by remember(workingMillis) { mutableStateOf(initJd) }
-    val localDateTime = Instant.ofEpochMilli(workingMillis).atZone(zone).toLocalDateTime()
-    val timeState = rememberTimePickerState(
-        initialHour = localDateTime.hour,
-        initialMinute = localDateTime.minute,
-        is24Hour = true,
-    )
-    val selectedLabel = DateUtils.formatJalaliDateTimeFromMillis(workingMillis, zone)
-
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = AppShapes.Card,
-        color = DfColors.PurpleContainer.copy(alpha = 0.25f),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = if (step == DfPickerStep.Date) "انتخاب تاریخ شمسی" else "انتخاب ساعت",
-                    style = AppTypography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.Purple,
-                )
-                TextButton(onClick = onCancel) {
-                    Text("انصراف", color = DfColors.TextMuted)
-                }
-            }
-            Text(
-                text = "انتخاب‌شده: $selectedLabel",
-                style = AppTypography.bodyDescription,
-                color = DfColors.TextSecondary,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-            when (step) {
-                DfPickerStep.Date -> DfJalaliDateFields(
-                    year = jalaliYear,
-                    month = jalaliMonth,
-                    day = jalaliDay,
-                    onYearChange = { jalaliYear = it },
-                    onMonthChange = { month ->
-                        jalaliMonth = month
-                        val maxDay = DateUtils.jalaliDaysInMonth(jalaliYear, month)
-                        if (jalaliDay > maxDay) jalaliDay = maxDay
-                    },
-                    onDayChange = { jalaliDay = it },
-                )
-                DfPickerStep.Time -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        TimePicker(state = timeState)
-                    }
-                    Text(
-                        text = "ساعت: ${DateUtils.toPersianDigits("%02d:%02d".format(timeState.hour, timeState.minute))}",
-                        style = AppTypography.labelLarge,
-                        color = DfColors.Purple,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-            DfPrimaryButton(
-                text = if (step == DfPickerStep.Date) "بعدی — انتخاب ساعت" else "تأیید زمان",
-                onClick = {
-                    when (step) {
-                        DfPickerStep.Date -> {
-                            val maxDay = DateUtils.jalaliDaysInMonth(jalaliYear, jalaliMonth)
-                            val safeDay = jalaliDay.coerceIn(1, maxDay)
-                            jalaliDay = safeDay
-                            workingMillis = DateUtils.jalaliDateTimeToMillis(
-                                jalaliYear,
-                                jalaliMonth,
-                                safeDay,
-                                localDateTime.hour,
-                                localDateTime.minute,
-                                zone,
-                            )
-                            onDueChange(workingMillis)
-                            step = DfPickerStep.Time
-                        }
-                        DfPickerStep.Time -> {
-                            val (jy, jm, jd) = DateUtils.millisToJalali(workingMillis, zone)
-                            workingMillis = DateUtils.jalaliDateTimeToMillis(
-                                jy, jm, jd,
-                                timeState.hour,
-                                timeState.minute,
-                                zone,
-                            )
-                            onDueChange(workingMillis)
-                            onFinished()
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}
-
-@Composable
-private fun DfJalaliDateFields(
-    year: Int,
-    month: Int,
-    day: Int,
-    onYearChange: (Int) -> Unit,
-    onMonthChange: (Int) -> Unit,
-    onDayChange: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val currentJy = DateUtils.millisToJalali(System.currentTimeMillis()).first
-    val yearOptions = (currentJy - 1..currentJy + 5).map {
-        DateUtils.toPersianDigits(it.toString())
-    }
-    val monthOptions = DateUtils.jalaliMonthNames
-    val maxDay = DateUtils.jalaliDaysInMonth(year, month)
-    val dayOptions = (1..maxDay).map { DateUtils.toPersianDigits(it.toString()) }
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-    ) {
-        DfDropdown(
-            label = "سال",
-            value = DateUtils.toPersianDigits(year.toString()),
-            options = yearOptions,
-            enabled = true,
-            onSelect = { selected -> parsePersianInt(selected)?.let(onYearChange) },
-        )
-        DfDropdown(
-            label = "ماه",
-            value = DateUtils.jalaliMonthName(month),
-            options = monthOptions,
-            enabled = true,
-            onSelect = { name ->
-                val index = monthOptions.indexOf(name)
-                if (index >= 0) onMonthChange(index + 1)
-            },
-        )
-        DfDropdown(
-            label = "روز",
-            value = DateUtils.toPersianDigits(day.toString()),
-            options = dayOptions,
-            enabled = true,
-            onSelect = { selected -> parsePersianInt(selected)?.let(onDayChange) },
-        )
-    }
-}
-
-private fun parsePersianInt(value: String): Int? {
-    val digits = buildString {
-        for (ch in value) {
-            when (ch) {
-                in '۰'..'۹' -> append("۰۱۲۳۴۵۶۷۸۹".indexOf(ch))
-                in '0'..'9' -> append(ch - '0')
-                else -> return null
-            }
-        }
-    }
-    return digits.toIntOrNull()
-}

@@ -4,6 +4,8 @@ import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.ShopCheckoutData
 import ir.divarfiling.mobile.core.network.ShopCheckoutRequest
+import ir.divarfiling.mobile.core.network.ShopDiscountPreviewData
+import ir.divarfiling.mobile.core.network.ShopDiscountPreviewRequest
 import ir.divarfiling.mobile.core.network.ShopOrderStatusData
 import ir.divarfiling.mobile.core.network.ShopPlansData
 import ir.divarfiling.mobile.core.network.requireData
@@ -32,8 +34,10 @@ class ShopRepository @Inject constructor(
         ApiResult.Error(failure.message, failure.code)
     }
 
-    suspend fun checkout(planId: Long, renewLicenseId: Long?): ApiResult<ShopCheckoutData> = try {
-        val response = api.shopCheckout(ShopCheckoutRequest(planId, renewLicenseId))
+    suspend fun checkout(planId: Long, renewLicenseId: Long?, discountCode: String? = null): ApiResult<ShopCheckoutData> = try {
+        val response = api.shopCheckout(
+            ShopCheckoutRequest(planId, renewLicenseId, discountCode?.trim()?.ifBlank { null }),
+        )
         if (!response.ok) ApiResult.Error(
             ir.divarfiling.mobile.core.network.mapApiError(response.code, response.error, null, "شروع خرید ناموفق بود"),
             response.code,
@@ -48,13 +52,25 @@ class ShopRepository @Inject constructor(
         ApiResult.Error(failure.message, failure.code)
     }
 
+    suspend fun previewDiscount(planId: Long, code: String): ApiResult<ShopDiscountPreviewData> = try {
+        val response = api.shopDiscountPreview(ShopDiscountPreviewRequest(planId, code.trim().uppercase()))
+        if (!response.ok) ApiResult.Error(
+            ir.divarfiling.mobile.core.network.mapApiError(response.code, response.error, null, "اعمال کد تخفیف ناموفق بود"),
+            response.code,
+        )
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        val failure = e.toApiFailure("اعمال کد تخفیف ناموفق بود")
+        ApiResult.Error(failure.message, failure.code)
+    }
+
     suspend fun orderStatus(orderId: String): ApiResult<ShopOrderStatusData> {
         if (!ORDER_ID_PATTERN.matches(orderId)) {
             sessionStore.setPendingOrderId(null)
             return ApiResult.Error("شناسه سفارش نامعتبر است.", "VALIDATION_ERROR")
         }
         return try {
-            val response = api.shopOrderStatus(orderId)
+            val response = api.shopVerifyOrder(orderId)
             if (!response.ok) ApiResult.Error(
                 ir.divarfiling.mobile.core.network.mapApiError(response.code, response.error, null, "بررسی سفارش ناموفق بود"),
                 response.code,
@@ -80,11 +96,9 @@ class ShopRepository @Inject constructor(
                 status
             }
             is ApiResult.Success -> {
+                licenseRepository.refreshLicense()
                 when (status.data.status) {
-                    "paid" -> {
-                        licenseRepository.refreshLicense()
-                        sessionStore.setPendingOrderId(null)
-                    }
+                    "paid" -> sessionStore.setPendingOrderId(null)
                     "failed", "cancelled" -> sessionStore.setPendingOrderId(null)
                 }
                 status

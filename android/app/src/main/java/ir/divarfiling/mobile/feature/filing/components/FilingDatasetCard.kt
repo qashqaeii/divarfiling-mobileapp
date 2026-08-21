@@ -177,27 +177,6 @@ fun FilingDatasetCard(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                     FormatBadge(format)
-                    dataset.transactionType?.takeIf { it.isNotBlank() }?.let {
-                        Surface(shape = AppShapes.Chip, color = DfColors.BlueLight) {
-                            Text(
-                                text = it,
-                                modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = 3.dp),
-                                style = AppTypography.labelSmall,
-                                color = DfColors.Blue,
-                            )
-                        }
-                    }
-                    dataset.subcategory?.takeIf { it.isNotBlank() }?.let {
-                        Surface(shape = AppShapes.Chip, color = DfColors.PurpleContainer) {
-                            Text(
-                                text = it,
-                                modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = 3.dp),
-                                style = AppTypography.labelSmall,
-                                color = DfColors.Purple,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -259,11 +238,17 @@ fun FilingDatasetCard(
 }
 
 internal fun datasetDisplayTitle(dataset: DatasetDto): String {
+    val location = listOfNotNull(
+        dataset.district?.trim()?.takeIf { it.isNotBlank() },
+        dataset.city?.trim()?.takeIf { it.isNotBlank() },
+    ).joinToString("، ")
     val tx = dataset.transactionType?.trim().orEmpty()
+    val category = dataset.category?.trim().orEmpty()
     val sub = dataset.subcategory?.trim().orEmpty()
-    if (tx.isNotBlank() && sub.isNotBlank()) return "$tx — $sub"
-    if (sub.isNotBlank()) return sub
-    if (tx.isNotBlank()) return tx
+    val hierarchy = listOf(location, tx, category, sub)
+        .filter { it.isNotBlank() }
+        .distinct()
+    if (hierarchy.isNotEmpty()) return hierarchy.joinToString(" · ")
     return dataset.name
 }
 

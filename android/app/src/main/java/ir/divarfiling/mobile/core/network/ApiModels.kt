@@ -46,6 +46,7 @@ data class UserDto(
     val phone: String? = null,
     @SerialName("agency_name") val agencyName: String? = null,
     @SerialName("phone_verified") val phoneVerified: Boolean = true,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
 )
 
 @Serializable
@@ -180,6 +181,25 @@ data class ShopPlansData(
 data class ShopCheckoutRequest(
     @SerialName("plan_id") val planId: Long,
     @SerialName("renew_license_id") val renewLicenseId: Long? = null,
+    @SerialName("discount_code") val discountCode: String? = null,
+)
+
+@Serializable
+data class ShopDiscountPreviewRequest(
+    @SerialName("plan_id") val planId: Long,
+    @SerialName("discount_code") val discountCode: String,
+)
+
+@Serializable
+data class ShopDiscountPreviewData(
+    @SerialName("plan_id") val planId: Long? = null,
+    val code: String? = null,
+    @SerialName("original_price") val originalPrice: Long? = null,
+    @SerialName("base_final_price") val baseFinalPrice: Long? = null,
+    @SerialName("discount_amount") val discountAmount: Long? = null,
+    @SerialName("code_discount_amount") val codeDiscountAmount: Long? = null,
+    @SerialName("final_price") val finalPrice: Long? = null,
+    @SerialName("has_discount") val hasDiscount: Boolean = false,
 )
 
 @Serializable
@@ -384,6 +404,7 @@ data class DatasetDto(
     val source: String? = null,
     @SerialName("transaction_type") val transactionType: String? = null,
     @SerialName("subcategory") val subcategory: String? = null,
+    val category: String? = null,
     val city: String? = null,
     val district: String? = null,
     @SerialName("item_count") val itemCount: Int = 0,

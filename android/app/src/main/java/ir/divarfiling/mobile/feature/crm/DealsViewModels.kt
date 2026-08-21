@@ -25,6 +25,7 @@ import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterCreateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterDto
 import ir.divarfiling.mobile.core.datastore.SessionStore
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.CrmRepository
@@ -1339,7 +1340,7 @@ class PropertyDetailViewModel @Inject constructor(
     fun onEditElevatorChange(v: Boolean) = _uiState.update { it.copy(editHasElevator = v) }
     fun onEditVacantChange(v: Boolean) = _uiState.update { it.copy(editIsVacant = v) }
     fun onEditOwnerNameChange(v: String) = _uiState.update { it.copy(editOwnerName = v) }
-    fun onEditOwnerPhoneChange(v: String) = _uiState.update { it.copy(editOwnerPhone = v) }
+    fun onEditOwnerPhoneChange(v: String) = _uiState.update { it.copy(editOwnerPhone = PhoneNormalizer.normalize(v)) }
     fun dismissContactSuggestionResult() = _uiState.update { it.copy(contactSuggestionResult = null) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 }

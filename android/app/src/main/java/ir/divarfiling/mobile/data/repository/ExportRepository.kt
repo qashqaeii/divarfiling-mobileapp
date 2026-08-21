@@ -34,6 +34,7 @@ class ExportRepository @Inject constructor(
                 ?.newBuilder()
                 ?: return@withContext ApiResult.Error("آدرس نامعتبر")
 
+            urlBuilder.addQueryParameter("export_format", format.apiValue)
             urlBuilder.addQueryParameter("format", format.apiValue)
             queryParams.forEach { (key, value) ->
                 if (value.isNotBlank()) urlBuilder.addQueryParameter(key, value)

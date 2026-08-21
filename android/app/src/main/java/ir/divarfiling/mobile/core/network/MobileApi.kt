@@ -59,8 +59,14 @@ interface MobileApi {
     @POST("shop/checkout")
     suspend fun shopCheckout(@Body body: ShopCheckoutRequest): ApiEnvelope
 
+    @POST("shop/discount")
+    suspend fun shopDiscountPreview(@Body body: ShopDiscountPreviewRequest): ApiEnvelope
+
     @GET("shop/orders/{orderId}")
     suspend fun shopOrderStatus(@Path("orderId") orderId: String): ApiEnvelope
+
+    @POST("shop/orders/{orderId}")
+    suspend fun shopVerifyOrder(@Path("orderId") orderId: String): ApiEnvelope
 
     @GET("app/version")
     suspend fun getAppVersion(
@@ -72,6 +78,13 @@ interface MobileApi {
 
     @PATCH("settings/profile")
     suspend fun updateProfile(@Body body: ProfileUpdateRequest): ApiEnvelope
+
+    @Multipart
+    @POST("settings/profile/avatar")
+    suspend fun uploadProfileAvatar(@Part avatar: MultipartBody.Part): ApiEnvelope
+
+    @DELETE("settings/profile/avatar")
+    suspend fun deleteProfileAvatar(): ApiEnvelope
 
     @GET("settings/notifications")
     suspend fun getNotificationPrefs(): ApiEnvelope

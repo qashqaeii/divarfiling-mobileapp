@@ -24,7 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import ir.divarfiling.mobile.feature.crm.components.ContactListCard
+import ir.divarfiling.mobile.core.share.DossierShareActions
 import androidx.compose.foundation.lazy.rememberLazyListState
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import androidx.compose.runtime.LaunchedEffect
@@ -439,15 +439,7 @@ fun ContactsScreen(
                             },
                             onWhatsAppClick = {
                                 contact.phone?.let { phone ->
-                                    val wa = phone.removePrefix("0")
-                                    runCatching {
-                                        context.startActivity(
-                                            Intent(
-                                                Intent.ACTION_VIEW,
-                                                Uri.parse("https://wa.me/98$wa"),
-                                            ),
-                                        )
-                                    }
+                                    DossierShareActions.openWhatsApp(context, "سلام", phone)
                                 }
                             },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),

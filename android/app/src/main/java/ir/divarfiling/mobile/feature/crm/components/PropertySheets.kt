@@ -25,6 +25,8 @@ import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.core.design.components.DfMoneyField
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -127,36 +129,24 @@ fun PropertyCreateSheet(
 
         DfSheetSection(title = "قیمت‌گذاری") {
             if (isRent) {
-                OutlinedTextField(
+                DfMoneyField(
                     value = deposit,
                     onValueChange = onDepositChange,
-                    label = { Text("رهن (تومان)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text("مبلغ رهن") },
+                    label = "رهن",
                     enabled = !isSubmitting,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
-                OutlinedTextField(
+                DfMoneyField(
                     value = rent,
                     onValueChange = onRentChange,
-                    label = { Text("اجاره ماهانه (تومان)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text("مبلغ اجاره") },
+                    label = "اجاره ماهانه",
                     enabled = !isSubmitting,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             } else {
-                OutlinedTextField(
+                DfMoneyField(
                     value = salePrice,
                     onValueChange = onSalePriceChange,
-                    label = { Text("قیمت فروش (تومان)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text("مبلغ فروش") },
+                    label = "قیمت فروش",
                     enabled = !isSubmitting,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             }
         }
@@ -373,29 +363,23 @@ fun PropertyEditSheet(
                 )
             }
             if (isRent) {
-                OutlinedTextField(
+                DfMoneyField(
                     value = deposit,
                     onValueChange = onDepositChange,
-                    label = { Text("رهن (تومان)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    label = "رهن",
                     enabled = !isSubmitting,
                 )
-                OutlinedTextField(
+                DfMoneyField(
                     value = rent,
                     onValueChange = onRentChange,
-                    label = { Text("اجاره (تومان)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    label = "اجاره",
                     enabled = !isSubmitting,
                 )
             } else {
-                OutlinedTextField(
+                DfMoneyField(
                     value = salePrice,
                     onValueChange = onSalePriceChange,
-                    label = { Text("قیمت فروش (تومان)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    label = "قیمت فروش",
                     enabled = !isSubmitting,
                 )
             }
@@ -445,7 +429,7 @@ fun PropertyEditSheet(
                 )
                 OutlinedTextField(
                     value = ownerPhone,
-                    onValueChange = onOwnerPhoneChange,
+                    onValueChange = { onOwnerPhoneChange(PhoneNormalizer.normalize(it)) },
                     label = { Text("شماره مالک") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,

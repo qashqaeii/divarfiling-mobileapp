@@ -15,7 +15,8 @@ import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.network.ListingDetailDto
+import ir.divarfiling.mobile.core.design.components.DfMoneyField
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,35 +95,31 @@ fun ListingEditSheet(
             )
             OutlinedTextField(
                 value = ownerPhone,
-                onValueChange = onOwnerPhoneChange,
+                onValueChange = { onOwnerPhoneChange(PhoneNormalizer.normalize(it)) },
                 label = { Text("شماره تماس مالک") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
             if (isRent) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    DfMoneyField(
                         value = deposit,
                         onValueChange = onDepositChange,
-                        label = { Text("ودیعه") },
+                        label = "ودیعه",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
                     )
-                    OutlinedTextField(
+                    DfMoneyField(
                         value = rent,
                         onValueChange = onRentChange,
-                        label = { Text("اجاره") },
+                        label = "اجاره",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
                     )
                 }
             } else {
-                OutlinedTextField(
+                DfMoneyField(
                     value = price,
                     onValueChange = onPriceChange,
-                    label = { Text("قیمت (تومان)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    label = "قیمت فروش",
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

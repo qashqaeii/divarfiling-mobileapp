@@ -38,12 +38,15 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
+import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
+import ir.divarfiling.mobile.core.design.components.DfTextField
+import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.network.ShopPlanDto
 import java.text.NumberFormat
 import java.util.Locale
@@ -105,6 +108,7 @@ fun PlansScreen(
                     text = "بررسی وضعیت پرداخت",
                     onClick = viewModel::consumePendingOrder,
                     loading = state.isVerifying,
+                    enabled = !state.isVerifying,
                 )
             }
         },
@@ -153,6 +157,56 @@ fun PlansScreen(
                         title = "لایسنس فعال نیست",
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
+                }
+            }
+            state.orderStatusMessage?.takeIf { it.isNotBlank() }?.let { statusText ->
+                item {
+                    DfStatusBanner(
+                        message = statusText,
+                        tone = when (state.orderStatus) {
+                            "paid" -> DfStatusTone.Success
+                            "failed", "cancelled" -> DfStatusTone.Error
+                            else -> DfStatusTone.Info
+                        },
+                        title = "وضعیت پرداخت",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+            item {
+                Column(
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                ) {
+                    DfTextField(
+                        value = state.discountCode,
+                        onValueChange = viewModel::onDiscountCodeChange,
+                        label = "کد تخفیف",
+                        enabled = !state.isCheckingOut && !state.isApplyingDiscount,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        DfPrimaryButton(
+                            text = if (state.isApplyingDiscount) "در حال بررسی…" else "اعمال کد",
+                            onClick = viewModel::applyDiscount,
+                            enabled = state.discountCode.isNotBlank() && !state.isApplyingDiscount && state.selectedPlanId != null,
+                            loading = state.isApplyingDiscount,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (state.discountPreview != null) {
+                            DfGlassTextButton(text = "حذف کد", onClick = viewModel::clearDiscount)
+                        }
+                    }
+                    state.discountPreview?.let { preview ->
+                        val before = preview.baseFinalPrice ?: preview.originalPrice
+                        val after = preview.finalPrice
+                        if (before != null && after != null) {
+                            Text(
+                                text = "قبل: ${FormatUtils.formatPriceToman(before)}  ←  بعد: ${FormatUtils.formatPriceToman(after)}",
+                                style = AppTypography.bodyDescription,
+                                color = DfThemeColors.textSecondary(),
+                            )
+                        }
+                    }
                 }
             }
             items(state.plans, key = { it.id }) { plan ->

@@ -115,8 +115,6 @@ fun MoreHubScreen(
             "استخراج و فایلینگ",
             listOf(
                 MoreHubItem("استخراج سبک", "استخراج آگهی دیوار روی گوشی", DfIcons.Download, MoreHubAction.Navigate("extract"), featured = true),
-                MoreHubItem("استخراج ابری", "استخراج از سرور بدون درگیر کردن گوشی", DfIcons.Cloud, MoreHubAction.Navigate("cloud-extract")),
-                MoreHubItem("جستجوی فایلینگ", "جستجو در آگهی‌های استخراج‌شده", DfIcons.Search, MoreHubAction.Navigate("filing-search")),
             ),
         ),
         MoreHubSection(

@@ -30,6 +30,7 @@ fun ListingSendSheet(
     onNoteChange: (String) -> Unit,
     onSend: () -> Unit,
     onSendWhatsApp: () -> Unit,
+    onSendBale: () -> Unit = {},
     onDismiss: () -> Unit,
 ) {
     DfSheetScaffold(
@@ -87,6 +88,10 @@ fun ListingSendSheet(
             DfGlassTextButton(
                 text = "ارسال + واتساپ",
                 onClick = onSendWhatsApp,
+            )
+            DfGlassTextButton(
+                text = "ارسال + بله",
+                onClick = onSendBale,
             )
         }
     }

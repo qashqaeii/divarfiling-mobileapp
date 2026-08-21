@@ -2,6 +2,8 @@ package ir.divarfiling.mobile.feature.settings
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -66,13 +68,21 @@ fun SettingsScreen(
         }
     }
 
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let(viewModel::uploadAvatar)
+    }
+
     ProfileEditSheet(
         visible = state.showProfileSheet,
         fullName = state.editFullName,
         phone = state.editPhone,
+        avatarUrl = state.user?.avatarUrl,
         isSaving = state.isSavingProfile,
+        isUploadingAvatar = state.isUploadingAvatar,
         onFullNameChange = viewModel::onEditFullNameChange,
         onPhoneChange = viewModel::onEditPhoneChange,
+        onPickAvatar = { avatarPicker.launch("image/*") },
+        onRemoveAvatar = viewModel::removeAvatar,
         onDismiss = { viewModel.toggleProfileSheet(false) },
         onSave = viewModel::saveProfile,
     )

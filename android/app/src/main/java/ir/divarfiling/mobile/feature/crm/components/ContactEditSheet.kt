@@ -23,6 +23,8 @@ import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.core.design.components.DfMoneyField
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 import ir.divarfiling.mobile.feature.crm.CrmTypeProfiles
 
@@ -141,7 +143,7 @@ fun ContactEditSheet(
             )
             OutlinedTextField(
                 value = phone,
-                onValueChange = onPhoneChange,
+                onValueChange = { onPhoneChange(PhoneNormalizer.normalize(it)) },
                 label = { Text("شماره موبایل") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -189,6 +191,7 @@ fun ContactEditSheet(
                     minLabel = profile.budgetLabels.first,
                     maxLabel = profile.budgetLabels.second,
                     enabled = !isSubmitting,
+                    money = true,
                     onMinChange = onBudgetMinChange,
                     onMaxChange = onBudgetMaxChange,
                 )
@@ -200,6 +203,7 @@ fun ContactEditSheet(
                     minLabel = profile.depositLabels.first,
                     maxLabel = profile.depositLabels.second,
                     enabled = !isSubmitting,
+                    money = true,
                     onMinChange = onDepositMinChange,
                     onMaxChange = onDepositMaxChange,
                 )
@@ -209,6 +213,7 @@ fun ContactEditSheet(
                     minLabel = profile.rentLabels.first,
                     maxLabel = profile.rentLabels.second,
                     enabled = !isSubmitting,
+                    money = true,
                     onMinChange = onRentMinChange,
                     onMaxChange = onRentMaxChange,
                 )
@@ -228,6 +233,7 @@ fun ContactEditSheet(
                     minLabel = "بودجه خرید از",
                     maxLabel = "بودجه خرید تا",
                     enabled = !isSubmitting,
+                    money = true,
                     onMinChange = onBuilderBuyBudgetMinChange,
                     onMaxChange = onBuilderBuyBudgetMaxChange,
                 )
@@ -365,30 +371,48 @@ private fun ContactMoneyRangeRow(
     enabled: Boolean,
     onMinChange: (String) -> Unit,
     onMaxChange: (String) -> Unit,
+    money: Boolean = false,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedTextField(
-            value = minValue,
-            onValueChange = onMinChange,
-            label = { Text(minLabel) },
-            modifier = Modifier.weight(1f),
-            singleLine = true,
-            enabled = enabled,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            placeholder = { Text("از", color = DfColors.TextMuted) },
-        )
-        OutlinedTextField(
-            value = maxValue,
-            onValueChange = onMaxChange,
-            label = { Text(maxLabel) },
-            modifier = Modifier.weight(1f),
-            singleLine = true,
-            enabled = enabled,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            placeholder = { Text("تا", color = DfColors.TextMuted) },
-        )
+        if (money) {
+            DfMoneyField(
+                value = minValue,
+                onValueChange = onMinChange,
+                label = minLabel,
+                modifier = Modifier.weight(1f),
+                enabled = enabled,
+            )
+            DfMoneyField(
+                value = maxValue,
+                onValueChange = onMaxChange,
+                label = maxLabel,
+                modifier = Modifier.weight(1f),
+                enabled = enabled,
+            )
+        } else {
+            OutlinedTextField(
+                value = minValue,
+                onValueChange = onMinChange,
+                label = { Text(minLabel) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                enabled = enabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                placeholder = { Text("از", color = DfColors.TextMuted) },
+            )
+            OutlinedTextField(
+                value = maxValue,
+                onValueChange = onMaxChange,
+                label = { Text(maxLabel) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                enabled = enabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                placeholder = { Text("تا", color = DfColors.TextMuted) },
+            )
+        }
     }
 }
