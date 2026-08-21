@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import ir.divarfiling.mobile.core.share.DossierShareActions
+import ir.divarfiling.mobile.feature.crm.components.ContactListCard
 import androidx.compose.foundation.lazy.rememberLazyListState
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import androidx.compose.runtime.LaunchedEffect

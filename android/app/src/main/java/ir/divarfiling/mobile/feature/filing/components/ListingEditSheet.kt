@@ -16,6 +16,7 @@ import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfMoneyField
+import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.util.PhoneNormalizer
 
 @OptIn(ExperimentalMaterial3Api::class)

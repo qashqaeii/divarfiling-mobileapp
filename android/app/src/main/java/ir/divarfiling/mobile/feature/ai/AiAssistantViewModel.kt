@@ -30,6 +30,7 @@ data class AiToneOption(
 data class AiAssistantUiState(
     val quota: AiQuotaData? = null,
     val contactId: String = "",
+    val contactLabel: String = "",
     val contactPhone: String = "",
     val listingToken: String = "",
     val listingLabel: String = "",

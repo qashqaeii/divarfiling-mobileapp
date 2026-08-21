@@ -238,23 +238,24 @@ fun ListingDetailScreen(
     }
 
     if (state.showSendDialog && listing != null) {
+        val sendPreview = DossierShareFormatter.fromDetail(
+            listing,
+            DossierShareOptions(
+                customNote = state.sendNote,
+                includePublicPageLink = true,
+                publicPageUrl = listing.publicShare?.shareUrl.orEmpty(),
+            ),
+        )
         DfModalBottomSheet(onDismissRequest = viewModel::dismissSendDialog) {
                 ListingSendSheet(
                 note = state.sendNote,
-                previewText = DossierShareFormatter.fromDetail(
-                    listing,
-                    DossierShareOptions(
-                        customNote = state.sendNote,
-                        includePublicPageLink = true,
-                        publicPageUrl = listing.publicShare?.shareUrl.orEmpty(),
-                    ),
-                ),
+                previewText = sendPreview,
                 isSubmitting = state.isLinking,
                 onNoteChange = viewModel::onSendNoteChange,
                 onSend = { viewModel.sendToContact(false) },
                 onSendWhatsApp = { viewModel.sendToContact(true) },
                 onSendBale = {
-                    DossierShareActions.openBale(context, preview)
+                    DossierShareActions.openBale(context, sendPreview)
                     viewModel.sendToContact(false)
                 },
                 onDismiss = viewModel::dismissSendDialog,
