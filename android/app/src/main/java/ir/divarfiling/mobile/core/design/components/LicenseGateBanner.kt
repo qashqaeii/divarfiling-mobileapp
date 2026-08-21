@@ -20,6 +20,8 @@ fun LicenseGateBanner(
     onBuyLicense: () -> Unit,
     onOpenDashboard: () -> Unit,
     onRefresh: (() -> Unit)? = null,
+    buyLabel: String = "خرید لایسنس",
+    title: String = "لایسنس فعال نیست",
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -29,7 +31,7 @@ fun LicenseGateBanner(
         DfStatusBanner(
             message = message,
             tone = DfStatusTone.Locked,
-            title = "لایسنس فعال نیست",
+            title = title,
             icon = DfIcons.Lock,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -44,7 +46,7 @@ fun LicenseGateBanner(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
             DfPrimaryButton(
-                text = "خرید لایسنس",
+                text = buyLabel,
                 onClick = onBuyLicense,
                 modifier = Modifier.weight(1f),
             )

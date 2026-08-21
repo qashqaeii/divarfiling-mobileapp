@@ -90,6 +90,7 @@ fun MoreHubScreen(
     onNavigateDeals: () -> Unit = {},
     onNavigateProperties: () -> Unit = {},
     onNavigateCrm: () -> Unit = {},
+    onNavigatePlans: () -> Unit = {},
     viewModel: MoreHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -136,6 +137,8 @@ fun MoreHubScreen(
         MoreHubSection(
             "حساب و پشتیبانی",
             listOf(
+                MoreHubItem("حساب و اشتراک", "وضعیت لایسنس، پلن و تمدید", DfIcons.Lock, MoreHubAction.Navigate("plans"), featured = true),
+                MoreHubItem("Product Hub", "مرکز محصول و ابزارهای پیشرفته وب", DfIcons.Layers, MoreHubAction.External(AppLinks.PRODUCT_HUB)),
                 MoreHubItem("اعلان‌ها", "یادآور، تطبیق و هشدارها", DfIcons.Bell, MoreHubAction.Navigate("notifications")),
                 MoreHubItem("پشتیبانی", "تیکت و درخواست کمک", DfIcons.Phone, MoreHubAction.Navigate("support")),
                 MoreHubItem("تنظیمات", "پروفایل و ترجیحات اعلان", DfIcons.Settings, MoreHubAction.Navigate("settings")),
@@ -150,7 +153,7 @@ fun MoreHubScreen(
     fun handleItem(item: MoreHubItem) {
         when (val action = item.action) {
             is MoreHubAction.External -> {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(action.url)))
+                ir.divarfiling.mobile.core.ExternalBrowser.open(context, action.url)
             }
             is MoreHubAction.Navigate -> when (action.route) {
                 "tools" -> onNavigateTools()
@@ -168,6 +171,7 @@ fun MoreHubScreen(
                 "deals" -> onNavigateDeals()
                 "properties" -> onNavigateProperties()
                 "crm" -> onNavigateCrm()
+                "plans" -> onNavigatePlans()
             }
             MoreHubAction.CheckUpdate -> updateViewModel.checkManually()
         }

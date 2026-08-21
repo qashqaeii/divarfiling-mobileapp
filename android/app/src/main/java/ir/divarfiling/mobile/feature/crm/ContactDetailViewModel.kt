@@ -60,6 +60,7 @@ data class ContactDetailUiState(
     val editPrefs: ContactEditPrefsState = ContactEditPrefsState(),
     val editBuilder: ContactEditBuilderState = ContactEditBuilderState(),
     val editNotes: String = "",
+    val showDiscardEditDialog: Boolean = false,
     val activityContent: String = "",
     val selectedActivityType: String = "پیگیری",
     val selectedActivityStatus: String = "در حال پیگیری",
@@ -143,6 +144,14 @@ class ContactDetailViewModel @Inject constructor(
                                 minArea = contact.minArea?.toString().orEmpty(),
                                 maxArea = contact.maxArea?.toString().orEmpty(),
                                 areas = contact.areas.orEmpty(),
+                                city = contact.city.orEmpty(),
+                                yearMin = contact.yearMin?.toString().orEmpty(),
+                                yearMax = contact.yearMax?.toString().orEmpty(),
+                                floorMin = contact.floorMin?.toString().orEmpty(),
+                                floorMax = contact.floorMax?.toString().orEmpty(),
+                                wantParking = contact.wantParking,
+                                wantStorage = contact.wantStorage,
+                                wantElevator = contact.wantElevator,
                             ),
                             editBuilder = ContactEditBuilderState(
                                 buyBudgetMin = contact.builderBuyBudgetMin?.toString().orEmpty(),
@@ -343,13 +352,14 @@ class ContactDetailViewModel @Inject constructor(
     }
 
     fun saveEdit() {
+        if (_uiState.value.isSubmitting) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true) }
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
             val state = _uiState.value
             val money = state.editMoney
             val prefs = state.editPrefs
             val builder = state.editBuilder
-            when (crmRepository.updateContact(
+            when (val result = crmRepository.updateContact(
                 contactId,
                 ContactUpdateRequest(
                     fullName = state.editName.trim(),
@@ -377,6 +387,14 @@ class ContactDetailViewModel @Inject constructor(
                     builderBuyMaxArea = parseMoneyInput(builder.buyMaxArea)?.toInt(),
                     builderBuyAreas = builder.buyAreas.ifBlank { "" },
                     builderBuyPropertyTypes = builder.buyPropertyTypes.ifBlank { "" },
+                    city = prefs.city.ifBlank { "" },
+                    yearMin = parseMoneyInput(prefs.yearMin)?.toInt(),
+                    yearMax = parseMoneyInput(prefs.yearMax)?.toInt(),
+                    floorMin = parseMoneyInput(prefs.floorMin)?.toInt(),
+                    floorMax = parseMoneyInput(prefs.floorMax)?.toInt(),
+                    wantParking = prefs.wantParking,
+                    wantStorage = prefs.wantStorage,
+                    wantElevator = prefs.wantElevator,
                 ),
             )) {
                 is ApiResult.Success -> {
@@ -385,7 +403,9 @@ class ContactDetailViewModel @Inject constructor(
                     }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = it.error) }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
             }
         }
     }
@@ -670,7 +690,80 @@ class ContactDetailViewModel @Inject constructor(
             )
         }
     }
-    fun toggleEditSheet(show: Boolean) = _uiState.update { it.copy(showEditSheet = show) }
+    fun toggleEditSheet(show: Boolean) {
+        if (show) {
+            _uiState.update { it.copy(showEditSheet = true, showDiscardEditDialog = false) }
+        } else {
+            requestDismissEdit()
+        }
+    }
+
+    fun requestDismissEdit() {
+        val state = _uiState.value
+        if (state.showEditSheet && isContactEditDirty(state)) {
+            _uiState.update { it.copy(showEditSheet = false, showDiscardEditDialog = true) }
+        } else {
+            _uiState.update { it.copy(showEditSheet = false, showDiscardEditDialog = false) }
+        }
+    }
+
+    fun cancelDiscardEdit() {
+        _uiState.update { it.copy(showDiscardEditDialog = false, showEditSheet = true) }
+    }
+
+    fun confirmDiscardEdit() {
+        val contact = _uiState.value.data?.contact
+        _uiState.update {
+            if (contact == null) {
+                it.copy(showDiscardEditDialog = false, showEditSheet = false)
+            } else {
+                it.copy(
+                    showDiscardEditDialog = false,
+                    showEditSheet = false,
+                    editName = contact.fullName,
+                    editPhone = contact.phone.orEmpty(),
+                    editStatus = contact.status.orEmpty(),
+                    editCustomerType = contact.customerType.orEmpty(),
+                    editPriority = contact.priority.orEmpty(),
+                    editNotes = contact.notes.orEmpty(),
+                )
+            }
+        }
+    }
+
+    private fun isContactEditDirty(state: ContactDetailUiState): Boolean {
+        val contact = state.data?.contact ?: return false
+        val money = state.editMoney
+        val prefs = state.editPrefs
+        return state.editName != contact.fullName ||
+            state.editPhone != contact.phone.orEmpty() ||
+            state.editStatus != contact.status.orEmpty() ||
+            state.editCustomerType != contact.customerType.orEmpty() ||
+            state.editPriority != contact.priority.orEmpty() ||
+            state.editNotes != contact.notes.orEmpty() ||
+            money.budgetMin != contact.budgetMin?.toString().orEmpty() ||
+            money.budgetMax != contact.budgetMax?.toString().orEmpty() ||
+            money.depositMin != contact.depositMin?.toString().orEmpty() ||
+            money.depositMax != contact.depositMax?.toString().orEmpty() ||
+            money.rentMin != contact.rentMin?.toString().orEmpty() ||
+            money.rentMax != contact.rentMax?.toString().orEmpty() ||
+            prefs.propertyType != contact.propertyType.orEmpty().ifBlank {
+                if (contact.customerType == "سازنده") "آپارتمان" else ""
+            } ||
+            prefs.rooms != contact.rooms.orEmpty() ||
+            prefs.minArea != contact.minArea?.toString().orEmpty() ||
+            prefs.maxArea != contact.maxArea?.toString().orEmpty() ||
+            prefs.areas != contact.areas.orEmpty() ||
+            prefs.city != contact.city.orEmpty() ||
+            prefs.yearMin != contact.yearMin?.toString().orEmpty() ||
+            prefs.yearMax != contact.yearMax?.toString().orEmpty() ||
+            prefs.floorMin != contact.floorMin?.toString().orEmpty() ||
+            prefs.floorMax != contact.floorMax?.toString().orEmpty() ||
+            prefs.wantParking != contact.wantParking ||
+            prefs.wantStorage != contact.wantStorage ||
+            prefs.wantElevator != contact.wantElevator
+    }
+
     fun openActivitySheet(type: String = "پیگیری", content: String = "") = _uiState.update {
         it.copy(
             showActivitySheet = true,
@@ -711,6 +804,14 @@ class ContactDetailViewModel @Inject constructor(
     fun onEditMinAreaChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(minArea = v)) }
     fun onEditMaxAreaChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(maxArea = v)) }
     fun onEditAreasChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(areas = v)) }
+    fun onEditCityChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(city = v)) }
+    fun onEditYearMinChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(yearMin = v)) }
+    fun onEditYearMaxChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(yearMax = v)) }
+    fun onEditFloorMinChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(floorMin = v)) }
+    fun onEditFloorMaxChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(floorMax = v)) }
+    fun onEditWantParkingChange(v: Boolean) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(wantParking = v)) }
+    fun onEditWantStorageChange(v: Boolean) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(wantStorage = v)) }
+    fun onEditWantElevatorChange(v: Boolean) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(wantElevator = v)) }
     fun onEditBuilderBuyBudgetMinChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyBudgetMin = v)) }
     fun onEditBuilderBuyBudgetMaxChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyBudgetMax = v)) }
     fun onEditBuilderBuyMinAreaChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyMinArea = v)) }

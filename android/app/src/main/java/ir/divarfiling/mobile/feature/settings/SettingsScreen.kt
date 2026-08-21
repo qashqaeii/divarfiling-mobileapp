@@ -44,6 +44,7 @@ fun SettingsScreen(
     onNavigateTools: () -> Unit = {},
     onNavigateSupport: () -> Unit = {},
     onNavigateInstallHelp: () -> Unit = {},
+    onNavigatePlans: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -119,7 +120,7 @@ fun SettingsScreen(
                 item {
                     LicenseInsightCard(
                         license = state.license,
-                        onRenew = { openWeb(AppLinks.SHOP_BOT) },
+                        onRenew = onNavigatePlans,
                         onOpenDashboard = { openWeb(AppLinks.DASHBOARD_LICENSES) },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )

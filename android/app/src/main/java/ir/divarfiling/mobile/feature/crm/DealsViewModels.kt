@@ -856,6 +856,16 @@ data class PropertyDetailUiState(
     val editRent: String = "",
     val editAddress: String = "",
     val editNotes: String = "",
+    val editFloor: String = "",
+    val editBuildYear: String = "",
+    val editAmenities: String = "",
+    val editHasParking: Boolean = false,
+    val editHasStorage: Boolean = false,
+    val editHasElevator: Boolean = false,
+    val editIsVacant: Boolean = false,
+    val editOwnerName: String = "",
+    val editOwnerPhone: String = "",
+    val showDiscardEditDialog: Boolean = false,
     val inlineNotes: String = "",
     val showShareSheet: Boolean = false,
     val showPublicShareSettingsSheet: Boolean = false,
@@ -925,6 +935,15 @@ class PropertyDetailViewModel @Inject constructor(
                             editRent = p.rent?.toString().orEmpty(),
                             editAddress = p.address.orEmpty(),
                             editNotes = p.notes.orEmpty(),
+                            editFloor = p.floor?.toString().orEmpty(),
+                            editBuildYear = p.buildYear?.toString().orEmpty(),
+                            editAmenities = p.amenities.orEmpty(),
+                            editHasParking = p.hasParking,
+                            editHasStorage = p.hasStorage,
+                            editHasElevator = p.hasElevator,
+                            editIsVacant = p.isVacant,
+                            editOwnerName = p.ownerName.orEmpty(),
+                            editOwnerPhone = p.phone.orEmpty(),
                             shareConsultantName = publicShare?.consultantName.orEmpty(),
                             shareConsultantPhone = publicShare?.consultantPhone.orEmpty(),
                             shareWelcomeMessage = publicShare?.welcomeMessage.orEmpty(),
@@ -965,6 +984,7 @@ class PropertyDetailViewModel @Inject constructor(
     }
 
     fun saveEdit() {
+        if (_uiState.value.isSubmitting) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             val state = _uiState.value
@@ -987,6 +1007,15 @@ class PropertyDetailViewModel @Inject constructor(
                         rent = if (isRent) state.editRent.trim().toLongOrNull() else null,
                         address = state.editAddress.trim(),
                         notes = state.editNotes,
+                        floor = state.editFloor.trim().toIntOrNull(),
+                        buildYear = state.editBuildYear.trim().toIntOrNull(),
+                        amenities = state.editAmenities,
+                        hasParking = state.editHasParking,
+                        hasStorage = state.editHasStorage,
+                        hasElevator = state.editHasElevator,
+                        isVacant = state.editIsVacant,
+                        ownerName = state.editOwnerName.trim(),
+                        ownerPhone = state.editOwnerPhone.trim(),
                     ),
                 )
             ) {
@@ -1018,7 +1047,60 @@ class PropertyDetailViewModel @Inject constructor(
         }
     }
 
-    fun toggleEditSheet(show: Boolean) = _uiState.update { it.copy(showEditSheet = show) }
+    fun toggleEditSheet(show: Boolean) {
+        if (show) {
+            _uiState.update { it.copy(showEditSheet = true, showDiscardEditDialog = false) }
+        } else {
+            requestDismissEdit()
+        }
+    }
+
+    fun requestDismissEdit() {
+        val state = _uiState.value
+        if (state.showEditSheet && isPropertyEditDirty(state)) {
+            _uiState.update { it.copy(showEditSheet = false, showDiscardEditDialog = true) }
+        } else {
+            _uiState.update { it.copy(showEditSheet = false, showDiscardEditDialog = false) }
+        }
+    }
+
+    fun cancelDiscardEdit() {
+        _uiState.update { it.copy(showDiscardEditDialog = false, showEditSheet = true) }
+    }
+
+    fun confirmDiscardEdit() {
+        _uiState.update { it.copy(showDiscardEditDialog = false, showEditSheet = false) }
+        load()
+    }
+
+    private fun isPropertyEditDirty(state: PropertyDetailUiState): Boolean {
+        val p = state.detail?.property ?: return false
+        val area = p.area?.let { v -> if (v % 1.0 == 0.0) v.toInt().toString() else v.toString() }.orEmpty()
+        return state.editTitle != p.title ||
+            state.editCity != p.city.orEmpty() ||
+            state.editDistrict != p.district.orEmpty() ||
+            state.editNeighborhood != p.neighborhood.orEmpty() ||
+            state.editDealMode != (p.dealMode ?: PropertyConstants.DEAL_MODES.first()) ||
+            state.editPropertyType != (p.propertyType ?: PropertyConstants.PROPERTY_TYPES.first()) ||
+            state.editTransactionStatus != (p.transactionStatus ?: CrmConstants.PROPERTY_TX_STATUSES.first()) ||
+            state.editArea != area ||
+            state.editRooms != p.rooms.orEmpty() ||
+            state.editPrice != p.salePrice?.toString().orEmpty() ||
+            state.editDeposit != p.deposit?.toString().orEmpty() ||
+            state.editRent != p.rent?.toString().orEmpty() ||
+            state.editAddress != p.address.orEmpty() ||
+            state.editNotes != p.notes.orEmpty() ||
+            state.editFloor != p.floor?.toString().orEmpty() ||
+            state.editBuildYear != p.buildYear?.toString().orEmpty() ||
+            state.editAmenities != p.amenities.orEmpty() ||
+            state.editHasParking != p.hasParking ||
+            state.editHasStorage != p.hasStorage ||
+            state.editHasElevator != p.hasElevator ||
+            state.editIsVacant != p.isVacant ||
+            state.editOwnerName != p.ownerName.orEmpty() ||
+            state.editOwnerPhone != p.phone.orEmpty()
+    }
+
     fun toggleDeleteDialog(show: Boolean) = _uiState.update { it.copy(showDeleteDialog = show) }
     fun toggleShareSheet(show: Boolean) = _uiState.update { it.copy(showShareSheet = show) }
     fun togglePublicShareSettingsSheet(show: Boolean) = _uiState.update { it.copy(showPublicShareSettingsSheet = show) }
@@ -1249,6 +1331,15 @@ class PropertyDetailViewModel @Inject constructor(
     fun onEditRentChange(v: String) = _uiState.update { it.copy(editRent = v) }
     fun onEditAddressChange(v: String) = _uiState.update { it.copy(editAddress = v) }
     fun onEditNotesChange(v: String) = _uiState.update { it.copy(editNotes = v) }
+    fun onEditFloorChange(v: String) = _uiState.update { it.copy(editFloor = v) }
+    fun onEditBuildYearChange(v: String) = _uiState.update { it.copy(editBuildYear = v) }
+    fun onEditAmenitiesChange(v: String) = _uiState.update { it.copy(editAmenities = v) }
+    fun onEditParkingChange(v: Boolean) = _uiState.update { it.copy(editHasParking = v) }
+    fun onEditStorageChange(v: Boolean) = _uiState.update { it.copy(editHasStorage = v) }
+    fun onEditElevatorChange(v: Boolean) = _uiState.update { it.copy(editHasElevator = v) }
+    fun onEditVacantChange(v: Boolean) = _uiState.update { it.copy(editIsVacant = v) }
+    fun onEditOwnerNameChange(v: String) = _uiState.update { it.copy(editOwnerName = v) }
+    fun onEditOwnerPhoneChange(v: String) = _uiState.update { it.copy(editOwnerPhone = v) }
     fun dismissContactSuggestionResult() = _uiState.update { it.copy(contactSuggestionResult = null) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 }

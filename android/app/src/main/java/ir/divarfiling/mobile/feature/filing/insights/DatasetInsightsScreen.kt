@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -119,6 +120,7 @@ fun DatasetInsightsScreen(
                             DfContinueOnWebRow(
                                 title = "ادامه در میزکار وب",
                                 subtitle = "مقایسه و تحلیل عمیق این پوشه در مرورگر",
+                                url = AppLinks.workspaceDataset(state.datasetId),
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }

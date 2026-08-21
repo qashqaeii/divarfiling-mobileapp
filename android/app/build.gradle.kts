@@ -134,6 +134,7 @@ dependencies {
     implementation(libs.osmdroid.android)
     implementation(libs.icons.lucide)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.browser)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)

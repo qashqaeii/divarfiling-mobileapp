@@ -3,6 +3,9 @@ package ir.divarfiling.mobile.navigation
 import android.net.Uri
 
 object DeepLinkParser {
+    private val ORDER_ID_PATTERN =
+        Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
     fun parse(uri: Uri?): DeepLinkTarget? {
         if (uri == null || uri.scheme != "divarfiling") return null
         val host = uri.host ?: return null
@@ -41,6 +44,12 @@ object DeepLinkParser {
             }
             "calendar" -> DeepLinkTarget.Calendar
             "settings" -> DeepLinkTarget.Settings
+            "plans", "license" -> DeepLinkTarget.Plans
+            "payment" -> {
+                val orderId = uri.getQueryParameter("order_id").orEmpty()
+                if (ORDER_ID_PATTERN.matches(orderId)) DeepLinkTarget.Payment(orderId)
+                else DeepLinkTarget.Plans
+            }
             else -> null
         }
     }
@@ -66,4 +75,6 @@ sealed class DeepLinkTarget {
     data class SupportTicket(val ticketId: Long) : DeepLinkTarget()
     data object Calendar : DeepLinkTarget()
     data object Settings : DeepLinkTarget()
+    data object Plans : DeepLinkTarget()
+    data class Payment(val orderId: String) : DeepLinkTarget()
 }

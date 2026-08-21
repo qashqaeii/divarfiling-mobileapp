@@ -23,6 +23,27 @@ interface MobileApi {
     @POST("auth/logout")
     suspend fun logout(@Body body: RefreshRequest): ApiEnvelope
 
+    @POST("auth/otp/request")
+    suspend fun otpRequest(@Body body: OtpRequestBody): ApiEnvelope
+
+    @POST("auth/otp/resend")
+    suspend fun otpResend(@Body body: OtpRequestBody): ApiEnvelope
+
+    @POST("auth/otp/verify")
+    suspend fun otpVerify(@Body body: OtpVerifyBody): ApiEnvelope
+
+    @POST("auth/register")
+    suspend fun completeRegister(@Body body: PasswordCompleteRequest): ApiEnvelope
+
+    @POST("auth/password-reset")
+    suspend fun completePasswordReset(@Body body: PasswordCompleteRequest): ApiEnvelope
+
+    @POST("auth/verify-phone/request")
+    suspend fun verifyPhoneRequest(): ApiEnvelope
+
+    @POST("auth/verify-phone/verify")
+    suspend fun verifyPhoneComplete(@Body body: OtpVerifyBody): ApiEnvelope
+
     @POST("devices/register")
     suspend fun registerDevice(@Body body: DeviceRegisterRequest): ApiEnvelope
 
@@ -31,6 +52,15 @@ interface MobileApi {
 
     @GET("license/status")
     suspend fun licenseStatus(): ApiEnvelope
+
+    @GET("shop/plans")
+    suspend fun getShopPlans(): ApiEnvelope
+
+    @POST("shop/checkout")
+    suspend fun shopCheckout(@Body body: ShopCheckoutRequest): ApiEnvelope
+
+    @GET("shop/orders/{orderId}")
+    suspend fun shopOrderStatus(@Path("orderId") orderId: String): ApiEnvelope
 
     @GET("app/version")
     suspend fun getAppVersion(

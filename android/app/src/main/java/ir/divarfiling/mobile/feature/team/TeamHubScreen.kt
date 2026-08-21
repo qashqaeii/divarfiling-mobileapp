@@ -43,6 +43,7 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
+import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
@@ -278,29 +279,20 @@ fun TeamHubScreen(
                                 }
                             }
                             item {
-                                DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                        TeamSectionLabel(
-                                            title = "ابزارهای پیشرفته",
-                                            subtitle = "TV Mode و گزارش کامل روی وب باقی مانده‌اند",
-                                        )
-                                        DfPrimaryButton(
-                                            text = "TV Mode",
-                                            onClick = {
-                                                context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_TEAM_TV)),
-                                                )
-                                            },
-                                        )
-                                        DfSecondaryButton(
-                                            text = "گزارش عملکرد CSV",
-                                            onClick = {
-                                                context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_TEAM_REPORT)),
-                                                )
-                                            },
-                                        )
-                                    }
+                                Column(
+                                    modifier = Modifier.padding(horizontal = pad),
+                                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                                ) {
+                                    DfContinueOnWebRow(
+                                        title = "Agency TV",
+                                        subtitle = "نمایش زنده فایل‌ها روی تلویزیون آژانس",
+                                        url = AppLinks.WORKSPACE_TEAM_TV,
+                                    )
+                                    DfContinueOnWebRow(
+                                        title = "گزارش مدیریتی آژانس",
+                                        subtitle = "خروجی CSV عملکرد تیم در میزکار وب",
+                                        url = AppLinks.WORKSPACE_TEAM_REPORT,
+                                    )
                                 }
                             }
                         }

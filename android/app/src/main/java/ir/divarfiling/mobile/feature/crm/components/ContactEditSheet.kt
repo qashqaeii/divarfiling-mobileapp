@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -40,6 +41,14 @@ data class ContactEditPrefsState(
     val minArea: String = "",
     val maxArea: String = "",
     val areas: String = "",
+    val city: String = "",
+    val yearMin: String = "",
+    val yearMax: String = "",
+    val floorMin: String = "",
+    val floorMax: String = "",
+    val wantParking: Boolean = false,
+    val wantStorage: Boolean = false,
+    val wantElevator: Boolean = false,
 )
 
 data class ContactEditBuilderState(
@@ -80,6 +89,14 @@ fun ContactEditSheet(
     onMinAreaChange: (String) -> Unit,
     onMaxAreaChange: (String) -> Unit,
     onAreasChange: (String) -> Unit,
+    onCityChange: (String) -> Unit = {},
+    onYearMinChange: (String) -> Unit = {},
+    onYearMaxChange: (String) -> Unit = {},
+    onFloorMinChange: (String) -> Unit = {},
+    onFloorMaxChange: (String) -> Unit = {},
+    onWantParkingChange: (Boolean) -> Unit = {},
+    onWantStorageChange: (Boolean) -> Unit = {},
+    onWantElevatorChange: (Boolean) -> Unit = {},
     onBuilderBuyBudgetMinChange: (String) -> Unit = {},
     onBuilderBuyBudgetMaxChange: (String) -> Unit = {},
     onBuilderBuyMinAreaChange: (String) -> Unit = {},
@@ -276,6 +293,35 @@ fun ContactEditSheet(
                 enabled = !isSubmitting,
                 placeholder = { Text("ونک، نیاوران، …") },
             )
+            OutlinedTextField(
+                value = prefs.city,
+                onValueChange = onCityChange,
+                label = { Text("شهر") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSubmitting,
+            )
+            ContactMoneyRangeRow(
+                minValue = prefs.yearMin,
+                maxValue = prefs.yearMax,
+                minLabel = "سال ساخت از",
+                maxLabel = "سال ساخت تا",
+                enabled = !isSubmitting,
+                onMinChange = onYearMinChange,
+                onMaxChange = onYearMaxChange,
+            )
+            ContactMoneyRangeRow(
+                minValue = prefs.floorMin,
+                maxValue = prefs.floorMax,
+                minLabel = "طبقه از",
+                maxLabel = "طبقه تا",
+                enabled = !isSubmitting,
+                onMinChange = onFloorMinChange,
+                onMaxChange = onFloorMaxChange,
+            )
+            AmenityToggleRow("پارکینگ", prefs.wantParking, !isSubmitting, onWantParkingChange)
+            AmenityToggleRow("انباری", prefs.wantStorage, !isSubmitting, onWantStorageChange)
+            AmenityToggleRow("آسانسور", prefs.wantElevator, !isSubmitting, onWantElevatorChange)
         }
 
         DfSheetSection(title = "یادداشت") {
@@ -290,6 +336,23 @@ fun ContactEditSheet(
             )
         }
         }
+    }
+}
+
+@Composable
+private fun AmenityToggleRow(
+    label: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Text(label)
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
 

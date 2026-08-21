@@ -50,6 +50,9 @@ class TokenRefresher @Inject constructor(
                 val raw = response.body?.string().orEmpty()
                 val envelope = json.decodeFromString<ApiEnvelope>(raw)
                 if (!envelope.ok) {
+                    if (envelope.code == "AUTH_EXPIRED" || response.code == 401) {
+                        runBlocking { sessionStore.clear() }
+                    }
                     return false
                 }
                 val data = envelope.parseData<RefreshData>(json) ?: return false

@@ -19,7 +19,12 @@ class TokenRefreshAuthenticator @Inject constructor(
             return null
         }
         val path = response.request.url.encodedPath
-        if (path.contains("/auth/login") || path.contains("/auth/refresh")) {
+        if (path.contains("/auth/login") ||
+            path.contains("/auth/refresh") ||
+            path.contains("/auth/otp/") ||
+            path.contains("/auth/register") ||
+            path.contains("/auth/password-reset")
+        ) {
             return null
         }
         if (!tokenRefresher.refreshSync()) {

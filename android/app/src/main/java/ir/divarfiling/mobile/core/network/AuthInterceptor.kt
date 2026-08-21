@@ -19,6 +19,9 @@ class AuthInterceptor @Inject constructor(
         val path = request.url.encodedPath
         val skipAuth = path.endsWith("/auth/login") ||
             path.endsWith("/auth/refresh") ||
+            path.contains("/auth/otp/") ||
+            path.endsWith("/auth/register") ||
+            path.endsWith("/auth/password-reset") ||
             path.endsWith("/app/version")
 
         val builder = request.newBuilder()

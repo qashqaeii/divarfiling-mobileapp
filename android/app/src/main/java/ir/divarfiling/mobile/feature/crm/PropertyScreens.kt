@@ -477,7 +477,7 @@ fun PropertyDetailScreen(
     }
 
     if (state.showEditSheet) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleEditSheet(false) }) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.requestDismissEdit() }) {
             PropertyEditSheet(
                 title = state.editTitle,
                 city = state.editCity,
@@ -494,6 +494,15 @@ fun PropertyDetailScreen(
                 address = state.editAddress,
                 notes = state.editNotes,
                 isSubmitting = state.isSubmitting,
+                floor = state.editFloor,
+                buildYear = state.editBuildYear,
+                amenities = state.editAmenities,
+                hasParking = state.editHasParking,
+                hasStorage = state.editHasStorage,
+                hasElevator = state.editHasElevator,
+                isVacant = state.editIsVacant,
+                ownerName = state.editOwnerName,
+                ownerPhone = state.editOwnerPhone,
                 onTitleChange = viewModel::onEditTitleChange,
                 onCityChange = viewModel::onEditCityChange,
                 onDistrictChange = viewModel::onEditDistrictChange,
@@ -508,10 +517,31 @@ fun PropertyDetailScreen(
                 onRentChange = viewModel::onEditRentChange,
                 onAddressChange = viewModel::onEditAddressChange,
                 onNotesChange = viewModel::onEditNotesChange,
+                onFloorChange = viewModel::onEditFloorChange,
+                onBuildYearChange = viewModel::onEditBuildYearChange,
+                onAmenitiesChange = viewModel::onEditAmenitiesChange,
+                onParkingChange = viewModel::onEditParkingChange,
+                onStorageChange = viewModel::onEditStorageChange,
+                onElevatorChange = viewModel::onEditElevatorChange,
+                onVacantChange = viewModel::onEditVacantChange,
+                onOwnerNameChange = viewModel::onEditOwnerNameChange,
+                onOwnerPhoneChange = viewModel::onEditOwnerPhoneChange,
                 onSubmit = viewModel::saveEdit,
-                onDismiss = { viewModel.toggleEditSheet(false) },
+                onDismiss = { viewModel.requestDismissEdit() },
             )
         }
+    }
+
+    if (state.showDiscardEditDialog) {
+        DfConfirmBottomSheet(
+            title = "تغییرات ذخیره نشده",
+            message = "ویرایش ملک ذخیره نشده است. از تغییرات صرف‌نظر می‌کنید؟",
+            confirmText = "صرف‌نظر",
+            cancelText = "ادامه ویرایش",
+            destructive = true,
+            onConfirm = viewModel::confirmDiscardEdit,
+            onDismiss = viewModel::cancelDiscardEdit,
+        )
     }
 
     if (state.showDeleteDialog) {

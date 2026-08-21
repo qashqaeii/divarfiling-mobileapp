@@ -49,6 +49,7 @@ import ir.divarfiling.mobile.feature.crm.templates.MessageTemplatesScreen
 import ir.divarfiling.mobile.feature.extract.cloud.CloudExtractScreen
 import ir.divarfiling.mobile.feature.filing.insights.DatasetInsightsScreen
 import ir.divarfiling.mobile.feature.filing.map.DatasetMapScreen
+import ir.divarfiling.mobile.feature.license.PlansScreen
 import ir.divarfiling.mobile.feature.more.MoreHubScreen
 import ir.divarfiling.mobile.feature.support.SupportTicketDetailScreen
 import ir.divarfiling.mobile.feature.support.SupportTicketsScreen
@@ -78,6 +79,7 @@ object Routes {
     const val EXTRACT = "extract"
     const val EXTRACT_SCHEDULES = "extract/schedules"
     const val SETTINGS = "settings"
+    const val PLANS = "plans"
     const val SETTINGS_INSTALL_HELP = "settings/install-help"
     const val MORE = "more"
     const val FILING_INSIGHTS = "filing/{datasetId}/insights"
@@ -140,7 +142,9 @@ fun DivarFilingNavHost(
     var isLoggedIn by remember { mutableStateOf<Boolean?>(null) }
 
     LaunchedEffect(Unit) {
-        isLoggedIn = sessionViewModel.isLoggedIn.first()
+        sessionViewModel.isLoggedIn.collect { loggedIn ->
+            isLoggedIn = loggedIn
+        }
     }
 
     when (isLoggedIn) {
@@ -157,6 +161,9 @@ fun DivarFilingNavHost(
         true -> {
             LaunchedEffect(deepLink) {
                 deepLink?.let { target ->
+                    if (target is DeepLinkTarget.Payment) {
+                        sessionViewModel.rememberPendingOrder(target.orderId)
+                    }
                     navController.navigateDeepLink(target)
                     onDeepLinkHandled()
                 }
@@ -395,6 +402,7 @@ fun DivarFilingNavHost(
                             onBack = { navController.popBackStack() },
                             onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
                             onMenuClick = { navController.navigate(Routes.SETTINGS) },
+                            onNavigatePlans = { navController.navigate(Routes.PLANS) },
                         )
                     }
                     composable(Routes.EXTRACT_SCHEDULES) {
@@ -407,6 +415,18 @@ fun DivarFilingNavHost(
                             onNavigateTools = { navController.navigate(Routes.TOOLS) },
                             onNavigateSupport = { navController.navigate(Routes.SUPPORT) },
                             onNavigateInstallHelp = { navController.navigate(Routes.SETTINGS_INSTALL_HELP) },
+                            onNavigatePlans = { navController.navigate(Routes.PLANS) },
+                        )
+                    }
+                    composable(Routes.PLANS) {
+                        PlansScreen(
+                            onBack = { navController.popBackStack() },
+                            onStartUsing = {
+                                navController.navigate(Routes.HOME) {
+                                    popUpTo(Routes.HOME) { inclusive = false }
+                                    launchSingleTop = true
+                                }
+                            },
                         )
                     }
                     composable(Routes.SETTINGS_INSTALL_HELP) {
@@ -429,6 +449,7 @@ fun DivarFilingNavHost(
                             onNavigateDeals = { navController.navigate(Routes.CRM_DEALS) },
                             onNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
+                            onNavigatePlans = { navController.navigate(Routes.PLANS) },
                         )
                     }
                     composable(Routes.TEAM) {

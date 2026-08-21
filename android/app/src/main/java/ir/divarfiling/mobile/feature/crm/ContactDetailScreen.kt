@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -308,7 +309,7 @@ fun ContactDetailScreen(
     }
 
     if (state.showEditSheet) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleEditSheet(false) }) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.requestDismissEdit() }) {
             ContactEditSheet(
                 name = state.editName,
                 phone = state.editPhone,
@@ -336,6 +337,14 @@ fun ContactDetailScreen(
                 onMinAreaChange = viewModel::onEditMinAreaChange,
                 onMaxAreaChange = viewModel::onEditMaxAreaChange,
                 onAreasChange = viewModel::onEditAreasChange,
+                onCityChange = viewModel::onEditCityChange,
+                onYearMinChange = viewModel::onEditYearMinChange,
+                onYearMaxChange = viewModel::onEditYearMaxChange,
+                onFloorMinChange = viewModel::onEditFloorMinChange,
+                onFloorMaxChange = viewModel::onEditFloorMaxChange,
+                onWantParkingChange = viewModel::onEditWantParkingChange,
+                onWantStorageChange = viewModel::onEditWantStorageChange,
+                onWantElevatorChange = viewModel::onEditWantElevatorChange,
                 onBuilderBuyBudgetMinChange = viewModel::onEditBuilderBuyBudgetMinChange,
                 onBuilderBuyBudgetMaxChange = viewModel::onEditBuilderBuyBudgetMaxChange,
                 onBuilderBuyMinAreaChange = viewModel::onEditBuilderBuyMinAreaChange,
@@ -347,9 +356,21 @@ fun ContactDetailScreen(
                     haptics.confirm()
                     viewModel.saveEdit()
                 },
-                onDismiss = { viewModel.toggleEditSheet(false) },
+                onDismiss = { viewModel.requestDismissEdit() },
             )
         }
+    }
+
+    if (state.showDiscardEditDialog) {
+        DfConfirmBottomSheet(
+            title = "تغییرات ذخیره نشده",
+            message = "ویرایش مخاطب ذخیره نشده است. از تغییرات صرف‌نظر می‌کنید؟",
+            confirmText = "صرف‌نظر",
+            cancelText = "ادامه ویرایش",
+            destructive = true,
+            onConfirm = viewModel::confirmDiscardEdit,
+            onDismiss = viewModel::cancelDiscardEdit,
+        )
     }
 
     if (state.showActivitySheet) {

@@ -8,11 +8,18 @@ import ir.divarfiling.mobile.core.network.LicenseStatusData
 import ir.divarfiling.mobile.core.network.LoginData
 import ir.divarfiling.mobile.core.network.LoginRequest
 import ir.divarfiling.mobile.core.network.MobileApi
+import ir.divarfiling.mobile.core.network.OtpChallengeData
+import ir.divarfiling.mobile.core.network.OtpRequestBody
+import ir.divarfiling.mobile.core.network.OtpVerifyBody
+import ir.divarfiling.mobile.core.network.PasswordCompleteRequest
 import ir.divarfiling.mobile.core.network.RefreshData
 import ir.divarfiling.mobile.core.network.RefreshRequest
 import ir.divarfiling.mobile.core.network.UserDto
 import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
+import ir.divarfiling.mobile.core.network.mapApiError
+import ir.divarfiling.mobile.core.network.toApiFailure
+import ir.divarfiling.mobile.core.network.toUserMessage
 import ir.divarfiling.mobile.core.util.DeviceIdProvider
 import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
 import ir.divarfiling.mobile.core.fcm.FcmTokenSync
@@ -46,26 +53,125 @@ class AuthRepository @Inject constructor(
         return try {
             val response = api.login(LoginRequest(username.trim(), password))
             if (!response.ok) {
-                return ApiResult.Error(response.error ?: "ورود ناموفق")
+                return ApiResult.Error(
+                    mapApiError(response.code, response.error, null, "ورود ناموفق"),
+                    response.code,
+                )
             }
             val data = response.requireData<LoginData>(json)
-            val deviceId = deviceIdProvider.getDeviceId()
-            localDataWiper.wipeUserData()
-            sessionStore.saveSession(
-                access = data.access,
-                refresh = data.refresh,
-                user = data.user,
-                deviceId = deviceId,
-            )
-            data.expiresIn?.let { seconds ->
-                sessionStore.saveAccessExpiresAt(System.currentTimeMillis() + seconds * 1000L)
-            }
-            registerDevice(deviceId)
-            licenseRepository.refreshLicense()
-            BackgroundWorkManager.register(appContext)
+            persistAuthenticatedSession(data)
             ApiResult.Success(data.user)
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه")
+            val failure = e.toApiFailure("خطای شبکه")
+            ApiResult.Error(failure.message, failure.code)
+        }
+    }
+
+    private suspend fun persistAuthenticatedSession(data: LoginData): UserDto {
+        val deviceId = deviceIdProvider.getDeviceId()
+        localDataWiper.wipeUserData()
+        sessionStore.saveSession(
+            access = data.access,
+            refresh = data.refresh,
+            user = data.user,
+            deviceId = deviceId,
+        )
+        data.expiresIn?.let { seconds ->
+            sessionStore.saveAccessExpiresAt(System.currentTimeMillis() + seconds * 1000L)
+        }
+        registerDevice(deviceId)
+        licenseRepository.refreshLicense()
+        BackgroundWorkManager.register(appContext)
+        return data.user
+    }
+
+    suspend fun requestOtp(phone: String, purpose: String): ApiResult<OtpChallengeData> {
+        return try {
+            val response = api.otpRequest(OtpRequestBody(phone.trim(), purpose))
+            if (!response.ok) {
+                return envelopeError(response, "ارسال کد ناموفق بود")
+            }
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            e.asApiError("ارسال کد ناموفق بود")
+        }
+    }
+
+    suspend fun resendOtp(phone: String, purpose: String): ApiResult<OtpChallengeData> {
+        return try {
+            val response = api.otpResend(OtpRequestBody(phone.trim(), purpose))
+            if (!response.ok) {
+                return envelopeError(response, "ارسال مجدد ناموفق بود")
+            }
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            e.asApiError("ارسال مجدد ناموفق بود")
+        }
+    }
+
+    suspend fun loginWithOtp(phone: String, code: String): ApiResult<UserDto> {
+        return try {
+            val response = api.otpVerify(OtpVerifyBody(phone.trim(), "login", code.trim()))
+            if (!response.ok) {
+                return envelopeError(response, "کد تأیید نادرست است")
+            }
+            val data = response.requireData<LoginData>(json)
+            persistAuthenticatedSession(data)
+            ApiResult.Success(data.user)
+        } catch (e: Exception) {
+            e.asApiError("کد تأیید نادرست است")
+        }
+    }
+
+    suspend fun verifyOtpStep(phone: String, purpose: String, code: String): ApiResult<OtpChallengeData> {
+        return try {
+            val response = api.otpVerify(OtpVerifyBody(phone.trim(), purpose, code.trim()))
+            if (!response.ok) {
+                return envelopeError(response, "کد تأیید نادرست است")
+            }
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            e.asApiError("کد تأیید نادرست است")
+        }
+    }
+
+    suspend fun completeRegister(
+        phone: String,
+        challengeToken: String,
+        password: String,
+        passwordConfirm: String,
+    ): ApiResult<UserDto> {
+        return try {
+            val response = api.completeRegister(
+                PasswordCompleteRequest(phone.trim(), challengeToken, password, passwordConfirm),
+            )
+            if (!response.ok) {
+                return envelopeError(response, "ثبت‌نام ناموفق بود")
+            }
+            val data = response.requireData<LoginData>(json)
+            persistAuthenticatedSession(data)
+            ApiResult.Success(data.user)
+        } catch (e: Exception) {
+            e.asApiError("ثبت‌نام ناموفق بود")
+        }
+    }
+
+    suspend fun completePasswordReset(
+        phone: String,
+        challengeToken: String,
+        password: String,
+        passwordConfirm: String,
+    ): ApiResult<Unit> {
+        return try {
+            val response = api.completePasswordReset(
+                PasswordCompleteRequest(phone.trim(), challengeToken, password, passwordConfirm),
+            )
+            if (!response.ok) {
+                return envelopeError(response, "تغییر رمز ناموفق بود")
+            }
+            ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            e.asApiError("تغییر رمز ناموفق بود")
         }
     }
 
@@ -119,10 +225,11 @@ class AuthRepository @Inject constructor(
         return try {
             val response = api.refresh(RefreshRequest(refresh))
             if (!response.ok) {
-                sessionStore.clear()
+                val expired = response.code == "AUTH_EXPIRED"
+                if (expired) sessionStore.clear()
                 return ApiResult.Error(
-                    response.error ?: "نشست شما منقضی شده است. دوباره وارد شوید.",
-                    response.code ?: "AUTH_EXPIRED",
+                    mapApiError(response.code, response.error, null, "تمدید نشست ناموفق بود"),
+                    response.code,
                 )
             }
             val data = response.requireData<RefreshData>(json)
@@ -131,8 +238,25 @@ class AuthRepository @Inject constructor(
             sessionStore.saveAccessExpiresAt(System.currentTimeMillis() + ttlMs)
             ApiResult.Success(Unit)
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه در تمدید نشست")
+            val failure = e.toApiFailure("خطای شبکه در تمدید نشست")
+            if (failure.httpCode == 401 || failure.code == "AUTH_EXPIRED") {
+                sessionStore.clear()
+            }
+            ApiResult.Error(failure.message, failure.code ?: "NETWORK_ERROR")
         }
+    }
+
+    private fun envelopeError(
+        response: ir.divarfiling.mobile.core.network.ApiEnvelope,
+        default: String,
+    ): ApiResult.Error = ApiResult.Error(
+        mapApiError(response.code, response.error, null, default),
+        response.code,
+    )
+
+    private fun Exception.asApiError(default: String): ApiResult.Error {
+        val failure = toApiFailure(default)
+        return ApiResult.Error(failure.message, failure.code)
     }
 }
 
@@ -152,12 +276,13 @@ class LicenseRepository @Inject constructor(
         return try {
             val response = api.licenseStatus()
             if (!response.ok) {
-                if (response.code == "LICENSE_REQUIRED" || response.code == "AUTH_EXPIRED") {
-                    sessionStore.invalidateLicense()
-                } else if (sessionStore.isLicenseStale()) {
+                if (response.code == "LICENSE_REQUIRED") {
                     sessionStore.invalidateLicense()
                 }
-                return ApiResult.Error(response.error ?: "خطا در دریافت لایسنس", response.code)
+                return ApiResult.Error(
+                    mapApiError(response.code, response.error, null, "بررسی لایسنس ناموفق بود"),
+                    response.code,
+                )
             }
             val data = response.requireData<LicenseStatusData>(json)
             sessionStore.saveLicenseFromStatus(
@@ -167,13 +292,13 @@ class LicenseRepository @Inject constructor(
                 features = data.features,
                 daysRemaining = data.daysRemaining,
                 expiringSoon = data.expiringSoon,
+                licenseId = data.licenseId,
+                canRenew = data.canRenew,
+                status = data.status,
             )
             ApiResult.Success(Unit)
         } catch (e: Exception) {
-            if (sessionStore.isLicenseStale()) {
-                sessionStore.invalidateLicense()
-            }
-            ApiResult.Error(e.message ?: "خطای شبکه")
+            ApiResult.Error(e.toUserMessage("بررسی لایسنس ناموفق بود. اتصال را بررسی کنید."), "NETWORK_ERROR")
         }
     }
 }

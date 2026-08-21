@@ -45,6 +45,7 @@ data class UserDto(
     @SerialName("full_name") val fullName: String,
     val phone: String? = null,
     @SerialName("agency_name") val agencyName: String? = null,
+    @SerialName("phone_verified") val phoneVerified: Boolean = true,
 )
 
 @Serializable
@@ -103,6 +104,103 @@ data class LicenseStatusData(
     @SerialName("expires_at") val expiresAt: String? = null,
     @SerialName("days_remaining") val daysRemaining: Int? = null,
     @SerialName("expiring_soon") val expiringSoon: Boolean = false,
+    @SerialName("license_id") val licenseId: Long? = null,
+    val status: String? = null,
+    @SerialName("can_renew") val canRenew: Boolean = false,
+)
+
+@Serializable
+data class OtpRequestBody(
+    val phone: String,
+    val purpose: String,
+)
+
+@Serializable
+data class OtpVerifyBody(
+    val phone: String,
+    val purpose: String,
+    val code: String,
+)
+
+@Serializable
+data class OtpChallengeData(
+    val phone: String? = null,
+    @SerialName("phone_display") val phoneDisplay: String? = null,
+    val purpose: String? = null,
+    @SerialName("expires_in") val expiresIn: Int? = null,
+    @SerialName("resend_in") val resendIn: Int? = null,
+    @SerialName("challenge_token") val challengeToken: String? = null,
+)
+
+@Serializable
+data class PasswordCompleteRequest(
+    val phone: String,
+    @SerialName("challenge_token") val challengeToken: String,
+    val password: String,
+    @SerialName("password_confirm") val passwordConfirm: String,
+)
+
+@Serializable
+data class ShopPlanDto(
+    val id: Long,
+    val name: String,
+    @SerialName("plan_type") val planType: String? = null,
+    @SerialName("duration_days") val durationDays: Int? = null,
+    @SerialName("duration_label") val durationLabel: String? = null,
+    val tagline: String? = null,
+    @SerialName("original_price") val originalPrice: Long? = null,
+    @SerialName("final_price") val finalPrice: Long? = null,
+    @SerialName("discount_amount") val discountAmount: Long? = null,
+    @SerialName("has_discount") val hasDiscount: Boolean = false,
+    @SerialName("is_featured") val isFeatured: Boolean = false,
+    @SerialName("offer_badge") val offerBadge: String? = null,
+    @SerialName("purchase_blocked") val purchaseBlocked: Boolean = false,
+    @SerialName("purchase_block_message") val purchaseBlockMessage: String? = null,
+    @SerialName("purchase_block_reason") val purchaseBlockReason: String? = null,
+)
+
+@Serializable
+data class RenewableLicenseDto(
+    @SerialName("license_id") val licenseId: Long,
+    val plan: String? = null,
+    @SerialName("expires_at") val expiresAt: String? = null,
+    @SerialName("is_expired") val isExpired: Boolean = false,
+)
+
+@Serializable
+data class ShopPlansData(
+    @SerialName("product_slug") val productSlug: String? = null,
+    @SerialName("product_name") val productName: String? = null,
+    val plans: List<ShopPlanDto> = emptyList(),
+    @SerialName("renewable_license") val renewableLicense: RenewableLicenseDto? = null,
+    @SerialName("phone_verified") val phoneVerified: Boolean = true,
+)
+
+@Serializable
+data class ShopCheckoutRequest(
+    @SerialName("plan_id") val planId: Long,
+    @SerialName("renew_license_id") val renewLicenseId: Long? = null,
+)
+
+@Serializable
+data class ShopCheckoutData(
+    @SerialName("order_id") val orderId: String,
+    val status: String? = null,
+    val amount: Long? = null,
+    @SerialName("plan_name") val planName: String? = null,
+    @SerialName("pay_url") val payUrl: String? = null,
+    val reused: Boolean = false,
+    @SerialName("return_scheme") val returnScheme: String? = null,
+)
+
+@Serializable
+data class ShopOrderStatusData(
+    @SerialName("order_id") val orderId: String,
+    val status: String,
+    val amount: Long? = null,
+    @SerialName("plan_name") val planName: String? = null,
+    @SerialName("paid_at") val paidAt: String? = null,
+    @SerialName("is_renewal") val isRenewal: Boolean = false,
 )
 
 @Serializable
@@ -599,6 +697,7 @@ data class PropertyDto(
     @SerialName("has_parking") val hasParking: Boolean = false,
     @SerialName("has_storage") val hasStorage: Boolean = false,
     @SerialName("has_elevator") val hasElevator: Boolean = false,
+    @SerialName("is_vacant") val isVacant: Boolean = false,
     val amenities: String? = null,
     val address: String? = null,
     val notes: String? = null,
@@ -682,6 +781,16 @@ data class PropertyUpdateRequest(
     val rooms: String? = null,
     val address: String? = null,
     val notes: String? = null,
+    val floor: Int? = null,
+    @SerialName("total_floors") val totalFloors: Int? = null,
+    @SerialName("build_year") val buildYear: Int? = null,
+    @SerialName("has_parking") val hasParking: Boolean? = null,
+    @SerialName("has_storage") val hasStorage: Boolean? = null,
+    @SerialName("has_elevator") val hasElevator: Boolean? = null,
+    @SerialName("is_vacant") val isVacant: Boolean? = null,
+    val amenities: String? = null,
+    @SerialName("owner_name") val ownerName: String? = null,
+    @SerialName("owner_phone") val ownerPhone: String? = null,
 )
 
 @Serializable
@@ -958,6 +1067,17 @@ data class ContactUpdateRequest(
     @SerialName("builder_buy_areas") val builderBuyAreas: String? = null,
     @SerialName("builder_buy_min_area") val builderBuyMinArea: Int? = null,
     @SerialName("builder_buy_max_area") val builderBuyMaxArea: Int? = null,
+    val city: String? = null,
+    val district: String? = null,
+    @SerialName("rooms_min") val roomsMin: Int? = null,
+    @SerialName("rooms_max") val roomsMax: Int? = null,
+    @SerialName("year_min") val yearMin: Int? = null,
+    @SerialName("year_max") val yearMax: Int? = null,
+    @SerialName("floor_min") val floorMin: Int? = null,
+    @SerialName("floor_max") val floorMax: Int? = null,
+    @SerialName("want_parking") val wantParking: Boolean? = null,
+    @SerialName("want_storage") val wantStorage: Boolean? = null,
+    @SerialName("want_elevator") val wantElevator: Boolean? = null,
 )
 
 @Serializable

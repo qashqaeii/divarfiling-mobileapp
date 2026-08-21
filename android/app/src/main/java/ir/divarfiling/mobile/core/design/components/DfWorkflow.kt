@@ -233,7 +233,11 @@ fun DfContinueOnWebRow(
     DfActionCard(
         title = title,
         subtitle = subtitle,
-        onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+        onClick = {
+            if (!ir.divarfiling.mobile.core.ExternalBrowser.open(context, url)) {
+                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            }
+        },
         modifier = modifier,
         icon = DfIcons.ExternalLink,
     )

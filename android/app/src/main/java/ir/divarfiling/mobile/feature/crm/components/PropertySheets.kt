@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -210,6 +211,15 @@ fun PropertyEditSheet(
     address: String,
     notes: String,
     isSubmitting: Boolean,
+    floor: String = "",
+    buildYear: String = "",
+    amenities: String = "",
+    hasParking: Boolean = false,
+    hasStorage: Boolean = false,
+    hasElevator: Boolean = false,
+    isVacant: Boolean = false,
+    ownerName: String = "",
+    ownerPhone: String = "",
     onTitleChange: (String) -> Unit,
     onCityChange: (String) -> Unit,
     onDistrictChange: (String) -> Unit,
@@ -224,6 +234,15 @@ fun PropertyEditSheet(
     onRentChange: (String) -> Unit,
     onAddressChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
+    onFloorChange: (String) -> Unit = {},
+    onBuildYearChange: (String) -> Unit = {},
+    onAmenitiesChange: (String) -> Unit = {},
+    onParkingChange: (Boolean) -> Unit = {},
+    onStorageChange: (Boolean) -> Unit = {},
+    onElevatorChange: (Boolean) -> Unit = {},
+    onVacantChange: (Boolean) -> Unit = {},
+    onOwnerNameChange: (String) -> Unit = {},
+    onOwnerPhoneChange: (String) -> Unit = {},
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -382,6 +401,64 @@ fun PropertyEditSheet(
             }
         }
 
+        var showAdvanced by remember { mutableStateOf(false) }
+        DfSheetAdvancedBlock(
+            title = if (showAdvanced) "بستن جزئیات ملک" else "مشخصات تکمیلی ملک",
+            expanded = showAdvanced,
+            onToggle = { showAdvanced = !showAdvanced },
+        ) {
+            DfSheetSection(title = "ساختار، مالک و امکانات") {
+                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                    OutlinedTextField(
+                        value = floor,
+                        onValueChange = onFloorChange,
+                        label = { Text("طبقه") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        enabled = !isSubmitting,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                    OutlinedTextField(
+                        value = buildYear,
+                        onValueChange = onBuildYearChange,
+                        label = { Text("سال ساخت") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        enabled = !isSubmitting,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                }
+                OutlinedTextField(
+                    value = amenities,
+                    onValueChange = onAmenitiesChange,
+                    label = { Text("امکانات") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isSubmitting,
+                )
+                OutlinedTextField(
+                    value = ownerName,
+                    onValueChange = onOwnerNameChange,
+                    label = { Text("نام مالک") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                )
+                OutlinedTextField(
+                    value = ownerPhone,
+                    onValueChange = onOwnerPhoneChange,
+                    label = { Text("شماره مالک") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                )
+                AmenityToggleRow("پارکینگ", hasParking, !isSubmitting, onParkingChange)
+                AmenityToggleRow("انباری", hasStorage, !isSubmitting, onStorageChange)
+                AmenityToggleRow("آسانسور", hasElevator, !isSubmitting, onElevatorChange)
+                AmenityToggleRow("تخلیه / خالی", isVacant, !isSubmitting, onVacantChange)
+            }
+        }
+
         DfSheetSection(title = "یادداشت") {
             OutlinedTextField(
                 value = notes,
@@ -392,5 +469,22 @@ fun PropertyEditSheet(
                 enabled = !isSubmitting,
             )
         }
+    }
+}
+
+@Composable
+private fun AmenityToggleRow(
+    label: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Text(label)
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }

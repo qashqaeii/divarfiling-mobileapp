@@ -18,9 +18,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -63,6 +65,16 @@ fun SmartToolCalculatorScreen(
                     title = "راهنما",
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
+            }
+            if (toolId == SmartToolId.Compare) {
+                item {
+                    DfContinueOnWebRow(
+                        title = "مقایسه پیشرفته در وب",
+                        subtitle = "Compare کامل آگهی‌ها در میزکار",
+                        url = AppLinks.WORKSPACE_COMPARE,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
             }
             item {
                 when (toolId) {

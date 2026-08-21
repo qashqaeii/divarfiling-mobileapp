@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -48,7 +49,6 @@ import compose.icons.lucideicons.Eye
 import compose.icons.lucideicons.EyeOff
 import ir.divarfiling.mobile.BuildConfig
 import ir.divarfiling.mobile.R
-import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfHaptics
@@ -61,6 +61,7 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfScreenBackground
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
+import ir.divarfiling.mobile.core.design.components.DfTextButton
 import ir.divarfiling.mobile.core.design.components.DfTextField
 
 @Composable
@@ -96,100 +97,152 @@ fun LoginScreen(
             }
 
             Spacer(Modifier.height(AppSpacing.lg))
-
             LoginFeatureChips()
-
             Spacer(Modifier.height(AppSpacing.sectionGap))
 
             DfCard(modifier = Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                     Text(
-                        text = "ورود به میزکار",
+                        text = when (state.mode) {
+                            AuthMode.Register -> "ساخت حساب"
+                            AuthMode.Forgot -> "بازیابی رمز عبور"
+                            else -> "ورود به میزکار"
+                        },
                         style = AppTypography.sectionTitle,
                         fontWeight = FontWeight.Bold,
                         color = DfThemeColors.textPrimary(),
                     )
                     Text(
-                        text = "با حساب فایلینگ دیوار وارد شوید",
+                        text = when (state.step) {
+                            AuthStep.OtpCode -> "کد ارسال‌شده به ${state.phoneDisplay.ifBlank { "شماره شما" }} را وارد کنید"
+                            AuthStep.NewPassword -> "رمز عبور جدید را تعیین کنید"
+                            else -> "با حساب فایلینگ دیوار وارد شوید"
+                        },
                         style = AppTypography.bodyDescription,
                         color = DfThemeColors.textSecondary(),
                     )
 
-                    Spacer(Modifier.height(AppSpacing.xxs))
+                    if (state.step == AuthStep.Credentials) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                            AuthModeChip("رمز عبور", state.mode == AuthMode.Password) {
+                                viewModel.selectMode(AuthMode.Password)
+                            }
+                            AuthModeChip("کد یکبارمصرف", state.mode == AuthMode.Otp) {
+                                viewModel.selectMode(AuthMode.Otp)
+                            }
+                            AuthModeChip("ثبت‌نام", state.mode == AuthMode.Register) {
+                                viewModel.selectMode(AuthMode.Register)
+                            }
+                        }
+                    }
 
-                    DfTextField(
-                        value = state.username,
-                        onValueChange = viewModel::onUsernameChange,
-                        label = "شماره موبایل / نام کاربری",
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Phone,
-                            imeAction = ImeAction.Next,
-                        ),
-                        leadingIcon = {
-                            Icon(
-                                DfIcons.Smartphone,
-                                contentDescription = null,
-                                tint = DfThemeColors.primary(),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                    )
+                    if (state.step == AuthStep.Credentials) {
+                        DfTextField(
+                            value = state.username,
+                            onValueChange = viewModel::onUsernameChange,
+                            label = "شماره موبایل",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone,
+                                imeAction = ImeAction.Next,
+                            ),
+                            leadingIcon = {
+                                Icon(DfIcons.Smartphone, contentDescription = null, tint = DfThemeColors.primary(), modifier = Modifier.size(20.dp))
+                            },
+                        )
+                    }
 
-                    DfTextField(
-                        value = state.password,
-                        onValueChange = viewModel::onPasswordChange,
-                        label = "رمز عبور",
-                        visualTransformation = if (passwordVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done,
-                        ),
-                        keyboardActions = KeyboardActions(
+                    if (state.mode == AuthMode.Password && state.step == AuthStep.Credentials) {
+                        PasswordField(
+                            value = state.password,
+                            visible = passwordVisible,
+                            onVisibleChange = { passwordVisible = it },
+                            onValueChange = viewModel::onPasswordChange,
                             onDone = {
                                 haptics.confirm()
                                 viewModel.login(onLoggedIn)
                             },
-                        ),
-                        leadingIcon = {
-                            Icon(
-                                DfIcons.Lock,
-                                contentDescription = null,
-                                tint = DfThemeColors.primary(),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    imageVector = if (passwordVisible) LucideIcons.EyeOff else LucideIcons.Eye,
-                                    contentDescription = if (passwordVisible) "مخفی کردن رمز" else "نمایش رمز",
-                                    tint = DfThemeColors.textMuted(),
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        },
-                    )
+                        )
+                        DfTextButton(
+                            text = "رمز عبور را فراموش کرده‌اید؟",
+                            onClick = { viewModel.selectMode(AuthMode.Forgot) },
+                        )
+                    }
 
-                    AnimatedVisibility(visible = state.error != null) {
-                        state.error?.let { error ->
-                            DfStatusBanner(
-                                message = error,
-                                tone = DfStatusTone.Error,
-                            )
+                    if (state.step == AuthStep.OtpCode) {
+                        DfTextField(
+                            value = state.otpCode,
+                            onValueChange = viewModel::onOtpChange,
+                            label = "کد تأیید",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(onDone = {
+                                haptics.confirm()
+                                viewModel.verifyOtp(onLoggedIn)
+                            }),
+                        )
+                        val resendLabel = if (state.resendIn > 0) {
+                            "ارسال مجدد (${state.resendIn})"
+                        } else {
+                            "ارسال مجدد کد"
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                            DfTextButton(text = resendLabel, onClick = viewModel::resendOtp)
+                            DfTextButton(text = "تغییر شماره", onClick = viewModel::changePhone)
                         }
                     }
 
-                    Spacer(Modifier.height(AppSpacing.xxs))
+                    if (state.step == AuthStep.NewPassword) {
+                        PasswordField(
+                            value = state.password,
+                            visible = passwordVisible,
+                            onVisibleChange = { passwordVisible = it },
+                            onValueChange = viewModel::onPasswordChange,
+                            label = "رمز عبور جدید",
+                        )
+                        PasswordField(
+                            value = state.passwordConfirm,
+                            visible = passwordVisible,
+                            onVisibleChange = { passwordVisible = it },
+                            onValueChange = viewModel::onPasswordConfirmChange,
+                            label = "تکرار رمز عبور",
+                            onDone = {
+                                haptics.confirm()
+                                viewModel.submitNewPassword(onLoggedIn)
+                            },
+                        )
+                    }
 
+                    AnimatedVisibility(visible = state.error != null) {
+                        state.error?.let { DfStatusBanner(message = it, tone = DfStatusTone.Error) }
+                    }
+                    AnimatedVisibility(visible = state.info != null && state.error == null) {
+                        state.info?.let { DfStatusBanner(message = it, tone = DfStatusTone.Success) }
+                    }
+
+                    val cta = when {
+                        state.step == AuthStep.OtpCode -> "تأیید کد"
+                        state.step == AuthStep.NewPassword && state.mode == AuthMode.Forgot -> "ثبت رمز جدید"
+                        state.step == AuthStep.NewPassword -> "ساخت حساب و ورود"
+                        state.mode == AuthMode.Password -> "ورود به میزکار"
+                        state.mode == AuthMode.Forgot -> "ارسال کد بازیابی"
+                        state.mode == AuthMode.Register -> "ارسال کد ثبت‌نام"
+                        else -> "ارسال کد ورود"
+                    }
                     DfPrimaryButton(
-                        text = "ورود به میزکار",
+                        text = cta,
                         onClick = {
                             haptics.confirm()
-                            viewModel.login(onLoggedIn)
+                            when (state.step) {
+                                AuthStep.Credentials -> if (state.mode == AuthMode.Password) {
+                                    viewModel.login(onLoggedIn)
+                                } else {
+                                    viewModel.requestOtp()
+                                }
+                                AuthStep.OtpCode -> viewModel.verifyOtp(onLoggedIn)
+                                AuthStep.NewPassword -> viewModel.submitNewPassword(onLoggedIn)
+                            }
                         },
                         loading = state.isLoading,
                     )
@@ -197,7 +250,6 @@ fun LoginScreen(
             }
 
             Spacer(Modifier.height(AppSpacing.xxl))
-
             Text(
                 text = "نسخه ${BuildConfig.VERSION_NAME}",
                 style = AppTypography.labelSmall,
@@ -209,15 +261,52 @@ fun LoginScreen(
 }
 
 @Composable
+private fun AuthModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(selected = selected, onClick = onClick, label = { Text(label, style = AppTypography.labelSmall) })
+}
+
+@Composable
+private fun PasswordField(
+    value: String,
+    visible: Boolean,
+    onVisibleChange: (Boolean) -> Unit,
+    onValueChange: (String) -> Unit,
+    label: String = "رمز عبور",
+    onDone: (() -> Unit)? = null,
+) {
+    DfTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = label,
+        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            imeAction = if (onDone != null) ImeAction.Done else ImeAction.Next,
+        ),
+        keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
+        leadingIcon = {
+            Icon(DfIcons.Lock, contentDescription = null, tint = DfThemeColors.primary(), modifier = Modifier.size(20.dp))
+        },
+        trailingIcon = {
+            IconButton(onClick = { onVisibleChange(!visible) }) {
+                Icon(
+                    imageVector = if (visible) LucideIcons.EyeOff else LucideIcons.Eye,
+                    contentDescription = if (visible) "مخفی کردن رمز" else "نمایش رمز",
+                    tint = DfThemeColors.textMuted(),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        },
+    )
+}
+
+@Composable
 private fun LoginHeroSection() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        Box(
-            modifier = Modifier.size(96.dp),
-            contentAlignment = Alignment.Center,
-        ) {
+        Box(modifier = Modifier.size(96.dp), contentAlignment = Alignment.Center) {
             Image(
                 painter = painterResource(R.drawable.logo_divarfiling),
                 contentDescription = "فایلینگ دیوار",
@@ -225,21 +314,8 @@ private fun LoginHeroSection() {
                 contentScale = ContentScale.Fit,
             )
         }
-
-        Text(
-            text = "فایلینگ دیوار",
-            style = AppTypography.pageTitle,
-            fontWeight = FontWeight.Bold,
-            color = DfThemeColors.primary(),
-            textAlign = TextAlign.Center,
-        )
-
-        Text(
-            text = "همراه هوشمند مشاور املاک",
-            style = AppTypography.bodyDescription,
-            color = DfThemeColors.textSecondary(),
-            textAlign = TextAlign.Center,
-        )
+        Text("فایلینگ دیوار", style = AppTypography.pageTitle, fontWeight = FontWeight.Bold, color = DfThemeColors.primary(), textAlign = TextAlign.Center)
+        Text("همراه هوشمند مشاور املاک", style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary(), textAlign = TextAlign.Center)
     }
 }
 
@@ -256,22 +332,13 @@ private fun LoginFeatureChips() {
 }
 
 @Composable
-private fun LoginFeatureChip(
-    label: String,
-    iconRes: Int,
-) {
+private fun LoginFeatureChip(label: String, iconRes: Int) {
     Row(
-        modifier = Modifier
-            .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
+        modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DfDecorImage(resId = iconRes, size = 16.dp)
-        Text(
-            text = label,
-            style = AppTypography.labelSmall,
-            color = DfThemeColors.textSecondary(),
-            fontWeight = FontWeight.Medium,
-        )
+        Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textSecondary(), fontWeight = FontWeight.Medium)
     }
 }

@@ -57,6 +57,7 @@ fun ExtractScreen(
     onBack: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
+    onNavigatePlans: () -> Unit = {},
     viewModel: ExtractViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -105,9 +106,11 @@ fun ExtractScreen(
                 item {
                     LicenseGateBanner(
                         message = gate,
-                        onBuyLicense = { openWeb(AppLinks.SHOP_BOT) },
+                        onBuyLicense = onNavigatePlans,
                         onOpenDashboard = { openWeb(AppLinks.DASHBOARD_LICENSES) },
                         onRefresh = viewModel::refreshGate,
+                        buyLabel = if (state.license.canRenew || state.license.expiringSoon || !state.license.valid && state.license.status == "expired") "تمدید لایسنس" else "خرید لایسنس",
+                        title = if (state.license.canRenew || state.license.status == "expired") "لایسنس منقضی شده" else "لایسنس فعال نیست",
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

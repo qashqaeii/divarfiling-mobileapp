@@ -42,6 +42,10 @@ class SessionStore @Inject constructor(
         val LICENSE_EXPIRES = stringPreferencesKey("license_expires")
         val LICENSE_DAYS_REMAINING = longPreferencesKey("license_days_remaining")
         val LICENSE_EXPIRING_SOON = booleanPreferencesKey("license_expiring_soon")
+        val LICENSE_ID = longPreferencesKey("license_id")
+        val LICENSE_CAN_RENEW = booleanPreferencesKey("license_can_renew")
+        val LICENSE_STATUS = stringPreferencesKey("license_status")
+        val PENDING_ORDER_ID = stringPreferencesKey("pending_order_id")
         val FEATURE_LIGHT_EXTRACT = booleanPreferencesKey("feature_light_extract")
         val FEATURE_CRM = booleanPreferencesKey("feature_crm")
         val FEATURE_FILING = booleanPreferencesKey("feature_filing")
@@ -71,21 +75,23 @@ class SessionStore @Inject constructor(
     }
 
     val isLoggedIn: Flow<Boolean> = dataStore.data.map { prefs ->
-        !resolveAccessToken(prefs).isNullOrBlank()
+        !secureTokenStore.getAccessToken().isNullOrBlank() || !prefs[Keys.LEGACY_ACCESS].isNullOrBlank()
     }
 
     val licenseState: Flow<LicenseState> = dataStore.data.map { prefs -> licenseFromPrefs(prefs) }
 
     suspend fun getAccessToken(): String? {
-        val prefs = dataStore.data.first()
-        return resolveAccessToken(prefs)
+        migrateLegacyTokens()
+        return secureTokenStore.getAccessToken()
+            ?: dataStore.data.first()[Keys.LEGACY_ACCESS]?.takeIf { it.isNotBlank() }
     }
 
     suspend fun hasValidSession(): Boolean = !getAccessToken().isNullOrBlank()
 
     suspend fun getRefreshToken(): String? {
-        val prefs = dataStore.data.first()
-        return resolveRefreshToken(prefs)
+        migrateLegacyTokens()
+        return secureTokenStore.getRefreshToken()
+            ?: dataStore.data.first()[Keys.LEGACY_REFRESH]?.takeIf { it.isNotBlank() }
     }
 
     suspend fun getDeviceId(): String? = dataStore.data.first()[Keys.DEVICE_ID]
@@ -140,6 +146,9 @@ class SessionStore @Inject constructor(
         features: LicenseFeaturesDto?,
         daysRemaining: Int? = null,
         expiringSoon: Boolean = false,
+        licenseId: Long? = null,
+        canRenew: Boolean = false,
+        status: String? = null,
     ) {
         dataStore.edit { prefs ->
             prefs[Keys.LICENSE_VALID] = valid
@@ -151,6 +160,9 @@ class SessionStore @Inject constructor(
                 prefs.remove(Keys.LICENSE_DAYS_REMAINING)
             }
             prefs[Keys.LICENSE_EXPIRING_SOON] = expiringSoon
+            prefs[Keys.LICENSE_ID] = licenseId ?: 0L
+            prefs[Keys.LICENSE_CAN_RENEW] = canRenew
+            prefs[Keys.LICENSE_STATUS] = status.orEmpty()
             prefs[Keys.FEATURE_LIGHT_EXTRACT] = features?.lightExtract == true && valid
             prefs[Keys.FEATURE_CRM] = valid && features?.crmMobile == true
             prefs[Keys.FEATURE_FILING] = valid && features?.filingView == true
@@ -198,30 +210,30 @@ class SessionStore @Inject constructor(
         return claimed
     }
 
-    suspend fun getLastSyncAt(): String? = dataStore.data.first()[Keys.LAST_SYNC_AT]
+    suspend fun setPendingOrderId(orderId: String?) {
+        dataStore.edit { prefs ->
+            if (orderId.isNullOrBlank()) prefs.remove(Keys.PENDING_ORDER_ID)
+            else prefs[Keys.PENDING_ORDER_ID] = orderId
+        }
+    }
+
+    suspend fun getPendingOrderId(): String? = dataStore.data.first()[Keys.PENDING_ORDER_ID]
+
+    val pendingOrderId: Flow<String?> = dataStore.data.map { it[Keys.PENDING_ORDER_ID] }
 
     suspend fun setLastSyncAt(iso: String) {
         dataStore.edit { prefs -> prefs[Keys.LAST_SYNC_AT] = iso }
     }
 
-    private suspend fun resolveAccessToken(prefs: Preferences): String? {
-        secureTokenStore.getAccessToken()?.let { return it }
-        val legacy = prefs[Keys.LEGACY_ACCESS]
-        if (!legacy.isNullOrBlank()) {
-            val refresh = prefs[Keys.LEGACY_REFRESH]
-            secureTokenStore.saveTokens(legacy, refresh)
-            dataStore.edit {
-                it.remove(Keys.LEGACY_ACCESS)
-                it.remove(Keys.LEGACY_REFRESH)
-            }
-            return legacy
+    private suspend fun migrateLegacyTokens() {
+        if (!secureTokenStore.getAccessToken().isNullOrBlank()) return
+        val prefs = dataStore.data.first()
+        val legacy = prefs[Keys.LEGACY_ACCESS]?.takeIf { it.isNotBlank() } ?: return
+        secureTokenStore.saveTokens(legacy, prefs[Keys.LEGACY_REFRESH])
+        dataStore.edit {
+            it.remove(Keys.LEGACY_ACCESS)
+            it.remove(Keys.LEGACY_REFRESH)
         }
-        return null
-    }
-
-    private suspend fun resolveRefreshToken(prefs: Preferences): String? {
-        secureTokenStore.getRefreshToken()?.let { return it }
-        return prefs[Keys.LEGACY_REFRESH]
     }
 
     private fun licenseFromPrefs(prefs: Preferences): LicenseState {
@@ -235,6 +247,9 @@ class SessionStore @Inject constructor(
             lightExtractEnabled = prefs[Keys.FEATURE_LIGHT_EXTRACT] ?: false,
             crmEnabled = valid && (prefs[Keys.FEATURE_CRM] ?: false),
             filingEnabled = valid && (prefs[Keys.FEATURE_FILING] ?: false),
+            licenseId = prefs[Keys.LICENSE_ID]?.takeIf { it > 0 },
+            canRenew = prefs[Keys.LICENSE_CAN_RENEW] == true,
+            status = prefs[Keys.LICENSE_STATUS],
         )
     }
 

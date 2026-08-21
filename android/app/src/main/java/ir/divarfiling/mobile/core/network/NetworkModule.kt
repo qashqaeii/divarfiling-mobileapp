@@ -56,9 +56,18 @@ object NetworkModule {
         authInterceptor: AuthInterceptor,
         tokenRefreshAuthenticator: TokenRefreshAuthenticator,
     ): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
+        val logging = HttpLoggingInterceptor { message ->
+            val redacted = when {
+                message.contains("Authorization", ignoreCase = true) -> "[redacted auth header]"
+                message.contains("password", ignoreCase = true) ||
+                    message.contains("\"code\"") ||
+                    message.contains("challenge_token") -> "[redacted auth body]"
+                else -> message
+            }
+            android.util.Log.d("OkHttp", redacted)
+        }.apply {
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
+                HttpLoggingInterceptor.Level.HEADERS
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }

@@ -262,7 +262,14 @@ fun LicenseInsightCard(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            if (onOpenDashboard != null && !license.valid) {
+            if (onRenew != null && license.valid && !license.expiringSoon) {
+                DfSecondaryButton(
+                    text = "مدیریت لایسنس",
+                    onClick = onRenew,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (onOpenDashboard != null) {
                 DfSecondaryButton(
                     text = "مشاهده کلید در داشبورد",
                     onClick = onOpenDashboard,
