@@ -225,6 +225,9 @@ class SessionStore @Inject constructor(
         dataStore.edit { prefs -> prefs[Keys.LAST_SYNC_AT] = iso }
     }
 
+    suspend fun getLastSyncAt(): String? =
+        dataStore.data.first()[Keys.LAST_SYNC_AT]?.takeIf { it.isNotBlank() }
+
     private suspend fun migrateLegacyTokens() {
         if (!secureTokenStore.getAccessToken().isNullOrBlank()) return
         val prefs = dataStore.data.first()
