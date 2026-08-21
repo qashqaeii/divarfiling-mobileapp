@@ -62,6 +62,7 @@ androidx-espresso = { group = "androidx.test.espresso", name = "espresso-core", 
 osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
 icons-lucide = { group = "io.github.ardasoyturk.compose.icons", name = "lucide-android", version.ref = "composeIconsLucide" }
 androidx-browser = { group = "androidx.browser", name = "browser", version = "1.8.0" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
