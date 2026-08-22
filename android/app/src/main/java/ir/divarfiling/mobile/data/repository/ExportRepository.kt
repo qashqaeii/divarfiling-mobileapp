@@ -119,12 +119,14 @@ class ExportRepository @Inject constructor(
         dealMode: String? = null,
         propertyType: String? = null,
         transactionStatus: String? = null,
+        city: String? = null,
     ): ApiResult<File> {
         val params = buildMap {
             query?.takeIf { it.isNotBlank() }?.let { put("q", it) }
             dealMode?.takeIf { it.isNotBlank() }?.let { put("deal_mode", it) }
             propertyType?.takeIf { it.isNotBlank() }?.let { put("property_type", it) }
             transactionStatus?.takeIf { it.isNotBlank() }?.let { put("transaction_status", it) }
+            city?.takeIf { it.isNotBlank() }?.let { put("city", it) }
         }
         return downloadExport(
             context = context,
