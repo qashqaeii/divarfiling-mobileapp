@@ -74,6 +74,11 @@ data class DeviceFcmPatchRequest(
 )
 
 @Serializable
+data class LocalReminderDeliveredRequest(
+    @SerialName("reminder_id") val reminderId: Long,
+)
+
+@Serializable
 data class DeviceRegisterData(
     @SerialName("device_id") val deviceId: String,
   val license: LicenseDto? = null,
@@ -233,14 +238,18 @@ data class ProfileUpdateRequest(
 data class NotificationPrefsDto(
     @SerialName("crm_reminders") val crmReminders: Boolean = true,
     @SerialName("today_digest") val todayDigest: Boolean = true,
-    @SerialName("new_dataset") val newDataset: Boolean = true,
-    @SerialName("price_drop") val priceDrop: Boolean = true,
     @SerialName("customer_match") val customerMatch: Boolean = true,
     @SerialName("extract_complete") val extractComplete: Boolean = true,
     @SerialName("extract_schedule_due") val extractScheduleDue: Boolean = true,
     @SerialName("overdue_followup") val overdueFollowup: Boolean = true,
     @SerialName("license_alerts") val licenseAlerts: Boolean = true,
+    @SerialName("announcements") val announcements: Boolean = true,
     @SerialName("digest_hour") val digestHour: Int = 8,
+)
+
+@Serializable
+data class ReminderLocalDeliveredRequest(
+    @SerialName("reminder_id") val reminderId: Long,
 )
 
 @Serializable

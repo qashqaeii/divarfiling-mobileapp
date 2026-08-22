@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.data.repository
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.NotificationDto
 import ir.divarfiling.mobile.core.network.PaginatedResult
+import ir.divarfiling.mobile.core.network.ReminderLocalDeliveredRequest
 import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
 import kotlinx.serialization.builtins.ListSerializer
@@ -55,7 +56,33 @@ class NotificationRepository @Inject constructor(
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
     }
+
+    suspend fun markAllRead(): ApiResult<Int> {
+        return try {
+            val response = api.markAllNotificationsRead()
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا")
+            val count = response.parseData<MarkAllReadData>(json)?.count ?: 0
+            ApiResult.Success(count)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun reportLocalReminderDelivered(reminderId: Long): ApiResult<Unit> {
+        return try {
+            val response = api.reportReminderLocalDelivered(
+                ReminderLocalDeliveredRequest(reminderId = reminderId),
+            )
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا")
+            ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
 }
 
 @kotlinx.serialization.Serializable
 private data class UnreadCountData(val count: Int = 0)
+
+@kotlinx.serialization.Serializable
+private data class MarkAllReadData(val count: Int = 0)

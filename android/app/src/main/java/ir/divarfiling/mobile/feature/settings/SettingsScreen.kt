@@ -225,23 +225,12 @@ fun SettingsScreen(
                                 showDivider = true,
                             )
                             NotificationPrefRow(
-                                title = "فایل جدید",
-                                subtitle = "پوشه استخراج تازه از ویندوز یا موبایل",
-                                iconRes = DfDecorIcons.Folder,
-                                checked = state.notificationPrefs.newDataset,
+                                title = "اطلاعیه‌ها و پشتیبانی",
+                                subtitle = "پیام‌های مدیریتی، به‌روزرسانی و پشتیبانی",
+                                icon = DfIcons.Sparkles,
+                                checked = state.notificationPrefs.announcements,
                                 onCheckedChange = { v ->
-                                    viewModel.updatePref { it.copy(newDataset = v) }
-                                },
-                                enabled = !state.isSavingPrefs,
-                                showDivider = true,
-                            )
-                            NotificationPrefRow(
-                                title = "کاهش قیمت",
-                                subtitle = "تغییرات قیمت آگهی‌های تحت نظر",
-                                icon = DfIcons.TrendingDown,
-                                checked = state.notificationPrefs.priceDrop,
-                                onCheckedChange = { v ->
-                                    viewModel.updatePref { it.copy(priceDrop = v) }
+                                    viewModel.updatePref { it.copy(announcements = v) }
                                 },
                                 enabled = !state.isSavingPrefs,
                                 showDivider = true,

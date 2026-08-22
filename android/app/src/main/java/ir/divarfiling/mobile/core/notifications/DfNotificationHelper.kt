@@ -23,8 +23,48 @@ import javax.inject.Singleton
 @Singleton
 class DfNotificationHelper @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val dedupStore: NotificationDedupStore,
 ) {
     private val largeIconBitmap: Bitmap by lazy { buildLargeIcon() }
+
+    fun showPushMessage(
+        type: String?,
+        title: String,
+        body: String,
+        deepLink: String? = null,
+        channelId: String? = null,
+        notificationKey: String? = null,
+        notificationIdValue: String? = null,
+        reminderId: Long? = null,
+        forceTray: Boolean = false,
+    ): Boolean {
+        val spec = NotificationCatalog.specFor(type)
+        val dedupKey = dedupStore.dedupKey(
+            type = type,
+            reminderId = reminderId,
+            notificationKey = notificationKey,
+            notificationId = notificationIdValue,
+        )
+        if (dedupKey.isNotBlank() && dedupStore.wasRecentlyDelivered(dedupKey)) {
+            return false
+        }
+        if (!forceTray && AppForegroundTracker.isInForeground && !spec.headsUpInForeground) {
+            return false
+        }
+        val shown = showNotification(
+            id = NotificationCatalog.notificationId(type, dedupKey, reminderId),
+            title = title,
+            body = body,
+            deepLink = deepLink,
+            notificationType = type,
+            channelId = channelId,
+            groupKey = spec.groupKey,
+        )
+        if (shown && dedupKey.isNotBlank()) {
+            dedupStore.markDelivered(dedupKey)
+        }
+        return shown
+    }
 
     fun showNotification(
         id: Int,
@@ -32,8 +72,11 @@ class DfNotificationHelper @Inject constructor(
         body: String,
         deepLink: String? = null,
         notificationType: String? = null,
-    ) {
-        ensureChannel()
+        channelId: String? = null,
+        groupKey: String? = null,
+    ): Boolean {
+        val resolvedChannel = NotificationCatalog.channelIdFor(notificationType, channelId)
+        ensureChannels()
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             deepLink?.let { data = Uri.parse(it) }
@@ -44,12 +87,13 @@ class DfNotificationHelper @Inject constructor(
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val summary = typeSummary(notificationType)
+        val summary = NotificationCatalog.summary(notificationType)
         val style = NotificationCompat.BigTextStyle()
             .setBigContentTitle(title)
             .bigText(body.ifBlank { title })
             .setSummaryText(summary)
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        val spec = NotificationCatalog.specFor(notificationType)
+        val builder = NotificationCompat.Builder(context, resolvedChannel)
             .setSmallIcon(R.drawable.ic_stat_divarfiling)
             .setLargeIcon(largeIconBitmap)
             .setColor(ContextCompat.getColor(context, R.color.notification_brand))
@@ -59,24 +103,32 @@ class DfNotificationHelper @Inject constructor(
             .setStyle(style)
             .setAutoCancel(true)
             .setContentIntent(pending)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-        if (notificationType == "customer_match") {
-            builder.setGroup(CUSTOMER_MATCH_GROUP_KEY)
-        }
+            .setPriority(spec.importance)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+        groupKey?.let { builder.setGroup(it) }
         val notification = builder.build()
         val notificationManager = NotificationManagerCompat.from(context)
-        if (!notificationManager.areNotificationsEnabled()) return
+        if (!notificationManager.areNotificationsEnabled()) return false
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
         ) {
-            try {
+            return try {
                 notificationManager.notify(id, notification)
+                true
             } catch (_: SecurityException) {
-                // Permission revoked after check (Android 13+).
+                false
             }
         }
+        return false
+    }
+
+    fun cancelNotification(id: Int) {
+        NotificationManagerCompat.from(context).cancel(id)
+    }
+
+    fun cancelLicenseTrayNotifications() {
+        cancelNotification(NotificationCatalog.notificationId("license_expiry", "license_expiry"))
     }
 
     private fun buildLargeIcon(): Bitmap {
@@ -86,40 +138,33 @@ class DfNotificationHelper @Inject constructor(
         return drawable.toBitmap(width = 256, height = 256)
     }
 
-    private fun typeSummary(notificationType: String?): String {
-        return when (notificationType) {
-            "extract_complete" -> "پایان استخراج · فایلینگ دیوار"
-            "extract_schedule_due" -> "زمان استخراج · فایلینگ دیوار"
-            "extract_schedule_created" -> "زمان‌بندی · فایلینگ دیوار"
-            "reminder_call" -> "یادآور تماس · فایلینگ دیوار"
-            "reminder_visit" -> "یادآور بازدید · فایلینگ دیوار"
-            "today_digest" -> "برنامه امروز · فایلینگ دیوار"
-            "new_dataset" -> "فایل جدید · فایلینگ دیوار"
-            "customer_match" -> "تطبیق ملک · فایلینگ دیوار"
-            "welcome" -> "فایلینگ دیوار"
-            else -> "فایلینگ دیوار"
-        }
+    private fun ensureChannels() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channels = listOf(
+            channel(NotificationCatalog.CHANNEL_REMINDERS, "یادآورها", "یادآور تماس، بازدید و پیگیری", NotificationManager.IMPORTANCE_HIGH),
+            channel(NotificationCatalog.CHANNEL_MATCHES, "فایل پیشنهادی", "تطبیق مشتری با فایل", NotificationManager.IMPORTANCE_DEFAULT),
+            channel(NotificationCatalog.CHANNEL_EXTRACT, "استخراج", "پایان و زمان‌بندی استخراج", NotificationManager.IMPORTANCE_DEFAULT),
+            channel(NotificationCatalog.CHANNEL_ACCOUNT, "حساب و لایسنس", "انقضا و تمدید لایسنس", NotificationManager.IMPORTANCE_HIGH),
+            channel(NotificationCatalog.CHANNEL_DIGEST, "کارهای امروز", "خلاصه روزانه CRM", NotificationManager.IMPORTANCE_DEFAULT),
+            channel(NotificationCatalog.CHANNEL_ANNOUNCEMENTS, "اطلاعیه‌ها", "اطلاعیه‌ها و بروزرسانی", NotificationManager.IMPORTANCE_DEFAULT),
+            channel(NotificationCatalog.CHANNEL_SUPPORT, "پشتیبانی", "پاسخ تیکت پشتیبانی", NotificationManager.IMPORTANCE_HIGH),
+            // Legacy channel kept for devices that already had it configured.
+            channel(LEGACY_CHANNEL_ID, "اعلان‌های دیوار فایلینگ", "یادآور CRM، استخراج و کارهای امروز", NotificationManager.IMPORTANCE_HIGH),
+        )
+        channels.forEach(manager::createNotificationChannel)
     }
 
-    private fun ensureChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "اعلان‌های دیوار فایلینگ",
-            NotificationManager.IMPORTANCE_HIGH,
-        ).apply {
-            description = "یادآور CRM، استخراج و کارهای امروز"
+    private fun channel(id: String, name: String, description: String, importance: Int): NotificationChannel {
+        return NotificationChannel(id, name, importance).apply {
+            this.description = description
             enableVibration(true)
             enableLights(true)
             lightColor = ContextCompat.getColor(context, R.color.notification_brand)
         }
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(channel)
     }
 
     companion object {
-        const val CHANNEL_ID = "divar_filing_alerts"
-        const val CUSTOMER_MATCH_GROUP_KEY = "customer_match"
-        const val CUSTOMER_MATCH_NOTIFICATION_ID = 41001
+        const val LEGACY_CHANNEL_ID = "divar_filing_alerts"
     }
 }

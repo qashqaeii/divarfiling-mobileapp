@@ -1,7 +1,9 @@
 package ir.divarfiling.mobile.core.sync
 
+import android.content.Context
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import ir.divarfiling.mobile.core.datastore.SessionStore
 
@@ -9,4 +11,10 @@ import ir.divarfiling.mobile.core.datastore.SessionStore
 @InstallIn(SingletonComponent::class)
 interface WorkerSessionEntryPoint {
     fun sessionStore(): SessionStore
+
+    companion object {
+        fun sessionStore(context: Context): SessionStore =
+            EntryPointAccessors.fromApplication(context, WorkerSessionEntryPoint::class.java)
+                .sessionStore()
+    }
 }

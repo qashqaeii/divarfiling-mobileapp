@@ -7,6 +7,9 @@ import ir.divarfiling.mobile.core.database.CachedContactEntity
 import ir.divarfiling.mobile.core.database.ContactCacheDao
 import ir.divarfiling.mobile.core.database.SyncQueueDao
 import ir.divarfiling.mobile.core.database.SyncQueueEntity
+import ir.divarfiling.mobile.core.notifications.ReminderAlarmScheduler
+import ir.divarfiling.mobile.core.notifications.ReminderLocalStore
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.network.ActivityCreateRequest
 import ir.divarfiling.mobile.core.network.ActivityDto
 import ir.divarfiling.mobile.core.network.ContactDetailData
@@ -47,6 +50,8 @@ class CrmRepository @Inject constructor(
     private val api: MobileApi,
     private val contactCache: ContactCacheDao,
     private val syncQueue: SyncQueueDao,
+    private val reminderAlarmScheduler: ReminderAlarmScheduler,
+    private val reminderLocalStore: ReminderLocalStore,
     private val json: Json,
 ) {
     suspend fun getContacts(
@@ -206,7 +211,9 @@ class CrmRepository @Inject constructor(
                 ReminderCreateRequest(title = title, dueAt = dueAt, note = note, recurrence = recurrence),
             )
             if (!response.ok) return ApiResult.Error(response.error ?: "ثبت یادآور ناموفق")
-            ApiResult.Success(response.requireData(json))
+            val dto = response.requireData<ReminderDto>(json)
+            scheduleLocalReminder(dto)
+            ApiResult.Success(dto)
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
@@ -236,7 +243,9 @@ class CrmRepository @Inject constructor(
         return try {
             val response = api.createStandaloneReminder(request)
             if (!response.ok) return ApiResult.Error(response.error ?: "ثبت یادآور ناموفق")
-            ApiResult.Success(response.requireData(json))
+            val dto = response.requireData<ReminderDto>(json)
+            scheduleLocalReminder(dto)
+            ApiResult.Success(dto)
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
@@ -246,7 +255,9 @@ class CrmRepository @Inject constructor(
         return try {
             val response = api.patchReminder(reminderId, request)
             if (!response.ok) return ApiResult.Error(response.error ?: "به‌روزرسانی یادآور ناموفق")
-            ApiResult.Success(response.requireData(json))
+            val dto = response.requireData<ReminderDto>(json)
+            scheduleLocalReminder(dto)
+            ApiResult.Success(dto)
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
@@ -256,6 +267,7 @@ class CrmRepository @Inject constructor(
         return try {
             val response = api.deleteReminder(reminderId)
             if (!response.ok) return ApiResult.Error(response.error ?: "حذف یادآور ناموفق")
+            cancelLocalReminder(reminderId)
             ApiResult.Success(Unit)
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
@@ -385,6 +397,7 @@ class CrmRepository @Inject constructor(
                 }
                 return ApiResult.Error(response.error ?: "عملیات ناموفق")
             }
+            reminderId?.let { cancelLocalReminder(it) }
             ApiResult.Success(Unit)
         } catch (e: Exception) {
             if (reminderId != null) {
@@ -411,6 +424,9 @@ class CrmRepository @Inject constructor(
         return try {
             val response = api.todayAction(request)
             if (!response.ok) return ApiResult.Error(response.error ?: "تعویق ناموفق")
+            if (reminderId != null) {
+                response.parseData<ReminderDto>(json)?.let { scheduleLocalReminder(it) }
+            }
             ApiResult.Success(Unit)
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
@@ -456,6 +472,22 @@ class CrmRepository @Inject constructor(
                 createdAt = System.currentTimeMillis(),
             ),
         )
+    }
+
+    private fun scheduleLocalReminder(dto: ReminderDto) {
+        reminderAlarmScheduler.syncFromDto(dto)
+        val id = dto.id ?: return
+        val dueAt = DateUtils.parseInstantMillis(dto.dueAt)
+        if (dueAt != null && dueAt > System.currentTimeMillis() && !dto.done) {
+            reminderLocalStore.saveScheduled(id, dueAt)
+        } else {
+            reminderLocalStore.remove(id)
+        }
+    }
+
+    private fun cancelLocalReminder(reminderId: Long) {
+        reminderAlarmScheduler.cancelReminder(reminderId)
+        reminderLocalStore.remove(reminderId)
     }
 
     private fun ContactDto.toEntity() = CachedContactEntity(

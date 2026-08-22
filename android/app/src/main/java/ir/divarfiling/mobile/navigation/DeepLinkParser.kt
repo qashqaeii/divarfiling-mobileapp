@@ -43,6 +43,8 @@ object DeepLinkParser {
                 else DeepLinkTarget.Support
             }
             "calendar" -> DeepLinkTarget.Calendar
+            "home" -> DeepLinkTarget.Home
+            "notifications" -> DeepLinkTarget.Notifications
             "settings" -> DeepLinkTarget.Settings
             "plans", "license" -> DeepLinkTarget.Plans
             "payment" -> {
@@ -74,6 +76,8 @@ sealed class DeepLinkTarget {
     data object Support : DeepLinkTarget()
     data class SupportTicket(val ticketId: Long) : DeepLinkTarget()
     data object Calendar : DeepLinkTarget()
+    data object Home : DeepLinkTarget()
+    data object Notifications : DeepLinkTarget()
     data object Settings : DeepLinkTarget()
     data object Plans : DeepLinkTarget()
     data class Payment(val orderId: String) : DeepLinkTarget()

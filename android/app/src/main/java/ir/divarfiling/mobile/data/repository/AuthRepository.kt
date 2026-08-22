@@ -23,6 +23,8 @@ import ir.divarfiling.mobile.core.network.toUserMessage
 import ir.divarfiling.mobile.core.util.DeviceIdProvider
 import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
 import ir.divarfiling.mobile.core.fcm.FcmTokenSync
+import ir.divarfiling.mobile.core.notifications.NotificationDedupStore
+import ir.divarfiling.mobile.core.notifications.ReminderSyncManager
 import ir.divarfiling.mobile.core.security.LocalDataWiper
 import ir.divarfiling.mobile.core.sync.BackgroundWorkManager
 import kotlinx.serialization.json.Json
@@ -42,6 +44,8 @@ class AuthRepository @Inject constructor(
     private val licenseRepository: LicenseRepository,
     private val fcmTokenProvider: FcmTokenProvider,
     private val fcmTokenSync: FcmTokenSync,
+    private val reminderSyncManager: ReminderSyncManager,
+    private val notificationDedupStore: NotificationDedupStore,
     private val localDataWiper: LocalDataWiper,
     private val json: Json,
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
@@ -81,6 +85,7 @@ class AuthRepository @Inject constructor(
         }
         registerDevice(deviceId)
         licenseRepository.refreshLicense()
+        reminderSyncManager.rescheduleFromServer()
         BackgroundWorkManager.register(appContext)
         return data.user
     }
@@ -204,6 +209,8 @@ class AuthRepository @Inject constructor(
             }
         } catch (_: Exception) {
         } finally {
+            reminderSyncManager.clearAll()
+            notificationDedupStore.clear()
             localDataWiper.wipeUserData()
             sessionStore.clear()
             BackgroundWorkManager.cancel(appContext)

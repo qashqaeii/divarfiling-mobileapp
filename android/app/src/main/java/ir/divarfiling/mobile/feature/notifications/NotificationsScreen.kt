@@ -48,6 +48,7 @@ import ir.divarfiling.mobile.core.design.components.DfNotificationListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfTextButton
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
@@ -154,6 +155,31 @@ fun NotificationsScreen(
                                 subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
                                 titleIconRes = DfDecorIcons.Bell,
                                 onBack = onBack,
+                                bottomContent = if (state.unreadCount > 0) {
+                                    {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = AppSpacing.screenHorizontal),
+                                            horizontalArrangement = Arrangement.End,
+                                        ) {
+                                            DfTextButton(
+                                                text = if (state.isMarkingAllRead) {
+                                                    "در حال ثبت…"
+                                                } else {
+                                                    "همه خوانده شد"
+                                                },
+                                                onClick = {
+                                                    if (!state.isMarkingAllRead) {
+                                                        viewModel.markAllRead()
+                                                    }
+                                                },
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    null
+                                },
                             )
                         }
                         if (usesInAppApkUpdate && updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {

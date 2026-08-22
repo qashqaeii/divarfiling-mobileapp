@@ -107,6 +107,12 @@ interface MobileApi {
     @POST("notifications/{id}/read")
     suspend fun markNotificationRead(@Path("id") id: Long): ApiEnvelope
 
+    @POST("notifications/read-all")
+    suspend fun markAllNotificationsRead(): ApiEnvelope
+
+    @POST("notifications/local-delivered")
+    suspend fun reportReminderLocalDelivered(@Body body: ReminderLocalDeliveredRequest): ApiEnvelope
+
     @GET("crm/contacts")
     suspend fun getContacts(
         @Query("q") query: String? = null,

@@ -22,6 +22,8 @@ fun NavHostController.navigateDeepLink(target: DeepLinkTarget) {
         DeepLinkTarget.Support -> navigate(Routes.SUPPORT)
         is DeepLinkTarget.SupportTicket -> navigate(Routes.supportDetail(target.ticketId))
         DeepLinkTarget.Calendar -> navigate(Routes.CALENDAR)
+        DeepLinkTarget.Home -> navigate(Routes.HOME)
+        DeepLinkTarget.Notifications -> navigate(Routes.NOTIFICATIONS)
         DeepLinkTarget.Settings -> navigate(Routes.SETTINGS)
         DeepLinkTarget.Plans -> navigate(Routes.PLANS)
         is DeepLinkTarget.Payment -> navigate(Routes.PLANS)

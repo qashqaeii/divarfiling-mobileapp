@@ -123,6 +123,11 @@ object DateUtils {
         return then.isBefore(Instant.now())
     }
 
+    fun parseInstantMillis(value: String?): Long? {
+        if (value.isNullOrBlank()) return null
+        return parseToInstant(value, ZoneId.systemDefault())?.toEpochMilli()
+    }
+
     fun daysUntilExpiry(value: String?): Int? {
         if (value.isNullOrBlank()) return null
         val zone = ZoneId.systemDefault()

@@ -11,6 +11,7 @@ import ir.divarfiling.mobile.core.database.ReminderCacheDao
 import ir.divarfiling.mobile.core.database.SyncQueueDao
 import ir.divarfiling.mobile.core.database.SyncQueueEntity
 import ir.divarfiling.mobile.core.datastore.SessionStore
+import ir.divarfiling.mobile.core.notifications.ReminderSyncManager
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.MobileApi
@@ -44,6 +45,7 @@ class SyncRepository @Inject constructor(
     private val propertyCache: PropertyCacheDao,
     private val reminderCache: ReminderCacheDao,
     private val syncQueue: SyncQueueDao,
+    private val reminderSyncManager: ReminderSyncManager,
     private val json: Json,
 ) {
     suspend fun getPendingCount(): Int = syncQueue.getPending().size
@@ -58,6 +60,12 @@ class SyncRepository @Inject constructor(
             }
             val data = response.requireData<SyncPullData>(json)
             mergePull(data)
+            data.reminders?.let { batch ->
+                batch.deletedIds.forEach { reminderSyncManager.cancelReminder(it) }
+                if (batch.upserted.isNotEmpty()) {
+                    reminderSyncManager.applyReminders(batch.upserted)
+                }
+            }
             sessionStore.setLastSyncAt(data.serverTime)
             ApiResult.Success(
                 SyncResult(
@@ -97,6 +105,9 @@ class SyncRepository @Inject constructor(
         data.reminders?.let { batch ->
             if (batch.upserted.isNotEmpty()) {
                 reminderCache.upsertAll(batch.upserted.mapNotNull { it.toEntity() })
+            }
+            if (batch.deletedIds.isNotEmpty()) {
+                reminderCache.deleteByIds(batch.deletedIds)
             }
         }
     }

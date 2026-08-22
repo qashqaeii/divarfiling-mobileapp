@@ -21,6 +21,7 @@ data class NotificationsUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
+    val isMarkingAllRead: Boolean = false,
     val hasMore: Boolean = false,
     val error: String? = null,
     val page: Int = 1,
@@ -67,6 +68,25 @@ class NotificationsViewModel @Inject constructor(
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoadingMore = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun markAllRead() {
+        if (_uiState.value.unreadCount == 0 || _uiState.value.isMarkingAllRead) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isMarkingAllRead = true, error = null) }
+            when (val result = repository.markAllRead()) {
+                is ApiResult.Success -> _uiState.update { state ->
+                    state.copy(
+                        items = state.items.map { it.copy(isRead = true) },
+                        unreadCount = 0,
+                        isMarkingAllRead = false,
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isMarkingAllRead = false, error = result.message)
                 }
             }
         }
