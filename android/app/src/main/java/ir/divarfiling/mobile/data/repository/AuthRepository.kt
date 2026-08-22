@@ -2,13 +2,11 @@ package ir.divarfiling.mobile.data.repository
 
 import ir.divarfiling.mobile.BuildConfig
 import ir.divarfiling.mobile.core.datastore.SessionStore
-import ir.divarfiling.mobile.core.network.DeviceRegisterRequest
+import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
+import ir.divarfiling.mobile.core.fcm.FcmTokenSync
 import ir.divarfiling.mobile.core.network.DeviceRegisterRequest
 import ir.divarfiling.mobile.core.network.LicenseDto
 import ir.divarfiling.mobile.core.network.LicenseStatusData
-import ir.divarfiling.mobile.core.network.parseData
-import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
-import ir.divarfiling.mobile.core.util.DeviceIdProvider
 import ir.divarfiling.mobile.core.network.LoginData
 import ir.divarfiling.mobile.core.network.LoginRequest
 import ir.divarfiling.mobile.core.network.MobileApi
@@ -19,18 +17,16 @@ import ir.divarfiling.mobile.core.network.PasswordCompleteRequest
 import ir.divarfiling.mobile.core.network.RefreshData
 import ir.divarfiling.mobile.core.network.RefreshRequest
 import ir.divarfiling.mobile.core.network.UserDto
+import ir.divarfiling.mobile.core.network.mapApiError
 import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
-import ir.divarfiling.mobile.core.network.mapApiError
 import ir.divarfiling.mobile.core.network.toApiFailure
 import ir.divarfiling.mobile.core.network.toUserMessage
-import ir.divarfiling.mobile.core.util.DeviceIdProvider
-import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
-import ir.divarfiling.mobile.core.fcm.FcmTokenSync
 import ir.divarfiling.mobile.core.notifications.NotificationDedupStore
 import ir.divarfiling.mobile.core.notifications.ReminderSyncManager
 import ir.divarfiling.mobile.core.security.LocalDataWiper
 import ir.divarfiling.mobile.core.sync.BackgroundWorkManager
+import ir.divarfiling.mobile.core.util.DeviceIdProvider
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -300,7 +296,7 @@ class LicenseRepository @Inject constructor(
                     fcmToken = fcmTokenProvider.fetchToken().orEmpty(),
                 ),
             )
-            response.parseData<AuthRepositoryDeviceRegisterData>(json)?.license?.let { license ->
+            response.parseData<DeviceRegisterData>(json)?.license?.let { license ->
                 sessionStore.saveLicense(license)
             }
         } catch (_: Exception) {
@@ -341,9 +337,3 @@ class LicenseRepository @Inject constructor(
         }
     }
 }
-
-@kotlinx.serialization.Serializable
-private data class AuthRepositoryDeviceRegisterData(
-    @kotlinx.serialization.SerialName("device_id") val deviceId: String? = null,
-    val license: LicenseDto? = null,
-)
