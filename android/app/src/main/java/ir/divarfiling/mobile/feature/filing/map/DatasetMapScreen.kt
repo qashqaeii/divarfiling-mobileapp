@@ -62,8 +62,8 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
+import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
-import ir.divarfiling.mobile.core.design.components.DfStandardPageHeader
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -234,21 +234,17 @@ private fun MapTopBar(
     total: Int,
     onBack: () -> Unit,
 ) {
-    Surface(
-        color = DfThemeColors.surface().copy(alpha = 0.94f),
-        shadowElevation = AppElevations.subtle,
-    ) {
-        DfStandardPageHeader(
-            title = title,
-            subtitle = listOfNotNull(
-                city?.takeIf { it.isNotBlank() },
-                "${DateUtils.toPersianDigits(shown.toString())} از ${DateUtils.toPersianDigits(total.toString())} موقعیت",
-            ).joinToString(" · "),
-            sectionLabel = DfHeaderSections.FILING,
-            titleIconRes = DfDecorIcons.MapPin,
-            onBack = onBack,
-        )
-    }
+    DfDetailPageHeader(
+        title = title,
+        subtitle = listOfNotNull(
+            city?.takeIf { it.isNotBlank() },
+            "${DateUtils.toPersianDigits(shown.toString())} از ${DateUtils.toPersianDigits(total.toString())} موقعیت",
+        ).joinToString(" · "),
+        sectionLabel = DfHeaderSections.FILING,
+        titleIconRes = DfDecorIcons.MapPin,
+        onBack = onBack,
+        showBottomDivider = false,
+    )
 }
 
 @Composable

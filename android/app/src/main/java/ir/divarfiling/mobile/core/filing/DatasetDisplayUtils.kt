@@ -1,4 +1,4 @@
-package ir.divarfiling.mobile.feature.filing
+package ir.divarfiling.mobile.core.filing
 
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.feature.extract.ExtractCategories

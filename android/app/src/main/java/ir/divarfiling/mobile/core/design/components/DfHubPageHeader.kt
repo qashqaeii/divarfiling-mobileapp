@@ -74,8 +74,10 @@ fun DfStandardPageHeader(
     sectionLabel: String? = null,
     titleIcon: ImageVector? = null,
     @DrawableRes titleIconRes: Int? = null,
-    titleIconBackground: Color = DfThemeColors.primaryContainer(),
+    titleIconBackground: Color? = null,
     titleColor: Color = DfThemeColors.textPrimary(),
+    sectionAccent: Color = DfThemeColors.primary(),
+    sectionChipBackground: Color = DfThemeColors.primaryContainer(),
     userName: String? = null,
     notificationCount: Int = 0,
     onNotificationsClick: (() -> Unit)? = null,
@@ -83,12 +85,14 @@ fun DfStandardPageHeader(
     onBack: (() -> Unit)? = null,
     menuIcon: ImageVector = DfIcons.Menu,
     showBrandLogo: Boolean = false,
+    embeddedInFrame: Boolean = false,
     toolbarContent: @Composable (RowScope.() -> Unit)? = null,
 ) {
+    val horizontalPadding = if (embeddedInFrame) 0.dp else AppSpacing.screenHorizontal
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.sm),
+            .padding(horizontal = horizontalPadding, vertical = if (embeddedInFrame) 0.dp else AppSpacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -99,7 +103,9 @@ fun DfStandardPageHeader(
             titleIcon = titleIcon,
             titleIconRes = titleIconRes,
             titleIconBackground = titleIconBackground,
-            iconTint = DfThemeColors.primary(),
+            iconTint = sectionAccent,
+            sectionAccent = sectionAccent,
+            sectionChipBackground = sectionChipBackground,
             titleColor = titleColor,
             modifier = Modifier
                 .weight(1f)
@@ -127,7 +133,7 @@ fun DfHubPageHeader(
     sectionLabel: String? = null,
     titleIcon: ImageVector? = null,
     @DrawableRes titleIconRes: Int? = null,
-    titleIconBackground: Color = DfThemeColors.primaryContainer(),
+    titleIconBackground: Color? = null,
     userName: String? = null,
     notificationCount: Int = 0,
     onNotificationsClick: (() -> Unit)? = null,
@@ -137,20 +143,23 @@ fun DfHubPageHeader(
     showBrandLogo: Boolean = false,
     showBottomDivider: Boolean = true,
     menuIcon: ImageVector = DfIcons.Menu,
+    framed: Boolean = true,
     bottomContent: @Composable (() -> Unit)? = null,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-    ) {
+    val theme = headerThemeForSection(sectionLabel)
+    val resolvedIconBackground = titleIconBackground ?: theme.iconBackground
+
+    val headerContent: @Composable () -> Unit = {
         DfStandardPageHeader(
             title = title,
             subtitle = subtitle,
             sectionLabel = sectionLabel,
             titleIcon = titleIcon,
             titleIconRes = titleIconRes,
-            titleIconBackground = titleIconBackground,
+            titleIconBackground = resolvedIconBackground,
             titleColor = titleColor,
+            sectionAccent = theme.accent,
+            sectionChipBackground = theme.sectionChipBackground,
             userName = userName,
             notificationCount = notificationCount,
             onNotificationsClick = onNotificationsClick,
@@ -158,15 +167,30 @@ fun DfHubPageHeader(
             onBack = onBack,
             menuIcon = menuIcon,
             showBrandLogo = showBrandLogo,
+            embeddedInFrame = framed,
         )
         bottomContent?.invoke()
         if (showBottomDivider) {
             HorizontalDivider(
-                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                color = DfThemeColors.outlineSubtle().copy(alpha = 0.65f),
+                modifier = Modifier.padding(top = AppSpacing.sm),
+                color = theme.borderColor.copy(alpha = 0.75f),
                 thickness = 1.dp,
             )
         }
+    }
+
+    if (framed) {
+        DfHeaderFrame(
+            theme = theme,
+            modifier = modifier,
+            content = { headerContent() },
+        )
+    } else {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            content = { headerContent() },
+        )
     }
 }
 
@@ -238,8 +262,10 @@ private fun DfHeaderTitleBlock(
     sectionLabel: String?,
     titleIcon: ImageVector?,
     @DrawableRes titleIconRes: Int? = null,
-    titleIconBackground: Color = DfThemeColors.primaryContainer(),
+    titleIconBackground: Color? = null,
     iconTint: Color = DfThemeColors.primary(),
+    sectionAccent: Color = DfThemeColors.primary(),
+    sectionChipBackground: Color = DfThemeColors.primaryContainer(),
     titleColor: Color = DfThemeColors.textPrimary(),
     modifier: Modifier = Modifier,
 ) {
@@ -253,13 +279,13 @@ private fun DfHeaderTitleBlock(
                 resId = titleIconRes,
                 containerSize = 48.dp,
                 imageSize = 24.dp,
-                background = titleIconBackground,
+                background = titleIconBackground ?: DfThemeColors.primaryContainer(),
             )
             titleIcon != null -> Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(AppShapes.IconContainer)
-                    .background(titleIconBackground),
+                    .background(titleIconBackground ?: DfThemeColors.primaryContainer()),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -276,14 +302,21 @@ private fun DfHeaderTitleBlock(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
         ) {
             sectionLabel?.takeIf { it.isNotBlank() }?.let { label ->
-                Text(
-                    text = label,
-                    style = AppTypography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DfThemeColors.primary(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Surface(
+                    shape = AppShapes.Chip,
+                    color = sectionChipBackground,
+                    border = BorderStroke(0.5.dp, sectionAccent.copy(alpha = 0.22f)),
+                ) {
+                    Text(
+                        text = label,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = sectionAccent,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Text(
                 text = title,
@@ -523,12 +556,21 @@ private fun DfStandardPageHeaderPreview() {
             DfHubPageHeader(
                 title = "فایلینگ دیوار",
                 subtitle = "مدیریت فایل‌های استخراج‌شده",
-                titleIcon = DfIcons.Folder,
+                sectionLabel = DfHeaderSections.FILING,
+                titleIconRes = DfDecorIcons.Folder,
                 userName = "حسین",
                 notificationCount = 20,
                 onNotificationsClick = {},
                 onMenuClick = {},
                 menuIcon = DfIcons.Menu,
+            )
+            DfHubPageHeader(
+                title = "استخراج جدید",
+                subtitle = "استخراج آگهی روی گوشی",
+                sectionLabel = DfHeaderSections.EXTRACT,
+                titleIconRes = DfDecorIcons.Sparkles,
+                userName = "حسین",
+                onBack = {},
             )
         }
     }
