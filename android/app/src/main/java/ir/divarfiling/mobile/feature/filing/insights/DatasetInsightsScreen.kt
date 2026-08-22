@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +31,7 @@ import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfCard
@@ -168,7 +172,7 @@ fun DatasetInsightsScreen(
                                 }
                             }
                         }
-                        presentedSection("فرصت‌ها", insights.opportunities)
+                        presentedSection("فرصت‌ها", insights.opportunities, emphasizeOpportunity = true)
                         presentedSection("بینش‌ها", insights.insights)
                         presentedSection("مذاکره", insights.negotiation)
                         if (
@@ -195,6 +199,7 @@ fun DatasetInsightsScreen(
 private fun LazyListScope.presentedSection(
     title: String,
     items: List<JsonElement>,
+    emphasizeOpportunity: Boolean = false,
 ) {
     val blocks = presentElementList(items)
     if (blocks.isEmpty()) return
@@ -206,6 +211,7 @@ private fun LazyListScope.presentedSection(
     itemsIndexed(blocks, key = { index, block -> "$title-$index-${block.title}" }) { _, block ->
         InsightBlockCard(
             block = block,
+            emphasizeOpportunity = emphasizeOpportunity,
             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
         )
     }
@@ -280,22 +286,80 @@ private fun InsightsKpiGrid(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InsightBlockCard(
     block: InsightBlock,
     modifier: Modifier = Modifier,
+    emphasizeOpportunity: Boolean = false,
 ) {
+    val isOpportunity = emphasizeOpportunity && block.kind == InsightBlockKind.OPPORTUNITY
     DfCard(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            Text(
-                block.title,
-                style = AppTypography.cardTitle,
-                fontWeight = FontWeight.Bold,
-                color = DfThemeColors.textPrimary(),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (isOpportunity && block.rank != null) {
+                        Text(
+                            "#${block.rank}",
+                            style = AppTypography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = DfThemeColors.primary(),
+                        )
+                    }
+                    Text(
+                        block.title,
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                    )
+                    if (block.subtitle.isNotBlank()) {
+                        Text(
+                            block.subtitle,
+                            style = AppTypography.meta,
+                            color = DfThemeColors.textSecondary(),
+                        )
+                    }
+                }
+                if (!block.stars.isNullOrBlank()) {
+                    Text(
+                        block.stars,
+                        style = AppTypography.cardTitle,
+                        color = DfColors.Amber,
+                    )
+                }
+            }
+
+            block.badge?.let { badge ->
+                Surface(shape = AppShapes.Chip, color = DfColors.GreenLight) {
+                    Text(
+                        badge,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.Green,
+                    )
+                }
+            }
+
+            block.priceLine?.takeIf { it.isNotBlank() }?.let { price ->
+                Text(
+                    price,
+                    style = AppTypography.sectionTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.primary(),
+                )
+            }
+
             if (block.body.isNotBlank()) {
                 Text(
                     block.body,
@@ -303,20 +367,106 @@ private fun InsightBlockCard(
                     color = DfThemeColors.textSecondary(),
                 )
             }
-            block.facts.forEach { fact ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(fact.label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+
+            block.amenityTierLabel?.let { tier ->
+                Surface(shape = AppShapes.Chip, color = DfThemeColors.primaryContainer()) {
                     Text(
-                        fact.value,
+                        tier,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = AppTypography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = DfThemeColors.textPrimary(),
+                        color = DfThemeColors.primary(),
                     )
                 }
             }
+
+            if (block.amenities.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    block.amenities.forEach { amenity ->
+                        AmenityChip(amenity)
+                    }
+                }
+            }
+
+            if (block.facts.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    block.facts.forEach { fact ->
+                        InsightFactRow(fact = fact, stacked = fact.value.contains('\n'))
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun InsightFactRow(
+    fact: InsightKpi,
+    stacked: Boolean,
+) {
+    if (stacked) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(fact.label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+            Text(
+                fact.value,
+                style = AppTypography.bodyDescription,
+                color = DfThemeColors.textPrimary(),
+            )
+        }
+        return
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            fact.label,
+            modifier = Modifier.weight(1f),
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textMuted(),
+        )
+        Text(
+            fact.value,
+            modifier = Modifier.weight(1f),
+            style = AppTypography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = DfThemeColors.textPrimary(),
+        )
+    }
+}
+
+@Composable
+private fun AmenityChip(amenity: InsightAmenityChip) {
+    val bg = when (amenity.state) {
+        InsightAmenityState.YES -> DfColors.GreenLight
+        InsightAmenityState.NO -> DfThemeColors.surfaceVariant()
+        InsightAmenityState.UNKNOWN -> DfThemeColors.surfaceVariant()
+    }
+    val fg = when (amenity.state) {
+        InsightAmenityState.YES -> DfColors.Green
+        InsightAmenityState.NO -> DfThemeColors.textMuted()
+        InsightAmenityState.UNKNOWN -> DfThemeColors.textSecondary()
+    }
+    val stateLabel = when (amenity.state) {
+        InsightAmenityState.YES -> "دارد"
+        InsightAmenityState.NO -> "ندارد"
+        InsightAmenityState.UNKNOWN -> "؟"
+    }
+    Surface(shape = AppShapes.Chip, color = bg) {
+        Text(
+            buildString {
+                append(amenity.label)
+                append(" · ")
+                append(stateLabel)
+            },
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = AppTypography.labelSmall,
+            fontWeight = if (amenity.isLuxury) FontWeight.SemiBold else FontWeight.Normal,
+            color = fg,
+        )
     }
 }
