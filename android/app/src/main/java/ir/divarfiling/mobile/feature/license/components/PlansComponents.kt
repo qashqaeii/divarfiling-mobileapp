@@ -265,10 +265,13 @@ fun LicensePlanCard(
                             color = DfThemeColors.textPrimary(),
                             modifier = Modifier.weight(1f, fill = false),
                         )
-                        plan.offerBadge?.takeIf { it.isNotBlank() }?.let { badge ->
-                            PlanBadge(text = badge, color = DfColors.Amber, bg = DfColors.AmberLight)
-                        } else if (plan.isFeatured) {
-                            PlanBadge(text = "پیشنهادی", color = DfThemeColors.primary(), bg = DfThemeColors.primaryContainer())
+                        when {
+                            !plan.offerBadge.isNullOrBlank() -> {
+                                PlanBadge(text = plan.offerBadge, color = DfColors.Amber, bg = DfColors.AmberLight)
+                            }
+                            plan.isFeatured -> {
+                                PlanBadge(text = "پیشنهادی", color = DfThemeColors.primary(), bg = DfThemeColors.primaryContainer())
+                            }
                         }
                     }
                     plan.durationLabel?.let {
