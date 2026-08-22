@@ -39,6 +39,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
+import ir.divarfiling.mobile.core.filing.ListingImageUtils
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfShimmerBox
 import ir.divarfiling.mobile.feature.home.RecentFileItem
@@ -173,6 +174,7 @@ private fun RecentFileCard(
             ) {
                 DfListingImage(
                     thumbnailUrl = file.thumbnailUrl,
+                    images = ListingImageUtils.datasetCoverFallbackUrls(file.thumbnailUrl, file.thumbnailUrls),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )

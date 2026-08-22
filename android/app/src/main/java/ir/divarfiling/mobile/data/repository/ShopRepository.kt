@@ -96,7 +96,7 @@ class ShopRepository @Inject constructor(
                 status
             }
             is ApiResult.Success -> {
-                licenseRepository.refreshLicense()
+                licenseRepository.syncDeviceAndRefresh()
                 when (status.data.status) {
                     "paid" -> sessionStore.setPendingOrderId(null)
                     "failed", "cancelled" -> sessionStore.setPendingOrderId(null)

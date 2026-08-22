@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,16 +15,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -31,15 +33,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.ExternalBrowser
-import ir.divarfiling.mobile.core.design.AppElevations
-import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
-import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -48,10 +48,9 @@ import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.DfTextField
-import ir.divarfiling.mobile.core.design.FormatUtils
-import ir.divarfiling.mobile.core.network.ShopPlanDto
-import java.text.NumberFormat
-import java.util.Locale
+import ir.divarfiling.mobile.feature.license.components.DiscountApplyButton
+import ir.divarfiling.mobile.feature.license.components.LicensePlanCard
+import ir.divarfiling.mobile.feature.license.components.LicenseStatusHero
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +66,9 @@ fun PlansScreen(
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.consumePendingOrder()
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.consumePendingOrder()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -84,6 +85,8 @@ fun PlansScreen(
         }
     }
 
+    val selectedPlan = state.plans.firstOrNull { it.id == state.selectedPlanId }
+
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
@@ -91,15 +94,20 @@ fun PlansScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(AppSpacing.screenHorizontal)
-                    .padding(bottom = AppSpacing.md),
+                    .navigationBarsPadding()
+                    .padding(horizontal = AppSpacing.screenHorizontal)
+                    .padding(top = AppSpacing.xs, bottom = AppSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                if (state.successMessage != null || state.license.valid) {
+                if (state.license.valid) {
                     DfPrimaryButton(text = "شروع استفاده", onClick = onStartUsing)
                 }
                 DfPrimaryButton(
-                    text = if (state.license.valid || state.license.canRenew) "تمدید / ادامه خرید" else "ادامه خرید",
+                    text = when {
+                        selectedPlan != null -> "خرید ${selectedPlan.name}"
+                        state.license.valid || state.license.canRenew -> "تمدید / ادامه خرید"
+                        else -> "ادامه خرید"
+                    },
                     onClick = {
                         viewModel.startCheckout { url -> ExternalBrowser.open(context, url) }
                     },
@@ -107,7 +115,7 @@ fun PlansScreen(
                     enabled = state.selectedPlanId != null && !state.isCheckingOut,
                 )
                 DfSecondaryButton(
-                    text = "بررسی وضعیت پرداخت",
+                    text = "بررسی وضعیت",
                     onClick = viewModel::consumePendingOrder,
                     loading = state.isVerifying,
                     enabled = !state.isVerifying,
@@ -120,18 +128,26 @@ fun PlansScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .statusBarsPadding(),
-            contentPadding = PaddingValues(bottom = AppSpacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            contentPadding = PaddingValues(bottom = 160.dp),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
             item {
                 DfHubPageHeader(
                     title = "خرید و تمدید لایسنس",
-                    subtitle = "قیمت‌ها از سرور خوانده می‌شود",
+                    subtitle = "دسترسی کامل به فایلینگ، CRM و استخراج",
                     sectionLabel = DfHeaderSections.LICENSE,
                     titleIconRes = DfDecorIcons.Sparkles,
                     onBack = onBack,
                 )
             }
+
+            item {
+                LicenseStatusHero(
+                    license = state.license,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
             if (!state.phoneVerified) {
                 item {
                     DfStatusBanner(
@@ -142,26 +158,7 @@ fun PlansScreen(
                     )
                 }
             }
-            if (state.license.expiringSoon && state.license.valid) {
-                item {
-                    DfStatusBanner(
-                        message = "چند روز تا انقضای لایسنس مانده است. تمدید کنید تا دسترسی قطع نشود.",
-                        tone = DfStatusTone.Warning,
-                        title = "نزدیک به انقضا",
-                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                    )
-                }
-            }
-            if (!state.license.valid) {
-                item {
-                    DfStatusBanner(
-                        message = "بدون لایسنس فعال، فایلینگ و استخراج قفل است. یک پلن انتخاب کنید.",
-                        tone = DfStatusTone.Locked,
-                        title = "لایسنس فعال نیست",
-                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                    )
-                }
-            }
+
             state.orderStatusMessage?.takeIf { it.isNotBlank() }?.let { statusText ->
                 item {
                     DfStatusBanner(
@@ -176,27 +173,65 @@ fun PlansScreen(
                     )
                 }
             }
+
+            item {
+                Column(
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    Text(
+                        text = "پلن‌های موجود",
+                        style = AppTypography.sectionTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                    )
+                    Text(
+                        text = "یک پلن را انتخاب کنید؛ قیمت‌ها مستقیم از سرور خوانده می‌شود.",
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                    )
+                }
+            }
+
+            items(state.plans, key = { it.id }) { plan ->
+                LicensePlanCard(
+                    plan = plan,
+                    selected = plan.id == state.selectedPlanId,
+                    onSelect = { viewModel.selectPlan(plan.id) },
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
             item {
                 Column(
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
+                    Text(
+                        text = "کد تخفیف",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                    )
                     DfTextField(
                         value = state.discountCode,
                         onValueChange = viewModel::onDiscountCodeChange,
                         label = "کد تخفیف",
                         enabled = !state.isCheckingOut && !state.isApplyingDiscount,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                        DfPrimaryButton(
-                            text = if (state.isApplyingDiscount) "در حال بررسی…" else "اعمال کد",
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        DiscountApplyButton(
+                            text = if (state.isApplyingDiscount) "…" else "اعمال",
                             onClick = viewModel::applyDiscount,
-                            enabled = state.discountCode.isNotBlank() && !state.isApplyingDiscount && state.selectedPlanId != null,
+                            enabled = state.discountCode.isNotBlank() && state.selectedPlanId != null,
                             loading = state.isApplyingDiscount,
-                            modifier = Modifier.weight(1f),
                         )
                         if (state.discountPreview != null) {
-                            DfGlassTextButton(text = "حذف کد", onClick = viewModel::clearDiscount)
+                            DfGlassTextButton(text = "حذف", onClick = viewModel::clearDiscount)
                         }
                     }
                     state.discountPreview?.let { preview ->
@@ -212,14 +247,7 @@ fun PlansScreen(
                     }
                 }
             }
-            items(state.plans, key = { it.id }) { plan ->
-                PlanCard(
-                    plan = plan,
-                    selected = plan.id == state.selectedPlanId,
-                    onSelect = { viewModel.selectPlan(plan.id) },
-                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                )
-            }
+
             item {
                 DfContinueOnWebRow(
                     title = "مدیریت کامل اشتراک در وب",
@@ -227,58 +255,6 @@ fun PlansScreen(
                     url = AppLinks.DASHBOARD_LICENSES,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlanCard(
-    plan: ShopPlanDto,
-    selected: Boolean,
-    onSelect: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val format = remember { NumberFormat.getInstance(Locale("fa", "IR")) }
-    Surface(
-        onClick = { if (!plan.purchaseBlocked) onSelect() },
-        modifier = modifier.fillMaxWidth(),
-        shape = AppShapes.Card,
-        color = DfThemeColors.surface(),
-        shadowElevation = if (selected) AppElevations.raised else AppElevations.subtle,
-        tonalElevation = AppElevations.none,
-    ) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(plan.name, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-                if (plan.isFeatured) {
-                    Text("پیشنهادی", style = AppTypography.labelSmall, color = DfThemeColors.primary(), fontWeight = FontWeight.SemiBold)
-                }
-            }
-            plan.durationLabel?.let { Text(it, style = AppTypography.meta, color = DfThemeColors.textSecondary()) }
-            plan.tagline?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                if (plan.hasDiscount && plan.originalPrice != null) {
-                    Text(
-                        "${format.format(plan.originalPrice)} تومان",
-                        style = AppTypography.meta,
-                        color = DfThemeColors.textMuted(),
-                    )
-                }
-                Text(
-                    "${format.format(plan.finalPrice ?: 0)} تومان",
-                    style = AppTypography.sectionTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfThemeColors.textPrimary(),
-                )
-            }
-            if (plan.purchaseBlocked) {
-                Text(plan.purchaseBlockMessage.orEmpty(), style = AppTypography.meta, color = DfThemeColors.error())
             }
         }
     }

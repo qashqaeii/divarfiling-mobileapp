@@ -45,6 +45,8 @@ class SessionStore @Inject constructor(
         val LICENSE_ID = longPreferencesKey("license_id")
         val LICENSE_CAN_RENEW = booleanPreferencesKey("license_can_renew")
         val LICENSE_STATUS = stringPreferencesKey("license_status")
+        val LICENSE_STARTED_AT = stringPreferencesKey("license_started_at")
+        val LICENSE_PURCHASED_AT = stringPreferencesKey("license_purchased_at")
         val PENDING_ORDER_ID = stringPreferencesKey("pending_order_id")
         val FEATURE_LIGHT_EXTRACT = booleanPreferencesKey("feature_light_extract")
         val FEATURE_CRM = booleanPreferencesKey("feature_crm")
@@ -149,6 +151,8 @@ class SessionStore @Inject constructor(
         licenseId: Long? = null,
         canRenew: Boolean = false,
         status: String? = null,
+        startedAt: String? = null,
+        purchasedAt: String? = null,
     ) {
         dataStore.edit { prefs ->
             prefs[Keys.LICENSE_VALID] = valid
@@ -163,6 +167,10 @@ class SessionStore @Inject constructor(
             prefs[Keys.LICENSE_ID] = licenseId ?: 0L
             prefs[Keys.LICENSE_CAN_RENEW] = canRenew
             prefs[Keys.LICENSE_STATUS] = status.orEmpty()
+            if (startedAt.isNullOrBlank()) prefs.remove(Keys.LICENSE_STARTED_AT)
+            else prefs[Keys.LICENSE_STARTED_AT] = startedAt
+            if (purchasedAt.isNullOrBlank()) prefs.remove(Keys.LICENSE_PURCHASED_AT)
+            else prefs[Keys.LICENSE_PURCHASED_AT] = purchasedAt
             prefs[Keys.FEATURE_LIGHT_EXTRACT] = features?.lightExtract == true && valid
             prefs[Keys.FEATURE_CRM] = valid && features?.crmMobile == true
             prefs[Keys.FEATURE_FILING] = valid && features?.filingView == true
@@ -253,12 +261,14 @@ class SessionStore @Inject constructor(
             licenseId = prefs[Keys.LICENSE_ID]?.takeIf { it > 0 },
             canRenew = prefs[Keys.LICENSE_CAN_RENEW] == true,
             status = prefs[Keys.LICENSE_STATUS],
+            startedAt = prefs[Keys.LICENSE_STARTED_AT],
+            purchasedAt = prefs[Keys.LICENSE_PURCHASED_AT],
         )
     }
 
     companion object {
         private const val DEFAULT_ACCESS_TTL_MS = 15L * 60L * 1000L
-        private const val LICENSE_STALE_MS = 6L * 60L * 60L * 1000L
+        private const val LICENSE_STALE_MS = 3L * 60L * 1000L
     }
 
     private fun applyLicense(prefs: androidx.datastore.preferences.core.MutablePreferences, license: LicenseDto?) {

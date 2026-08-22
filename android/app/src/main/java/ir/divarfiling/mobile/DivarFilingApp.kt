@@ -35,8 +35,13 @@ class DivarFilingApp : Application(), ImageLoaderFactory {
                 this@DivarFilingApp,
                 WorkerSessionEntryPoint::class.java,
             ).sessionStore()
+            val licenseRepository = EntryPointAccessors.fromApplication(
+                this@DivarFilingApp,
+                WorkerSessionEntryPoint::class.java,
+            ).licenseRepository()
             BackgroundWorkManager.syncWithSession(this@DivarFilingApp, sessionStore)
             if (sessionStore.isLoggedIn.first()) {
+                licenseRepository.syncDeviceAndRefresh()
                 val fcmEntry = EntryPointAccessors.fromApplication(
                     this@DivarFilingApp,
                     FcmEntryPoint::class.java,

@@ -113,6 +113,8 @@ data class LicenseStatusData(
     @SerialName("license_id") val licenseId: Long? = null,
     val status: String? = null,
     @SerialName("can_renew") val canRenew: Boolean = false,
+    @SerialName("started_at") val startedAt: String? = null,
+    @SerialName("purchased_at") val purchasedAt: String? = null,
 )
 
 @Serializable
@@ -154,6 +156,7 @@ data class ShopPlanDto(
     @SerialName("duration_days") val durationDays: Int? = null,
     @SerialName("duration_label") val durationLabel: String? = null,
     val tagline: String? = null,
+    val features: List<String> = emptyList(),
     @SerialName("original_price") val originalPrice: Long? = null,
     @SerialName("final_price") val finalPrice: Long? = null,
     @SerialName("discount_amount") val discountAmount: Long? = null,
@@ -420,6 +423,7 @@ data class DatasetDto(
     val district: String? = null,
     @SerialName("item_count") val itemCount: Int = 0,
     @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
+    @SerialName("thumbnail_urls") val thumbnailUrls: List<String> = emptyList(),
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("original_filename") val originalFilename: String? = null,
     @SerialName("file_format") val fileFormat: String? = null,

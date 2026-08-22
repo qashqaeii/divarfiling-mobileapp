@@ -3,8 +3,12 @@ package ir.divarfiling.mobile.data.repository
 import ir.divarfiling.mobile.BuildConfig
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.network.DeviceRegisterRequest
+import ir.divarfiling.mobile.core.network.DeviceRegisterRequest
 import ir.divarfiling.mobile.core.network.LicenseDto
 import ir.divarfiling.mobile.core.network.LicenseStatusData
+import ir.divarfiling.mobile.core.network.parseData
+import ir.divarfiling.mobile.core.fcm.FcmTokenProvider
+import ir.divarfiling.mobile.core.util.DeviceIdProvider
 import ir.divarfiling.mobile.core.network.LoginData
 import ir.divarfiling.mobile.core.network.LoginRequest
 import ir.divarfiling.mobile.core.network.MobileApi
@@ -84,7 +88,7 @@ class AuthRepository @Inject constructor(
             sessionStore.saveAccessExpiresAt(System.currentTimeMillis() + seconds * 1000L)
         }
         registerDevice(deviceId)
-        licenseRepository.refreshLicense()
+        licenseRepository.syncDeviceAndRefresh()
         reminderSyncManager.rescheduleFromServer()
         BackgroundWorkManager.register(appContext)
         return data.user
@@ -179,6 +183,8 @@ class AuthRepository @Inject constructor(
             e.asApiError("تغییر رمز ناموفق بود")
         }
     }
+
+    suspend fun syncDeviceAndLicense(): ApiResult<Unit> = licenseRepository.syncDeviceAndRefresh()
 
     private suspend fun registerDevice(deviceId: String): LicenseDto? {
         return try {
@@ -278,7 +284,31 @@ class LicenseRepository @Inject constructor(
     private val api: MobileApi,
     private val sessionStore: SessionStore,
     private val json: Json,
+    private val deviceIdProvider: DeviceIdProvider,
+    private val fcmTokenProvider: FcmTokenProvider,
 ) {
+    /** ثبت دستگاه (فعال‌سازی لایسنس روی سرور) + به‌روزرسانی وضعیت محلی */
+    suspend fun syncDeviceAndRefresh(): ApiResult<Unit> {
+        try {
+            val deviceId = deviceIdProvider.getDeviceId()
+            val response = api.registerDevice(
+                DeviceRegisterRequest(
+                    deviceId = deviceId,
+                    deviceModel = android.os.Build.MODEL,
+                    osVersion = android.os.Build.VERSION.RELEASE,
+                    appVersion = ir.divarfiling.mobile.BuildConfig.VERSION_NAME,
+                    fcmToken = fcmTokenProvider.fetchToken().orEmpty(),
+                ),
+            )
+            response.parseData<AuthRepositoryDeviceRegisterData>(json)?.license?.let { license ->
+                sessionStore.saveLicense(license)
+            }
+        } catch (_: Exception) {
+            // ادامه با refresh — حتی اگر register موقت fail شود
+        }
+        return refreshLicense()
+    }
+
     suspend fun refreshLicense(): ApiResult<Unit> {
         return try {
             val response = api.licenseStatus()
@@ -302,6 +332,8 @@ class LicenseRepository @Inject constructor(
                 licenseId = data.licenseId,
                 canRenew = data.canRenew,
                 status = data.status,
+                startedAt = data.startedAt,
+                purchasedAt = data.purchasedAt,
             )
             ApiResult.Success(Unit)
         } catch (e: Exception) {
@@ -309,3 +341,9 @@ class LicenseRepository @Inject constructor(
         }
     }
 }
+
+@kotlinx.serialization.Serializable
+private data class AuthRepositoryDeviceRegisterData(
+    @kotlinx.serialization.SerialName("device_id") val deviceId: String? = null,
+    val license: LicenseDto? = null,
+)

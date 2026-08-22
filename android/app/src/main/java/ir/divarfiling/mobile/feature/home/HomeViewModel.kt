@@ -161,6 +161,7 @@ class HomeViewModel @Inject constructor(
                                     itemCount = ds.itemCount,
                                     createdAt = ds.createdAt,
                                     thumbnailUrl = ds.thumbnailUrl,
+                                    thumbnailUrls = ds.thumbnailUrls,
                                 )
                             },
                             notificationBadgeCount = maxOf(data.notificationsUnread, unreadInPreview),

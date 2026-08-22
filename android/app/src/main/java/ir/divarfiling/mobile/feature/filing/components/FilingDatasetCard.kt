@@ -41,6 +41,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfListingImage
+import ir.divarfiling.mobile.core.filing.ListingImageUtils
 import ir.divarfiling.mobile.core.network.DatasetDto
 
 @Composable
@@ -113,6 +114,7 @@ fun FilingDatasetCard(
             ) {
                 DfListingImage(
                     thumbnailUrl = dataset.thumbnailUrl,
+                    images = datasetCoverFallbackUrls(dataset),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
@@ -236,6 +238,9 @@ fun FilingDatasetCard(
         }
     }
 }
+
+internal fun datasetCoverFallbackUrls(dataset: DatasetDto): List<String> =
+    ListingImageUtils.datasetCoverFallbackUrls(dataset.thumbnailUrl, dataset.thumbnailUrls)
 
 internal fun datasetDisplayTitle(dataset: DatasetDto): String {
     val location = listOfNotNull(

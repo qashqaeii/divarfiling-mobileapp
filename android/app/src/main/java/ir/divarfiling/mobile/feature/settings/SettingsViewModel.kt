@@ -80,7 +80,7 @@ class SettingsViewModel @Inject constructor(
     fun refreshAll() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = it.user != null, isLoading = it.user == null, error = null) }
-            licenseRepository.refreshLicense()
+            licenseRepository.syncDeviceAndRefresh()
             when (val dashboard = dashboardRepository.getDashboard()) {
                 is ApiResult.Success ->
                     _uiState.update { it.copy(notificationBadgeCount = dashboard.data.notificationsUnread) }

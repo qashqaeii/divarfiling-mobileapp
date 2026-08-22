@@ -83,6 +83,7 @@ data class RecentFileItem(
     val itemCount: Int,
     val createdAt: String?,
     val thumbnailUrl: String? = null,
+    val thumbnailUrls: List<String> = emptyList(),
 )
 
 data class StatCardData(

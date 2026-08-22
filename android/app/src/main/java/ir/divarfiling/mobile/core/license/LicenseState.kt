@@ -15,6 +15,8 @@ data class LicenseState(
     val licenseId: Long? = null,
     val canRenew: Boolean = false,
     val status: String? = null,
+    val startedAt: String? = null,
+    val purchasedAt: String? = null,
 ) {
     /** استخراج سبک فقط با لایسنس فعال و مجوز light_extract */
     val canUseLightExtract: Boolean

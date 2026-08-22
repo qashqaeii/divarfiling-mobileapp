@@ -11,6 +11,7 @@ import ir.divarfiling.mobile.core.datastore.SessionStore
 @InstallIn(SingletonComponent::class)
 interface WorkerSessionEntryPoint {
     fun sessionStore(): SessionStore
+    fun licenseRepository(): ir.divarfiling.mobile.data.repository.LicenseRepository
 
     companion object {
         fun sessionStore(context: Context): SessionStore =

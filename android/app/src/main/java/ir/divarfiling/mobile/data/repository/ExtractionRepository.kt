@@ -35,7 +35,7 @@ class ExtractionRepository @Inject constructor(
     private val json: Json,
 ) {
     suspend fun checkExtractGate(): ExtractGateResult {
-        when (val refresh = licenseRepository.refreshLicense()) {
+        when (val refresh = licenseRepository.syncDeviceAndRefresh()) {
             is ApiResult.Error -> {
                 if (sessionStore.isLicenseStale()) {
                     return ExtractGateDenied(refresh.message)

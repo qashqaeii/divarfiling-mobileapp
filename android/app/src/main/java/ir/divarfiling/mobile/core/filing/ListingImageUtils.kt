@@ -17,4 +17,12 @@ object ListingImageUtils {
             candidates.mapNotNull { ImageUrlFormatter.normalize(it) },
         )
     }
+
+    /** URLهای پشتیبان کاور دیتاست — بدون تکرار thumbnail اصلی. */
+    fun datasetCoverFallbackUrls(thumbnailUrl: String?, thumbnailUrls: List<String>): List<String> {
+        val primary = thumbnailUrl?.trim().orEmpty()
+        return thumbnailUrls
+            .map { it.trim() }
+            .filter { it.isNotBlank() && it != primary }
+    }
 }

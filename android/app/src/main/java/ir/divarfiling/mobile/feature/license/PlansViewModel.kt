@@ -58,18 +58,26 @@ class PlansViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            licenseRepository.refreshLicense()
+            licenseRepository.syncDeviceAndRefresh()
             when (val result = shopRepository.getPlans()) {
                 is ApiResult.Success -> {
                     val data: ShopPlansData = result.data
-                    val recommended = data.plans.firstOrNull { it.isFeatured && !it.purchaseBlocked } ?: data.plans.firstOrNull { !it.purchaseBlocked }
+                    val visiblePlans = data.plans.filterNot { plan ->
+                        plan.planType == "daily" && plan.purchaseBlockReason == "daily_used"
+                    }
+                    val recommended = visiblePlans.firstOrNull { it.isFeatured && !it.purchaseBlocked }
+                        ?: visiblePlans.firstOrNull { !it.purchaseBlocked }
+                    val selectedStillVisible = visiblePlans.any { it.id == _uiState.value.selectedPlanId }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            plans = data.plans,
+                            plans = visiblePlans,
                             renewableLicenseId = data.renewableLicense?.licenseId,
                             phoneVerified = data.phoneVerified,
-                            selectedPlanId = it.selectedPlanId ?: recommended?.id,
+                            selectedPlanId = when {
+                                selectedStillVisible -> it.selectedPlanId
+                                else -> recommended?.id
+                            },
                         )
                     }
                 }
@@ -105,6 +113,8 @@ class PlansViewModel @Inject constructor(
     }
 
     fun selectPlan(id: Long) {
+        val plan = _uiState.value.plans.firstOrNull { it.id == id } ?: return
+        if (plan.purchaseBlocked) return
         _uiState.update { it.copy(selectedPlanId = id, error = null, discountPreview = null) }
     }
 
@@ -126,7 +136,8 @@ class PlansViewModel @Inject constructor(
                     val url = result.data.payUrl
                     when {
                         result.data.status == "paid" -> {
-                            licenseRepository.refreshLicense()
+                            licenseRepository.syncDeviceAndRefresh()
+                            refresh()
                             _uiState.update { it.copy(successMessage = "لایسنس فعال شد") }
                         }
                         !url.isNullOrBlank() -> onPayUrl(url)
@@ -146,6 +157,7 @@ class PlansViewModel @Inject constructor(
             _uiState.update { it.copy(isVerifying = true) }
             when (val result = shopRepository.verifyPendingAndRefreshLicense()) {
                 is ApiResult.Success -> {
+                    licenseRepository.syncDeviceAndRefresh()
                     val status = result.data
                     val message = orderStatusMessageFa(status?.status, missing = status == null)
                     _uiState.update {
@@ -167,7 +179,7 @@ class PlansViewModel @Inject constructor(
                     it.copy(
                         isVerifying = false,
                         error = if (result.code == "NETWORK_ERROR" || result.message.contains("اتصال")) {
-                            "بررسی پرداخت ناموفق بود. پس از اتصال «بررسی وضعیت پرداخت» را بزنید."
+                            "بررسی پرداخت ناموفق بود. پس از اتصال «بررسی وضعیت» را بزنید."
                         } else {
                             result.message
                         },
