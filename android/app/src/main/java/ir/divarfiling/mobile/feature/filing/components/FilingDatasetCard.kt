@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,10 +27,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
@@ -40,7 +45,9 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfListingImage
+import ir.divarfiling.mobile.core.filing.DatasetDisplayUtils
 import ir.divarfiling.mobile.core.filing.ListingImageUtils
 import ir.divarfiling.mobile.core.network.DatasetDto
 
@@ -91,9 +98,16 @@ fun FilingDatasetCard(
     modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    val location = listOfNotNull(dataset.city, dataset.district).joinToString("، ")
+    val location = listOfNotNull(dataset.district, dataset.city).joinToString("، ")
     val format = dataset.fileFormat?.uppercase() ?: "JSON"
     val cardTitle = datasetDisplayTitle(dataset)
+    val coverShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    val coverUrls = remember(dataset.id, dataset.thumbnailUrl, dataset.thumbnailUrls) {
+        ListingImageUtils.buildGalleryUrls(
+            dataset.thumbnailUrl,
+            datasetCoverFallbackUrls(dataset),
+        )
+    }
 
     Surface(
         onClick = onClick,
@@ -108,19 +122,25 @@ fun FilingDatasetCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .background(DfThemeColors.surfaceVariant()),
-                contentAlignment = Alignment.Center,
+                    .height(128.dp)
+                    .clip(coverShape),
             ) {
-                DfListingImage(
-                    thumbnailUrl = dataset.thumbnailUrl,
-                    images = datasetCoverFallbackUrls(dataset),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
-                    contentScale = ContentScale.Crop,
-                )
+                if (coverUrls.isEmpty()) {
+                    FilingDatasetCoverPlaceholder(
+                        itemCount = dataset.itemCount,
+                        format = format,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    DfListingImage(
+                        thumbnailUrl = dataset.thumbnailUrl,
+                        images = datasetCoverFallbackUrls(dataset),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
             }
+
             Column(
                 modifier = Modifier.padding(AppSpacing.sm),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -130,19 +150,15 @@ fun FilingDatasetCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top,
                 ) {
-                    Column(
+                    Text(
+                        text = cardTitle,
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                    ) {
-                        Text(
-                            text = cardTitle,
-                            style = AppTypography.cardTitle,
-                            fontWeight = FontWeight.Bold,
-                            color = DfThemeColors.textPrimary(),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         IconAction(
                             contentDescription = "خروجی",
@@ -177,42 +193,37 @@ fun FilingDatasetCard(
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                    FormatBadge(format)
-                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (showLocation && location.isNotBlank()) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(
-                                imageVector = DfIcons.MapPin,
-                                contentDescription = null,
-                                tint = DfThemeColors.primary(),
-                                modifier = Modifier.size(12.dp),
-                            )
-                            Text(
-                                text = location,
-                                style = AppTypography.labelSmall,
-                                color = DfThemeColors.textSecondary(),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                    Text(
-                        text = "${dataset.itemCount} آگهی",
-                        style = AppTypography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = DfThemeColors.primary(),
-                    )
+                    FormatBadge(format)
+                    CountBadge(dataset.itemCount)
                 }
+
+                if (showLocation && location.isNotBlank()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = DfIcons.MapPin,
+                            contentDescription = null,
+                            tint = DfThemeColors.primary(),
+                            modifier = Modifier.size(12.dp),
+                        )
+                        Text(
+                            text = location,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textSecondary(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
                 dataset.createdAt?.let { created ->
                     DateUtils.formatJalaliDateTime(created) ?: DateUtils.formatJalaliDate(created)
                 }?.let { jalaliDate ->
@@ -239,23 +250,63 @@ fun FilingDatasetCard(
     }
 }
 
+@Composable
+private fun FilingDatasetCoverPlaceholder(
+    itemCount: Int,
+    format: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.background(
+            Brush.linearGradient(
+                listOf(
+                    DfColors.Purple.copy(alpha = 0.18f),
+                    DfColors.Blue.copy(alpha = 0.12f),
+                    DfThemeColors.surfaceVariant(),
+                ),
+            ),
+        ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(AppShapes.GlassSmall)
+                .background(Color.White.copy(alpha = 0.55f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            DfDecorImage(
+                resId = DfDecorIcons.Folder,
+                size = 34.dp,
+                contentDescription = null,
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "پوشه استخراج",
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
+            Text(
+                text = "$itemCount آگهی · $format",
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textSecondary(),
+            )
+        }
+    }
+}
+
 internal fun datasetCoverFallbackUrls(dataset: DatasetDto): List<String> =
     ListingImageUtils.datasetCoverFallbackUrls(dataset.thumbnailUrl, dataset.thumbnailUrls)
 
-internal fun datasetDisplayTitle(dataset: DatasetDto): String {
-    val location = listOfNotNull(
-        dataset.district?.trim()?.takeIf { it.isNotBlank() },
-        dataset.city?.trim()?.takeIf { it.isNotBlank() },
-    ).joinToString("، ")
-    val tx = dataset.transactionType?.trim().orEmpty()
-    val category = dataset.category?.trim().orEmpty()
-    val sub = dataset.subcategory?.trim().orEmpty()
-    val hierarchy = listOf(location, tx, category, sub)
-        .filter { it.isNotBlank() }
-        .distinct()
-    if (hierarchy.isNotEmpty()) return hierarchy.joinToString(" · ")
-    return dataset.name
-}
+internal fun datasetDisplayTitle(dataset: DatasetDto): String =
+    DatasetDisplayUtils.displayTitle(dataset)
 
 @Composable
 private fun FormatBadge(format: String) {
@@ -267,10 +318,23 @@ private fun FormatBadge(format: String) {
     Surface(shape = AppShapes.Chip, color = bg) {
         Text(
             text = format,
-            modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             style = AppTypography.labelSmall,
             color = fg,
             fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+@Composable
+private fun CountBadge(count: Int) {
+    Surface(shape = AppShapes.Chip, color = DfThemeColors.surfaceVariant()) {
+        Text(
+            text = "$count آگهی",
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = AppTypography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = DfThemeColors.textPrimary(),
         )
     }
 }

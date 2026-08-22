@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.feature.filing.components
 
 import ir.divarfiling.mobile.core.network.DatasetDto
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class FilingDatasetFiltersTest {
@@ -23,9 +24,25 @@ class FilingDatasetFiltersTest {
     }
 
     @Test
-    fun datasetDisplayTitle_usesTransactionAndSubcategory() {
+    fun datasetDisplayTitle_usesPersianSegmentsOnly() {
         val dataset = dataset("1", "فروش مسکونی", "آپارتمان", "تهران", "استاد معین")
-        assertEquals("فروش مسکونی — آپارتمان", datasetDisplayTitle(dataset))
+        assertEquals("تهران · فروش مسکونی · آپارتمان", datasetDisplayTitle(dataset))
+    }
+
+    @Test
+    fun datasetDisplayTitle_hidesEnglishCategorySlug() {
+        val dataset = DatasetDto(
+            id = "1",
+            name = "dataset",
+            transactionType = "اجاره مسکونی",
+            category = "apartment-rent",
+            subcategory = "آپارتمان",
+            city = "ارومیه",
+            itemCount = 89,
+        )
+        val title = datasetDisplayTitle(dataset)
+        assertEquals("ارومیه · اجاره مسکونی · آپارتمان", title)
+        assertFalse(title.contains("apartment-rent"))
     }
 
     private fun dataset(

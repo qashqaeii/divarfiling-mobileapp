@@ -71,6 +71,11 @@ object ExtractCategories {
             ?.firstOrNull { it.label == subcategoryLabel }
             ?.apiSlug
 
+    fun labelForSlug(slug: String?): String? {
+        val normalized = slug?.trim()?.takeIf { it.isNotBlank() } ?: return null
+        return allJobs.firstOrNull { it.apiSlug.equals(normalized, ignoreCase = true) }?.subcategoryLabel
+    }
+
     fun needsCategoryViewFlags(slug: String): Boolean {
         val commercial = setOf(
             "office-sell", "shop-sell", "industry-agriculture-business-sell",
