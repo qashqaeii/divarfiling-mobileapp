@@ -25,6 +25,7 @@ import ir.divarfiling.mobile.core.design.components.DfMoneyField
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
@@ -56,6 +57,8 @@ fun SmartToolCalculatorScreen(
                 DfDetailPageHeader(
                     title = tool.title,
                     subtitle = tool.subtitle,
+                    sectionLabel = DfHeaderSections.TOOLS,
+                    titleIcon = tool.icon,
                     onBack = onBack,
                 )
             }

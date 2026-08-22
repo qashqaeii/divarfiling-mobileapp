@@ -46,14 +46,16 @@ import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
+import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.core.export.ExportFormat
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
+import ir.divarfiling.mobile.feature.crm.components.PropertiesHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -87,7 +89,8 @@ fun PropertiesScreen(
     val hasSavableCriteria = state.query.isNotBlank() ||
         state.transactionStatus != null ||
         state.dealMode != null ||
-        state.propertyType != null
+        state.propertyType != null ||
+        state.cityQuery.isNotBlank()
 
     if (state.showSaveFilterDialog) {
         AlertDialog(
@@ -158,10 +161,7 @@ fun PropertiesScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfHubPageHeader(
-                        title = "فایل‌های شخصی",
-                        subtitle = "مدیریت فایل‌های ملکی و وضعیت معاملات",
-                        titleIconRes = DfDecorIcons.Building,
+                    PropertiesHeader(
                         userName = state.userName,
                         notificationCount = state.notificationBadgeCount,
                         onNotificationsClick = onNavigateNotifications,
@@ -192,6 +192,8 @@ fun PropertiesScreen(
                         query = state.query,
                         onQueryChange = viewModel::onQueryChange,
                         onSearch = viewModel::search,
+                        cityQuery = state.cityQuery,
+                        onCityQueryChange = viewModel::onCityQueryChange,
                         transactionStatus = state.transactionStatus,
                         dealMode = state.dealMode,
                         propertyType = state.propertyType,
@@ -367,13 +369,17 @@ fun PropertyDetailScreen(
                 state.isLoading -> DfDetailSkeleton()
                 state.error != null && detail == null -> {
                     Column {
+                        DfDetailPageHeader(
+                            title = "جزئیات فایل شخصی",
+                            subtitle = "بارگذاری اطلاعات ملک",
+                            sectionLabel = DfHeaderSections.CRM,
+                            titleIconRes = DfDecorIcons.Building,
+                            onBack = onBack,
+                        )
                         DfErrorBanner(
                             state.error!!,
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
-                        TextButton(onClick = onBack, modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                            Text("بازگشت")
-                        }
                     }
                 }
                 detail != null && property != null -> {
@@ -565,18 +571,26 @@ fun PropertyDetailScreen(
                 consultantName = state.shareConsultantName,
                 consultantPhone = state.shareConsultantPhone,
                 welcomeMessage = state.shareWelcomeMessage,
+                defaultShareMessage = state.shareDefaultShareMessage,
                 isActive = state.sharePublicIsActive,
                 showDivarLink = state.sharePublicShowDivarLink,
                 showFullAddress = state.sharePublicShowFullAddress,
                 showInternalNotes = state.sharePublicShowInternalNotes,
+                approximateLocation = state.shareApproximateLocation,
+                approximateLocationRadiusM = state.shareApproximateLocationRadiusM,
+                showNearbyPois = state.shareShowNearbyPois,
                 isSubmitting = state.isSubmitting,
                 onConsultantNameChange = viewModel::onShareConsultantNameChange,
                 onConsultantPhoneChange = viewModel::onShareConsultantPhoneChange,
                 onWelcomeMessageChange = viewModel::onShareWelcomeMessageChange,
+                onDefaultShareMessageChange = viewModel::onShareDefaultShareMessageChange,
                 onIsActiveChange = viewModel::onSharePublicIsActiveChange,
                 onShowDivarLinkChange = viewModel::onSharePublicShowDivarLinkChange,
                 onShowFullAddressChange = viewModel::onSharePublicShowFullAddressChange,
                 onShowInternalNotesChange = viewModel::onSharePublicShowInternalNotesChange,
+                onApproximateLocationChange = viewModel::onShareApproximateLocationChange,
+                onApproximateLocationRadiusChange = viewModel::onShareApproximateLocationRadiusChange,
+                onShowNearbyPoisChange = viewModel::onShareShowNearbyPoisChange,
                 onSave = viewModel::savePublicShareSettings,
                 onDismiss = { viewModel.togglePublicShareSettingsSheet(false) },
             )

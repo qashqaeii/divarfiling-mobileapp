@@ -50,6 +50,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -134,6 +135,7 @@ fun AiAssistantScreen(
                         DfHubPageHeader(
                             title = "دستیار AI",
                             subtitle = "پیش‌نویس و خلاصه در جریان واقعی کار",
+                            sectionLabel = DfHeaderSections.AI,
                             titleIconRes = DfDecorIcons.Sparkles,
                             onBack = onBack,
                         )

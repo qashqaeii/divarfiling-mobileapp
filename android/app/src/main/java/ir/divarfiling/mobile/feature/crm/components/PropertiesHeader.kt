@@ -2,15 +2,13 @@ package ir.divarfiling.mobile.feature.crm.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 
 @Composable
-fun DealsHeader(
+fun PropertiesHeader(
     userName: String,
     notificationCount: Int,
     onNotificationsClick: () -> Unit,
@@ -19,10 +17,10 @@ fun DealsHeader(
     onBack: (() -> Unit)? = null,
 ) {
     DfHubPageHeader(
-        title = "معاملات",
-        subtitle = "پیگیری pipeline، مراحل و کمیسیون",
+        title = "فایل‌های شخصی",
+        subtitle = "مدیریت فایل‌های ملکی و وضعیت معاملات",
         sectionLabel = DfHeaderSections.CRM,
-        titleIconRes = DfDecorIcons.TrendingUp,
+        titleIconRes = DfDecorIcons.Building,
         userName = userName,
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,
@@ -31,17 +29,4 @@ fun DealsHeader(
         menuIcon = DfIcons.Menu,
         modifier = modifier,
     )
-}
-
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-private fun DealsHeaderPreview() {
-    DivarFilingTheme {
-        DealsHeader(
-            userName = "حسین",
-            notificationCount = 9,
-            onNotificationsClick = {},
-            onMenuClick = {},
-        )
-    }
 }

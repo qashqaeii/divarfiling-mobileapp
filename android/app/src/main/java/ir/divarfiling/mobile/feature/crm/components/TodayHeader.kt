@@ -5,18 +5,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
-import ir.divarfiling.mobile.core.design.components.DfStandardPageHeader
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
+import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 
 @Composable
 fun TodayHeader(
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    DfStandardPageHeader(
+    DfHubPageHeader(
         title = "کارهای امروز",
         subtitle = "تماس، پیگیری و یادآورهای برنامه‌ریزی‌شده",
+        sectionLabel = DfHeaderSections.CRM,
         titleIconRes = DfDecorIcons.ListTodo,
         onBack = onBack,
+        showBottomDivider = true,
         modifier = modifier,
     )
 }

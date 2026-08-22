@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,6 +28,8 @@ fun PropertiesSearchFilterPanel(
     query: String,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
+    cityQuery: String,
+    onCityQueryChange: (String) -> Unit,
     transactionStatus: String?,
     dealMode: String?,
     propertyType: String?,
@@ -42,6 +45,7 @@ fun PropertiesSearchFilterPanel(
     val hasActiveFilters = transactionStatus != null ||
         dealMode != null ||
         propertyType != null ||
+        cityQuery.isNotBlank() ||
         query.isNotBlank()
 
     DfSearchFilterPanel(
@@ -55,6 +59,14 @@ fun PropertiesSearchFilterPanel(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
+                OutlinedTextField(
+                    value = cityQuery,
+                    onValueChange = onCityQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("شهر") },
+                    placeholder = { Text("مثلاً تهران، مشهد") },
+                    singleLine = true,
+                )
                 DfFilterDropdownRow {
                     DfFilterDropdown(
                         label = txLabel,

@@ -26,6 +26,7 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -210,6 +211,7 @@ fun TeamInboxScreen(
                         DfHubPageHeader(
                             title = "صندوق سرنخ",
                             subtitle = "${state.leads.size} سرنخ در صف تخصیص",
+                            sectionLabel = DfHeaderSections.TEAM,
                             titleIconRes = DfDecorIcons.Users,
                             onBack = onBack,
                         )

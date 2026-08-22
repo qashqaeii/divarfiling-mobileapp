@@ -245,6 +245,15 @@ interface MobileApi {
     @PATCH("crm/deals/{id}")
     suspend fun updateDeal(@Path("id") dealId: Long, @Body body: DealUpdateRequest): ApiEnvelope
 
+    @DELETE("crm/deals/{id}")
+    suspend fun deleteDeal(@Path("id") dealId: Long): ApiEnvelope
+
+    @POST("crm/deals/{id}/checklist")
+    suspend fun toggleDealChecklist(
+        @Path("id") dealId: Long,
+        @Body body: DealChecklistToggleRequest,
+    ): ApiEnvelope
+
     @POST("crm/deals/{id}/stage")
     suspend fun updateDealStage(@Path("id") dealId: Long, @Body body: DealStageRequest): ApiEnvelope
 

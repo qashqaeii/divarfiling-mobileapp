@@ -34,6 +34,7 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
@@ -120,8 +121,10 @@ fun ContactDetailScreen(
                 state.error != null && state.data == null -> {
                     DfDetailPageHeader(
                         title = "جزئیات مخاطب",
+                        sectionLabel = DfHeaderSections.CRM,
                         onBack = onBack,
                         titleIconRes = DfDecorIcons.User,
+                        showBottomDivider = true,
                     )
                     DfErrorBanner(
                         state.error!!,
@@ -133,9 +136,10 @@ fun ContactDetailScreen(
                     val detail = state.data!!
                     val contactInfo = detail.contact
                     val nbaAction = resolveContactNba(contactInfo, deals = detail.deals, linkedListings = detail.linkedListings)
-                    val primaryActions = buildReachActions(contactInfo, context, viewModel, haptics)
-                    val secondaryActions = buildSecondaryActions(
+                    val visibleActions = buildVisibleContactActions(contactInfo, context, viewModel, haptics)
+                    val moreActions = buildMoreContactActions(
                         contact = contactInfo,
+                        context = context,
                         viewModel = viewModel,
                         pickDocument = documentPicker::launch,
                         onOpenAi = { onOpenAi(contactInfo.id) },
@@ -177,8 +181,8 @@ fun ContactDetailScreen(
                         }
                         item {
                             ContactDetailQuickActionsPanel(
-                                primary = primaryActions,
-                                secondary = secondaryActions,
+                                visibleActions = visibleActions,
+                                moreActions = moreActions,
                             )
                         }
                         item {
@@ -314,9 +318,13 @@ fun ContactDetailScreen(
             ContactEditSheet(
                 name = state.editName,
                 phone = state.editPhone,
+                phoneAlt = state.editPhoneAlt,
+                email = state.editEmail,
+                source = state.editSource,
                 status = state.editStatus,
                 customerType = state.editCustomerType,
                 priority = state.editPriority,
+                matchingTolerancePercent = state.editMatchingTolerance,
                 money = state.editMoney,
                 prefs = state.editPrefs,
                 builder = state.editBuilder,
@@ -324,9 +332,13 @@ fun ContactDetailScreen(
                 isSubmitting = state.isSubmitting,
                 onNameChange = viewModel::onEditNameChange,
                 onPhoneChange = viewModel::onEditPhoneChange,
+                onPhoneAltChange = viewModel::onEditPhoneAltChange,
+                onEmailChange = viewModel::onEditEmailChange,
+                onSourceChange = viewModel::onEditSourceChange,
                 onStatusChange = viewModel::onEditStatusChange,
                 onCustomerTypeChange = viewModel::onEditCustomerTypeChange,
                 onPriorityChange = viewModel::onEditPriorityChange,
+                onMatchingToleranceChange = viewModel::onEditMatchingToleranceChange,
                 onBudgetMinChange = viewModel::onEditBudgetMinChange,
                 onBudgetMaxChange = viewModel::onEditBudgetMaxChange,
                 onDepositMinChange = viewModel::onEditDepositMinChange,
@@ -335,10 +347,13 @@ fun ContactDetailScreen(
                 onRentMaxChange = viewModel::onEditRentMaxChange,
                 onPropertyTypeChange = viewModel::onEditPropertyTypeChange,
                 onRoomsChange = viewModel::onEditRoomsChange,
+                onRoomsMinChange = viewModel::onEditRoomsMinChange,
+                onRoomsMaxChange = viewModel::onEditRoomsMaxChange,
                 onMinAreaChange = viewModel::onEditMinAreaChange,
                 onMaxAreaChange = viewModel::onEditMaxAreaChange,
                 onAreasChange = viewModel::onEditAreasChange,
                 onCityChange = viewModel::onEditCityChange,
+                onDistrictChange = viewModel::onEditDistrictChange,
                 onYearMinChange = viewModel::onEditYearMinChange,
                 onYearMaxChange = viewModel::onEditYearMaxChange,
                 onFloorMinChange = viewModel::onEditFloorMinChange,
@@ -517,7 +532,7 @@ private fun performContactNba(
     }
 }
 
-private fun buildReachActions(
+private fun buildVisibleContactActions(
     contact: ir.divarfiling.mobile.core.network.ContactDto,
     context: android.content.Context,
     viewModel: ContactDetailViewModel,
@@ -541,57 +556,61 @@ private fun buildReachActions(
             }
         },
     )
-    add(
-        ContactQuickActionItem("بله", DfColors.Blue, icon = DfIcons.Share2) {
-            contact.phone?.let {
+    if (CrmConstants.isMatchEligible(contact.customerType)) {
+        add(
+            ContactQuickActionItem("پیشنهادها", DfColors.Purple, icon = DfIcons.Sparkles) {
                 haptics.tick()
-                DossierShareActions.openBale(context, "سلام")
-                viewModel.logActivity("بله", "پیام بله")
-            }
-        },
-    )
-    add(
-        ContactQuickActionItem("پیامک", DfColors.Amber, icon = DfIcons.MessageCircle) {
-            contact.phone?.let { phone ->
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("smsto:$phone")))
-                viewModel.logActivity("پیامک", "ارسال پیامک")
-            }
-        },
-    )
+                viewModel.toggleMatchesSheet(true)
+            },
+        )
+    } else {
+        add(
+            ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
+                haptics.tick()
+                viewModel.toggleReminderDialog(true)
+            },
+        )
+    }
 }
 
-private fun buildSecondaryActions(
+private fun buildMoreContactActions(
     contact: ir.divarfiling.mobile.core.network.ContactDto,
+    context: android.content.Context,
     viewModel: ContactDetailViewModel,
     pickDocument: (String) -> Unit,
     onOpenAi: () -> Unit,
 ): List<ContactQuickActionItem> = buildList {
+    add(ContactQuickActionItem("ارسال فایل", DfColors.Blue, icon = DfIcons.Share2) {
+        viewModel.toggleSendFilingSheet(true)
+    })
     if (CrmConstants.isMatchEligible(contact.customerType)) {
-        add(ContactQuickActionItem("پیشنهادها", DfColors.Purple, icon = DfIcons.Sparkles) {
-            viewModel.toggleMatchesSheet(true)
-        })
-        add(ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
-            viewModel.toggleReminderDialog(true)
-        })
-    } else {
         add(ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
             viewModel.toggleReminderDialog(true)
         })
     }
-    add(ContactQuickActionItem("AI", DfColors.Purple, icon = DfIcons.Sparkles) {
+    add(ContactQuickActionItem("بله", DfColors.Blue, icon = DfIcons.Share2) {
+        contact.phone?.let {
+            DossierShareActions.openBale(context, "سلام")
+            viewModel.logActivity("بله", "پیام بله")
+        }
+    })
+    add(ContactQuickActionItem("پیامک", DfColors.Amber, icon = DfIcons.MessageCircle) {
+        contact.phone?.let { phone ->
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("smsto:$phone")))
+            viewModel.logActivity("پیامک", "ارسال پیامک")
+        }
+    })
+    add(ContactQuickActionItem("یادداشت", DfColors.Purple, icon = DfIcons.StickyNote) {
+        viewModel.toggleNoteDialog(true)
+    })
+    add(ContactQuickActionItem("دستیار AI", DfColors.Purple, icon = DfIcons.Bot) {
         onOpenAi()
     })
     add(ContactQuickActionItem("تخصیص", DfColors.Blue, icon = DfIcons.UserPlus) {
         viewModel.openTeamAssign("assign")
     })
-    add(ContactQuickActionItem("انتقال", DfColors.Amber, icon = DfIcons.Share2) {
+    add(ContactQuickActionItem("انتقال", DfColors.Amber, icon = DfIcons.ArrowRight) {
         viewModel.openTeamAssign("transfer")
-    })
-    add(ContactQuickActionItem("یادداشت", DfColors.Purple, icon = DfIcons.StickyNote) {
-        viewModel.toggleNoteDialog(true)
-    })
-    add(ContactQuickActionItem("فایل", DfColors.Blue, icon = DfIcons.Share2) {
-        viewModel.toggleSendFilingSheet(true)
     })
     add(ContactQuickActionItem("مدرک", DfColors.TextSecondary, icon = DfIcons.Paperclip) {
         pickDocument("*/*")

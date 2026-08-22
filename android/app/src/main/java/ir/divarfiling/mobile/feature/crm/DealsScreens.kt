@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -36,16 +37,19 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
+import ir.divarfiling.mobile.feature.crm.components.DealChecklistSection
 import ir.divarfiling.mobile.feature.crm.components.DealCreateSheet
 import ir.divarfiling.mobile.feature.crm.components.DealEditSheet
 import ir.divarfiling.mobile.feature.crm.components.DealListCard
 import ir.divarfiling.mobile.feature.crm.components.DealsSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.DealsFilters
 import ir.divarfiling.mobile.feature.crm.components.DealsHeader
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.feature.crm.components.DealsPipelineBar
 import ir.divarfiling.mobile.feature.crm.components.DealsSortOrder
@@ -93,6 +97,17 @@ fun DealsScreen(
     }
 
     val snackbar = remember { SnackbarHostState() }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    LaunchedEffect(listState, state.hasMore, state.isLoadingMore, state.isLoading) {
+        val layoutInfo = listState.layoutInfo
+        val total = layoutInfo.totalItemsCount
+        val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+        val nearEnd = total > 0 && lastVisible >= total - 3
+        if (nearEnd && state.hasMore && !state.isLoadingMore && !state.isLoading) {
+            viewModel.loadMore()
+        }
+    }
 
     LaunchedEffect(state.error) {
         state.error?.let {
@@ -143,6 +158,7 @@ fun DealsScreen(
                 .statusBarsPadding(),
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = AppSpacing.fabClearance + AppSpacing.xl),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
@@ -292,6 +308,14 @@ fun DealsScreen(
                             }
                         }
                     }
+                    if (state.isLoadingMore) {
+                        item {
+                            DfCardListSkeleton(
+                                count = 2,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -301,17 +325,22 @@ fun DealsScreen(
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleCreate(false) }) {
             DealCreateSheet(
                 contacts = state.contactPicker,
+                properties = state.propertyPicker,
                 stages = state.stages,
                 selectedContactId = state.createCustomerId,
+                selectedPropertyId = state.createPropertyId,
                 selectedStage = state.createStage,
                 title = state.createTitle,
                 amount = state.createAmount,
+                commissionRate = state.createCommissionRate,
                 notes = state.createNotes,
                 isSubmitting = state.isSubmittingCreate,
                 onContactSelect = viewModel::onCreateCustomerSelect,
+                onPropertySelect = viewModel::onCreatePropertySelect,
                 onStageChange = viewModel::onCreateStageChange,
                 onTitleChange = viewModel::onCreateTitleChange,
                 onAmountChange = viewModel::onCreateAmountChange,
+                onCommissionRateChange = viewModel::onCreateCommissionRateChange,
                 onNotesChange = viewModel::onCreateNotesChange,
                 onSubmit = viewModel::submitCreate,
                 onDismiss = { viewModel.toggleCreate(false) },
@@ -325,6 +354,7 @@ fun DealsScreen(
 fun DealDetailScreen(
     onBack: () -> Unit,
     onContactClick: (Long) -> Unit = {},
+    onPropertyClick: (Long) -> Unit = {},
     viewModel: DealDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -360,16 +390,28 @@ fun DealDetailScreen(
                             DfDetailPageHeader(
                                 title = deal.title,
                                 subtitle = deal.stage,
+                                sectionLabel = DfHeaderSections.CRM,
                                 titleIconRes = DfDecorIcons.Handshake,
                                 onBack = onBack,
+                                showBottomDivider = true,
                             )
                         }
                         item {
                             DealDetailHeroCard(
                                 deal = deal,
                                 onContactClick = { deal.customerId?.let(onContactClick) },
+                                onPropertyClick = deal.propertyId?.let { { onPropertyClick(it) } },
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
+                        }
+                        if (deal.checklist.isNotEmpty()) {
+                            item {
+                                DealChecklistSection(
+                                    items = deal.checklist,
+                                    onToggle = viewModel::toggleChecklistItem,
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                )
+                            }
                         }
                         item {
                             DealStageSection(
@@ -383,6 +425,7 @@ fun DealDetailScreen(
                         item {
                             DealDetailQuickActions(
                                 onEdit = { viewModel.toggleEditSheet(true) },
+                                onDelete = { viewModel.toggleDeleteDialog(true) },
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
@@ -397,17 +440,57 @@ fun DealDetailScreen(
             DealEditSheet(
                 title = state.editTitle,
                 amount = state.editAmount,
+                commissionRate = state.editCommissionRate,
                 notes = state.editNotes,
                 stages = state.stages,
                 selectedStage = state.editStage.ifBlank { deal?.stage.orEmpty() },
+                properties = state.propertyPicker,
+                selectedPropertyId = state.editPropertyId,
                 isSubmitting = state.isSubmitting,
                 onTitleChange = viewModel::onEditTitleChange,
                 onAmountChange = viewModel::onEditAmountChange,
+                onCommissionRateChange = viewModel::onEditCommissionRateChange,
                 onNotesChange = viewModel::onEditNotesChange,
                 onStageChange = viewModel::onEditStageChange,
+                onPropertySelect = viewModel::onEditPropertySelect,
                 onSave = viewModel::saveEdit,
                 onDismiss = { viewModel.toggleEditSheet(false) },
             )
         }
+    }
+
+    if (state.showDeleteDialog) {
+        DfConfirmBottomSheet(
+            title = "حذف معامله",
+            message = "این معامله از پرونده شما حذف می‌شود. ادامه می‌دهید؟",
+            confirmText = "حذف معامله",
+            destructive = true,
+            isSubmitting = state.isSubmitting,
+            onConfirm = { viewModel.deleteDeal(onBack) },
+            onDismiss = { viewModel.toggleDeleteDialog(false) },
+        )
+    }
+
+    if (state.showLostReasonDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissLostReasonDialog,
+            title = { Text("دلیل از دست رفتن") },
+            text = {
+                OutlinedTextField(
+                    value = state.lostReasonInput,
+                    onValueChange = viewModel::onLostReasonChange,
+                    label = { Text("علت بسته نشدن معامله") },
+                    placeholder = { Text("مثلاً: قیمت بالا، انتخاب رقیب، انصراف مشتری") },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmLostReason) { Text("ثبت و تغییر مرحله") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissLostReasonDialog) { Text("انصراف") }
+            },
+        )
     }
 }

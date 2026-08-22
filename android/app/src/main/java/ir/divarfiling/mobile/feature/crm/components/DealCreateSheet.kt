@@ -14,35 +14,45 @@ import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.network.ContactDto
+import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.feature.crm.CrmConstants
+
+private const val NO_PROPERTY = "بدون ملک"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DealCreateSheet(
     contacts: List<ContactDto>,
+    properties: List<PropertyDto>,
     stages: List<String>,
     selectedContactId: Long?,
+    selectedPropertyId: Long?,
     selectedStage: String,
     title: String,
     amount: String,
+    commissionRate: String,
     notes: String,
     isSubmitting: Boolean,
     onContactSelect: (Long) -> Unit,
+    onPropertySelect: (Long?) -> Unit,
     onStageChange: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     onAmountChange: (String) -> Unit,
+    onCommissionRateChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val contactNames = contacts.map { it.fullName }
     val selectedName = contacts.firstOrNull { it.id == selectedContactId }?.fullName.orEmpty()
+    val propertyOptions = listOf(NO_PROPERTY) + properties.map { it.title }
+    val selectedPropertyLabel = properties.firstOrNull { it.id == selectedPropertyId }?.title ?: NO_PROPERTY
     val stageOptions = stages.ifEmpty { CrmConstants.DEAL_STAGES }
     val resolvedStage = selectedStage.ifBlank { stageOptions.first() }
 
     DfSheetScaffold(
         title = "معامله جدید",
-        subtitle = "فرصت فروش جدید را با مخاطب و مرحله فروش ثبت کنید",
+        subtitle = "فرصت فروش جدید را با مخاطب، ملک و مرحله فروش ثبت کنید",
         icon = DfIcons.Handshake,
         onClose = onDismiss,
         footer = {
@@ -75,6 +85,30 @@ fun DealCreateSheet(
             }
         }
 
+        DfSheetSection(title = "ملک مرتبط") {
+            if (properties.isEmpty()) {
+                Text(
+                    text = "فایل شخصی ثبت‌شده‌ای ندارید — می‌توانید بعداً ملک را متصل کنید",
+                    style = AppTypography.labelSmall,
+                    color = DfColors.TextMuted,
+                )
+            } else {
+                DfDropdown(
+                    label = "انتخاب ملک (اختیاری)",
+                    value = selectedPropertyLabel,
+                    options = propertyOptions,
+                    enabled = !isSubmitting,
+                    onSelect = { label ->
+                        if (label == NO_PROPERTY) {
+                            onPropertySelect(null)
+                        } else {
+                            properties.firstOrNull { it.title == label }?.id?.let(onPropertySelect)
+                        }
+                    },
+                )
+            }
+        }
+
         DfSheetSection(title = "جزئیات معامله") {
             OutlinedTextField(
                 value = title,
@@ -92,6 +126,15 @@ fun DealCreateSheet(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 placeholder = { Text("اختیاری — برای پیش‌بینی درآمد") },
+                enabled = !isSubmitting,
+            )
+            OutlinedTextField(
+                value = commissionRate,
+                onValueChange = onCommissionRateChange,
+                label = { Text("نرخ کمیسیون (٪)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("مثلاً ۲") },
                 enabled = !isSubmitting,
             )
         }

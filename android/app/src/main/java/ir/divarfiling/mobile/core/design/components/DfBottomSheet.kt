@@ -111,6 +111,7 @@ fun DfSheetScaffold(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    sectionLabel: String? = null,
     icon: ImageVector? = null,
     @DrawableRes iconRes: Int? = null,
     iconContainerColor: Color = DfColors.PurpleContainer,
@@ -127,6 +128,7 @@ fun DfSheetScaffold(
         DfSheetHeader(
             title = title,
             subtitle = subtitle,
+            sectionLabel = sectionLabel,
             icon = icon,
             iconRes = iconRes,
             iconContainerColor = iconContainerColor,
@@ -161,6 +163,7 @@ fun DfSheetHeader(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    sectionLabel: String? = null,
     icon: ImageVector? = null,
     @DrawableRes iconRes: Int? = null,
     iconContainerColor: Color = DfColors.PurpleContainer,
@@ -201,6 +204,16 @@ fun DfSheetHeader(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            sectionLabel?.takeIf { it.isNotBlank() }?.let { label ->
+                Text(
+                    text = label,
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfColors.Purple,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Text(
                 text = title,
                 style = AppTypography.sectionTitle,

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.network.ActivityDto
 import ir.divarfiling.mobile.core.network.ContactDetailData
+import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.ContactMatchesData
 import ir.divarfiling.mobile.core.network.ContactUpdateRequest
 import ir.divarfiling.mobile.core.network.DatasetDto
@@ -53,6 +54,10 @@ data class ContactDetailUiState(
     val reminderRecurrence: String = "",
     val editName: String = "",
     val editPhone: String = "",
+    val editPhoneAlt: String = "",
+    val editEmail: String = "",
+    val editSource: String = "",
+    val editMatchingTolerance: Int = 20,
     val editStatus: String = "",
     val editCustomerType: String = "",
     val editPriority: String = "",
@@ -118,51 +123,25 @@ class ContactDetailViewModel @Inject constructor(
             when (val result = crmRepository.getContactDetail(contactId)) {
                 is ApiResult.Success -> {
                     val contact = result.data.contact
+                    val editFields = editFieldsFromContact(contact)
                     _uiState.update {
                         it.copy(
                             data = result.data,
                             isLoading = false,
                             isRefreshing = false,
-                            editName = contact.fullName,
-                            editPhone = contact.phone.orEmpty(),
-                            editStatus = contact.status.orEmpty(),
-                            editCustomerType = contact.customerType.orEmpty(),
-                            editPriority = contact.priority.orEmpty(),
-                            editMoney = ContactEditMoneyState(
-                                budgetMin = contact.budgetMin?.toString().orEmpty(),
-                                budgetMax = contact.budgetMax?.toString().orEmpty(),
-                                depositMin = contact.depositMin?.toString().orEmpty(),
-                                depositMax = contact.depositMax?.toString().orEmpty(),
-                                rentMin = contact.rentMin?.toString().orEmpty(),
-                                rentMax = contact.rentMax?.toString().orEmpty(),
-                            ),
-                            editPrefs = ContactEditPrefsState(
-                                propertyType = contact.propertyType.orEmpty().ifBlank {
-                                    if (contact.customerType == "سازنده") "آپارتمان" else ""
-                                },
-                                rooms = contact.rooms.orEmpty(),
-                                minArea = contact.minArea?.toString().orEmpty(),
-                                maxArea = contact.maxArea?.toString().orEmpty(),
-                                areas = contact.areas.orEmpty(),
-                                city = contact.city.orEmpty(),
-                                yearMin = contact.yearMin?.toString().orEmpty(),
-                                yearMax = contact.yearMax?.toString().orEmpty(),
-                                floorMin = contact.floorMin?.toString().orEmpty(),
-                                floorMax = contact.floorMax?.toString().orEmpty(),
-                                wantParking = contact.wantParking,
-                                wantStorage = contact.wantStorage,
-                                wantElevator = contact.wantElevator,
-                            ),
-                            editBuilder = ContactEditBuilderState(
-                                buyBudgetMin = contact.builderBuyBudgetMin?.toString().orEmpty(),
-                                buyBudgetMax = contact.builderBuyBudgetMax?.toString().orEmpty(),
-                                buyMinArea = contact.builderBuyMinArea?.toString().orEmpty(),
-                                buyMaxArea = contact.builderBuyMaxArea?.toString().orEmpty(),
-                                buyAreas = contact.builderBuyAreas.orEmpty(),
-                                buyPropertyTypes = contact.builderBuyPropertyTypes.orEmpty()
-                                    .ifBlank { "ویلا, کلنگی, زمین" },
-                            ),
-                            editNotes = contact.notes.orEmpty(),
+                            editName = editFields.editName,
+                            editPhone = editFields.editPhone,
+                            editPhoneAlt = editFields.editPhoneAlt,
+                            editEmail = editFields.editEmail,
+                            editSource = editFields.editSource,
+                            editMatchingTolerance = editFields.editMatchingTolerance,
+                            editStatus = editFields.editStatus,
+                            editCustomerType = editFields.editCustomerType,
+                            editPriority = editFields.editPriority,
+                            editMoney = editFields.editMoney,
+                            editPrefs = editFields.editPrefs,
+                            editBuilder = editFields.editBuilder,
+                            editNotes = editFields.editNotes,
                         )
                     }
                     if (openMatchesOnLoad || _uiState.value.showMatchesSheet) {
@@ -387,6 +366,13 @@ class ContactDetailViewModel @Inject constructor(
                     builderBuyMaxArea = parseMoneyInput(builder.buyMaxArea)?.toInt(),
                     builderBuyAreas = builder.buyAreas.ifBlank { "" },
                     builderBuyPropertyTypes = builder.buyPropertyTypes.ifBlank { "" },
+                    roomsMin = parseMoneyInput(prefs.roomsMin)?.toInt(),
+                    roomsMax = parseMoneyInput(prefs.roomsMax)?.toInt(),
+                    district = prefs.district.ifBlank { "" },
+                    email = state.editEmail.trim().ifBlank { "" },
+                    phoneAlt = state.editPhoneAlt.trim().ifBlank { "" },
+                    source = state.editSource.ifBlank { "" },
+                    matchingTolerancePercent = state.editMatchingTolerance,
                     city = prefs.city.ifBlank { "" },
                     yearMin = parseMoneyInput(prefs.yearMin)?.toInt(),
                     yearMax = parseMoneyInput(prefs.yearMax)?.toInt(),
@@ -717,15 +703,23 @@ class ContactDetailViewModel @Inject constructor(
             if (contact == null) {
                 it.copy(showDiscardEditDialog = false, showEditSheet = false)
             } else {
+                val editFields = editFieldsFromContact(contact)
                 it.copy(
                     showDiscardEditDialog = false,
                     showEditSheet = false,
-                    editName = contact.fullName,
-                    editPhone = contact.phone.orEmpty(),
-                    editStatus = contact.status.orEmpty(),
-                    editCustomerType = contact.customerType.orEmpty(),
-                    editPriority = contact.priority.orEmpty(),
-                    editNotes = contact.notes.orEmpty(),
+                    editName = editFields.editName,
+                    editPhone = editFields.editPhone,
+                    editPhoneAlt = editFields.editPhoneAlt,
+                    editEmail = editFields.editEmail,
+                    editSource = editFields.editSource,
+                    editMatchingTolerance = editFields.editMatchingTolerance,
+                    editStatus = editFields.editStatus,
+                    editCustomerType = editFields.editCustomerType,
+                    editPriority = editFields.editPriority,
+                    editMoney = editFields.editMoney,
+                    editPrefs = editFields.editPrefs,
+                    editBuilder = editFields.editBuilder,
+                    editNotes = editFields.editNotes,
                 )
             }
         }
@@ -735,8 +729,14 @@ class ContactDetailViewModel @Inject constructor(
         val contact = state.data?.contact ?: return false
         val money = state.editMoney
         val prefs = state.editPrefs
+        val builder = state.editBuilder
+        val contactTolerance = contact.matchingTolerancePercent ?: 20
         return state.editName != contact.fullName ||
             state.editPhone != contact.phone.orEmpty() ||
+            state.editPhoneAlt != contact.phoneAlt.orEmpty() ||
+            state.editEmail != contact.email.orEmpty() ||
+            state.editSource != contact.source.orEmpty() ||
+            state.editMatchingTolerance != contactTolerance ||
             state.editStatus != contact.status.orEmpty() ||
             state.editCustomerType != contact.customerType.orEmpty() ||
             state.editPriority != contact.priority.orEmpty() ||
@@ -747,14 +747,24 @@ class ContactDetailViewModel @Inject constructor(
             money.depositMax != contact.depositMax?.toString().orEmpty() ||
             money.rentMin != contact.rentMin?.toString().orEmpty() ||
             money.rentMax != contact.rentMax?.toString().orEmpty() ||
+            builder.buyBudgetMin != contact.builderBuyBudgetMin?.toString().orEmpty() ||
+            builder.buyBudgetMax != contact.builderBuyBudgetMax?.toString().orEmpty() ||
+            builder.buyMinArea != contact.builderBuyMinArea?.toString().orEmpty() ||
+            builder.buyMaxArea != contact.builderBuyMaxArea?.toString().orEmpty() ||
+            builder.buyAreas != contact.builderBuyAreas.orEmpty() ||
+            builder.buyPropertyTypes != contact.builderBuyPropertyTypes.orEmpty()
+                .ifBlank { "ویلا, کلنگی, زمین" } ||
             prefs.propertyType != contact.propertyType.orEmpty().ifBlank {
                 if (contact.customerType == "سازنده") "آپارتمان" else ""
             } ||
             prefs.rooms != contact.rooms.orEmpty() ||
+            prefs.roomsMin != contact.roomsMin?.toString().orEmpty() ||
+            prefs.roomsMax != contact.roomsMax?.toString().orEmpty() ||
             prefs.minArea != contact.minArea?.toString().orEmpty() ||
             prefs.maxArea != contact.maxArea?.toString().orEmpty() ||
             prefs.areas != contact.areas.orEmpty() ||
             prefs.city != contact.city.orEmpty() ||
+            prefs.district != contact.district.orEmpty() ||
             prefs.yearMin != contact.yearMin?.toString().orEmpty() ||
             prefs.yearMax != contact.yearMax?.toString().orEmpty() ||
             prefs.floorMin != contact.floorMin?.toString().orEmpty() ||
@@ -790,6 +800,10 @@ class ContactDetailViewModel @Inject constructor(
     fun onReminderRecurrenceChange(v: String) = _uiState.update { it.copy(reminderRecurrence = v) }
     fun onEditNameChange(v: String) = _uiState.update { it.copy(editName = v) }
     fun onEditPhoneChange(v: String) = _uiState.update { it.copy(editPhone = v) }
+    fun onEditPhoneAltChange(v: String) = _uiState.update { it.copy(editPhoneAlt = v) }
+    fun onEditEmailChange(v: String) = _uiState.update { it.copy(editEmail = v) }
+    fun onEditSourceChange(v: String) = _uiState.update { it.copy(editSource = v) }
+    fun onEditMatchingToleranceChange(v: Int) = _uiState.update { it.copy(editMatchingTolerance = v) }
     fun onEditStatusChange(v: String) = _uiState.update { it.copy(editStatus = v) }
     fun onEditCustomerTypeChange(v: String) = _uiState.update { it.copy(editCustomerType = v) }
     fun onEditPriorityChange(v: String) = _uiState.update { it.copy(editPriority = v) }
@@ -801,10 +815,13 @@ class ContactDetailViewModel @Inject constructor(
     fun onEditRentMaxChange(v: String) = _uiState.update { it.copy(editMoney = it.editMoney.copy(rentMax = v)) }
     fun onEditPropertyTypeChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(propertyType = v)) }
     fun onEditRoomsChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(rooms = v)) }
+    fun onEditRoomsMinChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(roomsMin = v)) }
+    fun onEditRoomsMaxChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(roomsMax = v)) }
     fun onEditMinAreaChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(minArea = v)) }
     fun onEditMaxAreaChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(maxArea = v)) }
     fun onEditAreasChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(areas = v)) }
     fun onEditCityChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(city = v)) }
+    fun onEditDistrictChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(district = v)) }
     fun onEditYearMinChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(yearMin = v)) }
     fun onEditYearMaxChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(yearMax = v)) }
     fun onEditFloorMinChange(v: String) = _uiState.update { it.copy(editPrefs = it.editPrefs.copy(floorMin = v)) }
@@ -911,6 +928,72 @@ class ContactDetailViewModel @Inject constructor(
             .format(isoFormatter)
     }
 }
+
+private data class ContactEditFieldsSnapshot(
+    val editName: String,
+    val editPhone: String,
+    val editPhoneAlt: String,
+    val editEmail: String,
+    val editSource: String,
+    val editMatchingTolerance: Int,
+    val editStatus: String,
+    val editCustomerType: String,
+    val editPriority: String,
+    val editMoney: ContactEditMoneyState,
+    val editPrefs: ContactEditPrefsState,
+    val editBuilder: ContactEditBuilderState,
+    val editNotes: String,
+)
+
+private fun editFieldsFromContact(contact: ContactDto): ContactEditFieldsSnapshot = ContactEditFieldsSnapshot(
+    editName = contact.fullName,
+    editPhone = contact.phone.orEmpty(),
+    editPhoneAlt = contact.phoneAlt.orEmpty(),
+    editEmail = contact.email.orEmpty(),
+    editSource = contact.source.orEmpty(),
+    editMatchingTolerance = contact.matchingTolerancePercent ?: 20,
+    editStatus = contact.status.orEmpty(),
+    editCustomerType = contact.customerType.orEmpty(),
+    editPriority = contact.priority.orEmpty(),
+    editMoney = ContactEditMoneyState(
+        budgetMin = contact.budgetMin?.toString().orEmpty(),
+        budgetMax = contact.budgetMax?.toString().orEmpty(),
+        depositMin = contact.depositMin?.toString().orEmpty(),
+        depositMax = contact.depositMax?.toString().orEmpty(),
+        rentMin = contact.rentMin?.toString().orEmpty(),
+        rentMax = contact.rentMax?.toString().orEmpty(),
+    ),
+    editPrefs = ContactEditPrefsState(
+        propertyType = contact.propertyType.orEmpty().ifBlank {
+            if (contact.customerType == "سازنده") "آپارتمان" else ""
+        },
+        rooms = contact.rooms.orEmpty(),
+        roomsMin = contact.roomsMin?.toString().orEmpty(),
+        roomsMax = contact.roomsMax?.toString().orEmpty(),
+        minArea = contact.minArea?.toString().orEmpty(),
+        maxArea = contact.maxArea?.toString().orEmpty(),
+        areas = contact.areas.orEmpty(),
+        city = contact.city.orEmpty(),
+        district = contact.district.orEmpty(),
+        yearMin = contact.yearMin?.toString().orEmpty(),
+        yearMax = contact.yearMax?.toString().orEmpty(),
+        floorMin = contact.floorMin?.toString().orEmpty(),
+        floorMax = contact.floorMax?.toString().orEmpty(),
+        wantParking = contact.wantParking,
+        wantStorage = contact.wantStorage,
+        wantElevator = contact.wantElevator,
+    ),
+    editBuilder = ContactEditBuilderState(
+        buyBudgetMin = contact.builderBuyBudgetMin?.toString().orEmpty(),
+        buyBudgetMax = contact.builderBuyBudgetMax?.toString().orEmpty(),
+        buyMinArea = contact.builderBuyMinArea?.toString().orEmpty(),
+        buyMaxArea = contact.builderBuyMaxArea?.toString().orEmpty(),
+        buyAreas = contact.builderBuyAreas.orEmpty(),
+        buyPropertyTypes = contact.builderBuyPropertyTypes.orEmpty()
+            .ifBlank { "ویلا, کلنگی, زمین" },
+    ),
+    editNotes = contact.notes.orEmpty(),
+)
 
 private fun defaultStatusForActivityType(type: String): String = when (type) {
     "بازدید" -> "بازدید انجام شد"

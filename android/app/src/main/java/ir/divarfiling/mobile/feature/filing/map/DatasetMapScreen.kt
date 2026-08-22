@@ -61,7 +61,9 @@ import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
+import ir.divarfiling.mobile.core.design.components.DfStandardPageHeader
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -128,6 +130,7 @@ fun DatasetMapScreen(
                             title = "نقشه فایل",
                             subtitle = "موقعیت آگهی‌ها روی نقشه",
                             titleIconRes = DfDecorIcons.MapPin,
+                            sectionLabel = DfHeaderSections.FILING,
                             onBack = onBack,
                         )
                         DfErrorBanner(state.error!!)
@@ -146,6 +149,7 @@ fun DatasetMapScreen(
                             title = mapData?.dataset?.name ?: "نقشه فایل",
                             subtitle = "موقعیت آگهی‌ها روی نقشه",
                             titleIconRes = DfDecorIcons.MapPin,
+                            sectionLabel = DfHeaderSections.FILING,
                             onBack = onBack,
                         )
                         DfEmptyState(
@@ -234,44 +238,16 @@ private fun MapTopBar(
         color = DfThemeColors.surface().copy(alpha = 0.94f),
         shadowElevation = AppElevations.subtle,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-        ) {
-            Surface(
-                onClick = onBack,
-                shape = AppShapes.IconContainer,
-                color = DfThemeColors.surfaceVariant(),
-                modifier = Modifier.size(40.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(DfIcons.ChevronLeft, contentDescription = "بازگشت", tint = DfThemeColors.textPrimary())
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfThemeColors.textPrimary(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = listOfNotNull(
-                        city?.takeIf { it.isNotBlank() },
-                        "${DateUtils.toPersianDigits(shown.toString())} از ${DateUtils.toPersianDigits(total.toString())} موقعیت",
-                    ).joinToString(" · "),
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textSecondary(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        DfStandardPageHeader(
+            title = title,
+            subtitle = listOfNotNull(
+                city?.takeIf { it.isNotBlank() },
+                "${DateUtils.toPersianDigits(shown.toString())} از ${DateUtils.toPersianDigits(total.toString())} موقعیت",
+            ).joinToString(" · "),
+            sectionLabel = DfHeaderSections.FILING,
+            titleIconRes = DfDecorIcons.MapPin,
+            onBack = onBack,
+        )
     }
 }
 

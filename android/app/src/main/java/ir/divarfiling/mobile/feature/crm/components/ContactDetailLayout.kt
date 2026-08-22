@@ -3,16 +3,13 @@ package ir.divarfiling.mobile.feature.crm.components
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,9 +50,8 @@ import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfMoreAction
 import ir.divarfiling.mobile.core.design.components.DfMoreActionsSheet
-import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.DfGlassIconButton
-import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
+import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.DealDto
@@ -353,16 +348,27 @@ private fun ContactInsightTile(
 
 @Composable
 fun ContactDetailQuickActionsPanel(
-    primary: List<ContactQuickActionItem>,
-    secondary: List<ContactQuickActionItem>,
+    visibleActions: List<ContactQuickActionItem>,
+    moreActions: List<ContactQuickActionItem>,
     modifier: Modifier = Modifier,
 ) {
+    if (visibleActions.isEmpty() && moreActions.isEmpty()) return
+
+    var showMore by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = AppSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
+        Text(
+            text = "اقدامات سریع",
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textMuted(),
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(start = 2.dp),
+        )
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = AppShapes.Card,
@@ -373,88 +379,72 @@ fun ContactDetailQuickActionsPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xs),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                    .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Top,
             ) {
-                primary.forEach { action ->
-                    ContactQuickActionTile(action, emphasized = true, modifier = Modifier.weight(1f))
+                visibleActions.forEach { action ->
+                    ContactQuickActionButton(
+                        action = action,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (moreActions.isNotEmpty()) {
+                    ContactQuickActionButton(
+                        action = ContactQuickActionItem(
+                            label = "بیشتر",
+                            tint = DfThemeColors.textSecondary(),
+                            icon = DfIcons.MoreVertical,
+                            onClick = { showMore = true },
+                        ),
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
-        if (secondary.isNotEmpty()) {
-            var showMore by remember { mutableStateOf(false) }
-            TextButton(onClick = { showMore = true }) {
-                Icon(
-                    imageVector = DfIcons.MoreVertical,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = DfThemeColors.textSecondary(),
-                )
-                Text("اقدامات بیشتر", color = DfThemeColors.textSecondary())
-            }
-            DfMoreActionsSheet(
-                visible = showMore,
-                onDismiss = { showMore = false },
-                actions = secondary.map { action ->
-                    DfMoreAction(label = action.label, onClick = action.onClick, icon = action.icon)
-                },
-            )
-        }
+    }
+
+    if (moreActions.isNotEmpty()) {
+        DfMoreActionsSheet(
+            visible = showMore,
+            onDismiss = { showMore = false },
+            actions = moreActions.map { action ->
+                DfMoreAction(label = action.label, onClick = action.onClick, icon = action.icon)
+            },
+        )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ContactQuickActionTile(
+private fun ContactQuickActionButton(
     action: ContactQuickActionItem,
-    emphasized: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .defaultMinSize(minHeight = if (emphasized) 64.dp else 56.dp)
-            .clip(AppShapes.CardSmall)
-            .then(
-                if (emphasized) Modifier.background(action.tint.copy(alpha = 0.07f)) else Modifier,
-            )
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true, color = action.tint.copy(alpha = 0.25f)),
-                onClick = action.onClick,
-            )
-            .padding(vertical = if (emphasized) 12.dp else 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = modifier.padding(horizontal = 2.dp),
     ) {
-        if (emphasized) {
+        Surface(
+            onClick = action.onClick,
+            shape = CircleShape,
+            color = action.tint.copy(alpha = 0.12f),
+            shadowElevation = 0.dp,
+            modifier = Modifier.size(48.dp),
+        ) {
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .liquidGlassSurface(
-                        shape = CircleShape,
-                        variant = DfGlassButtonVariant.Accent,
-                        accent = action.tint,
-                        elevation = AppElevations.subtle,
-                    ),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
                 ContactQuickActionIcon(action = action, size = 22.dp)
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(action.tint.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                ContactQuickActionIcon(action = action, size = 18.dp)
             }
         }
         Text(
             text = action.label,
             style = AppTypography.labelSmall,
-            color = if (emphasized) action.tint else DfThemeColors.textSecondary(),
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
+            color = DfThemeColors.textPrimary(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -539,38 +529,11 @@ fun ContactDetailSectionHeader(
     count: Int? = null,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(width = 3.dp, height = 18.dp)
-                .clip(AppShapes.Chip)
-                .background(DfColors.Purple),
-        )
-        Text(
-            text = title,
-            style = AppTypography.cardTitle,
-            fontWeight = FontWeight.Bold,
-            color = DfThemeColors.textPrimary(),
-            modifier = Modifier.weight(1f),
-        )
-        count?.takeIf { it > 0 }?.let {
-            Surface(shape = AppShapes.Chip, color = DfThemeColors.primaryContainer()) {
-                Text(
-                    text = DateUtils.toPersianDigits(it.toString()),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.primary(),
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
-    }
+    DfSectionHeader(
+        title = title,
+        count = count,
+        modifier = modifier.padding(horizontal = AppSpacing.screenHorizontal),
+    )
 }
 
 @Composable

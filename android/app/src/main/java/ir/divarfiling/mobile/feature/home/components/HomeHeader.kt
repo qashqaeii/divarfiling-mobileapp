@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfGreetingHeader
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 
 @Composable
 fun HomeHeader(
@@ -17,6 +18,7 @@ fun HomeHeader(
     DfGreetingHeader(
         title = "سلام $userName",
         subtitle = "میزکار فایلینگ دیوار",
+        sectionLabel = DfHeaderSections.HOME,
         userName = userName,
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,

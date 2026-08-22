@@ -294,7 +294,9 @@ data class ContactDto(
     @SerialName("want_storage") val wantStorage: Boolean = false,
     @SerialName("want_elevator") val wantElevator: Boolean = false,
     val email: String? = null,
+    @SerialName("phone_alt") val phoneAlt: String? = null,
     val city: String? = null,
+    val district: String? = null,
     val address: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("matching_tolerance_percent") val matchingTolerancePercent: Int? = null,
@@ -695,6 +697,10 @@ data class DealDto(
     @SerialName("property_title") val propertyTitle: String? = null,
     val checklist: List<DealChecklistItemDto> = emptyList(),
     @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("lost_reason") val lostReason: String? = null,
+    @SerialName("contract_number") val contractNumber: String? = null,
+    @SerialName("contract_amount") val contractAmount: Long? = null,
+    @SerialName("expected_close_date") val expectedCloseDate: String? = null,
 )
 
 @Serializable
@@ -750,6 +756,7 @@ data class DealCreateRequest(
     @SerialName("property_id") val propertyId: Long? = null,
     @SerialName("listing_token") val listingToken: String? = null,
     val notes: String = "",
+    @SerialName("commission_rate") val commissionRate: Double? = null,
 )
 
 @Serializable
@@ -759,6 +766,30 @@ data class DealUpdateRequest(
     val amount: Long? = null,
     val notes: String? = null,
     val probability: Int? = null,
+    @SerialName("commission_rate") val commissionRate: Double? = null,
+    @SerialName("property_id") val propertyId: Long? = null,
+)
+
+@Serializable
+data class DealChecklistToggleRequest(
+    @SerialName("item_id") val itemId: String,
+    val done: Boolean? = null,
+)
+
+@Serializable
+data class DealChecklistProgressDto(
+    val total: Int = 0,
+    val done: Int = 0,
+    @SerialName("required_total") val requiredTotal: Int = 0,
+    @SerialName("required_done") val requiredDone: Int = 0,
+    val pct: Int = 0,
+    val complete: Boolean = false,
+)
+
+@Serializable
+data class DealChecklistToggleResponse(
+    val checklist: List<DealChecklistItemDto> = emptyList(),
+    val progress: DealChecklistProgressDto? = null,
 )
 
 @Serializable
@@ -931,6 +962,12 @@ data class ListingPublicShareDto(
     @SerialName("show_divar_link") val showDivarLink: Boolean = false,
     @SerialName("show_full_address") val showFullAddress: Boolean = false,
     @SerialName("show_internal_notes") val showInternalNotes: Boolean = false,
+    @SerialName("default_share_message") val defaultShareMessage: String = "",
+    @SerialName("share_message_rendered") val shareMessageRendered: String = "",
+    @SerialName("approximate_location") val approximateLocation: Boolean = false,
+    @SerialName("approximate_location_radius_m") val approximateLocationRadiusM: Int = 500,
+    @SerialName("show_nearby_pois") val showNearbyPois: Boolean = false,
+    @SerialName("welcome_is_custom") val welcomeIsCustom: Boolean = false,
 )
 
 @Serializable
@@ -942,6 +979,10 @@ data class ListingPublicShareUpdateRequest(
     @SerialName("show_full_address") val showFullAddress: Boolean? = null,
     @SerialName("show_internal_notes") val showInternalNotes: Boolean? = null,
     @SerialName("is_active") val isActive: Boolean? = null,
+    @SerialName("approximate_location") val approximateLocation: Boolean? = null,
+    @SerialName("approximate_location_radius_m") val approximateLocationRadiusM: Int? = null,
+    @SerialName("show_nearby_pois") val showNearbyPois: Boolean? = null,
+    @SerialName("default_share_message") val defaultShareMessage: String? = null,
 )
 
 @Serializable
@@ -1099,6 +1140,10 @@ data class ContactUpdateRequest(
     @SerialName("builder_buy_max_area") val builderBuyMaxArea: Int? = null,
     val city: String? = null,
     val district: String? = null,
+    val email: String? = null,
+    @SerialName("phone_alt") val phoneAlt: String? = null,
+    val source: String? = null,
+    @SerialName("matching_tolerance_percent") val matchingTolerancePercent: Int? = null,
     @SerialName("rooms_min") val roomsMin: Int? = null,
     @SerialName("rooms_max") val roomsMax: Int? = null,
     @SerialName("year_min") val yearMin: Int? = null,

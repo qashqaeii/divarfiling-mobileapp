@@ -65,6 +65,7 @@ import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfComponentSpec
 import ir.divarfiling.mobile.core.design.DfIcons
@@ -519,17 +520,58 @@ fun DfBadge(
 }
 
 @Composable
-fun DfSectionHeader(title: String, count: Int? = null) {
+fun DfSectionHeader(
+    title: String,
+    count: Int? = null,
+    subtitle: String? = null,
+    modifier: Modifier = Modifier,
+    accentColor: Color = DfColors.Purple,
+) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(vertical = AppSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        count?.let {
-            DfBadge(text = "$it مورد", color = DfColors.SurfaceVariant, textColor = DfColors.TextSecondary)
+        Box(
+            modifier = Modifier
+                .size(width = 3.dp, height = 18.dp)
+                .clip(AppShapes.Chip)
+                .background(accentColor),
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = title,
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            subtitle?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = it,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        count?.takeIf { it > 0 }?.let {
+            Surface(shape = AppShapes.Chip, color = DfThemeColors.primaryContainer()) {
+                Text(
+                    text = DateUtils.toPersianDigits(it.toString()),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.primary(),
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
     }
 }

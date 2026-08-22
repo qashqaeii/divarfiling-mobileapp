@@ -26,6 +26,7 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -109,6 +110,7 @@ fun TeamMembersScreen(
                         DfHubPageHeader(
                             title = "اعضای تیم",
                             subtitle = "${state.members.size} نفر فعال در آژانس",
+                            sectionLabel = DfHeaderSections.TEAM,
                             titleIconRes = DfDecorIcons.Users,
                             onBack = onBack,
                         )

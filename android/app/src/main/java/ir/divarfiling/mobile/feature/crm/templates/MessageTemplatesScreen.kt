@@ -36,6 +36,7 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -85,6 +86,7 @@ fun MessageTemplatesScreen(
                     DfHubPageHeader(
                         title = "قالب پیام",
                         subtitle = "پیام‌های آماده برای ارسال سریع",
+                        sectionLabel = DfHeaderSections.CRM,
                         titleIconRes = DfDecorIcons.FileText,
                         onBack = onBack,
                     )

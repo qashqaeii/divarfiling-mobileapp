@@ -47,6 +47,7 @@ import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -98,6 +99,7 @@ fun TeamHubScreen(
                             DfHubPageHeader(
                                 title = "آژانس",
                                 subtitle = "هاب آژانس",
+                                sectionLabel = DfHeaderSections.TEAM,
                                 titleIconRes = DfDecorIcons.Users,
                                 onBack = onBack,
                             )
@@ -113,7 +115,8 @@ fun TeamHubScreen(
                                 DfHubPageHeader(
                                     title = "آژانس",
                                     subtitle = "هنوز به آژانسی وصل نیستید",
-                                    titleIconRes = DfDecorIcons.Users,
+                                    sectionLabel = DfHeaderSections.TEAM,
+                                titleIconRes = DfDecorIcons.Users,
                                     userName = state.userName,
                                     onBack = onBack,
                                 )
@@ -147,7 +150,8 @@ fun TeamHubScreen(
                                 DfHubPageHeader(
                                     title = "میزکار آژانس",
                                     subtitle = "نبض روزانه آژانس",
-                                    titleIconRes = DfDecorIcons.Users,
+                                    sectionLabel = DfHeaderSections.TEAM,
+                                titleIconRes = DfDecorIcons.Users,
                                     userName = state.userName,
                                     onBack = onBack,
                                 )

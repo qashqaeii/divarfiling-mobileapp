@@ -26,6 +26,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -79,6 +80,7 @@ fun ExtractSchedulesScreen(
                             title = "زمان‌بندی استخراج",
                             subtitle = "اجرای خودکار فیلترهای ذخیره‌شده",
                             titleIconRes = DfDecorIcons.Timer,
+                            sectionLabel = DfHeaderSections.EXTRACT,
                             onBack = onBack,
                         )
                         DfCardListSkeleton(
@@ -94,6 +96,7 @@ fun ExtractSchedulesScreen(
                             title = "زمان‌بندی استخراج",
                             subtitle = "اجرای خودکار فیلترهای ذخیره‌شده",
                             titleIconRes = DfDecorIcons.Timer,
+                            sectionLabel = DfHeaderSections.EXTRACT,
                             onBack = onBack,
                         )
                         state.error?.let { error ->
@@ -121,6 +124,7 @@ fun ExtractSchedulesScreen(
                                 title = "زمان‌بندی استخراج",
                                 subtitle = "اجرای خودکار فیلترهای ذخیره‌شده",
                                 titleIconRes = DfDecorIcons.Timer,
+                                sectionLabel = DfHeaderSections.EXTRACT,
                                 onBack = onBack,
                             )
                         }

@@ -326,20 +326,11 @@ private fun FeatureChip(label: String, enabled: Boolean) {
 
 @Composable
 fun SettingsSectionTitle(title: String, subtitle: String? = null, modifier: Modifier = Modifier) {
-    Column(
+    ir.divarfiling.mobile.core.design.components.DfSectionHeader(
+        title = title,
+        subtitle = subtitle,
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-    ) {
-        Text(
-            title,
-            style = AppTypography.sectionTitle,
-            fontWeight = FontWeight.SemiBold,
-            color = DfThemeColors.textPrimary(),
-        )
-        subtitle?.let {
-            Text(it, style = AppTypography.bodyDescription, color = DfThemeColors.textMuted())
-        }
-    }
+    )
 }
 
 @Composable

@@ -24,6 +24,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -59,6 +60,7 @@ fun InstallHelpScreen(
                 DfHubPageHeader(
                     title = "راهنمای نصب و آپدیت",
                     subtitle = "نصب امن، Play Protect و بروزرسانی نسخه‌ها",
+                    sectionLabel = DfHeaderSections.SETTINGS,
                     titleIconRes = DfDecorIcons.Download,
                     userName = state.user?.fullName?.substringBefore(" ") ?: "کاربر",
                     onBack = onBack,

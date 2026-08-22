@@ -36,6 +36,8 @@ import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -71,6 +73,7 @@ fun DatasetInsightsScreen(
                             title = "تحلیل فایل",
                             subtitle = "بینش‌های هوشمند فایلینگ",
                             titleIconRes = DfDecorIcons.BarChart,
+                            sectionLabel = DfHeaderSections.FILING,
                             onBack = onBack,
                         )
                         DfErrorBanner(state.error!!)
@@ -89,6 +92,7 @@ fun DatasetInsightsScreen(
                             title = "تحلیل فایل",
                             subtitle = "بینش‌های هوشمند فایلینگ",
                             titleIconRes = DfDecorIcons.BarChart,
+                            sectionLabel = DfHeaderSections.FILING,
                             onBack = onBack,
                         )
                         DfEmptyState(
@@ -112,6 +116,7 @@ fun DatasetInsightsScreen(
                                 title = insights.dataset?.name ?: "تحلیل پوشه استخراج",
                                 subtitle = "نمای سریع موبایل — تحلیل عمیق در میزکار وب",
                                 titleIconRes = DfDecorIcons.BarChart,
+                                sectionLabel = DfHeaderSections.FILING,
                                 onBack = onBack,
                             )
                         }

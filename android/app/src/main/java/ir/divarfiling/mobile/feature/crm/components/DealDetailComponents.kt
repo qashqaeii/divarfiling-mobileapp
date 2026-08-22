@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,12 +38,14 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
+import ir.divarfiling.mobile.core.network.DealChecklistItemDto
 import ir.divarfiling.mobile.core.network.DealDto
 
 @Composable
 fun DealDetailHeroCard(
     deal: DealDto,
     onContactClick: () -> Unit,
+    onPropertyClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val stage = deal.stage ?: "سرنخ"
@@ -167,6 +170,28 @@ fun DealDetailHeroCard(
                         icon = DfIcons.Building,
                         label = "ملک",
                         value = property,
+                        onClick = if (deal.propertyId != null && onPropertyClick != null) onPropertyClick else null,
+                    )
+                }
+                deal.probability?.let { probability ->
+                    DealDetailMetaRow(
+                        icon = DfIcons.Compass,
+                        label = "احتمال بسته‌شدن",
+                        value = "$probability٪",
+                    )
+                }
+                deal.expectedCloseDate?.takeIf { it.isNotBlank() }?.let { closeDate ->
+                    DealDetailMetaRow(
+                        icon = DfIcons.Calendar,
+                        label = "تاریخ پیش‌بینی بستن",
+                        value = closeDate,
+                    )
+                }
+                deal.contractNumber?.takeIf { it.isNotBlank() }?.let { contract ->
+                    DealDetailMetaRow(
+                        icon = DfIcons.File,
+                        label = "شماره قرارداد",
+                        value = contract,
                     )
                 }
                 deal.commissionAmount?.let { commission ->
@@ -175,6 +200,21 @@ fun DealDetailHeroCard(
                         label = "کمیسیون",
                         value = FormatUtils.formatPriceToman(commission),
                         valueColor = DfColors.Green,
+                    )
+                }
+                deal.commissionRate?.let { rate ->
+                    DealDetailMetaRow(
+                        icon = DfIcons.Percent,
+                        label = "نرخ کمیسیون",
+                        value = "${rate.toInt()}٪",
+                    )
+                }
+                deal.lostReason?.takeIf { it.isNotBlank() }?.let { reason ->
+                    DealDetailMetaRow(
+                        icon = DfIcons.CircleAlert,
+                        label = "دلیل از دست رفتن",
+                        value = reason,
+                        valueColor = DfColors.Amber,
                     )
                 }
                 DealDetailMetaRow(
@@ -266,6 +306,7 @@ fun DealStageSection(
 @Composable
 fun DealDetailQuickActions(
     onEdit: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -280,6 +321,92 @@ fun DealDetailQuickActions(
             onClick = onEdit,
             modifier = Modifier.weight(1f),
         )
+        DealQuickAction(
+            label = "حذف",
+            icon = DfIcons.X,
+            background = DfColors.RoseLight,
+            iconTint = DfColors.Rose,
+            onClick = onDelete,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+fun DealChecklistSection(
+    items: List<DealChecklistItemDto>,
+    onToggle: (String, Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (items.isEmpty()) return
+    val doneCount = items.count { it.done }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "چک‌لیست معامله",
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = DfColors.TextMuted,
+            )
+            Text(
+                text = "$doneCount از ${items.size}",
+                style = AppTypography.labelSmall,
+                color = DfColors.Purple,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Surface(
+            shape = AppShapes.Card,
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.padding(vertical = AppSpacing.xs)) {
+                items.forEachIndexed { index, item ->
+                    val itemId = item.id ?: return@forEachIndexed
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onToggle(itemId, !item.done) }
+                            .padding(horizontal = AppSpacing.sm, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = item.done,
+                            onCheckedChange = { checked -> onToggle(itemId, checked) },
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = item.label.orEmpty(),
+                                style = AppTypography.bodyDescription,
+                                fontWeight = if (item.done) FontWeight.Normal else FontWeight.Medium,
+                                color = if (item.done) DfColors.TextMuted else DfColors.TextPrimary,
+                            )
+                            if (item.required) {
+                                Text(
+                                    text = "الزامی",
+                                    style = AppTypography.labelSmall,
+                                    color = DfColors.Amber,
+                                )
+                            }
+                        }
+                    }
+                    if (index < items.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = AppSpacing.sm),
+                            color = DfThemeColors.outlineSubtle(),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

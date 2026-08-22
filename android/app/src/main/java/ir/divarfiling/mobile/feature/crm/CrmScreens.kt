@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -34,14 +35,13 @@ import ir.divarfiling.mobile.feature.crm.components.ContactQuickLeadSheet
 import ir.divarfiling.mobile.feature.crm.components.TodayNewTaskSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
-import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
-import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.feature.crm.components.ContactsHeader
 import ir.divarfiling.mobile.feature.crm.components.ContactsSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
 import ir.divarfiling.mobile.feature.crm.components.ContactsStatsRow
+import ir.divarfiling.mobile.feature.crm.components.ContactsToolsPanel
+import ir.divarfiling.mobile.feature.crm.components.ContactsExportSheet
 import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 import ir.divarfiling.mobile.feature.crm.components.TodayFilterChip
@@ -91,7 +91,6 @@ import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
-import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfStatChip
 import ir.divarfiling.mobile.core.design.components.DfTopBar
 import ir.divarfiling.mobile.core.network.ContactDto
@@ -194,6 +193,32 @@ fun ContactsScreen(
         )
     }
 
+    val hasActiveListFilters = state.query.isNotBlank() ||
+        quickFilter != ContactsFilters.QuickFilter.ALL ||
+        priorityFilter != ContactsFilters.ALL_PRIORITIES ||
+        statusFilter != ContactsFilters.ALL_STATUSES ||
+        typeFilter != ContactsFilters.ALL_TYPES
+    val exportFilterSummary = remember(
+        state.query,
+        quickFilter,
+        priorityFilter,
+        statusFilter,
+        typeFilter,
+    ) {
+        buildList {
+            if (state.query.isNotBlank()) add("جستجو")
+            when (quickFilter) {
+                ContactsFilters.QuickFilter.FOLLOW_UP -> add("در پیگیری")
+                ContactsFilters.QuickFilter.NEW -> add("سرنخ جدید")
+                ContactsFilters.QuickFilter.TODAY -> add("به‌روز امروز")
+                ContactsFilters.QuickFilter.ALL -> Unit
+            }
+            if (statusFilter != ContactsFilters.ALL_STATUSES) add(statusFilter)
+            if (typeFilter != ContactsFilters.ALL_TYPES) add(typeFilter)
+            if (priorityFilter != ContactsFilters.ALL_PRIORITIES) add(priorityFilter)
+        }.joinToString(" · ").ifBlank { null }
+    }
+
     LaunchedEffect(listState, state.hasMore, state.isLoadingMore, state.isLoading) {
         snapshotFlow {
             val info = listState.layoutInfo
@@ -238,6 +263,11 @@ fun ContactsScreen(
                         onNotificationsClick = onNavigateNotifications,
                         onMenuClick = onNavigateSettings,
                         onBack = onBack,
+                        subtitle = buildString {
+                            append(DateUtils.toPersianDigits(filteredContacts.size.toString()))
+                            append(" مخاطب در نمای فعلی")
+                            if (hasActiveListFilters) append(" · فیلترشده")
+                        },
                     )
                 }
                 if (ownerMode) {
@@ -273,47 +303,6 @@ fun ContactsScreen(
                     )
                 }
                 item {
-                    DfExportLinkButton(
-                        onClick = viewModel::openExportSheet,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppSpacing.screenHorizontal),
-                    )
-                }
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppSpacing.screenHorizontal),
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    ) {
-                        DfSecondaryButton(
-                            text = "قالب ورود",
-                            onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT_TEMPLATE),
-                                    ),
-                                )
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                        DfSecondaryButton(
-                            text = "ورود گروهی",
-                            onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT),
-                                    ),
-                                )
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-                item {
                     ContactsSearchFilterPanel(
                         query = state.query,
                         onQueryChange = viewModel::onQueryChange,
@@ -338,6 +327,29 @@ fun ContactsScreen(
                                 if (type == ContactsFilters.ALL_TYPES) null else type,
                             )
                         },
+                    )
+                }
+                item {
+                    ContactsToolsPanel(
+                        onDownloadTemplate = {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT_TEMPLATE),
+                                ),
+                            )
+                        },
+                        onBulkImport = {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT),
+                                ),
+                            )
+                        },
+                        onExportClick = viewModel::openExportSheet,
+                        exportPreviewCount = filteredContacts.size,
+                        hasActiveFilters = hasActiveListFilters,
                     )
                 }
                 if (hasSavableCriteria) {
@@ -485,10 +497,10 @@ fun ContactsScreen(
 
     if (state.showExportSheet) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissExportSheet) {
-            DfExportSheet(
-                title = "خروجی مخاطبین",
-                subtitle = "فایل CRM با فیلترهای فعلی",
-                formats = listOf(ExportFormat.XLSX, ExportFormat.JSON, ExportFormat.CSV),
+            ContactsExportSheet(
+                exportCount = filteredContacts.size,
+                hasActiveFilters = hasActiveListFilters,
+                filterSummary = exportFilterSummary,
                 isExporting = state.isExporting,
                 onSelect = { format -> viewModel.exportContacts(context, format) },
                 onDismiss = viewModel::dismissExportSheet,

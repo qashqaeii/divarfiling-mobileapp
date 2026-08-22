@@ -43,6 +43,7 @@ import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfNotificationListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -91,6 +92,7 @@ fun NotificationsScreen(
                         DfHubPageHeader(
                             title = "اعلان‌ها",
                             subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
+                            sectionLabel = DfHeaderSections.NOTIFICATIONS,
                             titleIconRes = DfDecorIcons.Bell,
                             onBack = onBack,
                         )
@@ -106,6 +108,7 @@ fun NotificationsScreen(
                         DfHubPageHeader(
                             title = "اعلان‌ها",
                             subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
+                            sectionLabel = DfHeaderSections.NOTIFICATIONS,
                             titleIconRes = DfDecorIcons.Bell,
                             onBack = onBack,
                         )
@@ -129,6 +132,7 @@ fun NotificationsScreen(
                         DfHubPageHeader(
                             title = "اعلان‌ها",
                             subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
+                            sectionLabel = DfHeaderSections.NOTIFICATIONS,
                             titleIconRes = DfDecorIcons.Bell,
                             onBack = onBack,
                         )
@@ -152,8 +156,9 @@ fun NotificationsScreen(
                                 } else {
                                     "اعلان‌ها"
                                 },
-                                subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
-                                titleIconRes = DfDecorIcons.Bell,
+                            subtitle = "یادآورها، استخراج‌ها و پیگیری‌های شما",
+                            sectionLabel = DfHeaderSections.NOTIFICATIONS,
+                            titleIconRes = DfDecorIcons.Bell,
                                 onBack = onBack,
                                 bottomContent = if (state.unreadCount > 0) {
                                     {

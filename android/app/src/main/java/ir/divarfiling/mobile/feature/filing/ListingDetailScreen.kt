@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.network.ListingDetailDto
@@ -112,6 +113,7 @@ fun ListingDetailScreen(
                     ) {
                         DfDetailPageHeader(
                             title = "جزئیات آگهی",
+                            sectionLabel = DfHeaderSections.FILING,
                             onBack = onBack,
                             titleIconRes = DfDecorIcons.FileText,
                         )
@@ -348,18 +350,26 @@ fun ListingDetailScreen(
                 consultantName = state.shareConsultantName,
                 consultantPhone = state.shareConsultantPhone,
                 welcomeMessage = state.shareWelcomeMessage,
+                defaultShareMessage = state.shareDefaultShareMessage,
                 isActive = state.sharePublicIsActive,
                 showDivarLink = state.sharePublicShowDivarLink,
                 showFullAddress = state.sharePublicShowFullAddress,
                 showInternalNotes = state.sharePublicShowInternalNotes,
+                approximateLocation = state.shareApproximateLocation,
+                approximateLocationRadiusM = state.shareApproximateLocationRadiusM,
+                showNearbyPois = state.shareShowNearbyPois,
                 isSubmitting = state.isSavingEdit,
                 onConsultantNameChange = viewModel::onShareConsultantNameChange,
                 onConsultantPhoneChange = viewModel::onShareConsultantPhoneChange,
                 onWelcomeMessageChange = viewModel::onShareWelcomeMessageChange,
+                onDefaultShareMessageChange = viewModel::onShareDefaultShareMessageChange,
                 onIsActiveChange = viewModel::onSharePublicIsActiveChange,
                 onShowDivarLinkChange = viewModel::onSharePublicShowDivarLinkChange,
                 onShowFullAddressChange = viewModel::onSharePublicShowFullAddressChange,
                 onShowInternalNotesChange = viewModel::onSharePublicShowInternalNotesChange,
+                onApproximateLocationChange = viewModel::onShareApproximateLocationChange,
+                onApproximateLocationRadiusChange = viewModel::onShareApproximateLocationRadiusChange,
+                onShowNearbyPoisChange = viewModel::onShareShowNearbyPoisChange,
                 onSave = viewModel::savePublicShareSettings,
                 onDismiss = { viewModel.togglePublicShareSettingsSheet(false) },
             )

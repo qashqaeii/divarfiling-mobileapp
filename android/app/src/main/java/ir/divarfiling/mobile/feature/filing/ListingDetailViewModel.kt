@@ -84,6 +84,10 @@ data class ListingDetailUiState(
     val sharePublicShowDivarLink: Boolean = false,
     val sharePublicShowFullAddress: Boolean = false,
     val sharePublicShowInternalNotes: Boolean = false,
+    val shareDefaultShareMessage: String = "",
+    val shareApproximateLocation: Boolean = false,
+    val shareApproximateLocationRadiusM: String = "500",
+    val shareShowNearbyPois: Boolean = false,
 )
 
 @HiltViewModel
@@ -120,6 +124,10 @@ class ListingDetailViewModel @Inject constructor(
                         sharePublicShowDivarLink = publicShare?.showDivarLink ?: false,
                         sharePublicShowFullAddress = publicShare?.showFullAddress ?: false,
                         sharePublicShowInternalNotes = publicShare?.showInternalNotes ?: false,
+                        shareDefaultShareMessage = publicShare?.defaultShareMessage.orEmpty(),
+                        shareApproximateLocation = publicShare?.approximateLocation ?: false,
+                        shareApproximateLocationRadiusM = (publicShare?.approximateLocationRadiusM ?: 500).toString(),
+                        shareShowNearbyPois = publicShare?.showNearbyPois ?: false,
                         isLoading = false,
                         isRefreshing = false,
                     )
@@ -347,6 +355,10 @@ class ListingDetailViewModel @Inject constructor(
     fun onSharePublicShowDivarLinkChange(value: Boolean) = _uiState.update { it.copy(sharePublicShowDivarLink = value) }
     fun onSharePublicShowFullAddressChange(value: Boolean) = _uiState.update { it.copy(sharePublicShowFullAddress = value) }
     fun onSharePublicShowInternalNotesChange(value: Boolean) = _uiState.update { it.copy(sharePublicShowInternalNotes = value) }
+    fun onShareDefaultShareMessageChange(value: String) = _uiState.update { it.copy(shareDefaultShareMessage = value) }
+    fun onShareApproximateLocationChange(value: Boolean) = _uiState.update { it.copy(shareApproximateLocation = value) }
+    fun onShareApproximateLocationRadiusChange(value: String) = _uiState.update { it.copy(shareApproximateLocationRadiusM = value) }
+    fun onShareShowNearbyPoisChange(value: Boolean) = _uiState.update { it.copy(shareShowNearbyPois = value) }
 
     fun listingShareOptions(): DossierShareOptions {
         val state = _uiState.value
@@ -378,6 +390,10 @@ class ListingDetailViewModel @Inject constructor(
                         showFullAddress = _uiState.value.sharePublicShowFullAddress,
                         showInternalNotes = _uiState.value.sharePublicShowInternalNotes,
                         isActive = _uiState.value.sharePublicIsActive,
+                        defaultShareMessage = _uiState.value.shareDefaultShareMessage.trim().ifBlank { null },
+                        approximateLocation = _uiState.value.shareApproximateLocation,
+                        approximateLocationRadiusM = _uiState.value.shareApproximateLocationRadiusM.trim().toIntOrNull(),
+                        showNearbyPois = _uiState.value.shareShowNearbyPois,
                     ),
                 )
             ) {

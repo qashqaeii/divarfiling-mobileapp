@@ -48,6 +48,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -128,6 +129,7 @@ fun CrmCalendarScreen(
                     DfHubPageHeader(
                         title = "تقویم",
                         subtitle = "یادآورها و پیگیری‌های روزانه",
+                        sectionLabel = DfHeaderSections.CRM,
                         titleIconRes = DfDecorIcons.Calendar,
                         onBack = onBack,
                     )

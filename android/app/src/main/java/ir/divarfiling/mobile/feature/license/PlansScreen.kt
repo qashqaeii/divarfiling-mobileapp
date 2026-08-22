@@ -39,6 +39,8 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -125,7 +127,8 @@ fun PlansScreen(
                 DfHubPageHeader(
                     title = "خرید و تمدید لایسنس",
                     subtitle = "قیمت‌ها از سرور خوانده می‌شود",
-                    titleIcon = DfIcons.Sparkles,
+                    sectionLabel = DfHeaderSections.LICENSE,
+                    titleIconRes = DfDecorIcons.Sparkles,
                     onBack = onBack,
                 )
             }

@@ -6,6 +6,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 
 @Composable
@@ -20,7 +21,8 @@ fun ToolsHubHeader(
     DfHubPageHeader(
         title = "ابزارهای هوشمند",
         subtitle = "محاسبات تخصصی املاک و معاملات",
-        titleIconRes = DfDecorIcons.Sparkles,
+        sectionLabel = DfHeaderSections.TOOLS,
+        titleIconRes = DfDecorIcons.Calculator,
         userName = userName,
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,

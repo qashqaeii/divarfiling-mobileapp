@@ -47,7 +47,8 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDestructiveButton
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
+import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -142,10 +143,11 @@ fun SupportTicketDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfHubPageHeader(
+                    DfDetailPageHeader(
                         title = ticket?.subject ?: "تیکت",
                         subtitle = ticket?.let { "#${it.ticketNumber} · ${ticketStatusLabel(it.status)}" }
                             ?: "در حال بارگذاری…",
+                        sectionLabel = DfHeaderSections.SUPPORT,
                         titleIconRes = DfDecorIcons.Phone,
                         onBack = onBack,
                     )

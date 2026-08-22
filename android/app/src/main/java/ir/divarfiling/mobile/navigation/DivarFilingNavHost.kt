@@ -312,6 +312,7 @@ fun DivarFilingNavHost(
                         DealDetailScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
                         )
                     }
                     composable(Routes.CRM_PROPERTIES) {

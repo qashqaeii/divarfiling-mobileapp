@@ -28,6 +28,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -125,6 +126,7 @@ fun TeamMessagesScreen(
                         DfHubPageHeader(
                             title = "صندوق پیام",
                             subtitle = "گفت‌وگوهای داخلی آژانس",
+                            sectionLabel = DfHeaderSections.TEAM,
                             titleIconRes = DfDecorIcons.Users,
                             onBack = onBack,
                         )

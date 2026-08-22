@@ -33,6 +33,7 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -112,6 +113,7 @@ fun SettingsScreen(
                     DfHubPageHeader(
                         title = "تنظیمات",
                         subtitle = "میزکار موبایل",
+                        sectionLabel = DfHeaderSections.SETTINGS,
                         titleIconRes = DfDecorIcons.Settings,
                         userName = state.user?.fullName?.substringBefore(" ") ?: "کاربر",
                         notificationCount = state.notificationBadgeCount,

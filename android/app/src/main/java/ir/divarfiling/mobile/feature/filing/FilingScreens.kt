@@ -45,6 +45,7 @@ import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfExportLinkButton
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfExportSheet
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.export.ExportFormat
@@ -340,8 +341,9 @@ fun ListingsScreen(
             ) {
                 item {
                     DfHubPageHeader(
-                        title = state.datasetName ?: "آگهی‌های فایل",
-                        subtitle = "آگهی‌های استخراج‌شده از دیوار",
+                        title = "آگهی‌های فایل",
+                        subtitle = state.datasetName ?: "آگهی‌های استخراج‌شده از دیوار",
+                        sectionLabel = DfHeaderSections.FILING,
                         titleIconRes = DfDecorIcons.Building,
                         onBack = onBack,
                     )
@@ -545,6 +547,7 @@ fun FilingSearchScreen(
                     DfHubPageHeader(
                         title = "جستجوی فایلینگ",
                         subtitle = "جستجو در همه فایل‌های استخراج‌شده",
+                        sectionLabel = DfHeaderSections.FILING,
                         titleIconRes = DfDecorIcons.Search,
                         onBack = onBack,
                     )

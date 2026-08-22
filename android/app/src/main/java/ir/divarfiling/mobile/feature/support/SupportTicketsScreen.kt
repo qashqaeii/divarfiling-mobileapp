@@ -44,6 +44,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -164,6 +165,7 @@ fun SupportTicketsScreen(
                     DfHubPageHeader(
                         title = "پشتیبانی",
                         subtitle = "تیکت‌ها و درخواست‌های کمک",
+                        sectionLabel = DfHeaderSections.SUPPORT,
                         titleIconRes = DfDecorIcons.Phone,
                         onBack = onBack,
                     )

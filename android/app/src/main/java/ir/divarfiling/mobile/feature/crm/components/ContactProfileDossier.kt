@@ -62,8 +62,10 @@ private fun buildContactDossierSections(
         contact.priority?.takeIf { it.isNotBlank() }?.let { add("اولویت" to it) }
         contact.source?.takeIf { it.isNotBlank() }?.let { add("منبع" to it) }
         contact.phone?.takeIf { it.isNotBlank() }?.let { add("تلفن" to it) }
+        contact.phoneAlt?.takeIf { it.isNotBlank() }?.let { add("تلفن دوم" to it) }
         contact.email?.takeIf { it.isNotBlank() }?.let { add("ایمیل" to it) }
         contact.city?.takeIf { it.isNotBlank() }?.let { add("شهر" to it) }
+        contact.district?.takeIf { it.isNotBlank() }?.let { add("منطقه" to it) }
         contact.createdAt?.let { ts ->
             DateUtils.formatJalaliDateTime(ts)?.let { add("تاریخ ثبت" to it) }
         }
@@ -124,6 +126,7 @@ private fun buildContactDossierSections(
         formatIntRange(contact.yearMin, contact.yearMax)?.let { add("سال ساخت" to it) }
         formatIntRange(contact.floorMin, contact.floorMax, suffix = " طبقه")?.let { add("طبقه" to it) }
         contact.areas?.takeIf { it.isNotBlank() }?.let { add("مناطق/محله" to it) }
+        contact.district?.takeIf { it.isNotBlank() }?.let { add("منطقه" to it) }
         val amenityWants = buildList {
             if (contact.wantParking) add("پارکینگ")
             if (contact.wantStorage) add("انباری")

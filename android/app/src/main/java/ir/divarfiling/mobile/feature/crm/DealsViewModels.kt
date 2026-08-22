@@ -48,6 +48,7 @@ data class DealsUiState(
     val selectedStage: String? = null,
     val query: String = "",
     val isLoading: Boolean = false,
+    val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
     val hasMore: Boolean = false,
     val page: Int = 1,
@@ -58,7 +59,10 @@ data class DealsUiState(
     val createStage: String = "سرنخ",
     val createAmount: String = "",
     val createNotes: String = "",
+    val createPropertyId: Long? = null,
+    val createCommissionRate: String = "",
     val contactPicker: List<ContactDto> = emptyList(),
+    val propertyPicker: List<PropertyDto> = emptyList(),
     val isSubmittingCreate: Boolean = false,
     val showSaveFilterDialog: Boolean = false,
     val saveFilterName: String = "",
@@ -76,6 +80,7 @@ class DealsViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DealsUiState())
     val uiState: StateFlow<DealsUiState> = _uiState.asStateFlow()
+    private var currentPage = 1
 
     init {
         viewModelScope.launch {
@@ -107,6 +112,7 @@ class DealsViewModel @Inject constructor(
 
     fun load(refreshing: Boolean = false) {
         viewModelScope.launch {
+            currentPage = 1
             _uiState.update {
                 it.copy(isLoading = !refreshing && it.deals.isEmpty(), isRefreshing = refreshing, error = null)
             }
@@ -132,16 +138,44 @@ class DealsViewModel @Inject constructor(
                         hasMore = result.data.hasMore,
                         isLoading = false,
                         isRefreshing = false,
+                        isLoadingMore = false,
                     )
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
+                    it.copy(isLoading = false, isRefreshing = false, isLoadingMore = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun loadMore() {
+        if (_uiState.value.isLoadingMore || !_uiState.value.hasMore || _uiState.value.isLoading) return
+        currentPage += 1
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingMore = true) }
+            when (val result = repository.getDeals(
+                query = _uiState.value.query,
+                stage = _uiState.value.selectedStage,
+                page = currentPage,
+            )) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        deals = it.deals + result.data.items,
+                        page = currentPage,
+                        hasMore = result.data.hasMore,
+                        isLoadingMore = false,
+                    )
+                }
+                is ApiResult.Error -> {
+                    currentPage -= 1
+                    _uiState.update { it.copy(isLoadingMore = false, error = result.message) }
                 }
             }
         }
     }
 
     fun refresh() {
+        currentPage = 1
         load(refreshing = true)
         loadSavedFilters()
     }
@@ -256,16 +290,23 @@ class DealsViewModel @Inject constructor(
                 createAmount = if (show) it.createAmount else "",
                 createNotes = if (show) it.createNotes else "",
                 createCustomerId = if (show) it.createCustomerId else null,
+                createPropertyId = if (show) it.createPropertyId else null,
+                createCommissionRate = if (show) it.createCommissionRate else "",
                 createStage = if (show) it.createStage else "سرنخ",
             )
         }
-        if (show) loadContactsForPicker()
+        if (show) {
+            loadContactsForPicker()
+            loadPropertiesForPicker()
+        }
     }
 
     fun onCreateTitleChange(v: String) = _uiState.update { it.copy(createTitle = v) }
     fun onCreateCustomerSelect(id: Long) = _uiState.update { it.copy(createCustomerId = id) }
+    fun onCreatePropertySelect(id: Long?) = _uiState.update { it.copy(createPropertyId = id) }
     fun onCreateStageChange(v: String) = _uiState.update { it.copy(createStage = v) }
     fun onCreateAmountChange(v: String) = _uiState.update { it.copy(createAmount = v) }
+    fun onCreateCommissionRateChange(v: String) = _uiState.update { it.copy(createCommissionRate = v) }
     fun onCreateNotesChange(v: String) = _uiState.update { it.copy(createNotes = v) }
 
     private fun loadContactsForPicker() {
@@ -280,6 +321,15 @@ class DealsViewModel @Inject constructor(
                         )
                     }
                 }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    private fun loadPropertiesForPicker() {
+        viewModelScope.launch {
+            when (val result = repository.getProperties(page = 1, pageSize = 100)) {
+                is ApiResult.Success -> _uiState.update { it.copy(propertyPicker = result.data.items) }
                 is ApiResult.Error -> Unit
             }
         }
@@ -306,7 +356,9 @@ class DealsViewModel @Inject constructor(
                         title = title,
                         stage = state.createStage.ifBlank { "سرنخ" },
                         amount = state.createAmount.trim().toLongOrNull(),
+                        propertyId = state.createPropertyId,
                         notes = state.createNotes.trim(),
+                        commissionRate = state.createCommissionRate.trim().toDoubleOrNull(),
                     ),
                 )
             ) {
@@ -318,6 +370,8 @@ class DealsViewModel @Inject constructor(
                             createCustomerId = null,
                             createAmount = "",
                             createNotes = "",
+                            createPropertyId = null,
+                            createCommissionRate = "",
                             createStage = "سرنخ",
                             isSubmittingCreate = false,
                         )
@@ -341,10 +395,17 @@ data class DealDetailUiState(
     val successMessage: String? = null,
     val stages: List<String> = CrmConstants.DEAL_STAGES,
     val showEditSheet: Boolean = false,
+    val showDeleteDialog: Boolean = false,
+    val showLostReasonDialog: Boolean = false,
+    val pendingStage: String? = null,
+    val lostReasonInput: String = "",
     val editTitle: String = "",
     val editAmount: String = "",
     val editNotes: String = "",
     val editStage: String = "",
+    val editCommissionRate: String = "",
+    val editPropertyId: Long? = null,
+    val propertyPicker: List<PropertyDto> = emptyList(),
 )
 
 @HiltViewModel
@@ -376,6 +437,8 @@ class DealDetailViewModel @Inject constructor(
                         editAmount = result.data.amount?.toString().orEmpty(),
                         editNotes = result.data.notes.orEmpty(),
                         editStage = result.data.stage.orEmpty(),
+                        editCommissionRate = result.data.commissionRate?.toString().orEmpty(),
+                        editPropertyId = result.data.propertyId,
                     )
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -390,10 +453,36 @@ class DealDetailViewModel @Inject constructor(
         load()
     }
 
-    fun changeStage(stage: String) {
+    fun requestStageChange(stage: String) {
+        if (stage == "از دست رفته") {
+            _uiState.update {
+                it.copy(
+                    showLostReasonDialog = true,
+                    pendingStage = stage,
+                    lostReasonInput = it.deal?.lostReason.orEmpty(),
+                )
+            }
+        } else {
+            applyStageChange(stage)
+        }
+    }
+
+    fun onLostReasonChange(value: String) = _uiState.update { it.copy(lostReasonInput = value) }
+
+    fun dismissLostReasonDialog() = _uiState.update {
+        it.copy(showLostReasonDialog = false, pendingStage = null, lostReasonInput = "")
+    }
+
+    fun confirmLostReason() {
+        val stage = _uiState.value.pendingStage ?: return
+        applyStageChange(stage, _uiState.value.lostReasonInput.trim().ifBlank { null })
+        _uiState.update { it.copy(showLostReasonDialog = false, pendingStage = null) }
+    }
+
+    private fun applyStageChange(stage: String, lostReason: String? = null) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true) }
-            when (repository.updateDealStage(dealId, stage)) {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (repository.updateDealStage(dealId, stage, lostReason)) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, successMessage = "مرحله به‌روز شد") }
                     load()
@@ -402,6 +491,43 @@ class DealDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun changeStage(stage: String) = requestStageChange(stage)
+
+    fun toggleChecklistItem(itemId: String, done: Boolean) {
+        viewModelScope.launch {
+            when (val result = repository.toggleDealChecklist(dealId, itemId, done)) {
+                is ApiResult.Success -> _uiState.update { state ->
+                    state.copy(
+                        deal = state.deal?.copy(checklist = result.data.checklist),
+                        successMessage = if (result.data.progress?.complete == true) {
+                            "چک‌لیست تکمیل شد"
+                        } else {
+                            null
+                        },
+                    )
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    fun deleteDeal(onDeleted: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = repository.deleteDeal(dealId)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isSubmitting = false, showDeleteDialog = false) }
+                    onDeleted()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message, showDeleteDialog = false)
+                }
+            }
+        }
+    }
+
+    fun toggleDeleteDialog(show: Boolean) = _uiState.update { it.copy(showDeleteDialog = show) }
 
     fun saveEdit() {
         viewModelScope.launch {
@@ -414,22 +540,39 @@ class DealDetailViewModel @Inject constructor(
                     amount = state.editAmount.trim().toLongOrNull(),
                     notes = state.editNotes,
                     stage = state.editStage.takeIf { it.isNotBlank() },
+                    commissionRate = state.editCommissionRate.trim().toDoubleOrNull(),
+                    propertyId = state.editPropertyId,
                 ),
             )) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, showEditSheet = false, successMessage = "ذخیره شد") }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false) }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = it.error) }
             }
         }
     }
 
-    fun toggleEditSheet(show: Boolean) = _uiState.update { it.copy(showEditSheet = show) }
+    fun toggleEditSheet(show: Boolean) {
+        _uiState.update { it.copy(showEditSheet = show) }
+        if (show) loadPropertiesForPicker()
+    }
+
+    private fun loadPropertiesForPicker() {
+        viewModelScope.launch {
+            when (val result = repository.getProperties(page = 1, pageSize = 100)) {
+                is ApiResult.Success -> _uiState.update { it.copy(propertyPicker = result.data.items) }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
     fun onEditTitleChange(v: String) = _uiState.update { it.copy(editTitle = v) }
     fun onEditAmountChange(v: String) = _uiState.update { it.copy(editAmount = v) }
     fun onEditNotesChange(v: String) = _uiState.update { it.copy(editNotes = v) }
     fun onEditStageChange(v: String) = _uiState.update { it.copy(editStage = v) }
+    fun onEditCommissionRateChange(v: String) = _uiState.update { it.copy(editCommissionRate = v) }
+    fun onEditPropertySelect(id: Long?) = _uiState.update { it.copy(editPropertyId = id) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 }
 
@@ -441,6 +584,8 @@ data class PropertiesUiState(
     val transactionStatus: String? = null,
     val dealMode: String? = null,
     val propertyType: String? = null,
+    val city: String? = null,
+    val cityQuery: String = "",
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
@@ -523,6 +668,7 @@ class PropertiesViewModel @Inject constructor(
                 query = _uiState.value.query,
                 dealMode = _uiState.value.dealMode,
                 propertyType = _uiState.value.propertyType,
+                city = _uiState.value.city,
                 transactionStatus = _uiState.value.transactionStatus,
                 page = if (refreshing) 1 else currentPage,
             )) {
@@ -560,6 +706,7 @@ class PropertiesViewModel @Inject constructor(
                 query = _uiState.value.query,
                 dealMode = _uiState.value.dealMode,
                 propertyType = _uiState.value.propertyType,
+                city = _uiState.value.city,
                 transactionStatus = _uiState.value.transactionStatus,
                 page = currentPage,
             )) {
@@ -589,6 +736,9 @@ class PropertiesViewModel @Inject constructor(
     }
     fun onDealModeChange(mode: String?) = _uiState.update { it.copy(dealMode = mode, activeSavedFilterId = null) }
     fun onPropertyTypeChange(type: String?) = _uiState.update { it.copy(propertyType = type, activeSavedFilterId = null) }
+    fun onCityQueryChange(value: String) = _uiState.update {
+        it.copy(cityQuery = value, city = value.trim().ifBlank { null }, activeSavedFilterId = null)
+    }
     fun search() = load()
     fun clearError() = _uiState.update { it.copy(error = null) }
 
@@ -599,6 +749,8 @@ class PropertiesViewModel @Inject constructor(
                 transactionStatus = null,
                 dealMode = null,
                 propertyType = null,
+                city = null,
+                cityQuery = "",
                 activeSavedFilterId = null,
             )
         }
@@ -613,6 +765,8 @@ class PropertiesViewModel @Inject constructor(
                 transactionStatus = params["transaction_status"]?.ifBlank { null },
                 dealMode = params["deal_mode"]?.ifBlank { null },
                 propertyType = params["property_type"]?.ifBlank { null },
+                city = params["city"]?.ifBlank { null },
+                cityQuery = params["city"].orEmpty(),
                 activeSavedFilterId = filter.id,
             )
         }
@@ -637,6 +791,7 @@ class PropertiesViewModel @Inject constructor(
             state.transactionStatus?.takeIf { it.isNotBlank() }?.let { put("transaction_status", it) }
             state.dealMode?.takeIf { it.isNotBlank() }?.let { put("deal_mode", it) }
             state.propertyType?.takeIf { it.isNotBlank() }?.let { put("property_type", it) }
+            state.city?.takeIf { it.isNotBlank() }?.let { put("city", it) }
         }
         if (params.isEmpty()) {
             _uiState.update { it.copy(error = "برای ذخیره، حداقل یک فیلتر لازم است") }
@@ -808,6 +963,7 @@ class PropertiesViewModel @Inject constructor(
                 dealMode = state.dealMode,
                 propertyType = state.propertyType,
                 transactionStatus = state.transactionStatus,
+                city = state.city,
             )) {
                 is ApiResult.Success -> {
                     ExportShareHelper.shareFile(context, result.data, format.mimeType, "خروجی فایل‌های شخصی")
@@ -831,6 +987,7 @@ data class PropertyDetailUiState(
     val detail: PropertyDetailData? = null,
     val selectedTab: PropertyDetailTab = PropertyDetailTab.OVERVIEW,
     val isLoading: Boolean = false,
+    val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
     val isSubmitting: Boolean = false,
     val error: String? = null,
@@ -887,6 +1044,10 @@ data class PropertyDetailUiState(
     val sharePublicShowDivarLink: Boolean = false,
     val sharePublicShowFullAddress: Boolean = false,
     val sharePublicShowInternalNotes: Boolean = false,
+    val shareDefaultShareMessage: String = "",
+    val shareApproximateLocation: Boolean = false,
+    val shareApproximateLocationRadiusM: String = "500",
+    val shareShowNearbyPois: Boolean = false,
 )
 
 enum class PropertyDetailTab(val label: String) {
@@ -952,6 +1113,10 @@ class PropertyDetailViewModel @Inject constructor(
                             sharePublicShowDivarLink = publicShare?.showDivarLink ?: false,
                             sharePublicShowFullAddress = publicShare?.showFullAddress ?: false,
                             sharePublicShowInternalNotes = publicShare?.showInternalNotes ?: false,
+                            shareDefaultShareMessage = publicShare?.defaultShareMessage.orEmpty(),
+                            shareApproximateLocation = publicShare?.approximateLocation ?: false,
+                            shareApproximateLocationRadiusM = (publicShare?.approximateLocationRadiusM ?: 500).toString(),
+                            shareShowNearbyPois = publicShare?.showNearbyPois ?: false,
                         )
                     }
                 }
@@ -1118,6 +1283,10 @@ class PropertyDetailViewModel @Inject constructor(
     fun onSharePublicShowDivarLinkChange(value: Boolean) = _uiState.update { it.copy(sharePublicShowDivarLink = value) }
     fun onSharePublicShowFullAddressChange(value: Boolean) = _uiState.update { it.copy(sharePublicShowFullAddress = value) }
     fun onSharePublicShowInternalNotesChange(value: Boolean) = _uiState.update { it.copy(sharePublicShowInternalNotes = value) }
+    fun onShareDefaultShareMessageChange(value: String) = _uiState.update { it.copy(shareDefaultShareMessage = value) }
+    fun onShareApproximateLocationChange(value: Boolean) = _uiState.update { it.copy(shareApproximateLocation = value) }
+    fun onShareApproximateLocationRadiusChange(value: String) = _uiState.update { it.copy(shareApproximateLocationRadiusM = value) }
+    fun onShareShowNearbyPoisChange(value: Boolean) = _uiState.update { it.copy(shareShowNearbyPois = value) }
 
     fun propertyShareOptions(): DossierShareOptions {
         val state = _uiState.value
@@ -1148,6 +1317,10 @@ class PropertyDetailViewModel @Inject constructor(
                         showFullAddress = _uiState.value.sharePublicShowFullAddress,
                         showInternalNotes = _uiState.value.sharePublicShowInternalNotes,
                         isActive = _uiState.value.sharePublicIsActive,
+                        defaultShareMessage = _uiState.value.shareDefaultShareMessage.trim().ifBlank { null },
+                        approximateLocation = _uiState.value.shareApproximateLocation,
+                        approximateLocationRadiusM = _uiState.value.shareApproximateLocationRadiusM.trim().toIntOrNull(),
+                        showNearbyPois = _uiState.value.shareShowNearbyPois,
                     ),
                 )
             ) {

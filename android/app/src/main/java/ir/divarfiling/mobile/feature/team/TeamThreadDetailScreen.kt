@@ -28,6 +28,7 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -77,6 +78,7 @@ fun TeamThreadDetailScreen(
                     DfDetailPageHeader(
                         title = thread?.participantsLabel?.ifBlank { thread.subject } ?: "مکالمه",
                         subtitle = if (thread?.kind == "broadcast") "پیام گروهی" else "گفت‌وگوی مستقیم",
+                        sectionLabel = DfHeaderSections.TEAM,
                         onBack = onBack,
                         titleIconRes = DfDecorIcons.Users,
                         actions = {

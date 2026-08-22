@@ -38,6 +38,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -204,6 +205,7 @@ fun TeamAnnouncementsScreen(
                             } else {
                                 "تابلو اطلاع‌رسانی تیم"
                             },
+                            sectionLabel = DfHeaderSections.TEAM,
                             titleIconRes = DfDecorIcons.Sparkles,
                             onBack = onBack,
                         )

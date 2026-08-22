@@ -42,6 +42,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -193,6 +194,7 @@ fun MoreHubScreen(
                     DfHubPageHeader(
                         title = "بیشتر",
                         subtitle = "ابزارها، آژانس و میانبرهای کم‌استفاده",
+                        sectionLabel = DfHeaderSections.MORE,
                         titleIcon = DfIcons.Layers,
                         userName = state.userName,
                         notificationCount = state.notificationBadgeCount,

@@ -37,6 +37,7 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -84,6 +85,7 @@ fun CloudExtractScreen(
                     DfHubPageHeader(
                         title = "استخراج ابری",
                         subtitle = "استخراج از سرور بدون مصرف باتری دستگاه",
+                        sectionLabel = DfHeaderSections.EXTRACT,
                         titleIconRes = DfDecorIcons.Download,
                         onBack = onBack,
                     )

@@ -3,6 +3,8 @@ package ir.divarfiling.mobile.data.repository
 import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
+import ir.divarfiling.mobile.core.network.DealChecklistToggleRequest
+import ir.divarfiling.mobile.core.network.DealChecklistToggleResponse
 import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineData
@@ -77,8 +79,28 @@ class DealsRepository @Inject constructor(
         api.updateDeal(dealId, request)
     }
 
-    suspend fun updateDealStage(dealId: Long, stage: String): ApiResult<DealDto> = single {
-        api.updateDealStage(dealId, DealStageRequest(stage))
+    suspend fun updateDealStage(
+        dealId: Long,
+        stage: String,
+        lostReason: String? = null,
+    ): ApiResult<DealDto> = single {
+        api.updateDealStage(dealId, DealStageRequest(stage, lostReason))
+    }
+
+    suspend fun deleteDeal(dealId: Long): ApiResult<Unit> = try {
+        val response = api.deleteDeal(dealId)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun toggleDealChecklist(
+        dealId: Long,
+        itemId: String,
+        done: Boolean? = null,
+    ): ApiResult<DealChecklistToggleResponse> = single {
+        api.toggleDealChecklist(dealId, DealChecklistToggleRequest(itemId, done))
     }
 
     suspend fun getProperties(

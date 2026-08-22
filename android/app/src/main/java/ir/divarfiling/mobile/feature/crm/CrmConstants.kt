@@ -26,6 +26,11 @@ object CrmConstants {
 
     val PRIORITIES = listOf("بالا", "متوسط", "پایین")
 
+    val SOURCES = listOf(
+        "دیوار", "معرف", "ورود به املاک", "تماس ورودی",
+        "اینستاگرام", "سایت", "تلگرام", "موبایل", "سایر",
+    )
+
     val QUICK_ACTIVITY_TYPES = listOf(
         "تماس" to "تماس تلفنی",
         "واتساپ" to "پیام واتساپ",

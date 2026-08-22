@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,19 +35,32 @@ fun DfDetailPageHeader(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    sectionLabel: String? = null,
     titleIcon: ImageVector? = null,
     @DrawableRes titleIconRes: Int? = null,
+    titleIconBackground: Color = DfColors.PurpleContainer,
+    showBottomDivider: Boolean = true,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    DfStandardPageHeader(
-        title = title,
-        subtitle = subtitle.orEmpty(),
-        titleIcon = titleIcon,
-        titleIconRes = titleIconRes,
-        onBack = onBack,
-        modifier = modifier,
-        toolbarContent = actions,
-    )
+    Column(modifier = modifier.fillMaxWidth()) {
+        DfStandardPageHeader(
+            title = title,
+            subtitle = subtitle.orEmpty(),
+            sectionLabel = sectionLabel,
+            titleIcon = titleIcon,
+            titleIconRes = titleIconRes,
+            titleIconBackground = titleIconBackground,
+            onBack = onBack,
+            toolbarContent = actions,
+        )
+        if (showBottomDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                color = DfColors.Outline.copy(alpha = 0.35f),
+                thickness = 1.dp,
+            )
+        }
+    }
 }
 
 @Composable
