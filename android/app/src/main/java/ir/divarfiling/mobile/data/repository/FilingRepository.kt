@@ -12,6 +12,7 @@ import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.ListingMetaUpdateRequest
+import ir.divarfiling.mobile.core.network.ListingUpdateRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
 import ir.divarfiling.mobile.core.network.requireData
