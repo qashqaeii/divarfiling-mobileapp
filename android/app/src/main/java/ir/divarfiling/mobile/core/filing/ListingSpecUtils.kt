@@ -8,7 +8,7 @@ object ListingSpecUtils {
     fun boolFeatureLabel(value: Boolean?): String = when (value) {
         true -> "دارد"
         false -> "ندارد"
-        null -> "—"
+        null -> "نامشخص"
     }
 
     /** برچسب کوتاه برای چیپ کارت لیست — فقط وقتی مقدار مشخص است. */

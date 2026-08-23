@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.feature.crm.components.ListingSendSheet
@@ -37,7 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -101,8 +100,7 @@ fun ListingDetailScreen(
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .statusBarsPadding(),
+                .padding(padding),
         ) {
             when {
                 state.isLoading -> DfDetailSkeleton()
@@ -115,7 +113,7 @@ fun ListingDetailScreen(
                             title = "جزئیات آگهی",
                             sectionLabel = DfHeaderSections.FILING,
                             onBack = onBack,
-                            titleIconRes = DfDecorIcons.FileText,
+                            titleIcon = DfIcons.File,
                         )
                         DfErrorBanner(
                             state.error!!,
@@ -140,7 +138,7 @@ fun ListingDetailScreen(
                         onSendToContact = { viewModel.toggleContactPicker(true) },
                         onShare = { viewModel.toggleShareSheet(true) },
                         onWhatsAppShare = { viewModel.toggleShareSheet(true) },
-                        onOpenDivar = listing.shareLink?.takeIf { it.isNotBlank() }?.let { link ->
+                        onOpenDivar = (listing.shareLink ?: listing.link)?.takeIf { it.isNotBlank() }?.let { link ->
                             { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
                         },
                         onSetReminder = viewModel::openReminderSheet,
@@ -168,7 +166,13 @@ fun ListingDetailScreen(
                                 val uri = Uri.parse(
                                     "geo:${listing.latitude},${listing.longitude}?q=${listing.latitude},${listing.longitude}",
                                 )
-                                context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                                runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                                }.onFailure {
+                                    viewModel.showMessage("اپلیکیشن نقشه در دسترس نیست")
+                                }
+                            } else {
+                                viewModel.showMessage("مختصات ملک ثبت نشده است")
                             }
                         },
                     )
@@ -305,37 +309,12 @@ fun ListingDetailScreen(
 
     if (state.showEditSheet && listing != null) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissEditSheet) {
-            val form = state.editForm
             ListingEditSheet(
                 listing = listing,
-                title = form.title,
-                price = form.price,
-                deposit = form.deposit,
-                rent = form.rent,
-                area = form.area,
-                rooms = form.rooms,
-                floor = form.floor,
-                buildYear = form.buildYear,
-                neighborhood = form.neighborhood,
-                city = form.city,
-                description = form.description,
-                ownerName = form.ownerName,
-                ownerPhone = form.ownerPhone,
+                form = state.editForm,
                 isSubmitting = state.isSavingEdit,
-                onTitleChange = { viewModel.onEditFormChange { f -> f.copy(title = it) } },
-                onPriceChange = { viewModel.onEditFormChange { f -> f.copy(price = it) } },
-                onDepositChange = { viewModel.onEditFormChange { f -> f.copy(deposit = it) } },
-                onRentChange = { viewModel.onEditFormChange { f -> f.copy(rent = it) } },
-                onAreaChange = { viewModel.onEditFormChange { f -> f.copy(area = it) } },
-                onRoomsChange = { viewModel.onEditFormChange { f -> f.copy(rooms = it) } },
-                onFloorChange = { viewModel.onEditFormChange { f -> f.copy(floor = it) } },
-                onBuildYearChange = { viewModel.onEditFormChange { f -> f.copy(buildYear = it) } },
-                onNeighborhoodChange = { viewModel.onEditFormChange { f -> f.copy(neighborhood = it) } },
-                onCityChange = { viewModel.onEditFormChange { f -> f.copy(city = it) } },
-                onDescriptionChange = { viewModel.onEditFormChange { f -> f.copy(description = it) } },
-                onOwnerNameChange = { viewModel.onEditFormChange { f -> f.copy(ownerName = it) } },
-                onOwnerPhoneChange = { viewModel.onEditFormChange { f -> f.copy(ownerPhone = it) } },
-                onCallOwner = form.ownerPhone.trim().takeIf { it.isNotBlank() }?.let { phone ->
+                onFormChange = { viewModel.onEditFormChange { _ -> it } },
+                onCallOwner = state.editForm.ownerPhone.trim().takeIf { it.isNotBlank() }?.let { phone ->
                     { dialPhone(context, phone) }
                 },
                 onSave = viewModel::saveEdit,
@@ -395,8 +374,15 @@ private fun ListingDetailContent(
     onNavigate: () -> Unit,
 ) {
     val galleryImages = ListingImageUtils.buildGalleryUrls(listing)
-    val location = listOfNotNull(listing.district, listing.city).joinToString("، ")
+    val location = listOfNotNull(
+        listing.address?.takeIf { it.isNotBlank() },
+        listing.region?.takeIf { it.isNotBlank() },
+        listing.district,
+        listing.city,
+    ).distinct().joinToString("، ")
     val hasCoordinates = listing.latitude != null && listing.longitude != null
+    val canOpenDivar = onOpenDivar != null
+    val canNavigate = hasCoordinates
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -406,10 +392,12 @@ private fun ListingDetailContent(
             item {
                 ListingDetailGallerySection(
                     images = galleryImages,
+                    title = listing.title.orEmpty(),
                     onBack = onBack,
                     onEdit = onEdit,
                     onSaveAsPersonal = onSaveAsPersonal,
-                    onCopyLink = onCopyLink,
+                    onOpenDivar = if (canOpenDivar) onOpenDivar else null,
+                    onNavigate = if (canNavigate) onNavigate else null,
                     quickActions = {
                         ListingQuickActionsRow(
                             onSendToContact = onSendToContact,
@@ -453,7 +441,12 @@ private fun ListingDetailContent(
             if (location.isNotBlank() || hasCoordinates || onOpenDivar != null) {
                 item {
                     ListingLocationSection(
-                        locationLabel = location,
+                        address = listing.address.orEmpty(),
+                        city = listing.city.orEmpty(),
+                        region = listing.region.orEmpty(),
+                        neighborhood = listing.neighborhood?.takeIf { it.isNotBlank() } ?: listing.district.orEmpty(),
+                        latitude = listing.latitude,
+                        longitude = listing.longitude,
                         hasCoordinates = hasCoordinates,
                         onNavigate = onNavigate,
                         onCopyLink = onCopyLink,

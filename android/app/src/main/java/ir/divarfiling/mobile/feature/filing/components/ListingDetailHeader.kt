@@ -1,9 +1,9 @@
 package ir.divarfiling.mobile.feature.filing.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,13 +27,12 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
-import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.core.filing.ListingSpecUtils
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ListingDetailHeader(
     listing: ListingDetailDto,
@@ -40,20 +40,19 @@ fun ListingDetailHeader(
     modifier: Modifier = Modifier,
 ) {
     val advertiserBadge = ListingAdvertiserUtils.badgeStyle(listing)
-    val location = listOfNotNull(listing.district, listing.city).joinToString("، ")
-    val priceLabel = when {
-        listing.price != null && listing.price > 0 -> FormatUtils.formatPriceToman(listing.price)
-        listing.rent != null && listing.rent > 0 -> "اجاره ${FormatUtils.formatPriceShort(listing.rent)}"
-        listing.deposit != null && listing.deposit > 0 -> "ودیعه ${FormatUtils.formatPriceShort(listing.deposit)}"
-        else -> "—"
-    }
+    val location = listOfNotNull(
+        listing.address?.takeIf { it.isNotBlank() },
+        listing.region?.takeIf { it.isNotBlank() },
+        listing.district,
+        listing.city,
+    ).distinct().joinToString("، ")
+    val isRent = listing.rent != null || listing.deposit != null
     val floorLabel = when {
         !listing.floor.isNullOrBlank() && !listing.totalFloors.isNullOrBlank() ->
             "${listing.floor} از ${listing.totalFloors}"
         !listing.floor.isNullOrBlank() -> listing.floor
         else -> "—"
     }
-    val propertyType = listing.businessType?.takeIf { it.isNotBlank() } ?: "آپارتمان"
 
     Column(
         modifier = modifier
@@ -66,35 +65,42 @@ fun ListingDetailHeader(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                shape = AppShapes.Chip,
-                color = advertiserBadge.background,
-            ) {
-                Text(
-                    text = advertiserBadge.label,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = AppTypography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = advertiserBadge.color,
-                )
-            }
-            Row(
+            FlowRow(
                 modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
+                StatusChip(
+                    label = advertiserBadge.label,
+                    color = advertiserBadge.color,
+                    background = advertiserBadge.background,
+                )
+                StatusChip(
+                    label = if (listing.isExpired) "منقضی" else "فعال",
+                    color = if (listing.isExpired) DfColors.Rose else DfColors.Green,
+                    background = if (listing.isExpired) DfColors.RoseLight else DfColors.GreenLight,
+                )
+                listing.unitStatus?.takeIf { it.isNotBlank() }?.let { status ->
+                    StatusChip(
+                        label = status,
+                        color = DfColors.Purple,
+                        background = DfColors.PurpleContainer,
+                    )
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "کد آگهی: ${listing.token.takeLast(8)}",
+                    text = listing.token.takeLast(8),
                     style = AppTypography.labelSmall,
                     color = DfColors.TextMuted,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 IconButton(onClick = onCopyAdCode, modifier = Modifier.size(28.dp)) {
-                    DfDecorImage(
-                        resId = DfDecorIcons.Copy,
-                        size = 14.dp,
-                        contentDescription = "کپی کد",
+                    Icon(
+                        imageVector = DfIcons.Copy,
+                        contentDescription = "کپی کد آگهی",
+                        tint = DfColors.TextMuted,
+                        modifier = Modifier.size(14.dp),
                     )
                 }
             }
@@ -105,7 +111,7 @@ fun ListingDetailHeader(
             style = AppTypography.pageTitle,
             fontWeight = FontWeight.Bold,
             color = DfColors.TextPrimary,
-            maxLines = 2,
+            maxLines = 3,
             overflow = TextOverflow.Ellipsis,
         )
 
@@ -130,102 +136,142 @@ fun ListingDetailHeader(
             }
         }
 
-        ListingKeyStatsCards(
-            price = priceLabel,
+        if (isRent) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                PriceHeroCard(
+                    label = "ودیعه / رهن",
+                    value = listing.deposit?.takeIf { it > 0 }?.let(FormatUtils::formatPriceToman) ?: "—",
+                    hint = listing.deposit?.takeIf { it > 0 }?.let(FormatUtils::formatPriceShort),
+                    modifier = Modifier.weight(1f),
+                )
+                PriceHeroCard(
+                    label = "اجاره ماهانه",
+                    value = listing.rent?.takeIf { it > 0 }?.let(FormatUtils::formatPriceToman) ?: "—",
+                    hint = listing.rent?.takeIf { it > 0 }?.let(FormatUtils::formatPriceShort),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        } else {
+            PriceHeroCard(
+                label = "قیمت فروش",
+                value = listing.price?.takeIf { it > 0 }?.let(FormatUtils::formatPriceToman) ?: "—",
+                hint = buildList {
+                    listing.price?.takeIf { it > 0 }?.let { add(FormatUtils.formatPriceShort(it)) }
+                    listing.pricePerSqm?.let { add("هر متر ${FormatUtils.formatPriceToman(it)}") }
+                }.joinToString(" · ").ifBlank { null },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        ListingKeyStatsGrid(
             area = listing.area?.let { FormatUtils.formatArea(it) } ?: "—",
             rooms = listing.rooms?.let { FormatUtils.formatRooms(it) } ?: "—",
             floor = floorLabel,
-            propertyType = propertyType,
+            yearBuilt = listing.yearBuilt?.takeIf { it.isNotBlank() } ?: "—",
         )
 
-        ListingCoreAmenityRow(
-            hasParking = listing.hasParking,
-            hasStorage = listing.hasStorage,
-            hasElevator = listing.hasElevator,
-        )
+        ListingCoreAmenityRow(listing = listing)
     }
 }
 
 @Composable
-private fun ListingCoreAmenityRow(
-    hasParking: Boolean?,
-    hasStorage: Boolean?,
-    hasElevator: Boolean?,
-) {
-    val chips = listOf(
-        Triple("پارکینگ", hasParking, DfDecorIcons.Car),
-        Triple("انباری", hasStorage, DfDecorIcons.Storage),
-        Triple("آسانسور", hasElevator, DfDecorIcons.Elevator),
-    ).filter { (_, value, _) -> value != null }
-    if (chips.isEmpty()) return
-
-    @OptIn(ExperimentalLayoutApi::class)
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        chips.forEach { (label, value, iconRes) ->
-            CoreAmenityChip(
-                label = label,
-                value = value!!,
-                iconRes = iconRes,
-            )
-        }
-    }
-}
-
-@Composable
-private fun CoreAmenityChip(
+private fun StatusChip(
     label: String,
-    value: Boolean,
-    iconRes: Int,
+    color: Color,
+    background: Color,
 ) {
-    val positive = value
-    val color = if (positive) DfColors.Green else DfColors.TextMuted
-    val bg = if (positive) DfColors.GreenLight else DfColors.SurfaceVariant
-    Surface(shape = AppShapes.Chip, color = bg) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    Surface(shape = AppShapes.Chip, color = background) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = AppTypography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = color,
+        )
+    }
+}
+
+@Composable
+private fun PriceHeroCard(
+    label: String,
+    value: String,
+    hint: String?,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = AppShapes.Card,
+        color = DfColors.PurpleContainer,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            DfDecorImage(resId = iconRes, size = 14.dp)
             Text(
-                text = "$label: ${ListingSpecUtils.boolFeatureLabel(value)}",
+                text = label,
                 style = AppTypography.labelSmall,
-                color = color,
+                color = DfColors.Purple,
                 fontWeight = FontWeight.SemiBold,
             )
+            Text(
+                text = value,
+                style = AppTypography.sectionTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfColors.Purple,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!hint.isNullOrBlank()) {
+                Text(
+                    text = hint,
+                    style = AppTypography.labelSmall,
+                    color = DfColors.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ListingKeyStatsCards(
-    price: String,
+private fun ListingKeyStatsGrid(
     area: String,
     rooms: String,
     floor: String,
-    propertyType: String,
+    yearBuilt: String,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-        KeyStatCard(label = "قیمت", value = price, valueColor = DfColors.Purple)
-        KeyStatCard(label = "متراژ", value = area)
-        KeyStatCard(label = "اتاق", value = rooms)
-        KeyStatCard(label = "طبقه", value = floor)
-        KeyStatCard(label = "نوع ملک", value = propertyType)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            KeyStatTile(label = "متراژ", value = area, icon = DfIcons.Ruler, modifier = Modifier.weight(1f))
+            KeyStatTile(label = "اتاق", value = rooms, icon = DfIcons.Bed, modifier = Modifier.weight(1f))
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            KeyStatTile(label = "طبقه", value = floor, icon = DfIcons.Layers, modifier = Modifier.weight(1f))
+            KeyStatTile(label = "سال ساخت", value = yearBuilt, icon = DfIcons.Calendar, modifier = Modifier.weight(1f))
+        }
     }
 }
 
 @Composable
-private fun KeyStatCard(
+private fun KeyStatTile(
     label: String,
     value: String,
-    valueColor: Color = DfColors.TextPrimary,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         shape = AppShapes.Card,
         color = DfColors.Surface,
         shadowElevation = AppElevations.subtle,
@@ -234,24 +280,86 @@ private fun KeyStatCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = AppSpacing.sm, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = label,
-                style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = DfColors.Purple,
+                modifier = Modifier.size(16.dp),
             )
-            Text(
-                text = value,
-                style = AppTypography.bodyDescription,
-                fontWeight = FontWeight.Bold,
-                color = valueColor,
-                textAlign = TextAlign.End,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = AppTypography.labelSmall,
+                    color = DfColors.TextMuted,
+                )
+                Text(
+                    text = value,
+                    style = AppTypography.bodyDescription,
+                    fontWeight = FontWeight.Bold,
+                    color = DfColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Start,
+                )
+            }
         }
     }
 }
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ListingCoreAmenityRow(listing: ListingDetailDto) {
+    val chips = listOf(
+        AmenityChipSpec("پارکینگ", listing.hasParking, DfIcons.Car),
+        AmenityChipSpec("انباری", listing.hasStorage, DfIcons.Inbox),
+        AmenityChipSpec("آسانسور", listing.hasElevator, DfIcons.Layers),
+        AmenityChipSpec("بالکن", listing.hasBalcony, DfIcons.Home),
+        AmenityChipSpec("لابی", listing.hasLobby, DfIcons.Building),
+        AmenityChipSpec("استخر", listing.hasPool, DfIcons.Bath),
+        AmenityChipSpec("روف گاردن", listing.hasRoofGarden, DfIcons.Sparkles),
+        AmenityChipSpec("جکوزی", listing.hasJacuzzi, DfIcons.Bath),
+        AmenityChipSpec("سالن ورزش", listing.hasGym, DfIcons.Trophy),
+    ).filter { it.value != null }
+    if (chips.isEmpty()) return
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        chips.forEach { spec ->
+            val positive = spec.value == true
+            val color = if (positive) DfColors.Green else DfColors.TextMuted
+            val bg = if (positive) DfColors.GreenLight else DfColors.SurfaceVariant
+            Surface(shape = AppShapes.Chip, color = bg) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = spec.icon,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = "${spec.label}: ${ListingSpecUtils.boolFeatureLabel(spec.value)}",
+                        style = AppTypography.labelSmall,
+                        color = color,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class AmenityChipSpec(
+    val label: String,
+    val value: Boolean?,
+    val icon: ImageVector,
+)

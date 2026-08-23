@@ -119,11 +119,12 @@ fun DfSheetScaffold(
     iconTint: Color = DfColors.Purple,
     onClose: (() -> Unit)? = null,
     scrollable: Boolean = true,
+    bodyHeightFraction: Float = 0.52f,
     footer: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val configuration = LocalConfiguration.current
-    val maxBodyHeight = (configuration.screenHeightDp * 0.52f).dp
+    val maxBodyHeight = (configuration.screenHeightDp * bodyHeightFraction.coerceIn(0.35f, 0.86f)).dp
     val scrollState = rememberScrollState()
     Column(modifier = modifier.fillMaxWidth()) {
         DfSheetHeader(

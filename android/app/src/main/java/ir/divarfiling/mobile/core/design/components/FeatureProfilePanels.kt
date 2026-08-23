@@ -95,7 +95,7 @@ fun FeatureProfilePanels(
             if (core.isNotEmpty()) {
                 FeatureGroupPanel(
                     title = "مشخصات اصلی",
-                    iconRes = DfDecorIcons.Ruler,
+                    icon = DfIcons.Ruler,
                     items = core.map { item ->
                         FeatureRowItem(
                             label = item.label ?: item.key.orEmpty(),
@@ -112,7 +112,7 @@ fun FeatureProfilePanels(
         }.orEmpty().forEach { group ->
             FeatureGroupPanel(
                 title = group.title ?: "جزئیات",
-                iconRes = featureGroupIconRes(group.id, group.title),
+                icon = featureGroupIcon(group.id, group.title),
                 initiallyExpanded = false,
                 items = group.items
                     .filter { !it.value.isNullOrBlank() && it.value != "—" }
@@ -373,18 +373,17 @@ private fun formatFeatureItemValue(item: ListingFeatureItemDto): String {
     return item.value.orEmpty()
 }
 
-@DrawableRes
-private fun featureGroupIconRes(groupId: String?, title: String?): Int {
+private fun featureGroupIcon(groupId: String?, title: String?): ImageVector {
     val id = groupId?.lowercase().orEmpty()
     val t = title.orEmpty()
     return when {
-        id == "building" || "ساختمان" in t -> DfDecorIcons.Building
-        id == "comfort" || "رفاهی" in t || "امکانات" in t -> DfDecorIcons.LayoutGrid
-        id == "lifestyle" || "سکونت" in t -> DfDecorIcons.Users
-        id == "legal" || "سند" in t -> DfDecorIcons.FileText
-        id == "counts" || "تعداد" in t -> DfDecorIcons.ListTodo
-        id == "luxury" || "لوکس" in t -> DfDecorIcons.Sparkles
-        id == "exterior" || "نما" in t || "ابعاد" in t -> DfDecorIcons.Building
-        else -> DfDecorIcons.Layers
+        id == "building" || "ساختمان" in t -> DfIcons.Building
+        id == "comfort" || "رفاهی" in t || "امکانات" in t -> DfIcons.LayoutGrid
+        id == "lifestyle" || "سکونت" in t -> DfIcons.Users
+        id == "legal" || "سند" in t -> DfIcons.File
+        id == "counts" || "تعداد" in t -> DfIcons.List
+        id == "luxury" || "لوکس" in t -> DfIcons.Sparkles
+        id == "exterior" || "نما" in t || "ابعاد" in t -> DfIcons.Building
+        else -> DfIcons.Layers
     }
 }
