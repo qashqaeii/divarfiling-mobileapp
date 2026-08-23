@@ -185,15 +185,22 @@ class DatasetsViewModel @Inject constructor(
 
 data class ListingsUiState(
     val listings: List<ListingDto> = emptyList(),
+    val dataset: DatasetDto? = null,
     val datasetId: String? = null,
     val datasetName: String? = null,
+    val filteredTotal: Int? = null,
     val page: Int = 1,
     val hasMore: Boolean = false,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val isExporting: Boolean = false,
+    val isDatasetActionLoading: Boolean = false,
     val showExportSheet: Boolean = false,
+    val showRenameDialog: Boolean = false,
+    val renameDraft: String = "",
+    val pendingDeleteConsultants: Boolean = false,
+    val pendingDeleteDisguisedConsultants: Boolean = false,
     val exportMessage: String? = null,
     val error: String? = null,
     val successMessage: String? = null,
@@ -219,18 +226,23 @@ class ListingsViewModel @Inject constructor(
     private val routeDatasetId: String? = savedStateHandle.get<String>("datasetId")
 
     init {
-        routeDatasetId?.let { resolveDatasetName(it) }
+        routeDatasetId?.let { loadDataset(it) }
         loadSavedFilters()
     }
 
-    private fun resolveDatasetName(datasetId: String) {
+    private fun loadDataset(datasetId: String) {
         viewModelScope.launch {
-            when (val result = filingRepository.getDatasets()) {
-                is ApiResult.Success -> {
-                    val dataset = result.data.items.firstOrNull { it.id == datasetId }
-                    _uiState.update { it.copy(datasetId = datasetId, datasetName = dataset?.name) }
+            when (val result = filingRepository.getDataset(datasetId)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        datasetId = datasetId,
+                        dataset = result.data,
+                        datasetName = result.data.name,
+                    )
                 }
-                is ApiResult.Error -> Unit
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(datasetId = datasetId, error = result.message)
+                }
             }
         }
     }
@@ -276,6 +288,7 @@ class ListingsViewModel @Inject constructor(
                             listings = sorted,
                             page = page,
                             hasMore = result.data.hasMore,
+                            filteredTotal = result.data.total,
                             neighborhoods = result.data.neighborhoods.ifEmpty { it.neighborhoods },
                             isLoading = false,
                             isRefreshing = false,
@@ -298,6 +311,7 @@ class ListingsViewModel @Inject constructor(
 
     fun refresh(datasetId: String) {
         _uiState.update { it.copy(page = 1) }
+        loadDataset(datasetId)
         load(datasetId, reset = true)
         loadSavedFilters()
     }
@@ -395,6 +409,108 @@ class ListingsViewModel @Inject constructor(
     }
 
     fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null, exportMessage = null) }
+
+    fun openRenameDialog() {
+        val currentName = _uiState.value.dataset?.name ?: _uiState.value.datasetName.orEmpty()
+        _uiState.update { it.copy(showRenameDialog = true, renameDraft = currentName) }
+    }
+
+    fun dismissRenameDialog() = _uiState.update { it.copy(showRenameDialog = false) }
+
+    fun onRenameDraftChange(value: String) = _uiState.update { it.copy(renameDraft = value) }
+
+    fun confirmRename(datasetId: String) {
+        val name = _uiState.value.renameDraft.trim()
+        if (name.isBlank()) {
+            _uiState.update { it.copy(error = "نام فایل الزامی است") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDatasetActionLoading = true, error = null) }
+            when (val result = filingRepository.renameDataset(datasetId, name)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        dataset = result.data,
+                        datasetName = result.data.name,
+                        showRenameDialog = false,
+                        isDatasetActionLoading = false,
+                        successMessage = "نام فایل تغییر کرد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isDatasetActionLoading = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun requestDeleteConsultants() = _uiState.update { it.copy(pendingDeleteConsultants = true) }
+
+    fun requestDeleteDisguisedConsultants() = _uiState.update {
+        it.copy(pendingDeleteDisguisedConsultants = true)
+    }
+
+    fun dismissDeleteConsultantsConfirm() = _uiState.update {
+        it.copy(pendingDeleteConsultants = false, pendingDeleteDisguisedConsultants = false)
+    }
+
+    fun confirmDeleteConsultants(datasetId: String) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isDatasetActionLoading = true, pendingDeleteConsultants = false, error = null)
+            }
+            when (val result = filingRepository.deleteDatasetConsultants(datasetId)) {
+                is ApiResult.Success -> {
+                    val deleted = result.data.deletedCount
+                    _uiState.update {
+                        it.copy(
+                            dataset = result.data.dataset ?: it.dataset,
+                            datasetName = result.data.dataset?.name ?: it.datasetName,
+                            isDatasetActionLoading = false,
+                            successMessage = if (deleted > 0) {
+                                "${deleted} آگهی مشاور حذف شد"
+                            } else {
+                                "آگهی مشاوری برای حذف یافت نشد"
+                            },
+                        )
+                    }
+                    load(datasetId, reset = true)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isDatasetActionLoading = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun confirmDeleteDisguisedConsultants(datasetId: String) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isDatasetActionLoading = true, pendingDeleteDisguisedConsultants = false, error = null)
+            }
+            when (val result = filingRepository.deleteDatasetDisguisedConsultants(datasetId)) {
+                is ApiResult.Success -> {
+                    val deleted = result.data.deletedCount
+                    _uiState.update {
+                        it.copy(
+                            dataset = result.data.dataset ?: it.dataset,
+                            datasetName = result.data.dataset?.name ?: it.datasetName,
+                            isDatasetActionLoading = false,
+                            successMessage = if (deleted > 0) {
+                                "${deleted} آگهی مشاور پنهان حذف شد"
+                            } else {
+                                "آگهی مشاور پنهانی برای حذف یافت نشد"
+                            },
+                        )
+                    }
+                    load(datasetId, reset = true)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isDatasetActionLoading = false, error = result.message)
+                }
+            }
+        }
+    }
 
     fun openExportSheet() = _uiState.update { it.copy(showExportSheet = true) }
 

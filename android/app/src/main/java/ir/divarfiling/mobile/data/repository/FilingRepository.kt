@@ -3,6 +3,8 @@ package ir.divarfiling.mobile.data.repository
 import ir.divarfiling.mobile.core.database.CachedDatasetEntity
 import ir.divarfiling.mobile.core.database.DatasetCacheDao
 import ir.divarfiling.mobile.core.network.DatasetDto
+import ir.divarfiling.mobile.core.network.DatasetMutationResponse
+import ir.divarfiling.mobile.core.network.DatasetRenameRequest
 import ir.divarfiling.mobile.core.network.DatasetInsightsData
 import ir.divarfiling.mobile.core.network.DatasetMapData
 import ir.divarfiling.mobile.core.network.ListingDetailDto
@@ -49,6 +51,46 @@ class FilingRepository @Inject constructor(
                     return ApiResult.Success(PaginatedResult(cached, 1, cached.size, false))
                 }
             }
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun getDataset(datasetId: String): ApiResult<DatasetDto> {
+        return try {
+            val response = api.getDataset(datasetId)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در دریافت فایل")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun renameDataset(datasetId: String, name: String): ApiResult<DatasetDto> {
+        return try {
+            val response = api.renameDataset(datasetId, DatasetRenameRequest(name.trim()))
+            if (!response.ok) return ApiResult.Error(response.error ?: "تغییر نام ناموفق بود")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun deleteDatasetConsultants(datasetId: String): ApiResult<DatasetMutationResponse> {
+        return try {
+            val response = api.deleteDatasetConsultants(datasetId)
+            if (!response.ok) return ApiResult.Error(response.error ?: "حذف مشاورین ناموفق بود")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun deleteDatasetDisguisedConsultants(datasetId: String): ApiResult<DatasetMutationResponse> {
+        return try {
+            val response = api.deleteDatasetDisguisedConsultants(datasetId)
+            if (!response.ok) return ApiResult.Error(response.error ?: "حذف مشاور پنهان ناموفق بود")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
     }

@@ -329,6 +329,18 @@ interface MobileApi {
     @GET("filing/datasets/{id}")
     suspend fun getDataset(@Path("id") datasetId: String): ApiEnvelope
 
+    @PATCH("filing/datasets/{id}")
+    suspend fun renameDataset(
+        @Path("id") datasetId: String,
+        @Body body: DatasetRenameRequest,
+    ): ApiEnvelope
+
+    @POST("filing/datasets/{id}/delete-consultants")
+    suspend fun deleteDatasetConsultants(@Path("id") datasetId: String): ApiEnvelope
+
+    @POST("filing/datasets/{id}/delete-disguised-consultants")
+    suspend fun deleteDatasetDisguisedConsultants(@Path("id") datasetId: String): ApiEnvelope
+
     @DELETE("filing/datasets/{id}")
     suspend fun deleteDataset(@Path("id") datasetId: String): ApiEnvelope
 

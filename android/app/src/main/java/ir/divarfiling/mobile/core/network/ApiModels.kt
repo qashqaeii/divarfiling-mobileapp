@@ -425,8 +425,25 @@ data class DatasetDto(
     @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
     @SerialName("thumbnail_urls") val thumbnailUrls: List<String> = emptyList(),
     @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("last_opened_at") val lastOpenedAt: String? = null,
+    @SerialName("genuine_personal_count") val genuinePersonalCount: Int = 0,
+    @SerialName("disguised_consultant_count") val disguisedConsultantCount: Int = 0,
+    @SerialName("consultant_count") val consultantCount: Int = 0,
+    @SerialName("personal_other_count") val personalOtherCount: Int = 0,
     @SerialName("original_filename") val originalFilename: String? = null,
     @SerialName("file_format") val fileFormat: String? = null,
+)
+
+@Serializable
+data class DatasetRenameRequest(
+    val name: String,
+)
+
+@Serializable
+data class DatasetMutationResponse(
+    val dataset: DatasetDto? = null,
+    @SerialName("deleted_count") val deletedCount: Int = 0,
 )
 
 @Serializable
@@ -460,6 +477,9 @@ data class ListingDto(
     @SerialName("has_parking") val hasParking: Boolean? = null,
     @SerialName("has_storage") val hasStorage: Boolean? = null,
     @SerialName("has_elevator") val hasElevator: Boolean? = null,
+    @SerialName("value_score") val valueScore: Double? = null,
+    @SerialName("market_tier") val marketTier: String? = null,
+    val verdict: String? = null,
 )
 
 @Serializable

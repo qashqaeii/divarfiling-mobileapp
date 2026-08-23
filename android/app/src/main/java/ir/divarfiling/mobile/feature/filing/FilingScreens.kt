@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.feature.filing
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,7 +14,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -52,6 +57,9 @@ import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.feature.filing.components.DatasetQuickActionsRow
+import ir.divarfiling.mobile.feature.filing.components.DatasetSummaryCard
 import ir.divarfiling.mobile.feature.filing.components.FilingCategoryTabsRow
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetCard
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetFilters
@@ -268,9 +276,13 @@ fun ListingsScreen(
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     var showFilters by remember { mutableStateOf(false) }
+    var showDatasetMenu by remember { mutableStateOf(false) }
     val filterCount = activeListingFilterCount(state.filters)
+    val dataset = state.dataset
 
-    LaunchedEffect(datasetId) { viewModel.load(datasetId) }
+    LaunchedEffect(datasetId) {
+        viewModel.load(datasetId)
+    }
 
     LaunchedEffect(state.exportMessage, state.error, state.successMessage) {
         state.exportMessage?.let {
@@ -285,6 +297,69 @@ fun ListingsScreen(
             snackbar.showSnackbar(it)
             viewModel.clearMessage()
         }
+    }
+
+    if (state.showRenameDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissRenameDialog,
+            title = { Text("تغییر نام فایل") },
+            text = {
+                OutlinedTextField(
+                    value = state.renameDraft,
+                    onValueChange = viewModel::onRenameDraftChange,
+                    label = { Text("نام فایل") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.confirmRename(datasetId) },
+                    enabled = !state.isDatasetActionLoading,
+                ) {
+                    Text(if (state.isDatasetActionLoading) "در حال ذخیره…" else "ذخیره")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissRenameDialog) { Text("انصراف") }
+            },
+        )
+    }
+
+    if (state.pendingDeleteConsultants) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDeleteConsultantsConfirm,
+            title = { Text("حذف آگهی‌های مشاور") },
+            text = {
+                Text("آگهی‌های مشاور از این فایل حذف می‌شوند. این عمل قابل بازگشت نیست.")
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmDeleteConsultants(datasetId) }) {
+                    Text("حذف")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDeleteConsultantsConfirm) { Text("انصراف") }
+            },
+        )
+    }
+
+    if (state.pendingDeleteDisguisedConsultants) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDeleteConsultantsConfirm,
+            title = { Text("حذف آگهی‌های مشاور پنهان") },
+            text = {
+                Text("آگهی‌های مشاور پنهان از این فایل حذف می‌شوند. این عمل قابل بازگشت نیست.")
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmDeleteDisguisedConsultants(datasetId) }) {
+                    Text("حذف")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDeleteConsultantsConfirm) { Text("انصراف") }
+            },
+        )
     }
 
     if (state.showSaveFilterDialog) {
@@ -346,26 +421,62 @@ fun ListingsScreen(
                         sectionLabel = DfHeaderSections.FILING,
                         titleIconRes = DfDecorIcons.Building,
                         onBack = onBack,
+                        toolbarContent = {
+                            Box {
+                                IconButton(onClick = { showDatasetMenu = true }) {
+                                    Icon(
+                                        imageVector = DfIcons.MoreVertical,
+                                        contentDescription = "عملیات فایل",
+                                        tint = DfThemeColors.textSecondary(),
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = showDatasetMenu,
+                                    onDismissRequest = { showDatasetMenu = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("تغییر نام") },
+                                        onClick = {
+                                            showDatasetMenu = false
+                                            viewModel.openRenameDialog()
+                                        },
+                                    )
+                                    if ((dataset?.consultantCount ?: 0) > 0) {
+                                        DropdownMenuItem(
+                                            text = { Text("حذف آگهی‌های مشاور") },
+                                            onClick = {
+                                                showDatasetMenu = false
+                                                viewModel.requestDeleteConsultants()
+                                            },
+                                        )
+                                    }
+                                    if ((dataset?.disguisedConsultantCount ?: 0) > 0) {
+                                        DropdownMenuItem(
+                                            text = { Text("حذف آگهی‌های مشاور پنهان") },
+                                            onClick = {
+                                                showDatasetMenu = false
+                                                viewModel.requestDeleteDisguisedConsultants()
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        },
                     )
                 }
                 item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppSpacing.screenHorizontal),
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    ) {
-                        DfSecondaryButton(
-                            text = "تحلیل فایل",
-                            onClick = onInsights,
-                            modifier = Modifier.weight(1f),
-                        )
-                        DfSecondaryButton(
-                            text = "نقشه",
-                            onClick = onMap,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
+                    DatasetSummaryCard(
+                        dataset = dataset,
+                        filteredCount = state.filteredTotal,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+                item {
+                    DatasetQuickActionsRow(
+                        onInsights = onInsights,
+                        onMap = onMap,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
                 }
                 item {
                     DfExportLinkButton(
