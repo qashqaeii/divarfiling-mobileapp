@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.crm
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,8 @@ import ir.divarfiling.mobile.feature.crm.components.TodayNewTaskSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
+import ir.divarfiling.mobile.core.design.components.DfMoreAction
+import ir.divarfiling.mobile.core.design.components.DfMoreActionsSheet
 import ir.divarfiling.mobile.feature.crm.components.ContactsHeader
 import ir.divarfiling.mobile.feature.crm.components.ContactsSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
@@ -63,23 +66,28 @@ import ir.divarfiling.mobile.feature.crm.components.CrmQuickActionsBar
 import ir.divarfiling.mobile.feature.crm.components.CrmTodayIllustration
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfHaptics
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.feature.crm.components.CrmContactsIllustration
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
@@ -117,6 +125,7 @@ fun ContactsScreen(
     var quickFilter by remember { mutableStateOf(ContactsFilters.QuickFilter.ALL) }
     var showSaveFilterDialog by remember { mutableStateOf(false) }
     var saveFilterName by remember { mutableStateOf("") }
+    var showCreateMenu by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val snackbar = remember { SnackbarHostState() }
     val haptics = DfHaptics.rememberPerformer()
@@ -238,7 +247,7 @@ fun ContactsScreen(
             DfExtendedFab(
                 text = if (ownerMode) "مالک جدید" else "مخاطب جدید",
                 icon = DfIcons.UserPlus,
-                onClick = { viewModel.toggleQuickLead(true) },
+                onClick = { showCreateMenu = true },
             )
         },
     ) { padding ->
@@ -272,22 +281,40 @@ fun ContactsScreen(
                 }
                 if (ownerMode) {
                     item {
-                        DfCard(
+                        Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = AppSpacing.screenHorizontal),
+                            shape = AppShapes.CardSmall,
+                            color = DfThemeColors.infoContainer(),
+                            border = BorderStroke(1.dp, DfThemeColors.info().copy(alpha = 0.22f)),
+                            shadowElevation = 0.dp,
+                            tonalElevation = 0.dp,
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                                Text(
-                                    "نمای مالکین",
-                                    style = AppTypography.cardTitle,
-                                    color = DfColors.TextPrimary,
+                            Row(
+                                modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = DfIcons.KeyRound,
+                                    contentDescription = null,
+                                    tint = DfThemeColors.info(),
+                                    modifier = Modifier.size(18.dp),
                                 )
-                                Text(
-                                    "این بخش فقط مخاطب‌هایی را نشان می‌دهد که در CRM با نقش مالک ثبت شده‌اند تا پیگیری و لینک‌کردن آن‌ها سریع‌تر باشد.",
-                                    style = AppTypography.bodyDescription,
-                                    color = DfColors.TextMuted,
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        "نمای مالکین",
+                                        style = AppTypography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = DfThemeColors.textPrimary(),
+                                    )
+                                    Text(
+                                        "فقط مخاطب‌هایی با نقش مالک در این فهرست هستند.",
+                                        style = AppTypography.labelSmall,
+                                        color = DfThemeColors.textMuted(),
+                                    )
+                                }
                             }
                         }
                     }
@@ -300,6 +327,29 @@ fun ContactsScreen(
                         totalCount = ContactsFilters.totalCount(state.contacts),
                         selectedFilter = quickFilter,
                         onFilterSelect = { quickFilter = it },
+                    )
+                }
+                item {
+                    ContactsToolsPanel(
+                        onDownloadTemplate = {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT_TEMPLATE),
+                                ),
+                            )
+                        },
+                        onBulkImport = {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT),
+                                ),
+                            )
+                        },
+                        onExportClick = viewModel::openExportSheet,
+                        exportPreviewCount = filteredContacts.size,
+                        hasActiveFilters = hasActiveListFilters,
                     )
                 }
                 item {
@@ -327,29 +377,6 @@ fun ContactsScreen(
                                 if (type == ContactsFilters.ALL_TYPES) null else type,
                             )
                         },
-                    )
-                }
-                item {
-                    ContactsToolsPanel(
-                        onDownloadTemplate = {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT_TEMPLATE),
-                                ),
-                            )
-                        },
-                        onBulkImport = {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT),
-                                ),
-                            )
-                        },
-                        onExportClick = viewModel::openExportSheet,
-                        exportPreviewCount = filteredContacts.size,
-                        hasActiveFilters = hasActiveListFilters,
                     )
                 }
                 if (hasSavableCriteria) {
@@ -415,7 +442,7 @@ fun ContactsScreen(
                             },
                             variant = if (state.contacts.isEmpty()) DfEmptyVariant.Empty else DfEmptyVariant.NoResults,
                             actionLabel = if (ownerMode) "مالک جدید" else "مخاطب جدید",
-                            onAction = { viewModel.toggleQuickLead(true) },
+                            onAction = { showCreateMenu = true },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -450,6 +477,11 @@ fun ContactsScreen(
                                     }
                                 }
                             },
+                            onSmsClick = {
+                                contact.phone?.let { phone ->
+                                    DossierShareActions.openSms(context, "سلام", phone)
+                                }
+                            },
                             onWhatsAppClick = {
                                 contact.phone?.let { phone ->
                                     DossierShareActions.openWhatsApp(context, "سلام", phone)
@@ -479,16 +511,54 @@ fun ContactsScreen(
         }
     }
 
+    DfMoreActionsSheet(
+        visible = showCreateMenu,
+        onDismiss = { showCreateMenu = false },
+        title = if (ownerMode) "مالک جدید" else "مخاطب جدید",
+        actions = buildList {
+            add(
+                DfMoreAction(
+                    label = "ثبت سریع",
+                    onClick = {
+                        viewModel.toggleQuickLead(true, if (ownerMode) "مالک" else "سرنخ")
+                    },
+                    icon = DfIcons.UserPlus,
+                ),
+            )
+            add(DfMoreAction("خریدار", { viewModel.toggleQuickLead(true, "خریدار") }, DfIcons.Handshake))
+            add(DfMoreAction("فروشنده", { viewModel.toggleQuickLead(true, "فروشنده") }, DfIcons.Tag))
+            add(DfMoreAction("مالک", { viewModel.toggleQuickLead(true, "مالک") }, DfIcons.KeyRound))
+            add(DfMoreAction("مستاجر", { viewModel.toggleQuickLead(true, "مستاجر") }, DfIcons.Bed))
+            add(DfMoreAction("سازنده", { viewModel.toggleQuickLead(true, "سازنده") }, DfIcons.Building))
+            add(DfMoreAction("سرمایه‌گذار", { viewModel.toggleQuickLead(true, "سرمایه‌گذار") }, DfIcons.Coins))
+            add(
+                DfMoreAction(
+                    label = "ورود گروهی از فایل",
+                    onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT)),
+                        )
+                    },
+                    icon = DfIcons.Upload,
+                ),
+            )
+        },
+    )
+
     if (state.showQuickLead) {
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleQuickLead(false) }) {
             ContactQuickLeadSheet(
                 name = state.leadName,
                 phone = state.leadPhone,
                 customerType = state.leadCustomerType,
+                source = state.leadSource,
+                notes = state.leadNotes,
                 isSubmitting = state.isSubmitting,
                 onNameChange = viewModel::onLeadNameChange,
                 onPhoneChange = viewModel::onLeadPhoneChange,
                 onCustomerTypeChange = viewModel::onLeadCustomerTypeChange,
+                onSourceChange = viewModel::onLeadSourceChange,
+                onNotesChange = viewModel::onLeadNotesChange,
                 onSubmit = viewModel::submitQuickLead,
                 onDismiss = { viewModel.toggleQuickLead(false) },
             )

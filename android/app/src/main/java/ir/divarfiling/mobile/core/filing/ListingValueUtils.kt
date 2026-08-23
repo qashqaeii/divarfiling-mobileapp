@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.core.filing
 
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.network.ListingMarketBenchmarkDto
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -22,12 +23,23 @@ data class ListingValuePresentation(
 object ListingValueUtils {
     private const val THRESHOLD = 12
 
-    fun presentationFor(listing: ListingDto): ListingValuePresentation? {
-        val score = listing.valueScore ?: return null
-        if (score.isNaN()) return null
-        val tier = tierFrom(listing.marketTier, score)
+    fun presentationFor(listing: ListingDto): ListingValuePresentation? =
+        presentationFor(listing.valueScore, listing.marketTier, listing.verdict)
+
+    fun presentationFor(
+        score: Double?,
+        marketTier: String? = null,
+        verdict: String? = null,
+    ): ListingValuePresentation? {
+        if (score == null || score.isNaN()) return null
+        val tier = tierFrom(marketTier, score)
         if (tier == ListingMarketTier.Unknown) return null
-        return buildPresentation(tier, score, listing.verdict)
+        return buildPresentation(tier, score, verdict)
+    }
+
+    fun presentationFor(market: ListingMarketBenchmarkDto?): ListingValuePresentation? {
+        market ?: return null
+        return presentationFor(market.valueScore ?: market.diffPct, market.marketTier, market.shortVerdict)
     }
 
     fun tierFrom(marketTier: String?, score: Double): ListingMarketTier {
@@ -66,12 +78,15 @@ object ListingValueUtils {
                 detailLabel = persianPercent?.let { "$it٪ بالای بازار" } ?: "بالای بازار",
                 percent = percent,
             )
-            ListingMarketTier.Fair -> ListingValuePresentation(
-                tier = tier,
-                shortLabel = verdict?.takeIf { it.isNotBlank() } ?: "متعارف",
-                detailLabel = "متعارف",
-                percent = null,
-            )
+            ListingMarketTier.Fair -> {
+                val label = verdict?.takeIf { it.isNotBlank() } ?: "متعادل"
+                ListingValuePresentation(
+                    tier = tier,
+                    shortLabel = label,
+                    detailLabel = persianPercent?.let { "$label · $it٪ اختلاف" } ?: label,
+                    percent = percent,
+                )
+            }
             ListingMarketTier.Unknown -> ListingValuePresentation(
                 tier = tier,
                 shortLabel = "—",

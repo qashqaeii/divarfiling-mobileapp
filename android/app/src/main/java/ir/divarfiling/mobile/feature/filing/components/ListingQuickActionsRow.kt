@@ -51,6 +51,7 @@ fun ListingQuickActionsRow(
     onSetReminder: () -> Unit,
     onSaveAsPersonal: () -> Unit,
     onOpenAi: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
     showSaveAsPersonal: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
@@ -91,6 +92,7 @@ fun ListingQuickActionsRow(
         if (showSaveAsPersonal) add(DfMoreAction("ذخیره شخصی", onSaveAsPersonal, DfIcons.ClipboardList))
         onOpenAi?.let { add(DfMoreAction("دستیار AI", it, DfIcons.Sparkles)) }
         onOpenDivar?.let { add(DfMoreAction("مشاهده در دیوار", it, DfIcons.ExternalLink)) }
+        onDelete?.let { add(DfMoreAction("حذف آگهی", it, DfIcons.Trash, destructive = true)) }
     }
 
     Surface(

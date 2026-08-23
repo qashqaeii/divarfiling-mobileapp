@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.ApiResult
+import ir.divarfiling.mobile.data.repository.AuthRepository
 import ir.divarfiling.mobile.data.repository.DashboardRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,11 +19,13 @@ data class MoreHubUiState(
     val notificationBadgeCount: Int = 0,
     val teamUnreadCount: Int = 0,
     val isRefreshing: Boolean = false,
+    val isLoggingOut: Boolean = false,
 )
 
 @HiltViewModel
 class MoreHubViewModel @Inject constructor(
     sessionStore: SessionStore,
+    private val authRepository: AuthRepository,
     private val dashboardRepository: DashboardRepository,
     private val teamRepository: ir.divarfiling.mobile.data.repository.TeamRepository,
 ) : ViewModel() {
@@ -63,6 +66,15 @@ class MoreHubViewModel @Inject constructor(
                     it.copy(teamUnreadCount = teamUnread, isRefreshing = false)
                 }
             }
+        }
+    }
+
+    fun logout(onDone: () -> Unit) {
+        if (_uiState.value.isLoggingOut) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoggingOut = true) }
+            authRepository.logout()
+            onDone()
         }
     }
 }

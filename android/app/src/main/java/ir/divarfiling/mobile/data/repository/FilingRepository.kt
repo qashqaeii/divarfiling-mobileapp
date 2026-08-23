@@ -156,6 +156,16 @@ class FilingRepository @Inject constructor(
         }
     }
 
+    suspend fun deleteListing(token: String): ApiResult<Unit> {
+        return try {
+            val response = api.deleteListing(token)
+            if (!response.ok) return ApiResult.Error(response.error ?: "حذف آگهی ناموفق بود")
+            ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
     suspend fun updateListing(token: String, request: ListingUpdateRequest): ApiResult<ListingDetailDto> {
         return try {
             val response = api.updateListing(token, request)

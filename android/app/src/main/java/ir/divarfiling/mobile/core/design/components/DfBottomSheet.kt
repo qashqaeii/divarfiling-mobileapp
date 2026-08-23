@@ -388,12 +388,27 @@ fun DfSheetOptionRow(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     trailing: String? = null,
+    destructive: Boolean = false,
 ) {
+    val accent = when {
+        destructive -> DfColors.OverdueAccent
+        selected -> DfColors.Purple
+        else -> DfColors.TextPrimary
+    }
+    val iconTint = when {
+        destructive -> DfColors.OverdueAccent
+        selected -> DfColors.Purple
+        else -> DfColors.TextMuted
+    }
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Chip,
-        color = if (selected) DfColors.PurpleContainer.copy(alpha = 0.65f) else DfColors.SurfaceVariant.copy(alpha = 0.5f),
+        color = when {
+            destructive -> DfColors.RoseLight.copy(alpha = 0.7f)
+            selected -> DfColors.PurpleContainer.copy(alpha = 0.65f)
+            else -> DfColors.SurfaceVariant.copy(alpha = 0.5f)
+        },
     ) {
         Row(
             modifier = Modifier
@@ -410,7 +425,7 @@ fun DfSheetOptionRow(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = if (selected) DfColors.Purple else DfColors.TextMuted,
+                        tint = iconTint,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -418,7 +433,7 @@ fun DfSheetOptionRow(
                     text = label,
                     style = AppTypography.bodyDescription,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (selected) DfColors.Purple else DfColors.TextPrimary,
+                    color = accent,
                 )
             }
             trailing?.let {
@@ -438,6 +453,7 @@ data class DfMoreAction(
     val label: String,
     val onClick: () -> Unit,
     val icon: ImageVector? = null,
+    val destructive: Boolean = false,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -471,6 +487,7 @@ fun DfMoreActionsSheet(
                         action.onClick()
                     },
                     icon = action.icon,
+                    destructive = action.destructive,
                 )
             }
         }

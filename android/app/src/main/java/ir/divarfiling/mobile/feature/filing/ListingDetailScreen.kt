@@ -7,6 +7,7 @@ import ir.divarfiling.mobile.core.design.components.DossierShareSheet
 import ir.divarfiling.mobile.core.share.DossierShareActions
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 
@@ -54,7 +55,7 @@ import ir.divarfiling.mobile.feature.filing.components.ListingAiSummarySection
 import ir.divarfiling.mobile.feature.filing.components.ListingContactsSection
 import ir.divarfiling.mobile.feature.filing.components.ListingNotesSection
 import ir.divarfiling.mobile.feature.filing.components.ListingNotesSheet
-import ir.divarfiling.mobile.feature.filing.components.ListingOwnerContactSection
+import ir.divarfiling.mobile.feature.filing.components.ListingMarketBenchmarkCard
 import ir.divarfiling.mobile.feature.filing.components.ListingOwnerPhoneSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingQuickActionsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingSpecsCard
@@ -155,6 +156,7 @@ fun ListingDetailScreen(
                         onSetReminder = viewModel::openReminderSheet,
                         onSaveAsPersonal = viewModel::saveAsPersonalProperty,
                         onOpenAi = { onOpenAi(listing.token) },
+                        onDelete = viewModel::requestDelete,
                         onEditNotes = viewModel::openNotesSheet,
                         onGenerateSummary = viewModel::summarizeListing,
                         onCopySummary = {
@@ -406,6 +408,20 @@ fun ListingDetailScreen(
             )
         }
     }
+
+    if (state.showDeleteDialog) {
+        DfConfirmBottomSheet(
+            title = "حذف آگهی",
+            message = "این آگهی از فایلینگ حذف می‌شود و قابل بازگشت نیست. ادامه می‌دهید؟",
+            confirmText = "حذف آگهی",
+            cancelText = "انصراف",
+            destructive = true,
+            isSubmitting = state.isDeleting,
+            icon = DfIcons.Trash,
+            onConfirm = { viewModel.deleteListing(onBack) },
+            onDismiss = viewModel::dismissDeleteDialog,
+        )
+    }
 }
 
 @Composable
@@ -426,6 +442,7 @@ private fun ListingDetailContent(
     onSetReminder: () -> Unit,
     onSaveAsPersonal: () -> Unit,
     onOpenAi: () -> Unit,
+    onDelete: () -> Unit,
     onEditNotes: () -> Unit,
     onGenerateSummary: () -> Unit,
     onCopySummary: () -> Unit,
@@ -474,6 +491,7 @@ private fun ListingDetailContent(
                             onSetReminder = onSetReminder,
                             onSaveAsPersonal = onSaveAsPersonal,
                             onOpenAi = onOpenAi,
+                            onDelete = onDelete,
                             showSaveAsPersonal = false,
                         )
                     },
@@ -487,32 +505,13 @@ private fun ListingDetailContent(
                 )
             }
 
-            val ownerPhone = listing.ownerPhone.orEmpty().trim()
-            if (ownerPhone.isNotBlank()) {
+            if (listing.market != null) {
                 item {
-                    ListingOwnerContactSection(
-                        name = listing.ownerName.orEmpty(),
-                        phone = ownerPhone,
-                        onCall = { DossierShareActions.dial(context, ownerPhone) },
-                        onSms = { DossierShareActions.openSms(context, "سلام", ownerPhone) },
-                        onWhatsApp = { DossierShareActions.openWhatsApp(context, "سلام", ownerPhone) },
-                        onBale = { DossierShareActions.openBale(context, "سلام", ownerPhone) },
-                        onEdit = onOwnerPhone,
+                    ListingMarketBenchmarkCard(
+                        market = listing.market,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
-            }
-
-            item {
-                ListingAiSummarySection(
-                    summary = aiSummary,
-                    isLoading = isSummarizing,
-                    isFallback = aiIsFallback,
-                    onGenerate = onGenerateSummary,
-                    onCopy = onCopySummary,
-                    onOpenAssistant = onOpenAi,
-                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                )
             }
 
             item {
@@ -526,10 +525,20 @@ private fun ListingDetailContent(
             item {
                 ListingContactsSection(
                     contacts = listing.linkedContacts,
+                    ownerName = listing.ownerName.orEmpty(),
+                    ownerPhone = listing.ownerPhone.orEmpty(),
+                    tenantName = listing.tenantName.orEmpty(),
+                    tenantPhone = listing.tenantPhone.orEmpty(),
+                    isVacant = listing.isVacant,
                     onAdd = onSendToContact,
                     onContactClick = onOpenContact,
                     onCall = onCallContact,
+                    onSms = { phone -> DossierShareActions.openSms(context, "سلام", phone) },
+                    onWhatsApp = { phone -> DossierShareActions.openWhatsApp(context, "سلام", phone) },
+                    onBale = { phone -> DossierShareActions.openBale(context, "سلام", phone) },
                     onUnlink = onUnlinkContact,
+                    onEditOwner = onOwnerPhone,
+                    onEditTenant = onEdit,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
@@ -567,6 +576,18 @@ private fun ListingDetailContent(
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
+            }
+
+            item {
+                ListingAiSummarySection(
+                    summary = aiSummary,
+                    isLoading = isSummarizing,
+                    isFallback = aiIsFallback,
+                    onGenerate = onGenerateSummary,
+                    onCopy = onCopySummary,
+                    onOpenAssistant = onOpenAi,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
             }
     }
 }

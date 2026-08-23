@@ -1077,6 +1077,29 @@ data class ListingDetailDto(
     @SerialName("transaction_type") val transactionType: String? = null,
     val meta: ListingMetaDto? = null,
     @SerialName("linked_contacts") val linkedContacts: List<ListingLinkedContactDto> = emptyList(),
+    val market: ListingMarketBenchmarkDto? = null,
+    @SerialName("value_score") val valueScore: Double? = null,
+    @SerialName("market_tier") val marketTier: String? = null,
+    val verdict: String? = null,
+)
+
+@Serializable
+data class ListingMarketBenchmarkDto(
+    @SerialName("value_score") val valueScore: Double? = null,
+    @SerialName("market_tier") val marketTier: String? = null,
+    @SerialName("short_verdict") val shortVerdict: String = "",
+    val verdict: String = "",
+    val label: String = "",
+    val metric: String = "",
+    @SerialName("listing_metric") val listingMetric: Double? = null,
+    @SerialName("listing_metric_fmt") val listingMetricFmt: String = "",
+    @SerialName("market_median") val marketMedian: Double? = null,
+    @SerialName("market_median_fmt") val marketMedianFmt: String = "",
+    @SerialName("diff_pct") val diffPct: Double? = null,
+    @SerialName("diff_amount") val diffAmount: Double? = null,
+    @SerialName("diff_amount_fmt") val diffAmountFmt: String = "",
+    @SerialName("sample_count") val sampleCount: Int = 0,
+    val note: String = "",
 )
 
 @Serializable

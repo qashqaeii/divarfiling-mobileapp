@@ -40,6 +40,8 @@ data class ContactsUiState(
     val leadName: String = "",
     val leadPhone: String = "",
     val leadCustomerType: String = "سرنخ",
+    val leadSource: String = "موبایل",
+    val leadNotes: String = "",
     val isExporting: Boolean = false,
     val showExportSheet: Boolean = false,
     val exportMessage: String? = null,
@@ -236,17 +238,26 @@ class ContactsViewModel @Inject constructor(
         load(reset = true)
     }
 
-    fun toggleQuickLead(show: Boolean) = _uiState.update {
+    fun toggleQuickLead(show: Boolean, customerType: String? = null) = _uiState.update {
+        val defaultType = initialCustomerType ?: "سرنخ"
         it.copy(
             showQuickLead = show,
             leadName = if (show) it.leadName else "",
             leadPhone = if (show) it.leadPhone else "",
-            leadCustomerType = if (show) it.leadCustomerType else "سرنخ",
+            leadCustomerType = when {
+                !show -> defaultType
+                !customerType.isNullOrBlank() -> customerType
+                else -> it.leadCustomerType.ifBlank { defaultType }
+            },
+            leadSource = if (show) it.leadSource.ifBlank { "موبایل" } else "موبایل",
+            leadNotes = if (show) it.leadNotes else "",
         )
     }
     fun onLeadNameChange(v: String) = _uiState.update { it.copy(leadName = v) }
     fun onLeadPhoneChange(v: String) = _uiState.update { it.copy(leadPhone = v) }
     fun onLeadCustomerTypeChange(v: String) = _uiState.update { it.copy(leadCustomerType = v) }
+    fun onLeadSourceChange(v: String) = _uiState.update { it.copy(leadSource = v) }
+    fun onLeadNotesChange(v: String) = _uiState.update { it.copy(leadNotes = v) }
 
     fun submitQuickLead() {
         val state = _uiState.value
@@ -259,10 +270,18 @@ class ContactsViewModel @Inject constructor(
             when (val result = crmRepository.quickLead(state.leadName, state.leadPhone)) {
                 is ApiResult.Success -> {
                     val created = result.data
-                    if (state.leadCustomerType.isNotBlank() && state.leadCustomerType != "سرنخ") {
+                    val defaultType = initialCustomerType ?: "سرنخ"
+                    val type = state.leadCustomerType.ifBlank { defaultType }
+                    val source = state.leadSource.ifBlank { "موبایل" }
+                    val notes = state.leadNotes.trim()
+                    if (type.isNotBlank() || source.isNotBlank() || notes.isNotBlank()) {
                         crmRepository.updateContact(
                             created.id,
-                            ContactUpdateRequest(customerType = state.leadCustomerType),
+                            ContactUpdateRequest(
+                                customerType = type.takeIf { it.isNotBlank() },
+                                source = source.takeIf { it.isNotBlank() },
+                                notes = notes.takeIf { it.isNotBlank() },
+                            ),
                         )
                     }
                     _uiState.update {
@@ -270,7 +289,9 @@ class ContactsViewModel @Inject constructor(
                             showQuickLead = false,
                             leadName = "",
                             leadPhone = "",
-                            leadCustomerType = "سرنخ",
+                            leadCustomerType = defaultType,
+                            leadSource = "موبایل",
+                            leadNotes = "",
                             isSubmitting = false,
                         )
                     }

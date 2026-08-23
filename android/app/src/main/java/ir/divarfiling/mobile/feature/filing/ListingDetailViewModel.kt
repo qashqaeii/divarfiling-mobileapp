@@ -123,6 +123,8 @@ data class ListingDetailUiState(
     val aiSummary: String = "",
     val isSummarizing: Boolean = false,
     val aiIsFallback: Boolean = false,
+    val showDeleteDialog: Boolean = false,
+    val isDeleting: Boolean = false,
 )
 
 @HiltViewModel
@@ -707,6 +709,35 @@ class ListingDetailViewModel @Inject constructor(
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSavingProperty = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun requestDelete() {
+        _uiState.update { it.copy(showDeleteDialog = true, error = null) }
+    }
+
+    fun dismissDeleteDialog() {
+        if (_uiState.value.isDeleting) return
+        _uiState.update { it.copy(showDeleteDialog = false) }
+    }
+
+    fun deleteListing(onDeleted: () -> Unit) {
+        if (_uiState.value.isDeleting) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeleting = true, error = null) }
+            when (val result = filingRepository.deleteListing(token)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isDeleting = false, showDeleteDialog = false) }
+                    onDeleted()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(
+                        isDeleting = false,
+                        showDeleteDialog = false,
+                        error = result.message,
+                    )
                 }
             }
         }

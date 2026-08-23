@@ -1,6 +1,5 @@
 package ir.divarfiling.mobile.feature.crm.components
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,20 +16,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.components.DfDecorIconBox
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
-import java.text.NumberFormat
-import java.util.Locale
 
 @Composable
 fun ContactsStatsRow(
@@ -42,40 +38,11 @@ fun ContactsStatsRow(
     onFilterSelect: (ContactsFilters.QuickFilter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val numberFormat = NumberFormat.getNumberInstance(Locale("fa", "IR"))
     val stats = listOf(
-        ContactsStatItem(
-            label = "کل مخاطبین",
-            value = numberFormat.format(totalCount),
-            accent = DfColors.Purple,
-            container = DfColors.PurpleContainer,
-            iconRes = DfDecorIcons.Users,
-            filter = ContactsFilters.QuickFilter.ALL,
-        ),
-        ContactsStatItem(
-            label = "در پیگیری",
-            value = numberFormat.format(followUpCount),
-            accent = DfColors.Green,
-            container = DfColors.GreenLight,
-            icon = DfIcons.RefreshCw,
-            filter = ContactsFilters.QuickFilter.FOLLOW_UP,
-        ),
-        ContactsStatItem(
-            label = "سرنخ جدید",
-            value = numberFormat.format(newCount),
-            accent = DfColors.Blue,
-            container = DfColors.BlueLight,
-            icon = DfIcons.UserPlus,
-            filter = ContactsFilters.QuickFilter.NEW,
-        ),
-        ContactsStatItem(
-            label = "به‌روز امروز",
-            value = numberFormat.format(todayCount),
-            accent = DfColors.Amber,
-            container = DfColors.AmberLight,
-            icon = DfIcons.Calendar,
-            filter = ContactsFilters.QuickFilter.TODAY,
-        ),
+        ContactsStatItem("کل", totalCount, DfThemeColors.primary(), DfThemeColors.primaryContainer(), DfIcons.Users, ContactsFilters.QuickFilter.ALL),
+        ContactsStatItem("پیگیری", followUpCount, DfThemeColors.success(), DfThemeColors.successContainer(), DfIcons.RefreshCw, ContactsFilters.QuickFilter.FOLLOW_UP),
+        ContactsStatItem("جدید", newCount, DfThemeColors.info(), DfThemeColors.infoContainer(), DfIcons.UserPlus, ContactsFilters.QuickFilter.NEW),
+        ContactsStatItem("امروز", todayCount, DfThemeColors.warning(), DfThemeColors.warningContainer(), DfIcons.Calendar, ContactsFilters.QuickFilter.TODAY),
     )
 
     Column(
@@ -91,42 +58,37 @@ fun ContactsStatsRow(
         ) {
             Text(
                 text = "نمای کلی",
-                style = AppTypography.cardTitle,
-                fontWeight = FontWeight.Bold,
-                color = DfColors.TextPrimary,
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textPrimary(),
             )
             if (selectedFilter != ContactsFilters.QuickFilter.ALL) {
                 Text(
-                    text = "فیلتر فعال · لمس برای حذف",
+                    text = "برای برداشتن فیلتر دوباره لمس کنید",
                     style = AppTypography.labelSmall,
-                    color = DfColors.Purple,
+                    color = DfThemeColors.primary(),
                 )
             }
         }
-
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            stats.chunked(2).forEach { rowItems ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    rowItems.forEach { stat ->
-                        ContactsStatCard(
-                            stat = stat,
-                            selected = selectedFilter == stat.filter,
-                            onClick = {
-                                onFilterSelect(
-                                    if (selectedFilter == stat.filter) {
-                                        ContactsFilters.QuickFilter.ALL
-                                    } else {
-                                        stat.filter
-                                    },
-                                )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            stats.forEach { stat ->
+                ContactsStatChip(
+                    stat = stat,
+                    selected = selectedFilter == stat.filter,
+                    onClick = {
+                        onFilterSelect(
+                            if (selectedFilter == stat.filter) {
+                                ContactsFilters.QuickFilter.ALL
+                            } else {
+                                stat.filter
                             },
-                            modifier = Modifier.weight(1f),
                         )
-                    }
-                }
+                    },
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -134,16 +96,15 @@ fun ContactsStatsRow(
 
 private data class ContactsStatItem(
     val label: String,
-    val value: String,
+    val value: Int,
     val accent: Color,
     val container: Color,
+    val icon: ImageVector,
     val filter: ContactsFilters.QuickFilter,
-    val icon: ImageVector? = null,
-    @DrawableRes val iconRes: Int? = null,
 )
 
 @Composable
-private fun ContactsStatCard(
+private fun ContactsStatChip(
     stat: ContactsStatItem,
     selected: Boolean,
     onClick: () -> Unit,
@@ -152,83 +113,44 @@ private fun ContactsStatCard(
     Surface(
         onClick = onClick,
         modifier = modifier,
-        shape = AppShapes.Card,
-        color = if (selected) stat.container.copy(alpha = 0.65f) else DfColors.Surface,
+        shape = AppShapes.CardSmall,
+        color = if (selected) stat.container else DfThemeColors.surface(),
         border = BorderStroke(
-            width = if (selected) 1.5.dp else 1.dp,
-            color = if (selected) stat.accent.copy(alpha = 0.55f) else DfColors.Outline.copy(alpha = 0.35f),
+            width = 1.dp,
+            color = if (selected) stat.accent.copy(alpha = 0.45f) else DfThemeColors.outlineSubtle(),
         ),
-        shadowElevation = if (selected) AppElevations.card else AppElevations.subtle,
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = 6.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                when {
-                    stat.iconRes != null -> DfDecorIconBox(
-                        resId = stat.iconRes,
-                        containerSize = 36.dp,
-                        imageSize = 18.dp,
-                        background = stat.container,
-                    )
-                    stat.icon != null -> Surface(
-                        shape = AppShapes.IconContainer,
-                        color = stat.container,
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = stat.icon,
-                                contentDescription = null,
-                                tint = stat.accent,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                }
-                if (selected) {
-                    Surface(
-                        shape = AppShapes.Chip,
-                        color = stat.accent.copy(alpha = 0.14f),
-                    ) {
-                        Text(
-                            text = "فعال",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style = AppTypography.labelSmall,
-                            color = stat.accent,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = stat.value,
-                    style = AppTypography.sectionTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = if (selected) stat.accent else DfColors.TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = stat.label,
-                    style = AppTypography.labelSmall,
-                    color = if (selected) stat.accent.copy(alpha = 0.85f) else DfColors.TextMuted,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                    maxLines = 2,
-                )
-            }
+            Icon(
+                imageVector = stat.icon,
+                contentDescription = null,
+                tint = if (selected) stat.accent else DfThemeColors.textMuted(),
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = DateUtils.toPersianDigits(stat.value.toString()),
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (selected) stat.accent else DfThemeColors.textPrimary(),
+                maxLines = 1,
+            )
+            Text(
+                text = stat.label,
+                style = AppTypography.labelSmall,
+                color = if (selected) stat.accent else DfThemeColors.textMuted(),
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }

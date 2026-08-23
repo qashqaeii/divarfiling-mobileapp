@@ -29,7 +29,9 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
+import ir.divarfiling.mobile.core.filing.ListingMarketTier
 import ir.divarfiling.mobile.core.filing.ListingSpecUtils
+import ir.divarfiling.mobile.core.filing.ListingValueUtils
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -47,6 +49,7 @@ fun ListingDetailHeader(
         listing.city,
     ).distinct().joinToString("، ")
     val isRent = listing.rent != null || listing.deposit != null
+    val marketPresentation = ListingValueUtils.presentationFor(listing.market)
     val floorLabel = when {
         !listing.floor.isNullOrBlank() && !listing.totalFloors.isNullOrBlank() ->
             "${listing.floor} از ${listing.totalFloors}"
@@ -85,6 +88,19 @@ fun ListingDetailHeader(
                         label = status,
                         color = DfColors.Purple,
                         background = DfColors.PurpleContainer,
+                    )
+                }
+                marketPresentation?.let { pres ->
+                    val (color, background) = when (pres.tier) {
+                        ListingMarketTier.Under -> DfColors.Green to DfColors.GreenLight
+                        ListingMarketTier.Over -> DfColors.Rose to DfColors.RoseLight
+                        ListingMarketTier.Fair -> DfColors.Amber to DfColors.AmberLight
+                        ListingMarketTier.Unknown -> DfColors.TextMuted to DfColors.SurfaceVariant
+                    }
+                    StatusChip(
+                        label = pres.detailLabel,
+                        color = color,
+                        background = background,
                     )
                 }
             }

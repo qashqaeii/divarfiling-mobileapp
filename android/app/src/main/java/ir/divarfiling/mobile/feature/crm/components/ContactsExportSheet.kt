@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.feature.crm.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,19 +18,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfDecorIconBox
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.export.ExportFormat
-import java.text.NumberFormat
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,20 +40,19 @@ fun ContactsExportSheet(
     onSelect: (ExportFormat) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val numberFormat = NumberFormat.getNumberInstance(Locale("fa", "IR"))
-    val countLabel = numberFormat.format(exportCount)
+    val countLabel = DateUtils.toPersianDigits(exportCount.toString())
 
     DfSheetScaffold(
         title = "خروجی مخاطبین",
         subtitle = "انتخاب فرمت مناسب برای اشتراک یا آرشیو",
-        iconRes = DfDecorIcons.Download,
+        icon = DfIcons.Download,
         onClose = onDismiss,
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = AppShapes.Card,
-            color = DfColors.PurpleContainer.copy(alpha = 0.45f),
-            border = BorderStroke(1.dp, DfColors.Purple.copy(alpha = 0.2f)),
+            color = DfThemeColors.primaryContainer().copy(alpha = 0.55f),
+            border = BorderStroke(1.dp, DfThemeColors.primary().copy(alpha = 0.2f)),
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -64,7 +62,7 @@ fun ContactsExportSheet(
                     text = "$countLabel مخاطب در این خروجی",
                     style = AppTypography.cardTitle,
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                 )
                 Text(
                     text = when {
@@ -76,7 +74,7 @@ fun ContactsExportSheet(
                             "همه مخاطبین بارگذاری‌شده در این خروجی گنجانده می‌شوند"
                     },
                     style = AppTypography.bodyDescription,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
         }
@@ -85,8 +83,8 @@ fun ContactsExportSheet(
             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth(),
-                    color = DfColors.Purple,
-                    trackColor = DfColors.PurpleContainer,
+                    color = DfThemeColors.primary(),
+                    trackColor = DfThemeColors.primaryContainer(),
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -95,12 +93,12 @@ fun ContactsExportSheet(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = DfColors.Purple,
+                        color = DfThemeColors.primary(),
                     )
                     Text(
                         text = "در حال آماده‌سازی فایل…",
                         style = AppTypography.labelSmall,
-                        color = DfColors.Purple,
+                        color = DfThemeColors.primary(),
                     )
                 }
             }
@@ -110,7 +108,7 @@ fun ContactsExportSheet(
             text = "فرمت خروجی",
             style = AppTypography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = DfColors.TextPrimary,
+            color = DfThemeColors.textPrimary(),
             modifier = Modifier.padding(top = AppSpacing.xs),
         )
 
@@ -119,9 +117,9 @@ fun ContactsExportSheet(
                 format = ExportFormat.XLSX,
                 title = "اکسل (XLSX)",
                 description = "بهترین گزینه برای Excel، Google Sheets و گزارش‌گیری تیمی",
-                accent = DfColors.Green,
-                container = DfColors.GreenLight,
-                iconRes = DfDecorIcons.FileText,
+                accent = DfThemeColors.success(),
+                container = DfThemeColors.successContainer(),
+                icon = DfIcons.File,
                 enabled = !isExporting,
                 onClick = { onSelect(ExportFormat.XLSX) },
             )
@@ -129,9 +127,9 @@ fun ContactsExportSheet(
                 format = ExportFormat.CSV,
                 title = "CSV",
                 description = "سازگار با ابزارهای تحلیل، CRM دیگر و واردکننده‌های ساده",
-                accent = DfColors.Blue,
-                container = DfColors.BlueLight,
-                iconRes = DfDecorIcons.ClipboardList,
+                accent = DfThemeColors.info(),
+                container = DfThemeColors.infoContainer(),
+                icon = DfIcons.ClipboardList,
                 enabled = !isExporting,
                 onClick = { onSelect(ExportFormat.CSV) },
             )
@@ -139,9 +137,9 @@ fun ContactsExportSheet(
                 format = ExportFormat.JSON,
                 title = "JSON",
                 description = "ساختار کامل داده برای یکپارچه‌سازی، پشتیبان‌گیری و توسعه",
-                accent = DfColors.Purple,
-                container = DfColors.PurpleContainer,
-                iconRes = DfDecorIcons.Layers,
+                accent = DfThemeColors.primary(),
+                container = DfThemeColors.primaryContainer(),
+                icon = DfIcons.Layers,
                 enabled = !isExporting,
                 onClick = { onSelect(ExportFormat.JSON) },
             )
@@ -157,7 +155,7 @@ private fun ContactsExportFormatCard(
     description: String,
     accent: Color,
     container: Color,
-    iconRes: Int,
+    icon: ImageVector,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
@@ -166,9 +164,10 @@ private fun ContactsExportFormatCard(
         enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
         border = BorderStroke(1.dp, accent.copy(alpha = 0.2f)),
-        shadowElevation = 2.dp,
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier
@@ -177,12 +176,25 @@ private fun ContactsExportFormatCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DfDecorIconBox(
-                resId = iconRes,
-                containerSize = 48.dp,
-                imageSize = 24.dp,
-                background = container,
-            )
+            Box(
+                modifier = Modifier.size(44.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    modifier = Modifier.size(44.dp),
+                    shape = AppShapes.CardSmall,
+                    color = container,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -195,7 +207,7 @@ private fun ContactsExportFormatCard(
                         text = title,
                         style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.TextPrimary,
+                        color = DfThemeColors.textPrimary(),
                     )
                     Surface(
                         shape = AppShapes.Chip,
@@ -213,13 +225,13 @@ private fun ContactsExportFormatCard(
                 Text(
                     text = description,
                     style = AppTypography.bodyDescription,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
             Icon(
                 imageVector = DfIcons.ChevronLeft,
                 contentDescription = null,
-                tint = DfColors.TextMuted,
+                tint = DfThemeColors.textMuted(),
                 modifier = Modifier.size(18.dp),
             )
         }

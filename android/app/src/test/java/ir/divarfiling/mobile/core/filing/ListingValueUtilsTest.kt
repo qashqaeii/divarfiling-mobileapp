@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.core.filing
 
 import ir.divarfiling.mobile.core.network.ListingDto
+import ir.divarfiling.mobile.core.network.ListingMarketBenchmarkDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -49,8 +50,23 @@ class ListingValueUtilsTest {
         val presentation = ListingValueUtils.presentationFor(listing)
         assertNotNull(presentation)
         assertEquals(ListingMarketTier.Fair, presentation?.tier)
-        assertEquals("متعارف", presentation?.detailLabel)
-        assertNull(presentation?.percent)
+        assertEquals("متعارف", presentation?.shortLabel)
+        assertEquals("متعارف · ۵٪ اختلاف", presentation?.detailLabel)
+        assertEquals(5, presentation?.percent)
+    }
+
+    @Test
+    fun presentationFor_marketBenchmark_usesShortVerdict() {
+        val market = ListingMarketBenchmarkDto(
+            valueScore = 22.0,
+            marketTier = "over",
+            shortVerdict = "بالای بازار",
+            listingMetricFmt = "۴۰۰ میلیون",
+            marketMedianFmt = "۳۲۰ میلیون",
+        )
+        val presentation = ListingValueUtils.presentationFor(market)
+        assertEquals(ListingMarketTier.Over, presentation?.tier)
+        assertEquals("۲۲٪ بالای بازار", presentation?.detailLabel)
     }
 
     @Test

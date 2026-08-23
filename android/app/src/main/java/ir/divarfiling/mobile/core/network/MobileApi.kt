@@ -362,6 +362,9 @@ interface MobileApi {
         @Body body: ListingUpdateRequest,
     ): ApiEnvelope
 
+    @DELETE("filing/listings/{token}")
+    suspend fun deleteListing(@Path("token") token: String): ApiEnvelope
+
     @GET("filing/listings/{token}/public-share")
     suspend fun getListingPublicShare(@Path("token") token: String): ApiEnvelope
 

@@ -24,6 +24,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,6 +45,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -59,12 +63,14 @@ private data class MoreHubItem(
     val action: MoreHubAction,
     val badgeCount: Int = 0,
     val featured: Boolean = false,
+    val destructive: Boolean = false,
 )
 
 private sealed class MoreHubAction {
     data class Navigate(val route: String) : MoreHubAction()
     data class External(val url: String) : MoreHubAction()
     data object CheckUpdate : MoreHubAction()
+    data object Logout : MoreHubAction()
 }
 
 private data class MoreHubSection(
@@ -92,6 +98,7 @@ fun MoreHubScreen(
     onNavigateProperties: () -> Unit = {},
     onNavigateCrm: () -> Unit = {},
     onNavigatePlans: () -> Unit = {},
+    onLoggedOut: () -> Unit = {},
     viewModel: MoreHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -100,6 +107,7 @@ fun MoreHubScreen(
     val updateViewModel: AppUpdateViewModel = hiltViewModel(activity)
     val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
     val usesInAppApkUpdate = UpdateDistribution.usesInAppApkUpdate
+    var showLogoutConfirm by remember { mutableStateOf(false) }
 
     val sections = listOf(
         MoreHubSection(
@@ -145,6 +153,13 @@ fun MoreHubScreen(
                 MoreHubItem("آکادمی", "آموزش و راهنما", DfIcons.Rocket, MoreHubAction.External(AppLinks.ACADEMY)),
                 MoreHubItem("بروزرسانی اپ", "بررسی نسخه جدید و نصب", DfIcons.Download, MoreHubAction.CheckUpdate),
                 MoreHubItem("حریم خصوصی", "سیاست حفظ حریم", DfIcons.Database, MoreHubAction.External(AppLinks.PRIVACY)),
+                MoreHubItem(
+                    title = "خروج از حساب",
+                    subtitle = "پایان نشست و بازگشت به صفحه ورود",
+                    icon = DfIcons.LogOut,
+                    action = MoreHubAction.Logout,
+                    destructive = true,
+                ),
             ),
         ),
     )
@@ -173,6 +188,7 @@ fun MoreHubScreen(
                 "plans" -> onNavigatePlans()
             }
             MoreHubAction.CheckUpdate -> updateViewModel.checkManually()
+            MoreHubAction.Logout -> showLogoutConfirm = true
         }
     }
 
@@ -240,6 +256,20 @@ fun MoreHubScreen(
             }
         }
     }
+
+    if (showLogoutConfirm) {
+        DfConfirmBottomSheet(
+            title = "خروج از حساب",
+            message = "از حساب خارج می‌شوید و برای استفاده دوباره باید وارد شوید.",
+            confirmText = if (state.isLoggingOut) "در حال خروج…" else "خروج از حساب",
+            cancelText = "انصراف",
+            destructive = true,
+            isSubmitting = state.isLoggingOut,
+            icon = DfIcons.LogOut,
+            onConfirm = { viewModel.logout(onLoggedOut) },
+            onDismiss = { if (!state.isLoggingOut) showLogoutConfirm = false },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -249,13 +279,22 @@ private fun MoreHubRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val iconTint = if (item.featured) DfColors.Purple else DfThemeColors.textSecondary()
-    val iconBg = if (item.featured) DfColors.PurpleContainer else DfThemeColors.surfaceVariant()
+    val iconTint = when {
+        item.destructive -> DfThemeColors.error()
+        item.featured -> DfColors.Purple
+        else -> DfThemeColors.textSecondary()
+    }
+    val iconBg = when {
+        item.destructive -> DfThemeColors.errorContainer()
+        item.featured -> DfColors.PurpleContainer
+        else -> DfThemeColors.surfaceVariant()
+    }
+    val showSubtitle = item.featured || item.badgeCount > 0 || item.destructive
     Surface(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = if (item.featured) 56.dp else 48.dp),
+            .defaultMinSize(minHeight = if (item.featured || item.destructive) 56.dp else 48.dp),
         shape = AppShapes.Card,
         color = DfThemeColors.surface(),
         shadowElevation = if (item.featured) AppElevations.subtle else AppElevations.none,
@@ -270,7 +309,7 @@ private fun MoreHubRow(
         ) {
             Box(
                 modifier = Modifier
-                    .size(if (item.featured) 36.dp else 32.dp)
+                    .size(if (item.featured || item.destructive) 36.dp else 32.dp)
                     .background(iconBg, AppShapes.IconContainer),
                 contentAlignment = Alignment.Center,
             ) {
@@ -301,11 +340,11 @@ private fun MoreHubRow(
                     item.title,
                     style = AppTypography.cardTitle,
                     fontWeight = FontWeight.SemiBold,
-                    color = DfThemeColors.textPrimary(),
+                    color = if (item.destructive) DfThemeColors.error() else DfThemeColors.textPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (item.featured || item.badgeCount > 0) {
+                if (showSubtitle) {
                     Text(
                         item.subtitle,
                         style = AppTypography.labelSmall,

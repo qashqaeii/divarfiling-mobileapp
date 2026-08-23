@@ -2,8 +2,6 @@ package ir.divarfiling.mobile.feature.crm.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +10,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -21,12 +20,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,6 +41,7 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.network.ContactDto
+import ir.divarfiling.mobile.feature.crm.ContactTypeVisuals
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -51,15 +51,17 @@ fun ContactListCard(
     onClick: () -> Unit,
     onCallClick: () -> Unit,
     onWhatsAppClick: () -> Unit,
+    onSmsClick: (() -> Unit)? = null,
     onSuggestClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    val accent = contactAccentColor(contact.fullName)
+    val typeVisual = ContactTypeVisuals.visualFor(contact.customerType)
     val statusStyle = statusColors(contact.status.orEmpty())
     val followUpLabel = contact.nextFollowUpAt?.let { next ->
         DateUtils.formatRelativeTimeUntil(next)
             ?: DateUtils.formatJalaliDateTime(next)
     }
+    val canSuggest = CrmConstants.isMatchEligible(contact.customerType) && onSuggestClick != null
 
     Surface(
         onClick = onClick,
@@ -76,7 +78,7 @@ fun ContactListCard(
                     .height(3.dp)
                     .background(
                         Brush.horizontalGradient(
-                            listOf(statusStyle.first, statusStyle.first.copy(alpha = 0.35f)),
+                            listOf(statusStyle.first, statusStyle.first.copy(alpha = 0.28f)),
                         ),
                     ),
             )
@@ -84,7 +86,7 @@ fun ContactListCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(AppSpacing.sm),
+                    .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
                 Row(
@@ -92,7 +94,11 @@ fun ContactListCard(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ContactAvatar(name = contact.fullName, accent = accent)
+                    ContactTypeIcon(
+                        icon = typeVisual.icon,
+                        accent = typeVisual.accent,
+                        container = typeVisual.container,
+                    )
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -101,7 +107,7 @@ fun ContactListCard(
                             text = contact.fullName,
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
-                            color = DfColors.TextPrimary,
+                            color = DfThemeColors.textPrimary(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -113,13 +119,13 @@ fun ContactListCard(
                                 Icon(
                                     imageVector = DfIcons.Phone,
                                     contentDescription = null,
-                                    tint = DfColors.TextMuted,
-                                    modifier = Modifier.size(12.dp),
+                                    tint = DfThemeColors.textMuted(),
+                                    modifier = Modifier.size(13.dp),
                                 )
                                 Text(
                                     text = phone,
                                     style = AppTypography.labelSmall,
-                                    color = DfColors.TextSecondary,
+                                    color = DfThemeColors.textSecondary(),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -134,13 +140,24 @@ fun ContactListCard(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     contact.customerType?.takeIf { it.isNotBlank() }?.let { type ->
-                        ContactMetaChip(text = type, color = DfColors.Purple, background = DfColors.PurpleContainer)
+                        ContactMetaChip(
+                            text = type,
+                            color = typeVisual.accent,
+                            background = typeVisual.container,
+                        )
                     }
                     contact.budget?.let { budget ->
                         ContactMetaChip(
                             text = FormatUtils.formatPriceShort(budget),
-                            color = DfColors.TextSecondary,
-                            background = DfColors.SurfaceVariant,
+                            color = DfThemeColors.textSecondary(),
+                            background = DfThemeColors.surfaceVariant(),
+                        )
+                    }
+                    contact.source?.takeIf { it.isNotBlank() }?.let { source ->
+                        ContactMetaChip(
+                            text = source,
+                            color = DfThemeColors.textSecondary(),
+                            background = DfThemeColors.surfaceVariant(),
                         )
                     }
                 }
@@ -149,58 +166,69 @@ fun ContactListCard(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Column(
+                    ContactActionButton(
+                        label = "تماس",
+                        icon = DfIcons.Phone,
+                        tint = DfThemeColors.primary(),
+                        container = DfThemeColors.primaryContainer(),
+                        onClick = onCallClick,
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        followUpLabel?.let { label ->
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    imageVector = DfIcons.Clock,
-                                    contentDescription = null,
-                                    tint = DfColors.Amber,
-                                    modifier = Modifier.size(12.dp),
-                                )
-                                Text(
-                                    text = "پیگیری: $label",
-                                    style = AppTypography.labelSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = DfColors.Amber,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                        ContactUpdatedLabel(updatedAt = contact.updatedAt)
+                    )
+                    if (onSmsClick != null) {
+                        ContactActionButton(
+                            label = "پیامک",
+                            icon = DfIcons.MessageSquare,
+                            tint = DfThemeColors.info(),
+                            container = DfThemeColors.infoContainer(),
+                            onClick = onSmsClick,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (CrmConstants.isMatchEligible(contact.customerType) && onSuggestClick != null) {
-                            ContactQuickAction(
-                                icon = DfIcons.WandSparkles,
-                                tint = DfColors.Green,
-                                contentDescription = "پیشنهاد ملک",
-                                onClick = onSuggestClick,
+                    ContactActionButton(
+                        label = "واتساپ",
+                        icon = DfIcons.MessageCircle,
+                        tint = DfThemeColors.success(),
+                        container = DfThemeColors.successContainer(),
+                        onClick = onWhatsAppClick,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (canSuggest && onSuggestClick != null) {
+                        ContactActionButton(
+                            label = "پیشنهاد",
+                            icon = DfIcons.WandSparkles,
+                            tint = DfThemeColors.warning(),
+                            container = DfThemeColors.warningContainer(),
+                            onClick = onSuggestClick,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    followUpLabel?.let { label ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = DfIcons.Clock,
+                                contentDescription = null,
+                                tint = DfThemeColors.warning(),
+                                modifier = Modifier.size(13.dp),
+                            )
+                            Text(
+                                text = "پیگیری: $label",
+                                style = AppTypography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = DfThemeColors.warning(),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
-                        ContactQuickAction(
-                            icon = DfIcons.Phone,
-                            tint = DfColors.Purple,
-                            contentDescription = "تماس",
-                            onClick = onCallClick,
-                        )
-                        ContactQuickAction(
-                            icon = DfIcons.MessageCircle,
-                            tint = DfColors.Green,
-                            contentDescription = "واتساپ",
-                            onClick = onWhatsAppClick,
-                        )
                     }
+                    ContactUpdatedLabel(updatedAt = contact.updatedAt)
                 }
             }
         }
@@ -208,28 +236,69 @@ fun ContactListCard(
 }
 
 @Composable
-private fun ContactAvatar(
-    name: String,
+private fun ContactTypeIcon(
+    icon: ImageVector,
     accent: Color,
+    container: Color,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
-            .size(50.dp)
-            .clip(CircleShape)
-            .background(
-                Brush.linearGradient(
-                    listOf(accent, accent.copy(alpha = 0.72f)),
-                ),
-            ),
+            .size(44.dp)
+            .clip(AppShapes.CardSmall)
+            .background(container),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = contactInitials(name),
-            style = AppTypography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(22.dp),
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ContactActionButton(
+    label: String,
+    icon: ImageVector,
+    tint: Color,
+    container: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 48.dp),
+        shape = AppShapes.CardSmall,
+        color = container,
+        border = BorderStroke(1.dp, tint.copy(alpha = 0.16f)),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = tint,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = label,
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = tint,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -252,13 +321,13 @@ private fun ContactUpdatedLabel(updatedAt: String?) {
         Icon(
             imageVector = DfIcons.Calendar,
             contentDescription = null,
-            tint = DfColors.TextMuted,
+            tint = DfThemeColors.textMuted(),
             modifier = Modifier.size(12.dp),
         )
         Text(
             text = "آخرین فعالیت: $display",
             style = AppTypography.labelSmall,
-            color = DfColors.TextMuted,
+            color = DfThemeColors.textMuted(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -271,7 +340,7 @@ private fun ContactMetaChip(
     color: Color,
     background: Color,
 ) {
-    Surface(shape = AppShapes.Chip, color = background.copy(alpha = 0.85f)) {
+    Surface(shape = AppShapes.Chip, color = background.copy(alpha = 0.9f)) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -280,34 +349,6 @@ private fun ContactMetaChip(
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun ContactQuickAction(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    tint: Color,
-    contentDescription: String,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(tint.copy(alpha = 0.1f))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = tint,
-            modifier = Modifier.size(17.dp),
         )
     }
 }
@@ -369,6 +410,8 @@ private fun ContactListCardPreview() {
                 onClick = {},
                 onCallClick = {},
                 onWhatsAppClick = {},
+                onSmsClick = {},
+                onSuggestClick = {},
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
             ContactListCard(
@@ -376,7 +419,7 @@ private fun ContactListCardPreview() {
                     id = 2,
                     fullName = "مریم احمدی",
                     phone = "۰۹۳۵۱۱۱۲۲۳۳",
-                    customerType = "فروشنده",
+                    customerType = "مالک",
                     status = "جدید",
                     priority = "متوسط",
                     updatedAt = "2026-07-01T08:30:00Z",
@@ -384,6 +427,7 @@ private fun ContactListCardPreview() {
                 onClick = {},
                 onCallClick = {},
                 onWhatsAppClick = {},
+                onSmsClick = {},
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
         }

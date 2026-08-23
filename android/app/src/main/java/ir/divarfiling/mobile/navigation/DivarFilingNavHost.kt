@@ -465,6 +465,7 @@ fun DivarFilingNavHost(
                             onNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
                             onNavigatePlans = { navController.navigate(Routes.PLANS) },
+                            onLoggedOut = { isLoggedIn = false },
                         )
                     }
                     composable(Routes.TEAM) {

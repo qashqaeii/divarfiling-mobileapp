@@ -89,4 +89,9 @@ object DfIcons {
     val CircleAlert: ImageVector = LucideIcons.CircleAlert
     val Pencil: ImageVector = LucideIcons.Pencil
     val Paperclip: ImageVector = LucideIcons.Paperclip
+    val Trash: ImageVector = LucideIcons.Trash2
+    val LogOut: ImageVector = LucideIcons.LogOut
+    val Briefcase: ImageVector = LucideIcons.Briefcase
+    val KeyRound: ImageVector = LucideIcons.KeyRound
+    val MessageSquare: ImageVector = LucideIcons.MessageSquare
 }

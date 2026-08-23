@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.filing.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -16,10 +17,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,11 +30,11 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfPremiumCard
-import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.core.filing.ListingOccupancyContacts
+import ir.divarfiling.mobile.core.filing.ListingOccupancyPerson
 import ir.divarfiling.mobile.core.network.ListingLinkedContactDto
 import ir.divarfiling.mobile.core.network.ListingMetaDto
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
@@ -158,12 +158,32 @@ fun ListingNotesSheet(
 @Composable
 fun ListingContactsSection(
     contacts: List<ListingLinkedContactDto>,
+    ownerName: String,
+    ownerPhone: String,
+    tenantName: String,
+    tenantPhone: String,
+    isVacant: Boolean,
     onAdd: () -> Unit,
     onContactClick: (Long) -> Unit,
     onCall: (String) -> Unit,
+    onSms: (String) -> Unit,
+    onWhatsApp: (String) -> Unit,
+    onBale: (String) -> Unit,
     onUnlink: (Long) -> Unit,
+    onEditOwner: () -> Unit,
+    onEditTenant: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val presentation = remember(contacts, ownerName, ownerPhone, tenantName, tenantPhone, isVacant) {
+        ListingOccupancyContacts.build(
+            ownerName = ownerName,
+            ownerPhone = ownerPhone,
+            tenantName = tenantName,
+            tenantPhone = tenantPhone,
+            isVacant = isVacant,
+            contacts = contacts,
+        )
+    }
     ExtractSectionCard(modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
             Row(
@@ -180,14 +200,25 @@ fun ListingContactsSection(
                 }
                 TextButton(onClick = onAdd) { Text("ارسال") }
             }
-            if (contacts.isEmpty()) {
+            if (presentation.occupancy.isEmpty() && presentation.others.isEmpty()) {
                 Text(
-                    text = "هنوز مخاطبی به این آگهی پیوند نشده است. با ارسال فایل، مخاطب به آگهی وصل می‌شود.",
+                    text = "مالک یا مستاجر ثبت نشده و هنوز مخاطبی به این آگهی پیوند نشده است.",
                     style = AppTypography.bodyDescription,
                     color = DfThemeColors.textMuted(),
                 )
             } else {
-                contacts.forEach { contact ->
+                presentation.occupancy.forEach { person ->
+                    ListingOccupancyRow(
+                        person = person,
+                        onClick = person.customerId?.let { id -> { onContactClick(id) } },
+                        onCall = person.phone.takeIf { it.isNotBlank() }?.let { phone -> { onCall(phone) } },
+                        onSms = person.phone.takeIf { it.isNotBlank() }?.let { phone -> { onSms(phone) } },
+                        onWhatsApp = person.phone.takeIf { it.isNotBlank() }?.let { phone -> { onWhatsApp(phone) } },
+                        onBale = person.phone.takeIf { it.isNotBlank() }?.let { phone -> { onBale(phone) } },
+                        onEdit = if (person.role == ListingOccupancyContacts.ROLE_OWNER) onEditOwner else onEditTenant,
+                    )
+                }
+                presentation.others.forEach { contact ->
                     ListingContactRow(
                         contact = contact,
                         onClick = { onContactClick(contact.customerId) },
@@ -197,6 +228,73 @@ fun ListingContactsSection(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ListingOccupancyRow(
+    person: ListingOccupancyPerson,
+    onClick: (() -> Unit)?,
+    onCall: (() -> Unit)?,
+    onSms: (() -> Unit)?,
+    onWhatsApp: (() -> Unit)?,
+    onBale: (() -> Unit)?,
+    onEdit: () -> Unit,
+) {
+    val isOwner = person.role == ListingOccupancyContacts.ROLE_OWNER
+    val badgeColor = if (isOwner) DfColors.GreenLight else DfColors.BlueLight
+    val badgeText = if (isOwner) DfColors.Green else DfColors.Blue
+    val content: @Composable () -> Unit = {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = person.name,
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.textPrimary(),
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                DfBadge(text = person.role, color = badgeColor, textColor = badgeText)
+                TextButton(onClick = onEdit) { Text("ویرایش") }
+            }
+            person.phone.takeIf { it.isNotBlank() }?.let { phone ->
+                Text(phone, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
+            }
+            if (onCall != null || onSms != null || onWhatsApp != null || onBale != null) {
+                ListingOwnerContactActions(
+                    onCall = onCall ?: {},
+                    onSms = onSms ?: {},
+                    onWhatsApp = onWhatsApp ?: {},
+                    onBale = onBale ?: {},
+                )
+            }
+        }
+    }
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            shape = AppShapes.CardSmall,
+            color = DfThemeColors.surfaceVariant().copy(alpha = 0.65f),
+            content = { content() },
+        )
+    } else {
+        Surface(
+            shape = AppShapes.CardSmall,
+            color = DfThemeColors.surfaceVariant().copy(alpha = 0.65f),
+            content = { content() },
+        )
     }
 }
 
@@ -233,12 +331,22 @@ private fun ListingContactRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (contact.role.isNotBlank()) DfBadge(text = contact.role)
             }
             contact.phone.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                val roleColor = when (contact.role) {
+                    ListingOccupancyContacts.ROLE_OWNER -> DfColors.GreenLight
+                    ListingOccupancyContacts.ROLE_TENANT -> DfColors.BlueLight
+                    else -> DfColors.PurpleContainer
+                }
+                val roleText = when (contact.role) {
+                    ListingOccupancyContacts.ROLE_OWNER -> DfColors.Green
+                    ListingOccupancyContacts.ROLE_TENANT -> DfColors.Blue
+                    else -> DfColors.PurpleDark
+                }
+                if (contact.role.isNotBlank()) DfBadge(text = contact.role, color = roleColor, textColor = roleText)
                 if (contact.dealType.isNotBlank()) DfBadge(text = contact.dealType)
                 if (contact.status.isNotBlank()) DfBadge(text = contact.status)
             }
@@ -267,109 +375,88 @@ fun ListingAiSummarySection(
     onOpenAssistant: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DfPremiumCard(modifier = modifier, containerColor = DfColors.PurpleContainer.copy(alpha = 0.35f)) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(0.5.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(DfIcons.Sparkles, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(20.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("خلاصه هوشمند آگهی", style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold, color = DfColors.Purple)
-                    Text("نکات کلیدی برای تماس و پیشنهاد به مشتری", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        DfIcons.Sparkles,
+                        contentDescription = null,
+                        tint = DfThemeColors.textMuted(),
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "خلاصه هوشمند",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DfThemeColors.textPrimary(),
+                    )
                 }
                 if (isFallback && summary.isNotBlank()) {
-                    DfBadge(text = "نسخه محلی")
+                    DfBadge(text = "محلی", color = DfColors.SurfaceVariant, textColor = DfThemeColors.textMuted())
                 }
             }
 
             when {
                 isLoading -> {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = AppSpacing.sm),
-                        horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = DfColors.Purple, strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            color = DfThemeColors.textMuted(),
+                            strokeWidth = 2.dp,
+                        )
                         Text(
                             text = "در حال تهیه خلاصه…",
                             style = AppTypography.bodyDescription,
-                            color = DfColors.Purple,
-                            modifier = Modifier.padding(start = AppSpacing.sm),
+                            color = DfThemeColors.textMuted(),
                         )
                     }
                 }
                 summary.isBlank() -> {
                     Text(
-                        text = "یک خلاصه حرفه‌ای از مشخصات، قیمت و نکات فروش این آگهی بسازید.",
+                        text = "نکات کلیدی این آگهی را برای تماس و پیشنهاد به مشتری خلاصه کنید.",
                         style = AppTypography.bodyDescription,
-                        color = DfThemeColors.textSecondary(),
+                        color = DfThemeColors.textMuted(),
                     )
-                    DfPrimaryButton(text = "تولید خلاصه", onClick = onGenerate)
+                    TextButton(onClick = onGenerate) { Text("تولید خلاصه") }
                 }
                 else -> {
                     Text(
                         text = summary,
                         style = AppTypography.bodyDescription,
-                        color = DfThemeColors.textPrimary(),
+                        color = DfThemeColors.textSecondary(),
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs), modifier = Modifier.fillMaxWidth()) {
-                        CompactAction(
-                            label = "کپی",
-                            icon = DfIcons.Copy,
-                            tint = DfColors.Purple,
-                            background = DfColors.PurpleContainer,
-                            onClick = onCopy,
-                            modifier = Modifier.weight(1f),
-                        )
-                        CompactAction(
-                            label = "تولید مجدد",
-                            icon = DfIcons.RefreshCw,
-                            tint = DfColors.Blue,
-                            background = DfColors.BlueLight,
-                            onClick = onGenerate,
-                            modifier = Modifier.weight(1f),
-                        )
-                        CompactAction(
-                            label = "دستیار",
-                            icon = DfIcons.Bot,
-                            tint = DfColors.Amber,
-                            background = DfColors.AmberLight,
-                            onClick = onOpenAssistant,
-                            modifier = Modifier.weight(1f),
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                    ) {
+                        TextButton(onClick = onCopy) { Text("کپی") }
+                        TextButton(onClick = onGenerate) { Text("تولید مجدد") }
+                        TextButton(onClick = onOpenAssistant) { Text("دستیار") }
                     }
                 }
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CompactAction(
-    label: String,
-    icon: ImageVector,
-    tint: Color,
-    background: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(onClick = onClick, modifier = modifier, shape = AppShapes.CardSmall, color = background) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 6.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(14.dp))
-            Text(
-                text = label,
-                modifier = Modifier.padding(start = 4.dp),
-                style = AppTypography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = tint,
-                maxLines = 1,
-            )
         }
     }
 }

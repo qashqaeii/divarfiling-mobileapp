@@ -5,7 +5,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 
@@ -23,7 +22,7 @@ fun ContactsHeader(
         title = "مخاطبین",
         subtitle = subtitle ?: "مدیریت مخاطب، پیگیری و تماس روزانه",
         sectionLabel = DfHeaderSections.CRM,
-        titleIconRes = DfDecorIcons.Users,
+        titleIcon = DfIcons.Users,
         userName = userName,
         notificationCount = notificationCount,
         onNotificationsClick = onNotificationsClick,
