@@ -11,7 +11,7 @@ import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
-import ir.divarfiling.mobile.core.network.ListingUpdateRequest
+import ir.divarfiling.mobile.core.network.ListingMetaUpdateRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
 import ir.divarfiling.mobile.core.network.requireData
@@ -172,6 +172,36 @@ class FilingRepository @Inject constructor(
         return try {
             val response = api.updateListingPublicShare(token, request)
             if (!response.ok) return ApiResult.Error(response.error ?: "خطا در ذخیره اشتراک")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun updateListingMeta(token: String, request: ListingMetaUpdateRequest): ApiResult<ListingDetailDto> {
+        return try {
+            val response = api.updateListingMeta(token, request)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در ذخیره یادداشت")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun toggleListingFavorite(token: String): ApiResult<ListingDetailDto> {
+        return try {
+            val response = api.toggleListingFavorite(token)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در علاقه‌مندی")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun unlinkListingContact(token: String, linkId: Long): ApiResult<ListingDetailDto> {
+        return try {
+            val response = api.unlinkListingContact(token, linkId)
+            if (!response.ok) return ApiResult.Error(response.error ?: "حذف پیوند ناموفق بود")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")

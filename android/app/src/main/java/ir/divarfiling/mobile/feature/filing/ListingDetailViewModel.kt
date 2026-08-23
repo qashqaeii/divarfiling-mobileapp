@@ -9,6 +9,9 @@ import ir.divarfiling.mobile.core.design.DossierShareOptions
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.ReminderCreateRequest
+import ir.divarfiling.mobile.core.network.ListingMetaDto
+import ir.divarfiling.mobile.core.network.ListingMetaUpdateRequest
+import ir.divarfiling.mobile.core.network.AiSummarizeListingRequest
 import ir.divarfiling.mobile.core.network.ListingUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
 import ir.divarfiling.mobile.core.network.SendListingRequest
@@ -17,6 +20,7 @@ import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.DealsRepository
 import ir.divarfiling.mobile.data.repository.FilingRepository
+import ir.divarfiling.mobile.data.repository.WorkspaceExtrasRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -110,6 +114,15 @@ data class ListingDetailUiState(
     val shareApproximateLocation: Boolean = false,
     val shareApproximateLocationRadiusM: String = "500",
     val shareShowNearbyPois: Boolean = false,
+    val showNotesSheet: Boolean = false,
+    val noteDraft: String = "",
+    val tagDraft: String = "",
+    val isSavingMeta: Boolean = false,
+    val isTogglingFavorite: Boolean = false,
+    val isUnlinkingContact: Boolean = false,
+    val aiSummary: String = "",
+    val isSummarizing: Boolean = false,
+    val aiIsFallback: Boolean = false,
 )
 
 @HiltViewModel
@@ -117,6 +130,7 @@ class ListingDetailViewModel @Inject constructor(
     private val filingRepository: FilingRepository,
     private val crmRepository: CrmRepository,
     private val dealsRepository: DealsRepository,
+    private val extrasRepository: WorkspaceExtrasRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val token: String = savedStateHandle.get<String>("token") ?: ""
@@ -506,15 +520,18 @@ class ListingDetailViewModel @Inject constructor(
                     shareMessage = shareMessage,
                 ),
             )) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        isLinking = false,
-                        showSendDialog = false,
-                        pendingContactId = null,
-                        sendNote = "",
-                        successMessage = "فایل به مخاطب ارسال شد",
-                        pendingWhatsAppShare = if (shareViaWhatsApp) shareMessage else null,
-                    )
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isLinking = false,
+                            showSendDialog = false,
+                            pendingContactId = null,
+                            sendNote = "",
+                            successMessage = "فایل به مخاطب ارسال شد",
+                            pendingWhatsAppShare = if (shareViaWhatsApp) shareMessage else null,
+                        )
+                    }
+                    load()
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLinking = false, error = result.message)
@@ -530,6 +547,117 @@ class ListingDetailViewModel @Inject constructor(
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 
     fun showMessage(message: String) = _uiState.update { it.copy(successMessage = message) }
+
+    fun toggleFavorite() {
+        val listing = _uiState.value.listing ?: return
+        if (_uiState.value.isTogglingFavorite) return
+        val current = listing.meta?.isFavorite == true
+        _uiState.update {
+            it.copy(
+                isTogglingFavorite = true,
+                listing = listing.copy(
+                    meta = (listing.meta ?: ListingMetaDto()).copy(isFavorite = !current),
+                ),
+            )
+        }
+        viewModelScope.launch {
+            when (val result = filingRepository.toggleListingFavorite(token)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        listing = result.data,
+                        isTogglingFavorite = false,
+                        successMessage = if (result.data.meta?.isFavorite == true) "به علاقه‌مندی‌ها اضافه شد" else "از علاقه‌مندی‌ها حذف شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(
+                        listing = listing,
+                        isTogglingFavorite = false,
+                        error = result.message,
+                    )
+                }
+            }
+        }
+    }
+
+    fun openNotesSheet() {
+        val meta = _uiState.value.listing?.meta
+        _uiState.update {
+            it.copy(
+                showNotesSheet = true,
+                noteDraft = meta?.note.orEmpty(),
+                tagDraft = meta?.tag.orEmpty(),
+            )
+        }
+    }
+
+    fun dismissNotesSheet() = _uiState.update { it.copy(showNotesSheet = false) }
+    fun onNoteDraftChange(value: String) = _uiState.update { it.copy(noteDraft = value) }
+    fun onTagDraftChange(value: String) = _uiState.update { it.copy(tagDraft = value) }
+
+    fun saveNotes() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingMeta = true, error = null) }
+            when (
+                val result = filingRepository.updateListingMeta(
+                    token,
+                    ListingMetaUpdateRequest(
+                        note = _uiState.value.noteDraft,
+                        tag = _uiState.value.tagDraft,
+                    ),
+                )
+            ) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        listing = result.data,
+                        isSavingMeta = false,
+                        showNotesSheet = false,
+                        successMessage = "یادداشت ذخیره شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSavingMeta = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun unlinkContact(linkId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUnlinkingContact = true, error = null) }
+            when (val result = filingRepository.unlinkListingContact(token, linkId)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        listing = result.data,
+                        isUnlinkingContact = false,
+                        successMessage = "پیوند مخاطب حذف شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isUnlinkingContact = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun summarizeListing() {
+        if (_uiState.value.isSummarizing) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSummarizing = true, error = null) }
+            when (val result = extrasRepository.aiSummarizeListing(AiSummarizeListingRequest(listingToken = token))) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isSummarizing = false,
+                        aiSummary = result.data.text,
+                        aiIsFallback = result.data.isFallback,
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSummarizing = false, error = result.message)
+                }
+            }
+        }
+    }
 
     fun saveAsPersonalProperty() {
         val listing = _uiState.value.listing ?: return

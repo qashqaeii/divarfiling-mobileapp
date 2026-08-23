@@ -28,6 +28,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfMoneyField
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
@@ -37,6 +38,7 @@ import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingFeatureFieldDto
 import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.feature.filing.ListingEditForm
+import ir.divarfiling.mobile.feature.filing.ListingFeatureChoices
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +48,9 @@ fun ListingEditSheet(
     isSubmitting: Boolean,
     onFormChange: (ListingEditForm) -> Unit,
     onCallOwner: (() -> Unit)?,
+    onSmsOwner: (() -> Unit)? = null,
+    onWhatsAppOwner: (() -> Unit)? = null,
+    onBaleOwner: (() -> Unit)? = null,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -71,9 +76,11 @@ fun ListingEditSheet(
         },
     ) {
         if (form.ownerPhone.isNotBlank() && onCallOwner != null) {
-            ListingOwnerCallBanner(
-                phone = form.ownerPhone,
+            ListingOwnerContactActions(
                 onCall = onCallOwner,
+                onSms = onSmsOwner ?: {},
+                onWhatsApp = onWhatsAppOwner ?: {},
+                onBale = onBaleOwner ?: {},
                 modifier = Modifier.padding(bottom = AppSpacing.sm),
             )
         }
@@ -290,12 +297,24 @@ fun ListingEditSheet(
                 DfSheetSection(title = groupTitle) {
                     fields.forEach { field ->
                         val current = form.features[field.key] ?: field.value
-                        if (field.input == "tri") {
-                            AmenityTriRow(field.label.ifBlank { field.key }, featureFieldIcon(field), current.toTriBool()) {
+                        val choices = ListingFeatureChoices.choicesFor(field.key, field.choices)
+                        when {
+                            field.input == "tri" -> AmenityTriRow(
+                                field.label.ifBlank { field.key },
+                                featureFieldIcon(field),
+                                current.toTriBool(),
+                            ) {
                                 onFormChange(form.copy(features = form.features + (field.key to it.toTriPayload())))
                             }
-                        } else {
-                            OutlinedTextField(
+                            field.input == "select" || choices.isNotEmpty() -> FeatureChoiceField(
+                                label = field.label.ifBlank { field.key },
+                                value = current,
+                                choices = choices,
+                                enabled = !isSubmitting,
+                            ) { selected ->
+                                onFormChange(form.copy(features = form.features + (field.key to selected)))
+                            }
+                            else -> OutlinedTextField(
                                 value = current,
                                 onValueChange = { onFormChange(form.copy(features = form.features + (field.key to it))) },
                                 label = { Text(field.label.ifBlank { field.key }) },
@@ -529,6 +548,33 @@ private fun ImageUrlRow(
             },
         )
     }
+}
+
+@Composable
+private fun FeatureChoiceField(
+    label: String,
+    value: String,
+    choices: List<String>,
+    enabled: Boolean,
+    onSelect: (String) -> Unit,
+) {
+    val unspecified = "نامشخص"
+    val options = remember(choices, value) {
+        buildList {
+            add(unspecified)
+            choices.filter { it.isNotBlank() && it != unspecified }.distinct().forEach { add(it) }
+            if (value.isNotBlank() && value != unspecified && value !in this) {
+                add(value)
+            }
+        }
+    }
+    DfDropdown(
+        label = label,
+        value = value.ifBlank { unspecified },
+        options = options,
+        enabled = enabled,
+        onSelect = { selected -> onSelect(if (selected == unspecified) "" else selected) },
+    )
 }
 
 private fun featureFieldIcon(field: ListingFeatureFieldDto): ImageVector {

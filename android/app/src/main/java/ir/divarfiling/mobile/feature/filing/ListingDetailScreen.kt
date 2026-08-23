@@ -50,6 +50,11 @@ import ir.divarfiling.mobile.feature.filing.components.ListingDetailGallerySecti
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailHeader
 import ir.divarfiling.mobile.feature.filing.components.ListingEditSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingLocationSection
+import ir.divarfiling.mobile.feature.filing.components.ListingAiSummarySection
+import ir.divarfiling.mobile.feature.filing.components.ListingContactsSection
+import ir.divarfiling.mobile.feature.filing.components.ListingNotesSection
+import ir.divarfiling.mobile.feature.filing.components.ListingNotesSheet
+import ir.divarfiling.mobile.feature.filing.components.ListingOwnerContactSection
 import ir.divarfiling.mobile.feature.filing.components.ListingOwnerPhoneSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingQuickActionsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingSpecsCard
@@ -61,6 +66,7 @@ fun ListingDetailScreen(
     onBack: () -> Unit,
     onOpenCreatedProperty: (Long) -> Unit = {},
     onOpenAi: (String) -> Unit = {},
+    onOpenContact: (Long) -> Unit = {},
     viewModel: ListingDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -132,7 +138,12 @@ fun ListingDetailScreen(
                 listing != null -> {
                     ListingDetailContent(
                         listing = listing,
+                        isFavorite = listing.meta?.isFavorite == true,
+                        aiSummary = state.aiSummary,
+                        isSummarizing = state.isSummarizing,
+                        aiIsFallback = state.aiIsFallback,
                         onBack = onBack,
+                        onFavoriteToggle = viewModel::toggleFavorite,
                         onEdit = viewModel::openEditSheet,
                         onOwnerPhone = viewModel::openOwnerPhoneSheet,
                         onSendToContact = { viewModel.toggleContactPicker(true) },
@@ -144,6 +155,18 @@ fun ListingDetailScreen(
                         onSetReminder = viewModel::openReminderSheet,
                         onSaveAsPersonal = viewModel::saveAsPersonalProperty,
                         onOpenAi = { onOpenAi(listing.token) },
+                        onEditNotes = viewModel::openNotesSheet,
+                        onGenerateSummary = viewModel::summarizeListing,
+                        onCopySummary = {
+                            val text = state.aiSummary
+                            if (text.isNotBlank()) {
+                                copyToClipboard(context, text)
+                                viewModel.showMessage("خلاصه کپی شد")
+                            }
+                        },
+                        onOpenContact = onOpenContact,
+                        onUnlinkContact = viewModel::unlinkContact,
+                        onCallContact = { phone -> dialPhone(context, phone) },
                         onCopyLink = {
                             val publicUrl = listing.publicShare?.shareUrl?.takeIf { it.isNotBlank() }
                             if (publicUrl != null) {
@@ -278,7 +301,10 @@ fun ListingDetailScreen(
                 onNameChange = viewModel::onOwnerNameChange,
                 onPhoneChange = viewModel::onOwnerPhoneChange,
                 onSave = viewModel::saveOwnerPhone,
-                onCall = { phone -> dialPhone(context, phone) },
+                onCall = { phone -> DossierShareActions.dial(context, phone) },
+                onSms = { phone -> DossierShareActions.openSms(context, "سلام", phone) },
+                onWhatsApp = { phone -> DossierShareActions.openWhatsApp(context, "سلام", phone) },
+                onBale = { phone -> DossierShareActions.openBale(context, "سلام", phone) },
                 onDismiss = viewModel::dismissOwnerPhoneSheet,
                 divarUrl = listing?.shareLink,
                 onOpenDivar = listing?.shareLink?.takeIf { it.contains("divar.ir", ignoreCase = true) }?.let { url ->
@@ -315,10 +341,36 @@ fun ListingDetailScreen(
                 isSubmitting = state.isSavingEdit,
                 onFormChange = { viewModel.onEditFormChange { _ -> it } },
                 onCallOwner = state.editForm.ownerPhone.trim().takeIf { it.isNotBlank() }?.let { phone ->
-                    { dialPhone(context, phone) }
+                    { DossierShareActions.dial(context, phone) }
+                },
+                onSmsOwner = state.editForm.ownerPhone.trim().takeIf { it.isNotBlank() }?.let { phone ->
+                    { DossierShareActions.openSms(context, "سلام", phone) }
+                },
+                onWhatsAppOwner = state.editForm.ownerPhone.trim().takeIf { it.isNotBlank() }?.let { phone ->
+                    { DossierShareActions.openWhatsApp(context, "سلام", phone) }
+                },
+                onBaleOwner = state.editForm.ownerPhone.trim().takeIf { it.isNotBlank() }?.let { phone ->
+                    { DossierShareActions.openBale(context, "سلام", phone) }
                 },
                 onSave = viewModel::saveEdit,
                 onDismiss = viewModel::dismissEditSheet,
+            )
+        }
+    }
+
+    if (state.showNotesSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissNotesSheet) {
+            ListingNotesSheet(
+                note = state.noteDraft,
+                tag = state.tagDraft,
+                tagOptions = listing?.meta?.tagOptions.orEmpty().ifEmpty {
+                    listOf("تماس", "بازدید", "علاقه‌مند", "رد")
+                },
+                isSubmitting = state.isSavingMeta,
+                onNoteChange = viewModel::onNoteDraftChange,
+                onTagChange = viewModel::onTagDraftChange,
+                onSave = viewModel::saveNotes,
+                onDismiss = viewModel::dismissNotesSheet,
             )
         }
     }
@@ -359,7 +411,12 @@ fun ListingDetailScreen(
 @Composable
 private fun ListingDetailContent(
     listing: ListingDetailDto,
+    isFavorite: Boolean,
+    aiSummary: String,
+    isSummarizing: Boolean,
+    aiIsFallback: Boolean,
     onBack: () -> Unit,
+    onFavoriteToggle: () -> Unit,
     onEdit: () -> Unit,
     onOwnerPhone: () -> Unit,
     onSendToContact: () -> Unit,
@@ -369,10 +426,17 @@ private fun ListingDetailContent(
     onSetReminder: () -> Unit,
     onSaveAsPersonal: () -> Unit,
     onOpenAi: () -> Unit,
+    onEditNotes: () -> Unit,
+    onGenerateSummary: () -> Unit,
+    onCopySummary: () -> Unit,
+    onOpenContact: (Long) -> Unit,
+    onUnlinkContact: (Long) -> Unit,
+    onCallContact: (String) -> Unit,
     onCopyLink: () -> Unit,
     onCopyAdCode: () -> Unit,
     onNavigate: () -> Unit,
 ) {
+    val context = LocalContext.current
     val galleryImages = ListingImageUtils.buildGalleryUrls(listing)
     val location = listOfNotNull(
         listing.address?.takeIf { it.isNotBlank() },
@@ -393,7 +457,9 @@ private fun ListingDetailContent(
                 ListingDetailGallerySection(
                     images = galleryImages,
                     title = listing.title.orEmpty(),
+                    isFavorite = isFavorite,
                     onBack = onBack,
+                    onFavoriteToggle = onFavoriteToggle,
                     onEdit = onEdit,
                     onSaveAsPersonal = onSaveAsPersonal,
                     onOpenDivar = if (canOpenDivar) onOpenDivar else null,
@@ -418,6 +484,53 @@ private fun ListingDetailContent(
                 ListingDetailHeader(
                     listing = listing,
                     onCopyAdCode = onCopyAdCode,
+                )
+            }
+
+            val ownerPhone = listing.ownerPhone.orEmpty().trim()
+            if (ownerPhone.isNotBlank()) {
+                item {
+                    ListingOwnerContactSection(
+                        name = listing.ownerName.orEmpty(),
+                        phone = ownerPhone,
+                        onCall = { DossierShareActions.dial(context, ownerPhone) },
+                        onSms = { DossierShareActions.openSms(context, "سلام", ownerPhone) },
+                        onWhatsApp = { DossierShareActions.openWhatsApp(context, "سلام", ownerPhone) },
+                        onBale = { DossierShareActions.openBale(context, "سلام", ownerPhone) },
+                        onEdit = onOwnerPhone,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+
+            item {
+                ListingAiSummarySection(
+                    summary = aiSummary,
+                    isLoading = isSummarizing,
+                    isFallback = aiIsFallback,
+                    onGenerate = onGenerateSummary,
+                    onCopy = onCopySummary,
+                    onOpenAssistant = onOpenAi,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
+            item {
+                ListingNotesSection(
+                    meta = listing.meta,
+                    onEdit = onEditNotes,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
+            item {
+                ListingContactsSection(
+                    contacts = listing.linkedContacts,
+                    onAdd = onSendToContact,
+                    onContactClick = onOpenContact,
+                    onCall = onCallContact,
+                    onUnlink = onUnlinkContact,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
 
@@ -459,9 +572,7 @@ private fun ListingDetailContent(
 }
 
 private fun dialPhone(context: Context, phone: String) {
-    runCatching {
-        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
-    }
+    DossierShareActions.dial(context, phone)
 }
 
 private fun openWhatsApp(context: Context, message: String) {

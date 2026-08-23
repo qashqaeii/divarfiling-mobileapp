@@ -37,4 +37,10 @@ object PhoneNormalizer {
         val normalized = normalize(phone)
         return if (normalized.startsWith("0")) "98${normalized.drop(1)}" else normalized.filter { it.isDigit() }
     }
+
+    /** شناسه بله مطابق ble.ir: ۹xxxxxxxxx بدون صفر ابتدایی. */
+    fun baleUserId(phone: String?): String {
+        val normalized = normalize(phone)
+        return if (normalized.startsWith("0") && normalized.length == 11) normalized.drop(1) else ""
+    }
 }

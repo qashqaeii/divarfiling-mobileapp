@@ -1017,6 +1017,7 @@ data class ListingFeatureFieldDto(
     @SerialName("group_id") val groupId: String = "",
     @SerialName("group_title") val groupTitle: String = "",
     val input: String = "text",
+    val choices: List<String> = emptyList(),
     val state: String = "unknown",
 )
 
@@ -1074,6 +1075,37 @@ data class ListingDetailDto(
     @SerialName("published_at") val publishedAt: String? = null,
     @SerialName("expires_at") val expiresAt: String? = null,
     @SerialName("transaction_type") val transactionType: String? = null,
+    val meta: ListingMetaDto? = null,
+    @SerialName("linked_contacts") val linkedContacts: List<ListingLinkedContactDto> = emptyList(),
+)
+
+@Serializable
+data class ListingMetaDto(
+    val note: String = "",
+    val tag: String = "",
+    @SerialName("is_favorite") val isFavorite: Boolean = false,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("tag_options") val tagOptions: List<String> = emptyList(),
+)
+
+@Serializable
+data class ListingLinkedContactDto(
+    val id: Long,
+    @SerialName("customer_id") val customerId: Long,
+    @SerialName("full_name") val fullName: String = "",
+    val phone: String = "",
+    val role: String = "",
+    @SerialName("deal_type") val dealType: String = "",
+    val notes: String = "",
+    val status: String = "",
+    @SerialName("updated_at") val updatedAt: String? = null,
+)
+
+@Serializable
+data class ListingMetaUpdateRequest(
+    val note: String? = null,
+    val tag: String? = null,
+    @SerialName("is_favorite") val isFavorite: Boolean? = null,
 )
 
 @Serializable

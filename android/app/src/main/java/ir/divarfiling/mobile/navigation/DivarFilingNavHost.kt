@@ -388,6 +388,9 @@ fun DivarFilingNavHost(
                                     Routes.ai(listingToken = token, mode = "summarize"),
                                 )
                             },
+                            onOpenContact = { contactId ->
+                                navController.navigate(Routes.contactDetail(contactId))
+                            },
                         )
                     }
                     composable(

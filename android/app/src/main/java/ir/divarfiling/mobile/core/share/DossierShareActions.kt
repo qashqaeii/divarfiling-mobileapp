@@ -42,7 +42,14 @@ object DossierShareActions {
         context.startActivity(Intent(Intent.ACTION_VIEW, uri))
     }
 
-    fun openBale(context: Context, message: String) {
+    fun openBale(context: Context, message: String, phone: String? = null) {
+        val baleUser = PhoneNormalizer.baleUserId(phone)
+        if (baleUser.isNotBlank()) {
+            val opened = runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ble.ir/$baleUser")))
+            }.isSuccess
+            if (opened) return
+        }
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, message)
@@ -60,12 +67,32 @@ object DossierShareActions {
         }
     }
 
-    fun openSms(context: Context, message: String) {
-        context.startActivity(
-            Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")).apply {
-                putExtra("sms_body", message)
-            },
-        )
+    fun openSms(context: Context, message: String, phone: String? = null) {
+        val normalized = PhoneNormalizer.normalize(phone)
+        val uri = if (normalized.isNotBlank()) {
+            Uri.parse("smsto:$normalized")
+        } else {
+            Uri.parse("smsto:")
+        }
+        runCatching {
+            context.startActivity(
+                Intent(Intent.ACTION_SENDTO, uri).apply {
+                    putExtra("sms_body", message)
+                },
+            )
+        }.onFailure {
+            Toast.makeText(context, "امکان ارسال پیامک نیست", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun dial(context: Context, phone: String) {
+        val normalized = PhoneNormalizer.normalize(phone)
+        if (normalized.isBlank()) return
+        runCatching {
+            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$normalized")))
+        }.onFailure {
+            Toast.makeText(context, "امکان برقراری تماس نیست", Toast.LENGTH_SHORT).show()
+        }
     }
 
     fun copyToClipboard(context: Context, text: String, label: String = "dossier_share") {

@@ -371,6 +371,21 @@ interface MobileApi {
         @Body body: ListingPublicShareUpdateRequest,
     ): ApiEnvelope
 
+    @PATCH("filing/listings/{token}/meta")
+    suspend fun updateListingMeta(
+        @Path("token") token: String,
+        @Body body: ListingMetaUpdateRequest,
+    ): ApiEnvelope
+
+    @POST("filing/listings/{token}/favorite")
+    suspend fun toggleListingFavorite(@Path("token") token: String): ApiEnvelope
+
+    @DELETE("filing/listings/{token}/contacts/{linkId}")
+    suspend fun unlinkListingContact(
+        @Path("token") token: String,
+        @Path("linkId") linkId: Long,
+    ): ApiEnvelope
+
     @GET("filing/search")
     suspend fun searchListings(
         @Query("q") query: String? = null,

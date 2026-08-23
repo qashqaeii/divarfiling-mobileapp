@@ -30,7 +30,9 @@ import ir.divarfiling.mobile.core.design.DfIcons
 fun ListingDetailGallerySection(
     images: List<String>,
     title: String,
+    isFavorite: Boolean,
     onBack: () -> Unit,
+    onFavoriteToggle: () -> Unit,
     onEdit: () -> Unit,
     onSaveAsPersonal: () -> Unit,
     onOpenDivar: (() -> Unit)?,
@@ -44,7 +46,9 @@ fun ListingDetailGallerySection(
     ) {
         ListingDetailToolbar(
             title = title,
+            isFavorite = isFavorite,
             onBack = onBack,
+            onFavoriteToggle = onFavoriteToggle,
             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
         )
 
@@ -69,7 +73,9 @@ fun ListingDetailGallerySection(
 @Composable
 private fun ListingDetailToolbar(
     title: String,
+    isFavorite: Boolean,
     onBack: () -> Unit,
+    onFavoriteToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -95,6 +101,22 @@ private fun ListingDetailToolbar(
                     color = DfColors.TextMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Surface(
+            onClick = onFavoriteToggle,
+            shape = AppShapes.IconContainer,
+            color = if (isFavorite) DfColors.RoseLight else DfColors.Surface,
+            shadowElevation = AppElevations.subtle,
+            modifier = Modifier.size(40.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = DfIcons.Heart,
+                    contentDescription = if (isFavorite) "حذف از علاقه‌مندی" else "افزودن به علاقه‌مندی",
+                    tint = if (isFavorite) DfColors.Rose else DfColors.TextMuted,
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }

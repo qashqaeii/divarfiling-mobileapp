@@ -96,6 +96,15 @@ fun ListingLocationSection(
                 }
             }
 
+            if (hasCoordinates && latitude != null && longitude != null) {
+                ListingMiniMap(
+                    latitude = latitude,
+                    longitude = longitude,
+                    title = listOf(neighborhood, city).filter { it.isNotBlank() }.joinToString("، ")
+                        .ifBlank { "موقعیت ملک" },
+                )
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
