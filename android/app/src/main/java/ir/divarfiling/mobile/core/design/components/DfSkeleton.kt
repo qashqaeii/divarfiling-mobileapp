@@ -76,23 +76,26 @@ fun DfNotificationListSkeleton(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(top = AppSpacing.xs, bottom = AppSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         repeat(count) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                DfShimmerBox(modifier = Modifier.size(44.dp))
+                DfShimmerBox(modifier = Modifier.size(8.dp))
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    DfShimmerBox(modifier = Modifier.fillMaxWidth(0.8f).height(14.dp))
-                    DfShimmerBox(modifier = Modifier.fillMaxWidth(0.95f).height(12.dp))
-                    DfShimmerBox(modifier = Modifier.width(64.dp).height(10.dp))
+                    DfShimmerBox(modifier = Modifier.fillMaxWidth(0.62f).height(14.dp))
+                    DfShimmerBox(modifier = Modifier.fillMaxWidth(0.92f).height(12.dp))
+                    DfShimmerBox(modifier = Modifier.width(56.dp).height(10.dp))
                 }
+                DfShimmerBox(modifier = Modifier.size(36.dp))
             }
         }
     }

@@ -1,18 +1,16 @@
 package ir.divarfiling.mobile.core.design.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +39,8 @@ fun DfDetailPageHeader(
     @DrawableRes titleIconRes: Int? = null,
     titleIconBackground: Color? = null,
     showBottomDivider: Boolean = true,
+    showSectionLabel: Boolean? = null,
+    showTitleIcon: Boolean = false,
     framed: Boolean = true,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
@@ -56,24 +56,20 @@ fun DfDetailPageHeader(
             titleIconRes = titleIconRes,
             titleIconBackground = resolvedIconBackground,
             sectionAccent = theme.accent,
-            sectionChipBackground = theme.sectionChipBackground,
             onBack = onBack,
+            variant = DfHeaderVariant.Detail,
+            showSectionLabel = showSectionLabel,
+            showTitleIcon = showTitleIcon,
             embeddedInFrame = framed,
             toolbarContent = actions,
         )
-        if (showBottomDivider) {
-            HorizontalDivider(
-                modifier = Modifier.padding(top = AppSpacing.sm),
-                color = theme.borderColor.copy(alpha = 0.75f),
-                thickness = 1.dp,
-            )
-        }
     }
 
     if (framed) {
         DfHeaderFrame(
             theme = theme,
             modifier = modifier,
+            showBottomHairline = showBottomDivider,
             content = headerContent,
         )
     } else {
@@ -143,7 +139,6 @@ private fun DfDetailPageHeaderPreview() {
                 title = "علی محمدی",
                 subtitle = "۰۹۱۲۱۲۳۴۵۶۷",
                 sectionLabel = DfHeaderSections.CRM,
-                titleIcon = DfIcons.User,
                 onBack = {},
             )
             DfPillChipRow(

@@ -217,7 +217,9 @@ class HomeViewModel @Inject constructor(
             "price_drop" -> HomeNotificationType.PriceDrop
             "customer_match" -> HomeNotificationType.NewMatch
             "license_expiry" -> HomeNotificationType.License
-            "overdue_followup", "today_digest" -> HomeNotificationType.FollowUp
+            "overdue_followup", "today_digest", "reminder_call", "reminder_visit" -> HomeNotificationType.FollowUp
+            "support_reply" -> HomeNotificationType.Support
+            "welcome", "announcement", "app_update", "product_update" -> HomeNotificationType.Announcement
             else -> HomeNotificationType.General
         }
         return HomeNotificationItem(

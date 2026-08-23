@@ -1,87 +1,108 @@
 package ir.divarfiling.mobile.core.design.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Surface
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppElevations
-import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfThemeColors
 
+/** چیدمان فشرده هدر — بدون قاب Hero و بدون المان تزئینی. */
+internal object DfHeaderMetrics {
+    val horizontalPadding = AppSpacing.screenHorizontal
+    val verticalPadding = AppSpacing.xs
+    val titleSubtitleGap = AppSpacing.xxs
+    val iconContainerSize = 36.dp
+    val iconSize = 18.dp
+    val avatarSize = 36.dp
+    val actionTouchSize = 36.dp
+    val actionIconSize = 20.dp
+}
+
+enum class DfHeaderVariant {
+    Hub,
+    Detail,
+    Greeting,
+}
+
+enum class DfSectionLabelMode {
+    Hidden,
+    Eyebrow,
+}
+
+internal fun resolveSectionLabelMode(
+    variant: DfHeaderVariant,
+    sectionLabel: String?,
+    title: String,
+    showSectionLabel: Boolean?,
+): DfSectionLabelMode {
+    if (sectionLabel.isNullOrBlank()) return DfSectionLabelMode.Hidden
+    showSectionLabel?.let { return if (it) DfSectionLabelMode.Eyebrow else DfSectionLabelMode.Hidden }
+    return when (variant) {
+        DfHeaderVariant.Hub, DfHeaderVariant.Greeting -> DfSectionLabelMode.Hidden
+        DfHeaderVariant.Detail -> {
+            if (isRedundantSectionLabel(sectionLabel, title)) {
+                DfSectionLabelMode.Hidden
+            } else {
+                DfSectionLabelMode.Eyebrow
+            }
+        }
+    }
+}
+
+internal fun isRedundantSectionLabel(sectionLabel: String, title: String): Boolean {
+    val label = sectionLabel.trim()
+    val heading = title.trim()
+    if (label.isBlank() || heading.isBlank()) return true
+    if (heading.startsWith(label)) return true
+    if (heading.contains(label)) return true
+    return false
+}
+
+internal fun greetingTitleFor(userName: String): String {
+    val trimmed = userName.trim()
+    if (trimmed.isBlank()) return "سلام"
+    val firstName = trimmed.substringBefore(' ').ifBlank { trimmed }
+    return "سلام، $firstName"
+}
+
 /**
- * قاب یکسان هدر — گرادیان نرم، حاشیه ظریف و المان تزئینی گوشه.
+ * پس‌زمینه بسیار ظریف + padding استاندارد — نه کارت جداگانه.
  */
 @Composable
 fun DfHeaderFrame(
     theme: DfHeaderTheme,
     modifier: Modifier = Modifier,
+    showSurfaceTint: Boolean = true,
+    showBottomHairline: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
+            .then(
+                if (showSurfaceTint) {
+                    Modifier.background(theme.surfaceTint)
+                } else {
+                    Modifier
+                },
+            )
             .padding(
-                horizontal = AppSpacing.screenHorizontal,
-                vertical = AppSpacing.sm,
+                horizontal = DfHeaderMetrics.horizontalPadding,
+                vertical = DfHeaderMetrics.verticalPadding,
             ),
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = AppShapes.Hero,
-            color = Color.Transparent,
-            border = BorderStroke(1.dp, theme.borderColor),
-            shadowElevation = AppElevations.subtle,
-        ) {
-            Box {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    theme.gradientStart,
-                                    theme.gradientEnd,
-                                    DfThemeColors.surface().copy(alpha = if (DfThemeColors.isDark()) 0.72f else 0.35f),
-                                ),
-                            ),
-                        ),
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 28.dp, y = (-24).dp)
-                        .size(112.dp)
-                        .clip(CircleShape)
-                        .background(theme.orbColor),
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .offset(x = (-18).dp, y = 18.dp)
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .background(theme.orbColor.copy(alpha = theme.orbColor.alpha * 0.65f)),
-                )
-                Column(
-                    modifier = Modifier.padding(AppSpacing.md),
-                    content = content,
-                )
-            }
-        }
+        content = content,
+    )
+    if (showBottomHairline) {
+        HorizontalDivider(
+            color = DfThemeColors.outlineSubtle().copy(alpha = 0.55f),
+            thickness = 0.5.dp,
+        )
     }
 }

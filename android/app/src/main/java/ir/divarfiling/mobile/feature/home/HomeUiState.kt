@@ -63,6 +63,8 @@ enum class HomeNotificationType {
     PriceDrop,
     License,
     FollowUp,
+    Support,
+    Announcement,
     General,
 }
 
