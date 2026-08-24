@@ -250,20 +250,6 @@ private fun PropertyFolderBadge(folder: PropertyFolderBriefDto) {
     PropertyBadge(text = folder.name, color = color, bg = color.copy(alpha = 0.12f))
 }
 
-private fun parseFolderColor(hex: String): Color {
-    val cleaned = hex.trim().removePrefix("#")
-    if (cleaned.length != 6) return DfColors.Purple
-    return try {
-        Color(
-            red = cleaned.substring(0, 2).toInt(16) / 255f,
-            green = cleaned.substring(2, 4).toInt(16) / 255f,
-            blue = cleaned.substring(4, 6).toInt(16) / 255f,
-        )
-    } catch (_: Exception) {
-        DfColors.Purple
-    }
-}
-
 @Composable
 private fun PropertyBadge(text: String, color: Color, bg: Color) {
     Surface(shape = AppShapes.Chip, color = bg) {

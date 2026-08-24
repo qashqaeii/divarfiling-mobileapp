@@ -1428,7 +1428,7 @@ class PropertyDetailViewModel @Inject constructor(
         if (_uiState.value.isSubmitting) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (extrasRepository.togglePropertyFolderMembership(folderId, propertyId, add)) {
+            when (val result = extrasRepository.togglePropertyFolderMembership(folderId, propertyId, add)) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, successMessage = if (add) "به زونکن اضافه شد" else "از زونکن حذف شد") }
                     load()

@@ -75,7 +75,7 @@ fun PropertyFoldersManageSheet(
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
             Text(
                 text = "مدیریت زونکن‌ها",
-                style = AppTypography.titleMedium,
+                style = AppTypography.cardTitle,
                 fontWeight = FontWeight.Bold,
                 color = DfColors.TextPrimary,
             )
@@ -219,7 +219,7 @@ fun PropertyFolderFormSheet(
     ) {
         Text(
             text = title,
-            style = AppTypography.titleMedium,
+            style = AppTypography.cardTitle,
             fontWeight = FontWeight.Bold,
             color = DfColors.TextPrimary,
         )
@@ -248,11 +248,11 @@ fun PropertyFolderFormSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(DfIcons.Bookmark, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(18.dp))
-                Text("سنجاق در ابتدای لیست", style = AppTypography.labelMedium)
+                Text("سنجاق در ابتدای لیست", style = AppTypography.labelLarge)
             }
             Switch(checked = isPinned, onCheckedChange = onPinnedChange)
         }
-        Text("رنگ", style = AppTypography.labelMedium, color = DfColors.TextSecondary)
+        Text("رنگ", style = AppTypography.labelLarge, color = DfColors.TextSecondary)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),

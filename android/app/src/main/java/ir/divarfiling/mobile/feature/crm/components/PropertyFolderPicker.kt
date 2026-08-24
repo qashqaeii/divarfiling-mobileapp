@@ -27,20 +27,6 @@ import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyFolderDto
 
-private fun parseFolderColor(hex: String): Color {
-    val cleaned = hex.trim().removePrefix("#")
-    if (cleaned.length != 6) return DfColors.Purple
-    return try {
-        Color(
-            red = cleaned.substring(0, 2).toInt(16) / 255f,
-            green = cleaned.substring(2, 4).toInt(16) / 255f,
-            blue = cleaned.substring(4, 6).toInt(16) / 255f,
-        )
-    } catch (_: Exception) {
-        DfColors.Purple
-    }
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PropertyFolderPicker(
@@ -74,7 +60,7 @@ fun PropertyFolderPicker(
                 Column {
                     Text(
                         text = "زونکن‌ها",
-                        style = AppTypography.titleSmall,
+                        style = AppTypography.sectionTitle,
                         fontWeight = FontWeight.SemiBold,
                         color = DfColors.TextPrimary,
                     )
