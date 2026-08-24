@@ -70,7 +70,7 @@ object CrmConstants {
 
     fun showsLeaseDeadline(customerType: String?): Boolean {
         val type = customerType.orEmpty().trim()
-        return type == "متقاضی اجاره" || type == "متقاضی رهن و اجاره"
+        return type == "مستاجر" || type == "متقاضی اجاره" || type == "متقاضی رهن و اجاره"
     }
 
     /** Statuses where suggesting matched properties is a natural next step. */
