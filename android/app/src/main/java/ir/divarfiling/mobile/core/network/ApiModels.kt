@@ -911,11 +911,13 @@ data class PropertyContactLinkDto(
 
 @Serializable
 data class PropertyLinkContactRequest(
-    @SerialName("customer_id") val customerId: Long,
-    val role: String = "پیشنهادی",
+    @SerialName("customer_id") val customerId: Long? = null,
+    @SerialName("full_name") val fullName: String = "",
+    val phone: String = "",
+    val role: String = "مالک",
     @SerialName("deal_type") val dealType: String = "سایر",
     @SerialName("interest_level") val interestLevel: String = "",
-    @SerialName("is_primary") val isPrimary: Boolean = false,
+    @SerialName("is_primary") val isPrimary: Boolean = true,
     val notes: String = "",
 )
 

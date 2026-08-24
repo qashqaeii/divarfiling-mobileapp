@@ -1667,8 +1667,18 @@ class PropertyDetailViewModel @Inject constructor(
             linkContactPhone = if (!show) "" else it.linkContactPhone,
         )
     }
-    fun onLinkContactIdChange(v: String) = _uiState.update { it.copy(linkContactId = v) }
-    fun onLinkContactRoleChange(v: String) = _uiState.update { it.copy(linkContactRole = v) }
+    fun onLinkContactNameChange(v: String) = _uiState.update {
+        it.copy(linkContactName = v, linkContactId = "")
+    }
+
+    fun onLinkContactPhoneChange(v: String) = _uiState.update {
+        it.copy(linkContactPhone = v, linkContactId = "")
+    }
+
+    fun clearLinkContactSelection() = _uiState.update {
+        it.copy(linkContactId = "", linkContactName = "", linkContactPhone = "")
+    }
+
     fun toggleLinkContactPicker(show: Boolean) = _uiState.update { it.copy(showLinkContactPicker = show) }
     fun onLinkContactSelected(contact: ir.divarfiling.mobile.core.network.ContactDto) = _uiState.update {
         it.copy(
@@ -1701,9 +1711,14 @@ class PropertyDetailViewModel @Inject constructor(
     }
 
     fun linkContact() {
-        val customerId = _uiState.value.linkContactId.trim().toLongOrNull()
-        if (customerId == null) {
-            _uiState.update { it.copy(error = "شناسه مخاطب نامعتبر است") }
+        val state = _uiState.value
+        val pickedId = state.linkContactId.trim().toLongOrNull()
+        val name = state.linkContactName.trim()
+        val phone = state.linkContactPhone.trim()
+        if (pickedId == null && (name.isBlank() || phone.isBlank())) {
+            _uiState.update {
+                it.copy(error = "نام و شماره مالک را وارد کنید یا از مخاطبین انتخاب کنید")
+            }
             return
         }
         viewModelScope.launch {
@@ -1712,14 +1727,24 @@ class PropertyDetailViewModel @Inject constructor(
                 val result = repository.linkPropertyContact(
                     propertyId,
                     PropertyLinkContactRequest(
-                        customerId = customerId,
-                        role = _uiState.value.linkContactRole,
+                        customerId = pickedId,
+                        fullName = name,
+                        phone = phone,
+                        role = "مالک",
+                        isPrimary = true,
                     ),
                 )
             ) {
                 is ApiResult.Success -> {
                     _uiState.update {
-                        it.copy(isSubmitting = false, showLinkContactSheet = false, successMessage = "مخاطب پیوند شد")
+                        it.copy(
+                            isSubmitting = false,
+                            showLinkContactSheet = false,
+                            linkContactId = "",
+                            linkContactName = "",
+                            linkContactPhone = "",
+                            successMessage = "مالک به ملک متصل شد",
+                        )
                     }
                     load()
                 }

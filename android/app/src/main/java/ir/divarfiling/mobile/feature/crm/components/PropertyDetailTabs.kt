@@ -60,7 +60,8 @@ import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
-import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.FeatureProfilePanels
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.PropertyContactLinkDto
@@ -1042,77 +1043,129 @@ private fun PropertyDetailSummarySidebar(
 
 @Composable
 fun PropertyLinkContactSheet(
-    contactId: String,
     contactName: String,
     contactPhone: String,
-    role: String,
+    selectedFromCrm: Boolean,
     isSubmitting: Boolean,
-    onContactIdChange: (String) -> Unit,
+    onNameChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
     onPickContact: () -> Unit,
-    onRoleChange: (String) -> Unit,
+    onClearSelection: () -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val canSubmit = (contactName.isNotBlank() && contactPhone.isNotBlank()) || selectedFromCrm
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(AppSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
     ) {
-        Text("پیوند مخاطب به ملک", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-        Text(
-            "مالک یا مخاطب مرتبط را از CRM انتخاب کنید و نقش او را مشخص کنید",
-            style = AppTypography.bodyDescription,
-            color = DfColors.TextMuted,
-        )
-        Button(
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(AppShapes.IconContainer)
+                    .background(DfColors.PurpleContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(DfIcons.User, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(20.dp))
+            }
+            Column {
+                Text("اتصال مالک", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+                Text(
+                    "مالک را از مخاطبین انتخاب کنید یا نام و شماره را دستی وارد کنید",
+                    style = AppTypography.labelSmall,
+                    color = DfColors.TextMuted,
+                )
+            }
+        }
+
+        DfSecondaryButton(
+            text = if (selectedFromCrm) "تغییر مخاطب از CRM" else "انتخاب از مخاطبین CRM",
             onClick = onPickContact,
             enabled = !isSubmitting,
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(if (contactName.isBlank()) "انتخاب از مخاطبین CRM" else "تغییر مخاطب")
-        }
-        if (contactName.isNotBlank() || contactPhone.isNotBlank()) {
+        )
+
+        if (selectedFromCrm && (contactName.isNotBlank() || contactPhone.isNotBlank())) {
             DfPremiumCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(AppSpacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(AppSpacing.sm),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(contactName.ifBlank { "مخاطب انتخاب‌شده" }, style = AppTypography.cardTitle)
-                    if (contactPhone.isNotBlank()) {
-                        Text(contactPhone, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            contactName.ifBlank { "مخاطب انتخاب‌شده" },
+                            style = AppTypography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        if (contactPhone.isNotBlank()) {
+                            Text(contactPhone, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
+                        }
+                        Text(
+                            "از مخاطبین CRM",
+                            style = AppTypography.labelSmall,
+                            color = DfColors.Purple,
+                        )
                     }
-                    if (contactId.isNotBlank()) {
-                        Text("شناسه: $contactId", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                    TextButton(onClick = onClearSelection, enabled = !isSubmitting) {
+                        Text("حذف")
                     }
                 }
             }
         }
-        OutlinedTextField(
-            value = contactId,
-            onValueChange = onContactIdChange,
+
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("شناسه مخاطب") },
-            supportingText = { Text("در صورت نیاز می‌توانید شناسه را دستی هم وارد کنید") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-        )
-        val roles = listOf("مالک", "خریدار", "مستاجر", "پیشنهادی", "معرف")
-        roles.forEach { r ->
-            DfSheetOptionRow(
-                label = r,
-                selected = role == r,
-                onClick = { onRoleChange(r) },
-            )
-        }
-        Button(
-            onClick = onSubmit,
-            enabled = !isSubmitting,
-            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            Text(if (isSubmitting) "در حال ثبت…" else "پیوند مخاطب")
+            HorizontalDivider(modifier = Modifier.weight(1f), color = DfColors.OutlineSubtle)
+            Text("یا ثبت دستی", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+            HorizontalDivider(modifier = Modifier.weight(1f), color = DfColors.OutlineSubtle)
         }
-        TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+
+        OutlinedTextField(
+            value = contactName,
+            onValueChange = onNameChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("نام مالک") },
+            placeholder = { Text("مثلاً علی محمدی") },
+            singleLine = true,
+            enabled = !isSubmitting,
+        )
+        OutlinedTextField(
+            value = contactPhone,
+            onValueChange = onPhoneChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("شماره تماس مالک") },
+            placeholder = { Text("مثلاً ۰۹۱۲۱۲۳۴۵۶۷") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            singleLine = true,
+            enabled = !isSubmitting,
+        )
+
+        Text(
+            "در صورت نبودن در CRM، مخاطب جدید ساخته و با نقش مالک به این ملک اضافه می‌شود.",
+            style = AppTypography.labelSmall,
+            color = DfColors.TextMuted,
+        )
+
+        DfPrimaryButton(
+            text = if (isSubmitting) "در حال اتصال…" else "اتصال مالک",
+            onClick = onSubmit,
+            enabled = !isSubmitting && canSubmit,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), enabled = !isSubmitting) {
             Text("انصراف")
         }
     }

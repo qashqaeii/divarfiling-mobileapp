@@ -679,14 +679,14 @@ fun PropertyDetailScreen(
     if (state.showLinkContactSheet) {
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleLinkContactSheet(false) }) {
             PropertyLinkContactSheet(
-                contactId = state.linkContactId,
                 contactName = state.linkContactName,
                 contactPhone = state.linkContactPhone,
-                role = state.linkContactRole,
+                selectedFromCrm = state.linkContactId.isNotBlank(),
                 isSubmitting = state.isSubmitting,
-                onContactIdChange = viewModel::onLinkContactIdChange,
+                onNameChange = viewModel::onLinkContactNameChange,
+                onPhoneChange = viewModel::onLinkContactPhoneChange,
                 onPickContact = { viewModel.toggleLinkContactPicker(true) },
-                onRoleChange = viewModel::onLinkContactRoleChange,
+                onClearSelection = viewModel::clearLinkContactSelection,
                 onSubmit = viewModel::linkContact,
                 onDismiss = { viewModel.toggleLinkContactSheet(false) },
             )
