@@ -54,12 +54,7 @@ fun PropertyFoldersRail(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f),
             ) {
-                PropertyFolderIconBadge(
-                    faIcon = "fa-book",
-                    color = DfColors.Purple,
-                    size = 32.dp,
-                    iconSize = 16.dp,
-                )
+                ZonkanBrandIcon(size = 32.dp)
                 Column {
                     Text(
                         text = "زونکن‌ها",

@@ -50,12 +50,7 @@ fun PropertyFolderPicker(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                PropertyFolderIconBadge(
-                    faIcon = "fa-book",
-                    color = DfColors.Purple,
-                    size = 34.dp,
-                    iconSize = 16.dp,
-                )
+                ZonkanBrandIcon(size = 34.dp)
                 Column {
                     Text(
                         text = "زونکن‌ها",

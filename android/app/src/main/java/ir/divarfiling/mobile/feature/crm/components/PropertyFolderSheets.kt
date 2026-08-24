@@ -77,7 +77,7 @@ fun PropertyFoldersManageSheet(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PropertyFolderIconBadge(faIcon = "fa-book", color = DfColors.Purple, size = 36.dp)
+            ZonkanBrandIcon(size = 36.dp)
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = "مدیریت زونکن‌ها",
@@ -244,7 +244,7 @@ fun PropertyFolderFormSheet(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PropertyFolderIconBadge(faIcon = "fa-book", color = DfColors.Purple, size = 36.dp)
+            ZonkanBrandIcon(size = 36.dp)
             Text(
                 text = title,
                 style = AppTypography.cardTitle,

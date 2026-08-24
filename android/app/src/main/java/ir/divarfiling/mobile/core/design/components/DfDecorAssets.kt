@@ -80,6 +80,7 @@ object DfDecorIcons {
     val LayoutGrid: Int = R.drawable.layout_grid
 
     val HomeIllustrationRobot: Int = R.drawable.home_illustration_robot
+    val Zonkan: Int = R.drawable.zonkan
 }
 
 object DfDecorSize {

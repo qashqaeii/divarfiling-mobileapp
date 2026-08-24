@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfDecorImage
 
 /** Maps FontAwesome-style icon keys (from API) to Lucide vectors in the Android design system. */
 fun folderIconVector(faIcon: String): ImageVector = when (faIcon) {
@@ -32,6 +34,19 @@ fun folderIconVector(faIcon: String): ImageVector = when (faIcon) {
     "fa-map-pin" -> DfIcons.MapPin
     "fa-tag" -> DfIcons.Tag
     else -> DfIcons.Folder
+}
+
+@Composable
+fun ZonkanBrandIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 32.dp,
+) {
+    DfDecorImage(
+        resId = DfDecorIcons.Zonkan,
+        size = size,
+        modifier = modifier,
+        contentDescription = "زونکن",
+    )
 }
 
 @Composable
