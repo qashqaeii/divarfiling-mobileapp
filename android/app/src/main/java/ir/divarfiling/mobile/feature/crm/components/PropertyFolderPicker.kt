@@ -15,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
@@ -48,14 +47,14 @@ fun PropertyFolderPicker(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = DfIcons.Folder,
-                    contentDescription = null,
-                    tint = DfColors.Purple,
-                    modifier = Modifier.size(18.dp),
+                PropertyFolderIconBadge(
+                    faIcon = "fa-book",
+                    color = DfColors.Purple,
+                    size = 34.dp,
+                    iconSize = 16.dp,
                 )
                 Column {
                     Text(
@@ -97,7 +96,7 @@ fun PropertyFolderPicker(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
-                                imageVector = DfIcons.Folder,
+                                imageVector = folderIconVector(folder.icon),
                                 contentDescription = null,
                                 tint = color,
                                 modifier = Modifier.size(14.dp),

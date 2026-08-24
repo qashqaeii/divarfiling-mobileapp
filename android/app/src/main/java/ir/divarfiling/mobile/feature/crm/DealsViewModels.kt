@@ -623,6 +623,7 @@ data class PropertiesUiState(
     val folderFormName: String = "",
     val folderFormDescription: String = "",
     val folderFormColor: String = PropertyFolderConstants.DEFAULT_COLOR,
+    val folderFormIcon: String = PropertyFolderConstants.DEFAULT_ICON,
     val folderFormPinned: Boolean = false,
     val isSubmittingFolder: Boolean = false,
     val isSavingFolderOrder: Boolean = false,
@@ -640,9 +641,24 @@ object PropertyConstants {
 
 object PropertyFolderConstants {
     const val DEFAULT_COLOR = "#6366f1"
+    const val DEFAULT_ICON = "fa-book"
     val COLORS = listOf(
         "#6366f1", "#0ea5e9", "#10b981", "#f59e0b",
         "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6",
+    )
+    val ICONS = listOf(
+        "fa-book",
+        "fa-folder",
+        "fa-folder-open",
+        "fa-building",
+        "fa-city",
+        "fa-key",
+        "fa-star",
+        "fa-briefcase",
+        "fa-layer-group",
+        "fa-house-chimney",
+        "fa-landmark",
+        "fa-map-pin",
     )
 }
 
@@ -820,6 +836,7 @@ class PropertiesViewModel @Inject constructor(
                 folderFormName = "",
                 folderFormDescription = "",
                 folderFormColor = PropertyFolderConstants.DEFAULT_COLOR,
+                folderFormIcon = PropertyFolderConstants.DEFAULT_ICON,
                 folderFormPinned = false,
             )
         }
@@ -847,6 +864,7 @@ class PropertiesViewModel @Inject constructor(
                 folderFormName = folder.name,
                 folderFormDescription = folder.description,
                 folderFormColor = folder.color,
+                folderFormIcon = folder.icon.ifBlank { PropertyFolderConstants.DEFAULT_ICON },
                 folderFormPinned = folder.isPinned,
             )
         }
@@ -861,6 +879,8 @@ class PropertiesViewModel @Inject constructor(
     fun onFolderFormDescriptionChange(value: String) = _uiState.update { it.copy(folderFormDescription = value) }
 
     fun onFolderFormColorChange(value: String) = _uiState.update { it.copy(folderFormColor = value) }
+
+    fun onFolderFormIconChange(value: String) = _uiState.update { it.copy(folderFormIcon = value) }
 
     fun onFolderFormPinnedChange(value: Boolean) = _uiState.update { it.copy(folderFormPinned = value) }
 
@@ -880,6 +900,7 @@ class PropertiesViewModel @Inject constructor(
                         name = name,
                         description = state.folderFormDescription.trim(),
                         color = state.folderFormColor,
+                        icon = state.folderFormIcon,
                         isPinned = state.folderFormPinned,
                     ),
                 )
@@ -890,6 +911,7 @@ class PropertiesViewModel @Inject constructor(
                         name = name,
                         description = state.folderFormDescription.trim(),
                         color = state.folderFormColor,
+                        icon = state.folderFormIcon,
                         isPinned = state.folderFormPinned,
                     ),
                 )

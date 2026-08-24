@@ -247,7 +247,28 @@ fun PropertyListCard(
 @Composable
 private fun PropertyFolderBadge(folder: PropertyFolderBriefDto) {
     val color = parseFolderColor(folder.color)
-    PropertyBadge(text = folder.name, color = color, bg = color.copy(alpha = 0.12f))
+    Surface(shape = AppShapes.Chip, color = color.copy(alpha = 0.12f)) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = folderIconVector(folder.icon),
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(11.dp),
+            )
+            Text(
+                text = folder.name,
+                style = AppTypography.labelSmall,
+                color = color,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
 
 @Composable

@@ -1,7 +1,8 @@
 package ir.divarfiling.mobile.feature.crm.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,18 +73,24 @@ fun PropertyFoldersManageSheet(
             .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-            Text(
-                text = "مدیریت زونکن‌ها",
-                style = AppTypography.cardTitle,
-                fontWeight = FontWeight.Bold,
-                color = DfColors.TextPrimary,
-            )
-            Text(
-                text = "با فلش‌ها ترتیب را تغییر دهید · سنجاق، ویرایش یا حذف",
-                style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
-            )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PropertyFolderIconBadge(faIcon = "fa-book", color = DfColors.Purple, size = 36.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "مدیریت زونکن‌ها",
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfColors.TextPrimary,
+                )
+                Text(
+                    text = "ترتیب، سنجاق، ویرایش یا حذف",
+                    style = AppTypography.labelSmall,
+                    color = DfColors.TextMuted,
+                )
+            }
         }
 
         LazyColumn(
@@ -147,6 +154,12 @@ private fun ManageFolderRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
+            Icon(
+                DfIcons.GripVertical,
+                contentDescription = null,
+                tint = DfColors.TextMuted,
+                modifier = Modifier.size(16.dp),
+            )
             Column {
                 IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(28.dp)) {
                     Icon(DfIcons.ChevronUp, contentDescription = "بالا", modifier = Modifier.size(16.dp))
@@ -155,12 +168,7 @@ private fun ManageFolderRow(
                     Icon(DfIcons.ChevronDown, contentDescription = "پایین", modifier = Modifier.size(16.dp))
                 }
             }
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(color),
-            )
+            PropertyFolderIconBadge(faIcon = folder.icon, color = color, size = 36.dp, iconSize = 16.dp)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = folder.name,
@@ -170,14 +178,22 @@ private fun ManageFolderRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${folder.propertyCount} فایل",
+                    text = buildString {
+                        append("${folder.propertyCount} فایل")
+                        if (folder.description.isNotBlank()) {
+                            append(" · ")
+                            append(folder.description)
+                        }
+                    },
                     style = AppTypography.labelSmall,
                     color = DfColors.TextMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             IconButton(onClick = onPin) {
                 Icon(
-                    DfIcons.Bookmark,
+                    DfIcons.Pin,
                     contentDescription = "سنجاق",
                     tint = if (folder.isPinned) color else DfColors.TextMuted,
                     modifier = Modifier.size(18.dp),
@@ -200,34 +216,60 @@ fun PropertyFolderFormSheet(
     name: String,
     description: String,
     selectedColor: String,
+    selectedIcon: String,
     isPinned: Boolean,
     isSubmitting: Boolean,
     showDelete: Boolean,
     onNameChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onColorChange: (String) -> Unit,
+    onIconChange: (String) -> Unit,
     onPinnedChange: (Boolean) -> Unit,
     onSubmit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val previewColor = parseFolderColor(selectedColor)
+    val previewName = name.trim().ifBlank { "نام زونکن" }
+    val previewCount = 0
+
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.md),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
     ) {
-        Text(
-            text = title,
-            style = AppTypography.cardTitle,
-            fontWeight = FontWeight.Bold,
-            color = DfColors.TextPrimary,
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PropertyFolderIconBadge(faIcon = "fa-book", color = DfColors.Purple, size = 36.dp)
+            Text(
+                text = title,
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfColors.TextPrimary,
+            )
+        }
+
+        Text("پیش‌نمایش", style = AppTypography.labelLarge, color = DfColors.TextSecondary)
+        ZonkanFolderCard(
+            name = previewName,
+            count = previewCount,
+            color = previewColor,
+            icon = selectedIcon,
+            selected = true,
+            pinned = isPinned,
+            onClick = {},
+            modifier = Modifier.fillMaxWidth(),
         )
+
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
             label = { Text("نام زونکن") },
-            placeholder = { Text("مثلاً برج سپهر") },
+            placeholder = { Text("مثلاً برج سپهر، اجاره شمال تهران…") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -235,9 +277,12 @@ fun PropertyFolderFormSheet(
             value = description,
             onValueChange = onDescriptionChange,
             label = { Text("توضیح (اختیاری)") },
-            singleLine = true,
+            placeholder = { Text("توضیح کوتاه برای یادآوری") },
+            minLines = 2,
+            maxLines = 3,
             modifier = Modifier.fillMaxWidth(),
         )
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -247,11 +292,12 @@ fun PropertyFolderFormSheet(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(DfIcons.Bookmark, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(18.dp))
+                Icon(DfIcons.Pin, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(18.dp))
                 Text("سنجاق در ابتدای لیست", style = AppTypography.labelLarge)
             }
             Switch(checked = isPinned, onCheckedChange = onPinnedChange)
         }
+
         Text("رنگ", style = AppTypography.labelLarge, color = DfColors.TextSecondary)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -267,10 +313,44 @@ fun PropertyFolderFormSheet(
                         2.dp,
                         if (hex == selectedColor) DfColors.TextPrimary else Color.Transparent,
                     ),
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(36.dp),
                 ) {}
             }
         }
+
+        Text("آیکن", style = AppTypography.labelLarge, color = DfColors.TextSecondary)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            PropertyFolderConstants.ICONS.forEach { faIcon ->
+                val isSelected = faIcon == selectedIcon
+                Surface(
+                    onClick = { onIconChange(faIcon) },
+                    shape = AppShapes.Chip,
+                    color = if (isSelected) previewColor.copy(alpha = 0.14f) else DfColors.SurfaceVariant,
+                    border = BorderStroke(
+                        1.5.dp,
+                        if (isSelected) previewColor.copy(alpha = 0.6f) else DfColors.OutlineSubtle,
+                    ),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .padding(10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = folderIconVector(faIcon),
+                            contentDescription = faIcon,
+                            tint = if (isSelected) previewColor else DfColors.TextSecondary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+        }
+
         if (showDelete) {
             HorizontalDivider(color = DfColors.OutlineSubtle)
             DfSecondaryButton(
@@ -280,9 +360,9 @@ fun PropertyFolderFormSheet(
             )
         }
         DfPrimaryButton(
-            text = if (isSubmitting) "در حال ذخیره…" else "ذخیره",
+            text = if (isSubmitting) "در حال ذخیره…" else "ذخیره زونکن",
             onClick = onSubmit,
-            enabled = !isSubmitting,
+            enabled = !isSubmitting && name.trim().isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         )
     }

@@ -94,4 +94,12 @@ object DfIcons {
     val Briefcase: ImageVector = LucideIcons.Briefcase
     val KeyRound: ImageVector = LucideIcons.KeyRound
     val MessageSquare: ImageVector = LucideIcons.MessageSquare
+    val Book: ImageVector = LucideIcons.Book
+    val BookOpen: ImageVector = LucideIcons.BookOpen
+    val Landmark: ImageVector = LucideIcons.Landmark
+    val FolderPlus: ImageVector = LucideIcons.FolderPlus
+    val GripVertical: ImageVector = LucideIcons.GripVertical
+    val Pin: ImageVector = LucideIcons.Pin
+    val Lightbulb: ImageVector = LucideIcons.Lightbulb
+    val EllipsisVertical: ImageVector = LucideIcons.EllipsisVertical
 }
