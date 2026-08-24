@@ -24,6 +24,7 @@ object AppLinks {
     const val WORKSPACE_COMPARE = "$SITE_ORIGIN/workspace/compare/"
     const val WORKSPACE_DATASETS = "$SITE_ORIGIN/workspace/datasets/"
     const val PRODUCT_HUB = "$SITE_ORIGIN/workspace/product/"
+    const val ANDROID_DOWNLOAD = "$SITE_ORIGIN/download/android/"
 
     fun buyPlan(planId: Long? = null, renewLicenseId: Long? = null): String {
         val params = buildList {

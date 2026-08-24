@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,7 @@ import ir.divarfiling.mobile.feature.home.components.StatsSection
 import ir.divarfiling.mobile.feature.home.components.SyncStatusBanner
 import ir.divarfiling.mobile.feature.home.components.TodayTasksSectionContent
 import ir.divarfiling.mobile.core.update.UpdateDistribution
+import ir.divarfiling.mobile.feature.update.AppUpdateDashboardBanner
 import ir.divarfiling.mobile.feature.update.AppUpdateInlineBanner
 import ir.divarfiling.mobile.feature.update.AppUpdatePhase
 import ir.divarfiling.mobile.feature.update.AppUpdateViewModel
@@ -75,9 +77,16 @@ fun HomeScreen(
     var todayExpanded by remember { mutableStateOf(false) }
     var notificationsExpanded by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        updateViewModel.refreshForDashboard()
+    }
+
     DfPullRefresh(
         isRefreshing = state.isRefreshing,
-        onRefresh = viewModel::refresh,
+        onRefresh = {
+            viewModel.refresh()
+            updateViewModel.refreshForDashboard()
+        },
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding(),
@@ -94,6 +103,23 @@ fun HomeScreen(
                     onNotificationsClick = onNavigateNotifications,
                     onMenuClick = onNavigateSettings,
                 )
+            }
+
+            if (updateState.updateRequired) {
+                item {
+                    AppUpdateDashboardBanner(
+                        state = updateState,
+                        onDownloadClick = {
+                            context.startActivity(updateViewModel.openDownloadPage())
+                        },
+                        onInAppUpdateClick = if (usesInAppApkUpdate) {
+                            { updateViewModel.startUpdate() }
+                        } else {
+                            null
+                        },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
             }
 
             state.error?.let { error ->
@@ -116,7 +142,11 @@ fun HomeScreen(
                 }
             }
 
-            if (usesInAppApkUpdate && updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
+            if (usesInAppApkUpdate &&
+                updateState.visible &&
+                updateState.phase != AppUpdatePhase.UpToDate &&
+                !updateState.updateRequired
+            ) {
                 item {
                     AppUpdateInlineBanner(
                         state = updateState,

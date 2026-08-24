@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.BuildConfig
+import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.network.AppVersionData
 import ir.divarfiling.mobile.core.update.ApkInstaller
 import ir.divarfiling.mobile.core.update.AppUpdatePreferences
@@ -36,6 +37,7 @@ enum class AppUpdatePhase {
 data class AppUpdateUiState(
     val phase: AppUpdatePhase = AppUpdatePhase.Idle,
     val visible: Boolean = false,
+    val updateRequired: Boolean = false,
     val forceUpdate: Boolean = false,
     val version: AppVersionData? = null,
     val progress: Float = 0f,
@@ -64,17 +66,28 @@ class AppUpdateViewModel @Inject constructor(
             val lastCheck = preferences.getLastCheckAt()
             val due = System.currentTimeMillis() - lastCheck >= AppUpdatePreferences.SOFT_CHECK_INTERVAL_MS
             if (!due && _uiState.value.phase == AppUpdatePhase.Idle) return@launch
-            checkInternal(manual = false, ignoreDismiss = false)
+            checkInternal(manual = false, ignoreDismiss = false, suppressModal = false)
+        }
+    }
+
+    /** بررسی نسخه برای بنر میزکار — بدون نمایش مودال، حتی اگر قبلاً رد شده باشد. */
+    fun refreshForDashboard() {
+        viewModelScope.launch {
+            checkInternal(manual = false, ignoreDismiss = true, suppressModal = true)
         }
     }
 
     fun checkManually() {
         viewModelScope.launch {
-            checkInternal(manual = true, ignoreDismiss = true)
+            checkInternal(manual = true, ignoreDismiss = true, suppressModal = false)
         }
     }
 
-    private suspend fun checkInternal(manual: Boolean, ignoreDismiss: Boolean) {
+    private suspend fun checkInternal(
+        manual: Boolean,
+        ignoreDismiss: Boolean,
+        suppressModal: Boolean = false,
+    ) {
         _uiState.update {
             it.copy(
                 phase = AppUpdatePhase.Checking,
@@ -95,6 +108,7 @@ class AppUpdateViewModel @Inject constructor(
                         it.copy(
                             phase = if (manual) AppUpdatePhase.UpToDate else AppUpdatePhase.Idle,
                             visible = manual,
+                            updateRequired = false,
                             version = data,
                             forceUpdate = false,
                             message = "شما آخرین نسخه را دارید (v${BuildConfig.VERSION_NAME})",
@@ -107,14 +121,22 @@ class AppUpdateViewModel @Inject constructor(
                     BuildConfig.VERSION_CODE < data.minSupportedVersionCode
                 if (!ignoreDismiss && !forceEffective && dismissed >= data.versionCode) {
                     _uiState.update {
-                        it.copy(phase = AppUpdatePhase.Idle, visible = false, version = data)
+                        it.copy(
+                            phase = AppUpdatePhase.Idle,
+                            visible = false,
+                            updateRequired = true,
+                            version = data,
+                            forceUpdate = forceEffective,
+                        )
                     }
                     return
                 }
+                val showModal = !suppressModal && (manual || forceEffective || dismissed < data.versionCode)
                 _uiState.update {
                     it.copy(
                         phase = AppUpdatePhase.Available,
-                        visible = true,
+                        visible = showModal,
+                        updateRequired = true,
                         version = data,
                         forceUpdate = forceEffective,
                         message = null,
@@ -142,10 +164,14 @@ class AppUpdateViewModel @Inject constructor(
         viewModelScope.launch {
             preferences.dismissVersion(version.versionCode)
             _uiState.update {
-                it.copy(visible = false, phase = AppUpdatePhase.Idle, progress = 0f)
+                it.copy(visible = false, phase = AppUpdatePhase.Idle, progress = 0f, updateRequired = true)
             }
         }
     }
+
+    fun openDownloadPage(): Intent =
+        Intent(Intent.ACTION_VIEW, android.net.Uri.parse(AppLinks.ANDROID_DOWNLOAD))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     fun startUpdate() {
         val version = _uiState.value.version ?: return
