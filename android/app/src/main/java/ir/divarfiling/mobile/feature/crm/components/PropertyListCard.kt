@@ -38,6 +38,7 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.network.PropertyDto
+import ir.divarfiling.mobile.core.network.PropertyFolderBriefDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,6 +109,21 @@ fun PropertyListCard(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+
+                    if (property.folders.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            property.folders.take(3).forEach { folder ->
+                                PropertyFolderBadge(folder)
+                            }
+                            if (property.folders.size > 3) {
+                                PropertyBadge(
+                                    text = "+${property.folders.size - 3}",
+                                    color = DfColors.TextMuted,
+                                    bg = DfColors.SurfaceVariant,
+                                )
+                            }
+                        }
+                    }
 
                     if (location != "—") {
                         Row(
@@ -225,6 +241,26 @@ fun PropertyListCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PropertyFolderBadge(folder: PropertyFolderBriefDto) {
+    val color = parseFolderColor(folder.color)
+    PropertyBadge(text = folder.name, color = color, bg = color.copy(alpha = 0.12f))
+}
+
+private fun parseFolderColor(hex: String): Color {
+    val cleaned = hex.trim().removePrefix("#")
+    if (cleaned.length != 6) return DfColors.Purple
+    return try {
+        Color(
+            red = cleaned.substring(0, 2).toInt(16) / 255f,
+            green = cleaned.substring(2, 4).toInt(16) / 255f,
+            blue = cleaned.substring(4, 6).toInt(16) / 255f,
+        )
+    } catch (_: Exception) {
+        DfColors.Purple
     }
 }
 

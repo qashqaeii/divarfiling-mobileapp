@@ -90,6 +90,7 @@ fun PropertyDetailTabbedContent(
     onSaveNotes: () -> Unit,
     onUploadDocument: () -> Unit,
     onDeleteDocument: (Long) -> Unit,
+    onToggleFolder: (folderId: Long, add: Boolean) -> Unit = { _, _ -> },
 ) {
     val property = detail.property
     val tabs = buildPropertyTabs(detail)
@@ -145,6 +146,18 @@ fun PropertyDetailTabbedContent(
                 onOpenLink = onOpenLink,
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
+        }
+
+        if (detail.canEdit && detail.availableFolders.isNotEmpty()) {
+            item {
+                PropertyFolderPicker(
+                    property = property,
+                    availableFolders = detail.availableFolders,
+                    isSubmitting = isSubmitting,
+                    onToggle = onToggleFolder,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
         }
 
         item {

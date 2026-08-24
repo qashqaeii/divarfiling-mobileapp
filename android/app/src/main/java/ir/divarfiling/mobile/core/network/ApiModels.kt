@@ -300,6 +300,10 @@ data class ContactDto(
     @SerialName("phone_alt") val phoneAlt: String? = null,
     val city: String? = null,
     val district: String? = null,
+    val job: String? = null,
+    @SerialName("company_name") val companyName: String? = null,
+    @SerialName("national_id") val nationalId: String? = null,
+    @SerialName("lease_deadline") val leaseDeadline: String? = null,
     val address: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("matching_tolerance_percent") val matchingTolerancePercent: Int? = null,
@@ -758,6 +762,9 @@ data class PropertyDto(
     @SerialName("has_storage") val hasStorage: Boolean = false,
     @SerialName("has_elevator") val hasElevator: Boolean = false,
     @SerialName("is_vacant") val isVacant: Boolean = false,
+    @SerialName("tenant_name") val tenantName: String? = null,
+    @SerialName("tenant_phone") val tenantPhone: String? = null,
+    @SerialName("vacancy_date") val vacancyDate: String? = null,
     val amenities: String? = null,
     val address: String? = null,
     val notes: String? = null,
@@ -769,6 +776,7 @@ data class PropertyDto(
     @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
+    val folders: List<PropertyFolderBriefDto> = emptyList(),
 )
 
 @Serializable
@@ -873,6 +881,9 @@ data class PropertyUpdateRequest(
     @SerialName("has_storage") val hasStorage: Boolean? = null,
     @SerialName("has_elevator") val hasElevator: Boolean? = null,
     @SerialName("is_vacant") val isVacant: Boolean? = null,
+    @SerialName("tenant_name") val tenantName: String? = null,
+    @SerialName("tenant_phone") val tenantPhone: String? = null,
+    @SerialName("vacancy_date") val vacancyDate: String? = null,
     val amenities: String? = null,
     @SerialName("owner_name") val ownerName: String? = null,
     @SerialName("owner_phone") val ownerPhone: String? = null,
@@ -953,6 +964,50 @@ data class PropertyDetailData(
     @SerialName("mask_sensitive") val maskSensitive: Boolean = false,
     @SerialName("contact_count") val contactCount: Int = 0,
     @SerialName("public_share") val publicShare: ListingPublicShareDto? = null,
+    @SerialName("available_folders") val availableFolders: List<PropertyFolderDto> = emptyList(),
+)
+
+@Serializable
+data class PropertyFolderBriefDto(
+    val id: Long,
+    val name: String = "",
+    val color: String = "#6366f1",
+    val icon: String = "fa-folder",
+)
+
+@Serializable
+data class PropertyFolderDto(
+    val id: Long,
+    val name: String = "",
+    val description: String = "",
+    val color: String = "#6366f1",
+    val icon: String = "fa-folder",
+    @SerialName("sort_order") val sortOrder: Int = 0,
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+    @SerialName("property_count") val propertyCount: Int = 0,
+)
+
+@Serializable
+data class PropertyFolderCreateRequest(
+    val name: String,
+    val description: String = "",
+    val color: String = "#6366f1",
+    val icon: String = "fa-folder",
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+)
+
+@Serializable
+data class PropertyFolderUpdateRequest(
+    val name: String? = null,
+    val description: String? = null,
+    val color: String? = null,
+    val icon: String? = null,
+    @SerialName("is_pinned") val isPinned: Boolean? = null,
+)
+
+@Serializable
+data class PropertyFolderReorderRequest(
+    @SerialName("folder_ids") val folderIds: List<Long>,
 )
 
 @Serializable
@@ -1267,6 +1322,10 @@ data class ContactUpdateRequest(
     val city: String? = null,
     val district: String? = null,
     val email: String? = null,
+    val job: String? = null,
+    @SerialName("company_name") val companyName: String? = null,
+    @SerialName("national_id") val nationalId: String? = null,
+    @SerialName("lease_deadline") val leaseDeadline: String? = null,
     @SerialName("phone_alt") val phoneAlt: String? = null,
     val source: String? = null,
     @SerialName("matching_tolerance_percent") val matchingTolerancePercent: Int? = null,

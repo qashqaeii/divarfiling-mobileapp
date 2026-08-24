@@ -66,6 +66,12 @@ private fun buildContactDossierSections(
         contact.email?.takeIf { it.isNotBlank() }?.let { add("ایمیل" to it) }
         contact.city?.takeIf { it.isNotBlank() }?.let { add("شهر" to it) }
         contact.district?.takeIf { it.isNotBlank() }?.let { add("منطقه" to it) }
+        contact.job?.takeIf { it.isNotBlank() }?.let { add("شغل" to it) }
+        contact.companyName?.takeIf { it.isNotBlank() }?.let { add("نام شرکت" to it) }
+        contact.nationalId?.takeIf { it.isNotBlank() }?.let { add("کد ملی" to it) }
+        contact.leaseDeadline?.takeIf { it.isNotBlank() }?.let { raw ->
+            DateUtils.formatJalaliDate(raw)?.let { add("مهلت اجاره" to it) }
+        }
         contact.createdAt?.let { ts ->
             DateUtils.formatJalaliDateTime(ts)?.let { add("تاریخ ثبت" to it) }
         }

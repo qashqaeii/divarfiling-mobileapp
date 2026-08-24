@@ -27,7 +27,9 @@ import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.design.components.DfMoneyField
 import ir.divarfiling.mobile.core.util.PhoneNormalizer
-import ir.divarfiling.mobile.feature.crm.CrmConstants
+import androidx.compose.material3.FilterChip
+import androidx.compose.ui.text.font.FontWeight
+import ir.divarfiling.mobile.core.design.components.DfOccupancyVacancyDateSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -208,6 +210,9 @@ fun PropertyEditSheet(
     hasStorage: Boolean = false,
     hasElevator: Boolean = false,
     isVacant: Boolean = false,
+    tenantName: String = "",
+    tenantPhone: String = "",
+    vacancyDate: String = "",
     ownerName: String = "",
     ownerPhone: String = "",
     onTitleChange: (String) -> Unit,
@@ -231,6 +236,9 @@ fun PropertyEditSheet(
     onStorageChange: (Boolean) -> Unit = {},
     onElevatorChange: (Boolean) -> Unit = {},
     onVacantChange: (Boolean) -> Unit = {},
+    onTenantNameChange: (String) -> Unit = {},
+    onTenantPhoneChange: (String) -> Unit = {},
+    onVacancyDateChange: (String) -> Unit = {},
     onOwnerNameChange: (String) -> Unit = {},
     onOwnerPhoneChange: (String) -> Unit = {},
     onSubmit: () -> Unit,
@@ -439,8 +447,61 @@ fun PropertyEditSheet(
                 AmenityToggleRow("پارکینگ", hasParking, !isSubmitting, onParkingChange)
                 AmenityToggleRow("انباری", hasStorage, !isSubmitting, onStorageChange)
                 AmenityToggleRow("آسانسور", hasElevator, !isSubmitting, onElevatorChange)
-                AmenityToggleRow("تخلیه / خالی", isVacant, !isSubmitting, onVacantChange)
             }
+        }
+
+        DfSheetSection(title = "وضعیت سکونت") {
+            Text(
+                text = "تخلیه بودن یا مشخصات مستاجر فعلی را مشخص کنید",
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                FilterChip(
+                    selected = isVacant,
+                    onClick = {
+                        if (!isSubmitting) {
+                            onVacantChange(true)
+                            onTenantNameChange("")
+                            onTenantPhoneChange("")
+                        }
+                    },
+                    label = { Text("تخلیه است") },
+                    enabled = !isSubmitting,
+                    modifier = Modifier.weight(1f),
+                )
+                FilterChip(
+                    selected = !isVacant,
+                    onClick = { if (!isSubmitting) onVacantChange(false) },
+                    label = { Text("تخلیه نیست") },
+                    enabled = !isSubmitting,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (!isVacant) {
+                OutlinedTextField(
+                    value = tenantName,
+                    onValueChange = onTenantNameChange,
+                    label = { Text("نام مستاجر فعلی") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                )
+                OutlinedTextField(
+                    value = tenantPhone,
+                    onValueChange = { onTenantPhoneChange(PhoneNormalizer.normalize(it)) },
+                    label = { Text("شماره تماس مستاجر") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                )
+            }
+            DfOccupancyVacancyDateSection(
+                vacancyDate = vacancyDate,
+                enabled = !isSubmitting,
+                onVacancyDateChange = onVacancyDateChange,
+            )
         }
 
         DfSheetSection(title = "یادداشت") {

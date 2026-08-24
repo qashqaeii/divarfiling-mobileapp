@@ -264,8 +264,39 @@ interface MobileApi {
         @Query("property_type") propertyType: String? = null,
         @Query("city") city: String? = null,
         @Query("transaction_status") transactionStatus: String? = null,
+        @Query("folder_id") folderId: Long? = null,
         @Query("page") page: Int = 1,
         @Query("page_size") pageSize: Int = 20,
+    ): ApiEnvelope
+
+    @GET("crm/property-folders")
+    suspend fun getPropertyFolders(): ApiEnvelope
+
+    @POST("crm/property-folders")
+    suspend fun createPropertyFolder(@Body body: PropertyFolderCreateRequest): ApiEnvelope
+
+    @PATCH("crm/property-folders/{folderId}")
+    suspend fun updatePropertyFolder(
+        @Path("folderId") folderId: Long,
+        @Body body: PropertyFolderUpdateRequest,
+    ): ApiEnvelope
+
+    @DELETE("crm/property-folders/{folderId}")
+    suspend fun deletePropertyFolder(@Path("folderId") folderId: Long): ApiEnvelope
+
+    @POST("crm/property-folders/reorder")
+    suspend fun reorderPropertyFolders(@Body body: PropertyFolderReorderRequest): ApiEnvelope
+
+    @POST("crm/property-folders/{folderId}/properties/{propertyId}")
+    suspend fun addPropertyToFolder(
+        @Path("folderId") folderId: Long,
+        @Path("propertyId") propertyId: Long,
+    ): ApiEnvelope
+
+    @DELETE("crm/property-folders/{folderId}/properties/{propertyId}")
+    suspend fun removePropertyFromFolder(
+        @Path("folderId") folderId: Long,
+        @Path("propertyId") propertyId: Long,
     ): ApiEnvelope
 
     @GET("crm/properties/{id}")

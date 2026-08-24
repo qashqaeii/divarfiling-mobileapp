@@ -17,6 +17,9 @@ import ir.divarfiling.mobile.core.network.DealUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyContactMatchItemDto
 import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyFolderCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyFolderDto
+import ir.divarfiling.mobile.core.network.PropertyFolderUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
@@ -578,6 +581,8 @@ class DealDetailViewModel @Inject constructor(
 
 data class PropertiesUiState(
     val properties: List<PropertyDto> = emptyList(),
+    val propertyFolders: List<PropertyFolderDto> = emptyList(),
+    val selectedFolderId: Long? = null,
     val savedFilters: List<SavedFilterDto> = emptyList(),
     val activeSavedFilterId: Long? = null,
     val query: String = "",
@@ -607,6 +612,21 @@ data class PropertiesUiState(
     val showExportSheet: Boolean = false,
     val showSaveFilterDialog: Boolean = false,
     val saveFilterName: String = "",
+    val showCreateFolderDialog: Boolean = false,
+    val showManageFoldersSheet: Boolean = false,
+    val showFolderFormSheet: Boolean = false,
+    val showDeleteFolderDialog: Boolean = false,
+    val editingFolder: PropertyFolderDto? = null,
+    val folderPendingDelete: PropertyFolderDto? = null,
+    val manageFoldersOrder: List<PropertyFolderDto> = emptyList(),
+    val createFolderName: String = "",
+    val folderFormName: String = "",
+    val folderFormDescription: String = "",
+    val folderFormColor: String = PropertyFolderConstants.DEFAULT_COLOR,
+    val folderFormPinned: Boolean = false,
+    val isSubmittingFolder: Boolean = false,
+    val isSavingFolderOrder: Boolean = false,
+    val propertiesTotal: Int = 0,
     val exportMessage: String? = null,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
@@ -616,6 +636,14 @@ object PropertyConstants {
     val DEAL_MODES = listOf("فروش", "رهن و اجاره", "اجاره", "پیش‌فروش")
     val PROPERTY_TYPES = listOf("آپارتمان", "ویلا", "کلنگی", "اداری", "مغازه", "زمین", "سایر")
     val TX_STATUSES = listOf("فعال", "در مذاکره", "قرارداد", "فروخته‌شده", "اجاره‌رفته", "بایگانی")
+}
+
+object PropertyFolderConstants {
+    const val DEFAULT_COLOR = "#6366f1"
+    val COLORS = listOf(
+        "#6366f1", "#0ea5e9", "#10b981", "#f59e0b",
+        "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6",
+    )
 }
 
 @HiltViewModel
@@ -646,8 +674,20 @@ class PropertiesViewModel @Inject constructor(
             }
         }
         loadSavedFilters()
+        loadFolders()
         load()
     }
+
+    fun loadFolders() {
+        viewModelScope.launch {
+            when (val result = extrasRepository.getPropertyFolders()) {
+                is ApiResult.Success -> _uiState.update { it.copy(propertyFolders = result.data) }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    private fun folderIdParam(): Long? = _uiState.value.selectedFolderId
 
     fun loadSavedFilters() {
         viewModelScope.launch {
@@ -670,6 +710,7 @@ class PropertiesViewModel @Inject constructor(
                 propertyType = _uiState.value.propertyType,
                 city = _uiState.value.city,
                 transactionStatus = _uiState.value.transactionStatus,
+                folderId = folderIdParam(),
                 page = if (refreshing) 1 else currentPage,
             )) {
                 is ApiResult.Success -> {
@@ -683,6 +724,7 @@ class PropertiesViewModel @Inject constructor(
                         }
                         it.copy(
                             properties = items,
+                            propertiesTotal = result.data.total,
                             hasMore = result.data.hasMore,
                             isLoading = false,
                             isRefreshing = false,
@@ -708,6 +750,7 @@ class PropertiesViewModel @Inject constructor(
                 propertyType = _uiState.value.propertyType,
                 city = _uiState.value.city,
                 transactionStatus = _uiState.value.transactionStatus,
+                folderId = folderIdParam(),
                 page = currentPage,
             )) {
                 is ApiResult.Success -> _uiState.update {
@@ -729,6 +772,7 @@ class PropertiesViewModel @Inject constructor(
         currentPage = 1
         load(refreshing = true)
         loadSavedFilters()
+        loadFolders()
     }
     fun onQueryChange(v: String) = _uiState.update { it.copy(query = v, activeSavedFilterId = null) }
     fun onTransactionStatusChange(status: String?) = _uiState.update {
@@ -752,9 +796,231 @@ class PropertiesViewModel @Inject constructor(
                 city = null,
                 cityQuery = "",
                 activeSavedFilterId = null,
+                selectedFolderId = null,
             )
         }
         load()
+    }
+
+    fun selectPropertyFolder(folder: PropertyFolderDto) {
+        _uiState.update { it.copy(selectedFolderId = folder.id, activeSavedFilterId = null) }
+        load()
+    }
+
+    fun clearPropertyFolderFilter() {
+        _uiState.update { it.copy(selectedFolderId = null) }
+        load()
+    }
+
+    fun openCreateFolderDialog() {
+        _uiState.update {
+            it.copy(
+                showFolderFormSheet = true,
+                editingFolder = null,
+                folderFormName = "",
+                folderFormDescription = "",
+                folderFormColor = PropertyFolderConstants.DEFAULT_COLOR,
+                folderFormPinned = false,
+            )
+        }
+    }
+
+    fun dismissCreateFolderDialog() = _uiState.update { it.copy(showCreateFolderDialog = false, createFolderName = "") }
+
+    fun openManageFoldersSheet() {
+        _uiState.update {
+            it.copy(
+                showManageFoldersSheet = true,
+                manageFoldersOrder = it.propertyFolders,
+            )
+        }
+    }
+
+    fun dismissManageFoldersSheet() = _uiState.update { it.copy(showManageFoldersSheet = false) }
+
+    fun openEditFolder(folder: PropertyFolderDto) {
+        _uiState.update {
+            it.copy(
+                showManageFoldersSheet = false,
+                showFolderFormSheet = true,
+                editingFolder = folder,
+                folderFormName = folder.name,
+                folderFormDescription = folder.description,
+                folderFormColor = folder.color,
+                folderFormPinned = folder.isPinned,
+            )
+        }
+    }
+
+    fun dismissFolderFormSheet() = _uiState.update {
+        it.copy(showFolderFormSheet = false, editingFolder = null)
+    }
+
+    fun onFolderFormNameChange(value: String) = _uiState.update { it.copy(folderFormName = value) }
+
+    fun onFolderFormDescriptionChange(value: String) = _uiState.update { it.copy(folderFormDescription = value) }
+
+    fun onFolderFormColorChange(value: String) = _uiState.update { it.copy(folderFormColor = value) }
+
+    fun onFolderFormPinnedChange(value: Boolean) = _uiState.update { it.copy(folderFormPinned = value) }
+
+    fun saveFolderForm() {
+        val state = _uiState.value
+        val name = state.folderFormName.trim()
+        if (name.isBlank()) {
+            _uiState.update { it.copy(error = "نام زونکن الزامی است") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingFolder = true) }
+            val editing = state.editingFolder
+            val result = if (editing == null) {
+                extrasRepository.createPropertyFolder(
+                    PropertyFolderCreateRequest(
+                        name = name,
+                        description = state.folderFormDescription.trim(),
+                        color = state.folderFormColor,
+                        isPinned = state.folderFormPinned,
+                    ),
+                )
+            } else {
+                extrasRepository.updatePropertyFolder(
+                    editing.id,
+                    PropertyFolderUpdateRequest(
+                        name = name,
+                        description = state.folderFormDescription.trim(),
+                        color = state.folderFormColor,
+                        isPinned = state.folderFormPinned,
+                    ),
+                )
+            }
+            when (result) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingFolder = false,
+                            showFolderFormSheet = false,
+                            editingFolder = null,
+                            selectedFolderId = if (editing == null) result.data.id else it.selectedFolderId,
+                            exportMessage = if (editing == null) "زونکن ساخته شد" else "زونکن به‌روز شد",
+                        )
+                    }
+                    loadFolders()
+                    if (editing == null) load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmittingFolder = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun requestDeleteFolder(folder: PropertyFolderDto) {
+        _uiState.update {
+            it.copy(
+                folderPendingDelete = folder,
+                showDeleteFolderDialog = true,
+                showManageFoldersSheet = false,
+                showFolderFormSheet = false,
+            )
+        }
+    }
+
+    fun dismissDeleteFolderDialog() = _uiState.update {
+        it.copy(showDeleteFolderDialog = false, folderPendingDelete = null)
+    }
+
+    fun confirmDeleteFolder() {
+        val folder = _uiState.value.folderPendingDelete ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingFolder = true) }
+            when (val deleteResult = extrasRepository.deletePropertyFolder(folder.id)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingFolder = false,
+                            showDeleteFolderDialog = false,
+                            folderPendingDelete = null,
+                            selectedFolderId = it.selectedFolderId.takeUnless { active -> active == folder.id },
+                            exportMessage = "زونکن حذف شد",
+                        )
+                    }
+                    loadFolders()
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmittingFolder = false, error = deleteResult.message)
+                }
+            }
+        }
+    }
+
+    fun toggleFolderPin(folder: PropertyFolderDto) {
+        viewModelScope.launch {
+            when (
+                val pinResult = extrasRepository.updatePropertyFolder(
+                    folder.id,
+                    PropertyFolderUpdateRequest(isPinned = !folder.isPinned),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    loadFolders()
+                    _uiState.update {
+                        it.copy(
+                            manageFoldersOrder = it.manageFoldersOrder.map { row ->
+                                if (row.id == folder.id) row.copy(isPinned = !folder.isPinned) else row
+                            },
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(error = pinResult.message) }
+            }
+        }
+    }
+
+    fun moveManageFolderUp(folderId: Long) {
+        _uiState.update { state ->
+            val list = state.manageFoldersOrder.toMutableList()
+            val idx = list.indexOfFirst { it.id == folderId }
+            if (idx <= 0) return@update state
+            val item = list.removeAt(idx)
+            list.add(idx - 1, item)
+            state.copy(manageFoldersOrder = list)
+        }
+    }
+
+    fun moveManageFolderDown(folderId: Long) {
+        _uiState.update { state ->
+            val list = state.manageFoldersOrder.toMutableList()
+            val idx = list.indexOfFirst { it.id == folderId }
+            if (idx < 0 || idx >= list.lastIndex) return@update state
+            val item = list.removeAt(idx)
+            list.add(idx + 1, item)
+            state.copy(manageFoldersOrder = list)
+        }
+    }
+
+    fun saveManageFolderOrder() {
+        val ids = _uiState.value.manageFoldersOrder.map { it.id }
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingFolderOrder = true) }
+            when (val result = extrasRepository.reorderPropertyFolders(ids)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSavingFolderOrder = false,
+                            showManageFoldersSheet = false,
+                            propertyFolders = result.data,
+                            exportMessage = "ترتیب زونکن‌ها ذخیره شد",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSavingFolderOrder = false, error = result.message)
+                }
+            }
+        }
     }
 
     fun applySavedFilter(filter: SavedFilterDto) {
@@ -768,6 +1034,7 @@ class PropertiesViewModel @Inject constructor(
                 city = params["city"]?.ifBlank { null },
                 cityQuery = params["city"].orEmpty(),
                 activeSavedFilterId = filter.id,
+                selectedFolderId = params["folder_id"]?.toLongOrNull(),
             )
         }
         load()
@@ -792,6 +1059,7 @@ class PropertiesViewModel @Inject constructor(
             state.dealMode?.takeIf { it.isNotBlank() }?.let { put("deal_mode", it) }
             state.propertyType?.takeIf { it.isNotBlank() }?.let { put("property_type", it) }
             state.city?.takeIf { it.isNotBlank() }?.let { put("city", it) }
+            state.selectedFolderId?.let { put("folder_id", it.toString()) }
         }
         if (params.isEmpty()) {
             _uiState.update { it.copy(error = "برای ذخیره، حداقل یک فیلتر لازم است") }
@@ -1021,6 +1289,9 @@ data class PropertyDetailUiState(
     val editHasStorage: Boolean = false,
     val editHasElevator: Boolean = false,
     val editIsVacant: Boolean = false,
+    val editTenantName: String = "",
+    val editTenantPhone: String = "",
+    val editVacancyDate: String = "",
     val editOwnerName: String = "",
     val editOwnerPhone: String = "",
     val showDiscardEditDialog: Boolean = false,
@@ -1062,6 +1333,7 @@ enum class PropertyDetailTab(val label: String) {
 @HiltViewModel
 class PropertyDetailViewModel @Inject constructor(
     private val repository: DealsRepository,
+    private val extrasRepository: WorkspaceExtrasRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val propertyId: Long = savedStateHandle.get<Long>("propertyId") ?: 0L
@@ -1104,6 +1376,9 @@ class PropertyDetailViewModel @Inject constructor(
                             editHasStorage = p.hasStorage,
                             editHasElevator = p.hasElevator,
                             editIsVacant = p.isVacant,
+                            editTenantName = p.tenantName.orEmpty(),
+                            editTenantPhone = p.tenantPhone.orEmpty(),
+                            editVacancyDate = p.vacancyDate.orEmpty(),
                             editOwnerName = p.ownerName.orEmpty(),
                             editOwnerPhone = p.phone.orEmpty(),
                             shareConsultantName = publicShare?.consultantName.orEmpty(),
@@ -1149,6 +1424,22 @@ class PropertyDetailViewModel @Inject constructor(
         }
     }
 
+    fun togglePropertyFolder(folderId: Long, add: Boolean) {
+        if (_uiState.value.isSubmitting) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            when (extrasRepository.togglePropertyFolderMembership(folderId, propertyId, add)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isSubmitting = false, successMessage = if (add) "به زونکن اضافه شد" else "از زونکن حذف شد") }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
     fun saveEdit() {
         if (_uiState.value.isSubmitting) return
         viewModelScope.launch {
@@ -1180,6 +1471,9 @@ class PropertyDetailViewModel @Inject constructor(
                         hasStorage = state.editHasStorage,
                         hasElevator = state.editHasElevator,
                         isVacant = state.editIsVacant,
+                        tenantName = state.editTenantName.trim(),
+                        tenantPhone = state.editTenantPhone.trim(),
+                        vacancyDate = state.editVacancyDate.trim(),
                         ownerName = state.editOwnerName.trim(),
                         ownerPhone = state.editOwnerPhone.trim(),
                     ),
@@ -1263,6 +1557,9 @@ class PropertyDetailViewModel @Inject constructor(
             state.editHasStorage != p.hasStorage ||
             state.editHasElevator != p.hasElevator ||
             state.editIsVacant != p.isVacant ||
+            state.editTenantName != p.tenantName.orEmpty() ||
+            state.editTenantPhone != p.tenantPhone.orEmpty() ||
+            state.editVacancyDate != p.vacancyDate.orEmpty() ||
             state.editOwnerName != p.ownerName.orEmpty() ||
             state.editOwnerPhone != p.phone.orEmpty()
     }
@@ -1511,7 +1808,16 @@ class PropertyDetailViewModel @Inject constructor(
     fun onEditParkingChange(v: Boolean) = _uiState.update { it.copy(editHasParking = v) }
     fun onEditStorageChange(v: Boolean) = _uiState.update { it.copy(editHasStorage = v) }
     fun onEditElevatorChange(v: Boolean) = _uiState.update { it.copy(editHasElevator = v) }
-    fun onEditVacantChange(v: Boolean) = _uiState.update { it.copy(editIsVacant = v) }
+    fun onEditVacantChange(v: Boolean) = _uiState.update {
+        it.copy(
+            editIsVacant = v,
+            editTenantName = if (v) "" else it.editTenantName,
+            editTenantPhone = if (v) "" else it.editTenantPhone,
+        )
+    }
+    fun onEditTenantNameChange(v: String) = _uiState.update { it.copy(editTenantName = v) }
+    fun onEditTenantPhoneChange(v: String) = _uiState.update { it.copy(editTenantPhone = v) }
+    fun onEditVacancyDateChange(v: String) = _uiState.update { it.copy(editVacancyDate = v) }
     fun onEditOwnerNameChange(v: String) = _uiState.update { it.copy(editOwnerName = v) }
     fun onEditOwnerPhoneChange(v: String) = _uiState.update { it.copy(editOwnerPhone = PhoneNormalizer.normalize(v)) }
     fun dismissContactSuggestionResult() = _uiState.update { it.copy(contactSuggestionResult = null) }

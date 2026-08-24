@@ -42,6 +42,13 @@ data class ContactsUiState(
     val leadCustomerType: String = "سرنخ",
     val leadSource: String = "موبایل",
     val leadNotes: String = "",
+    val leadEmail: String = "",
+    val leadCity: String = "",
+    val leadDistrict: String = "",
+    val leadJob: String = "",
+    val leadCompanyName: String = "",
+    val leadNationalId: String = "",
+    val leadLeaseDeadline: String = "",
     val isExporting: Boolean = false,
     val showExportSheet: Boolean = false,
     val exportMessage: String? = null,
@@ -251,6 +258,13 @@ class ContactsViewModel @Inject constructor(
             },
             leadSource = if (show) it.leadSource.ifBlank { "موبایل" } else "موبایل",
             leadNotes = if (show) it.leadNotes else "",
+            leadEmail = if (show) it.leadEmail else "",
+            leadCity = if (show) it.leadCity else "",
+            leadDistrict = if (show) it.leadDistrict else "",
+            leadJob = if (show) it.leadJob else "",
+            leadCompanyName = if (show) it.leadCompanyName else "",
+            leadNationalId = if (show) it.leadNationalId else "",
+            leadLeaseDeadline = if (show) it.leadLeaseDeadline else "",
         )
     }
     fun onLeadNameChange(v: String) = _uiState.update { it.copy(leadName = v) }
@@ -258,6 +272,13 @@ class ContactsViewModel @Inject constructor(
     fun onLeadCustomerTypeChange(v: String) = _uiState.update { it.copy(leadCustomerType = v) }
     fun onLeadSourceChange(v: String) = _uiState.update { it.copy(leadSource = v) }
     fun onLeadNotesChange(v: String) = _uiState.update { it.copy(leadNotes = v) }
+    fun onLeadEmailChange(v: String) = _uiState.update { it.copy(leadEmail = v) }
+    fun onLeadCityChange(v: String) = _uiState.update { it.copy(leadCity = v) }
+    fun onLeadDistrictChange(v: String) = _uiState.update { it.copy(leadDistrict = v) }
+    fun onLeadJobChange(v: String) = _uiState.update { it.copy(leadJob = v) }
+    fun onLeadCompanyNameChange(v: String) = _uiState.update { it.copy(leadCompanyName = v) }
+    fun onLeadNationalIdChange(v: String) = _uiState.update { it.copy(leadNationalId = v) }
+    fun onLeadLeaseDeadlineChange(v: String) = _uiState.update { it.copy(leadLeaseDeadline = v) }
 
     fun submitQuickLead() {
         val state = _uiState.value
@@ -274,13 +295,32 @@ class ContactsViewModel @Inject constructor(
                     val type = state.leadCustomerType.ifBlank { defaultType }
                     val source = state.leadSource.ifBlank { "موبایل" }
                     val notes = state.leadNotes.trim()
-                    if (type.isNotBlank() || source.isNotBlank() || notes.isNotBlank()) {
+                    val email = state.leadEmail.trim()
+                    val city = state.leadCity.trim()
+                    val district = state.leadDistrict.trim()
+                    val job = state.leadJob.trim()
+                    val companyName = state.leadCompanyName.trim()
+                    val nationalId = state.leadNationalId.trim()
+                    val leaseDeadline = state.leadLeaseDeadline.trim()
+                    if (
+                        type.isNotBlank() || source.isNotBlank() || notes.isNotBlank() ||
+                        email.isNotBlank() || city.isNotBlank() || district.isNotBlank() ||
+                        job.isNotBlank() || companyName.isNotBlank() || nationalId.isNotBlank() ||
+                        leaseDeadline.isNotBlank()
+                    ) {
                         crmRepository.updateContact(
                             created.id,
                             ContactUpdateRequest(
                                 customerType = type.takeIf { it.isNotBlank() },
                                 source = source.takeIf { it.isNotBlank() },
                                 notes = notes.takeIf { it.isNotBlank() },
+                                email = email,
+                                city = city,
+                                district = district,
+                                job = job,
+                                companyName = companyName,
+                                nationalId = nationalId,
+                                leaseDeadline = leaseDeadline,
                             ),
                         )
                     }
@@ -292,6 +332,13 @@ class ContactsViewModel @Inject constructor(
                             leadCustomerType = defaultType,
                             leadSource = "موبایل",
                             leadNotes = "",
+                            leadEmail = "",
+                            leadCity = "",
+                            leadDistrict = "",
+                            leadJob = "",
+                            leadCompanyName = "",
+                            leadNationalId = "",
+                            leadLeaseDeadline = "",
                             isSubmitting = false,
                         )
                     }

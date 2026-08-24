@@ -70,6 +70,9 @@ import ir.divarfiling.mobile.feature.crm.components.PropertyEditSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyCreateSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyLinkContactSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFilters
+import ir.divarfiling.mobile.feature.crm.components.PropertyFolderFormSheet
+import ir.divarfiling.mobile.feature.crm.components.PropertyFoldersManageSheet
+import ir.divarfiling.mobile.feature.crm.components.PropertyFoldersRail
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
 import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 
@@ -90,7 +93,20 @@ fun PropertiesScreen(
         state.transactionStatus != null ||
         state.dealMode != null ||
         state.propertyType != null ||
-        state.cityQuery.isNotBlank()
+        state.cityQuery.isNotBlank() ||
+        state.selectedFolderId != null
+
+    if (state.showDeleteFolderDialog) {
+        DfConfirmBottomSheet(
+            title = "حذف زونکن",
+            message = "«${state.folderPendingDelete?.name.orEmpty()}» حذف شود؟ فایل‌های داخل آن حذف نمی‌شوند.",
+            confirmText = "حذف",
+            destructive = true,
+            isSubmitting = state.isSubmittingFolder,
+            onConfirm = viewModel::confirmDeleteFolder,
+            onDismiss = viewModel::dismissDeleteFolderDialog,
+        )
+    }
 
     if (state.showSaveFilterDialog) {
         AlertDialog(
@@ -169,6 +185,18 @@ fun PropertiesScreen(
                         onBack = onBack,
                     )
                 }
+                item {
+                    PropertyFoldersRail(
+                        folders = state.propertyFolders,
+                        selectedFolderId = state.selectedFolderId,
+                        totalCount = state.propertiesTotal.takeIf { it > 0 }
+                            ?: state.propertyFolders.sumOf { it.propertyCount },
+                        onSelectAll = viewModel::clearPropertyFolderFilter,
+                        onSelectFolder = viewModel::selectPropertyFolder,
+                        onCreateFolder = viewModel::openCreateFolderDialog,
+                        onManageFolders = viewModel::openManageFoldersSheet,
+                    )
+                }
                 if (state.properties.isNotEmpty()) {
                     item {
                         PropertiesStatsRow(
@@ -244,7 +272,8 @@ fun PropertiesScreen(
                     val hasActiveFilters = state.query.isNotBlank() ||
                         state.transactionStatus != null ||
                         state.dealMode != null ||
-                        state.propertyType != null
+                        state.propertyType != null ||
+                        state.selectedFolderId != null
                     item {
                         DfEmptyState(
                             title = if (hasActiveFilters) "نتیجه‌ای با این فیلتر نیست" else "اولین فایل شخصی را ثبت کنید",
@@ -284,6 +313,47 @@ fun PropertiesScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (state.showManageFoldersSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissManageFoldersSheet) {
+            PropertyFoldersManageSheet(
+                folders = state.manageFoldersOrder,
+                isSavingOrder = state.isSavingFolderOrder,
+                onMoveUp = viewModel::moveManageFolderUp,
+                onMoveDown = viewModel::moveManageFolderDown,
+                onPin = viewModel::toggleFolderPin,
+                onEdit = viewModel::openEditFolder,
+                onDelete = viewModel::requestDeleteFolder,
+                onSaveOrder = viewModel::saveManageFolderOrder,
+                onCreateNew = {
+                    viewModel.dismissManageFoldersSheet()
+                    viewModel.openCreateFolderDialog()
+                },
+            )
+        }
+    }
+
+    if (state.showFolderFormSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissFolderFormSheet) {
+            PropertyFolderFormSheet(
+                title = if (state.editingFolder == null) "زونکن جدید" else "ویرایش زونکن",
+                name = state.folderFormName,
+                description = state.folderFormDescription,
+                selectedColor = state.folderFormColor,
+                isPinned = state.folderFormPinned,
+                isSubmitting = state.isSubmittingFolder,
+                showDelete = state.editingFolder != null,
+                onNameChange = viewModel::onFolderFormNameChange,
+                onDescriptionChange = viewModel::onFolderFormDescriptionChange,
+                onColorChange = viewModel::onFolderFormColorChange,
+                onPinnedChange = viewModel::onFolderFormPinnedChange,
+                onSubmit = viewModel::saveFolderForm,
+                onDelete = {
+                    state.editingFolder?.let(viewModel::requestDeleteFolder)
+                },
+            )
         }
     }
 
@@ -418,6 +488,7 @@ fun PropertyDetailScreen(
                         onSaveNotes = viewModel::saveInlineNotes,
                         onUploadDocument = { documentPicker.launch("*/*") },
                         onDeleteDocument = viewModel::deleteDocument,
+                        onToggleFolder = viewModel::togglePropertyFolder,
                     )
                 }
             }
@@ -510,6 +581,9 @@ fun PropertyDetailScreen(
                 hasStorage = state.editHasStorage,
                 hasElevator = state.editHasElevator,
                 isVacant = state.editIsVacant,
+                tenantName = state.editTenantName,
+                tenantPhone = state.editTenantPhone,
+                vacancyDate = state.editVacancyDate,
                 ownerName = state.editOwnerName,
                 ownerPhone = state.editOwnerPhone,
                 onTitleChange = viewModel::onEditTitleChange,
@@ -533,6 +607,9 @@ fun PropertyDetailScreen(
                 onStorageChange = viewModel::onEditStorageChange,
                 onElevatorChange = viewModel::onEditElevatorChange,
                 onVacantChange = viewModel::onEditVacantChange,
+                onTenantNameChange = viewModel::onEditTenantNameChange,
+                onTenantPhoneChange = viewModel::onEditTenantPhoneChange,
+                onVacancyDateChange = viewModel::onEditVacancyDateChange,
                 onOwnerNameChange = viewModel::onEditOwnerNameChange,
                 onOwnerPhoneChange = viewModel::onEditOwnerPhoneChange,
                 onSubmit = viewModel::saveEdit,

@@ -31,6 +31,8 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
+import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
+import ir.divarfiling.mobile.core.design.components.DfDateTimePresets
 import ir.divarfiling.mobile.core.design.components.DfMoneyField
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
@@ -91,6 +93,10 @@ fun ContactEditSheet(
     phone: String,
     phoneAlt: String = "",
     email: String = "",
+    job: String = "",
+    companyName: String = "",
+    nationalId: String = "",
+    leaseDeadline: String = "",
     source: String = "",
     status: String,
     customerType: String,
@@ -105,6 +111,10 @@ fun ContactEditSheet(
     onPhoneChange: (String) -> Unit,
     onPhoneAltChange: (String) -> Unit = {},
     onEmailChange: (String) -> Unit = {},
+    onJobChange: (String) -> Unit = {},
+    onCompanyNameChange: (String) -> Unit = {},
+    onNationalIdChange: (String) -> Unit = {},
+    onLeaseDeadlineChange: (String) -> Unit = {},
     onSourceChange: (String) -> Unit = {},
     onStatusChange: (String) -> Unit,
     onCustomerTypeChange: (String) -> Unit,
@@ -202,6 +212,12 @@ fun ContactEditSheet(
                 phone = phone,
                 phoneAlt = phoneAlt,
                 email = email,
+                city = prefs.city,
+                district = prefs.district,
+                job = job,
+                companyName = companyName,
+                nationalId = nationalId,
+                leaseDeadline = leaseDeadline,
                 source = source,
                 customerType = customerType,
                 status = status,
@@ -211,6 +227,12 @@ fun ContactEditSheet(
                 onPhoneChange = onPhoneChange,
                 onPhoneAltChange = onPhoneAltChange,
                 onEmailChange = onEmailChange,
+                onCityChange = onCityChange,
+                onDistrictChange = onDistrictChange,
+                onJobChange = onJobChange,
+                onCompanyNameChange = onCompanyNameChange,
+                onNationalIdChange = onNationalIdChange,
+                onLeaseDeadlineChange = onLeaseDeadlineChange,
                 onSourceChange = onSourceChange,
                 onCustomerTypeChange = onCustomerTypeChange,
                 onStatusChange = onStatusChange,
@@ -339,6 +361,12 @@ private fun ContactEditIdentitySection(
     phone: String,
     phoneAlt: String,
     email: String,
+    city: String,
+    district: String,
+    job: String,
+    companyName: String,
+    nationalId: String,
+    leaseDeadline: String,
     source: String,
     customerType: String,
     status: String,
@@ -348,6 +376,12 @@ private fun ContactEditIdentitySection(
     onPhoneChange: (String) -> Unit,
     onPhoneAltChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
+    onCityChange: (String) -> Unit,
+    onDistrictChange: (String) -> Unit,
+    onJobChange: (String) -> Unit,
+    onCompanyNameChange: (String) -> Unit,
+    onNationalIdChange: (String) -> Unit,
+    onLeaseDeadlineChange: (String) -> Unit,
     onSourceChange: (String) -> Unit,
     onCustomerTypeChange: (String) -> Unit,
     onStatusChange: (String) -> Unit,
@@ -374,7 +408,8 @@ private fun ContactEditIdentitySection(
         OutlinedTextField(
             value = phoneAlt,
             onValueChange = { onPhoneAltChange(PhoneNormalizer.normalize(it)) },
-            label = { Text("شماره تماس دوم (اختیاری)") },
+            label = { Text("شماره تماس دوم") },
+            placeholder = { Text("اختیاری") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = !isSubmitting,
@@ -383,11 +418,63 @@ private fun ContactEditIdentitySection(
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = { Text("ایمیل (اختیاری)") },
+            label = { Text("ایمیل") },
+            placeholder = { Text("اختیاری") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = !isSubmitting,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedTextField(
+                value = city,
+                onValueChange = onCityChange,
+                label = { Text("شهر") },
+                placeholder = { Text("اختیاری") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                enabled = !isSubmitting,
+            )
+            OutlinedTextField(
+                value = district,
+                onValueChange = onDistrictChange,
+                label = { Text("منطقه") },
+                placeholder = { Text("اختیاری") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                enabled = !isSubmitting,
+            )
+        }
+        OutlinedTextField(
+            value = job,
+            onValueChange = onJobChange,
+            label = { Text("شغل") },
+            placeholder = { Text("اختیاری") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !isSubmitting,
+        )
+        OutlinedTextField(
+            value = companyName,
+            onValueChange = onCompanyNameChange,
+            label = { Text("نام شرکت") },
+            placeholder = { Text("اختیاری") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !isSubmitting,
+        )
+        OutlinedTextField(
+            value = nationalId,
+            onValueChange = onNationalIdChange,
+            label = { Text("کد ملی") },
+            placeholder = { Text("اختیاری") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !isSubmitting,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
     }
 
@@ -399,6 +486,17 @@ private fun ContactEditIdentitySection(
             enabled = !isSubmitting,
             onSelect = onCustomerTypeChange,
         )
+        if (CrmConstants.showsLeaseDeadline(customerType)) {
+            DfJalaliDateField(
+                value = leaseDeadline,
+                onValueChange = onLeaseDeadlineChange,
+                label = "مهلت اجاره",
+                placeholder = "اختیاری — تقویم شمسی",
+                hint = "تاریخ پایان قرارداد اجاره مورد نظر",
+                enabled = !isSubmitting,
+                presets = DfDateTimePresets.leaseDeadlineShortcuts(),
+            )
+        }
         DfDropdown(
             label = "وضعیت پیگیری",
             value = status.ifBlank { CrmConstants.STATUSES.first() },
@@ -618,6 +716,7 @@ private fun ContactEditPropertySection(
                 value = prefs.city,
                 onValueChange = onCityChange,
                 label = { Text("شهر") },
+                placeholder = { Text("اختیاری") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 enabled = !isSubmitting,
@@ -625,7 +724,8 @@ private fun ContactEditPropertySection(
             OutlinedTextField(
                 value = prefs.district,
                 onValueChange = onDistrictChange,
-                label = { Text("منطقه / محله") },
+                label = { Text("منطقه") },
+                placeholder = { Text("اختیاری") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 enabled = !isSubmitting,

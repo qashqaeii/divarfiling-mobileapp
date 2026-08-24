@@ -68,6 +68,11 @@ object CrmConstants {
     fun isMatchEligible(customerType: String?): Boolean =
         customerType != null && customerType in MATCH_ELIGIBLE_TYPES
 
+    fun showsLeaseDeadline(customerType: String?): Boolean {
+        val type = customerType.orEmpty().trim()
+        return type == "متقاضی اجاره" || type == "متقاضی رهن و اجاره"
+    }
+
     /** Statuses where suggesting matched properties is a natural next step. */
     fun shouldPromptSmartMatch(status: String?): Boolean =
         status == "در حال پیگیری" || status == "بازدید انجام شد"

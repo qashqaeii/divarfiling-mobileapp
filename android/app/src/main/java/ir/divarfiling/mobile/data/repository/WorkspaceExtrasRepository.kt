@@ -9,6 +9,10 @@ import ir.divarfiling.mobile.core.network.CloudExtractionCreateRequest
 import ir.divarfiling.mobile.core.network.CloudExtractionJobDto
 import ir.divarfiling.mobile.core.network.MessageTemplateDto
 import ir.divarfiling.mobile.core.network.MobileApi
+import ir.divarfiling.mobile.core.network.PropertyFolderCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyFolderDto
+import ir.divarfiling.mobile.core.network.PropertyFolderReorderRequest
+import ir.divarfiling.mobile.core.network.PropertyFolderUpdateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterCreateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterDto
 import ir.divarfiling.mobile.core.network.SupportTicketCreateRequest
@@ -73,6 +77,60 @@ class WorkspaceExtrasRepository @Inject constructor(
 
     suspend fun pinSavedFilter(filterId: Long): ApiResult<SavedFilterDto> =
         single { api.pinSavedFilter(filterId) }
+
+    suspend fun getPropertyFolders(): ApiResult<List<PropertyFolderDto>> {
+        return decodeList(
+            decode = { el ->
+                json.decodeFromJsonElement(ListSerializer(PropertyFolderDto.serializer()), el)
+            },
+            call = { api.getPropertyFolders() },
+        )
+    }
+
+    suspend fun createPropertyFolder(request: PropertyFolderCreateRequest): ApiResult<PropertyFolderDto> =
+        single { api.createPropertyFolder(request) }
+
+    suspend fun updatePropertyFolder(
+        folderId: Long,
+        request: PropertyFolderUpdateRequest,
+    ): ApiResult<PropertyFolderDto> = single { api.updatePropertyFolder(folderId, request) }
+
+    suspend fun deletePropertyFolder(folderId: Long): ApiResult<Unit> {
+        return try {
+            val response = api.deletePropertyFolder(folderId)
+            if (!response.ok) ApiResult.Error(response.error ?: "حذف زونکن ناموفق")
+            else ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.toUserMessage("خطای شبکه"))
+        }
+    }
+
+    suspend fun reorderPropertyFolders(folderIds: List<Long>): ApiResult<List<PropertyFolderDto>> {
+        return decodeList(
+            decode = { el ->
+                json.decodeFromJsonElement(ListSerializer(PropertyFolderDto.serializer()), el)
+            },
+            call = { api.reorderPropertyFolders(PropertyFolderReorderRequest(folderIds)) },
+        )
+    }
+
+    suspend fun togglePropertyFolderMembership(
+        folderId: Long,
+        propertyId: Long,
+        add: Boolean,
+    ): ApiResult<Unit> {
+        return try {
+            val response = if (add) {
+                api.addPropertyToFolder(folderId, propertyId)
+            } else {
+                api.removePropertyFromFolder(folderId, propertyId)
+            }
+            if (!response.ok) ApiResult.Error(response.error ?: "عملیات زونکن ناموفق")
+            else ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.toUserMessage("خطای شبکه"))
+        }
+    }
 
     suspend fun getSupportTickets(): ApiResult<List<SupportTicketDto>> {
         return decodeList(

@@ -12,6 +12,7 @@ import ir.divarfiling.mobile.core.network.ContactUpdateRequest
 import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest
 import ir.divarfiling.mobile.core.network.MessageTemplateDto
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
 import ir.divarfiling.mobile.core.network.ListingDto
@@ -56,6 +57,10 @@ data class ContactDetailUiState(
     val editPhone: String = "",
     val editPhoneAlt: String = "",
     val editEmail: String = "",
+    val editJob: String = "",
+    val editCompanyName: String = "",
+    val editNationalId: String = "",
+    val editLeaseDeadline: String = "",
     val editSource: String = "",
     val editMatchingTolerance: Int = 20,
     val editStatus: String = "",
@@ -133,6 +138,10 @@ class ContactDetailViewModel @Inject constructor(
                             editPhone = editFields.editPhone,
                             editPhoneAlt = editFields.editPhoneAlt,
                             editEmail = editFields.editEmail,
+                            editJob = editFields.editJob,
+                            editCompanyName = editFields.editCompanyName,
+                            editNationalId = editFields.editNationalId,
+                            editLeaseDeadline = editFields.editLeaseDeadline,
                             editSource = editFields.editSource,
                             editMatchingTolerance = editFields.editMatchingTolerance,
                             editStatus = editFields.editStatus,
@@ -370,6 +379,10 @@ class ContactDetailViewModel @Inject constructor(
                     roomsMax = parseMoneyInput(prefs.roomsMax)?.toInt(),
                     district = prefs.district.ifBlank { "" },
                     email = state.editEmail.trim().ifBlank { "" },
+                    job = state.editJob.trim(),
+                    companyName = state.editCompanyName.trim(),
+                    nationalId = state.editNationalId.trim(),
+                    leaseDeadline = state.editLeaseDeadline.trim(),
                     phoneAlt = state.editPhoneAlt.trim().ifBlank { "" },
                     source = state.editSource.ifBlank { "" },
                     matchingTolerancePercent = state.editMatchingTolerance,
@@ -711,6 +724,10 @@ class ContactDetailViewModel @Inject constructor(
                     editPhone = editFields.editPhone,
                     editPhoneAlt = editFields.editPhoneAlt,
                     editEmail = editFields.editEmail,
+                    editJob = editFields.editJob,
+                    editCompanyName = editFields.editCompanyName,
+                    editNationalId = editFields.editNationalId,
+                    editLeaseDeadline = editFields.editLeaseDeadline,
                     editSource = editFields.editSource,
                     editMatchingTolerance = editFields.editMatchingTolerance,
                     editStatus = editFields.editStatus,
@@ -735,6 +752,10 @@ class ContactDetailViewModel @Inject constructor(
             state.editPhone != contact.phone.orEmpty() ||
             state.editPhoneAlt != contact.phoneAlt.orEmpty() ||
             state.editEmail != contact.email.orEmpty() ||
+            state.editJob != contact.job.orEmpty() ||
+            state.editCompanyName != contact.companyName.orEmpty() ||
+            state.editNationalId != contact.nationalId.orEmpty() ||
+            state.editLeaseDeadline != DateUtils.formatJalaliDate(contact.leaseDeadline).orEmpty() ||
             state.editSource != contact.source.orEmpty() ||
             state.editMatchingTolerance != contactTolerance ||
             state.editStatus != contact.status.orEmpty() ||
@@ -802,6 +823,10 @@ class ContactDetailViewModel @Inject constructor(
     fun onEditPhoneChange(v: String) = _uiState.update { it.copy(editPhone = v) }
     fun onEditPhoneAltChange(v: String) = _uiState.update { it.copy(editPhoneAlt = v) }
     fun onEditEmailChange(v: String) = _uiState.update { it.copy(editEmail = v) }
+    fun onEditJobChange(v: String) = _uiState.update { it.copy(editJob = v) }
+    fun onEditCompanyNameChange(v: String) = _uiState.update { it.copy(editCompanyName = v) }
+    fun onEditNationalIdChange(v: String) = _uiState.update { it.copy(editNationalId = v) }
+    fun onEditLeaseDeadlineChange(v: String) = _uiState.update { it.copy(editLeaseDeadline = v) }
     fun onEditSourceChange(v: String) = _uiState.update { it.copy(editSource = v) }
     fun onEditMatchingToleranceChange(v: Int) = _uiState.update { it.copy(editMatchingTolerance = v) }
     fun onEditStatusChange(v: String) = _uiState.update { it.copy(editStatus = v) }
@@ -934,6 +959,10 @@ private data class ContactEditFieldsSnapshot(
     val editPhone: String,
     val editPhoneAlt: String,
     val editEmail: String,
+    val editJob: String,
+    val editCompanyName: String,
+    val editNationalId: String,
+    val editLeaseDeadline: String,
     val editSource: String,
     val editMatchingTolerance: Int,
     val editStatus: String,
@@ -950,6 +979,10 @@ private fun editFieldsFromContact(contact: ContactDto): ContactEditFieldsSnapsho
     editPhone = contact.phone.orEmpty(),
     editPhoneAlt = contact.phoneAlt.orEmpty(),
     editEmail = contact.email.orEmpty(),
+    editJob = contact.job.orEmpty(),
+    editCompanyName = contact.companyName.orEmpty(),
+    editNationalId = contact.nationalId.orEmpty(),
+    editLeaseDeadline = DateUtils.formatJalaliDate(contact.leaseDeadline).orEmpty(),
     editSource = contact.source.orEmpty(),
     editMatchingTolerance = contact.matchingTolerancePercent ?: 20,
     editStatus = contact.status.orEmpty(),

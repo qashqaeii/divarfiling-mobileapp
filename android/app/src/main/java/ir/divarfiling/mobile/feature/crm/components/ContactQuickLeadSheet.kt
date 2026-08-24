@@ -27,6 +27,8 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
+import ir.divarfiling.mobile.core.design.components.DfDateTimePresets
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
@@ -41,12 +43,26 @@ fun ContactQuickLeadSheet(
     customerType: String,
     source: String,
     notes: String,
+    email: String = "",
+    city: String = "",
+    district: String = "",
+    job: String = "",
+    companyName: String = "",
+    nationalId: String = "",
+    leaseDeadline: String = "",
     isSubmitting: Boolean,
     onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onCustomerTypeChange: (String) -> Unit,
     onSourceChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit = {},
+    onCityChange: (String) -> Unit = {},
+    onDistrictChange: (String) -> Unit = {},
+    onJobChange: (String) -> Unit = {},
+    onCompanyNameChange: (String) -> Unit = {},
+    onNationalIdChange: (String) -> Unit = {},
+    onLeaseDeadlineChange: (String) -> Unit = {},
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -56,7 +72,7 @@ fun ContactQuickLeadSheet(
 
     DfSheetScaffold(
         title = "مخاطب جدید",
-        subtitle = "ثبت کامل‌تر برای پیگیری روزانه",
+        subtitle = "اطلاعات کامل مخاطب",
         icon = typeVisual.icon,
         iconContainerColor = typeVisual.container,
         iconTint = typeVisual.accent,
@@ -154,6 +170,81 @@ fun ContactQuickLeadSheet(
                 enabled = !isSubmitting,
                 onSelect = onSourceChange,
             )
+        }
+
+        DfSheetSection(title = "اطلاعات تکمیلی") {
+            OutlinedTextField(
+                value = email,
+                onValueChange = onEmailChange,
+                label = { Text("ایمیل") },
+                placeholder = { Text("اختیاری") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSubmitting,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = city,
+                    onValueChange = onCityChange,
+                    label = { Text("شهر") },
+                    placeholder = { Text("اختیاری") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                )
+                OutlinedTextField(
+                    value = district,
+                    onValueChange = onDistrictChange,
+                    label = { Text("منطقه") },
+                    placeholder = { Text("اختیاری") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                )
+            }
+            OutlinedTextField(
+                value = job,
+                onValueChange = onJobChange,
+                label = { Text("شغل") },
+                placeholder = { Text("اختیاری") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSubmitting,
+            )
+            OutlinedTextField(
+                value = companyName,
+                onValueChange = onCompanyNameChange,
+                label = { Text("نام شرکت") },
+                placeholder = { Text("اختیاری") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSubmitting,
+            )
+            OutlinedTextField(
+                value = nationalId,
+                onValueChange = onNationalIdChange,
+                label = { Text("کد ملی") },
+                placeholder = { Text("اختیاری") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSubmitting,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            if (CrmConstants.showsLeaseDeadline(selectedType)) {
+                DfJalaliDateField(
+                    value = leaseDeadline,
+                    onValueChange = onLeaseDeadlineChange,
+                    label = "مهلت اجاره",
+                    placeholder = "اختیاری — تقویم شمسی",
+                    hint = "تاریخ پایان قرارداد اجاره مورد نظر",
+                    enabled = !isSubmitting,
+                    presets = DfDateTimePresets.leaseDeadlineShortcuts(),
+                )
+            }
         }
 
         DfSheetSection(title = "یادداشت اولیه") {

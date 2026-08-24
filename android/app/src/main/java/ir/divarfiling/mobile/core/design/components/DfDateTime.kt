@@ -1,5 +1,11 @@
 package ir.divarfiling.mobile.core.design.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -23,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -76,6 +83,19 @@ object DfDateTimePresets {
             DfDateTimePreset("tomorrow", "فردا") { startOf(LocalDate.now(zone).plusDays(1)) },
             DfDateTimePreset("week", "۱ هفته دیگر") { startOf(LocalDate.now(zone).plusDays(7)) },
             DfDateTimePreset("month", "۱ ماه دیگر") { startOf(LocalDate.now(zone).plusMonths(1)) },
+        )
+    }
+
+    fun leaseDeadlineShortcuts(zone: ZoneId = ZoneId.systemDefault()): List<DfDateTimePreset> {
+        val startOf: (LocalDate) -> Long = { date ->
+            date.atStartOfDay(zone).toInstant().toEpochMilli()
+        }
+        val today = LocalDate.now(zone)
+        return listOf(
+            DfDateTimePreset("month", "۱ ماه") { startOf(today.plusMonths(1)) },
+            DfDateTimePreset("quarter", "۳ ماه") { startOf(today.plusMonths(3)) },
+            DfDateTimePreset("half", "۶ ماه") { startOf(today.plusMonths(6)) },
+            DfDateTimePreset("year", "۱ سال") { startOf(today.plusYears(1)) },
         )
     }
 }
@@ -492,4 +512,78 @@ internal fun parsePersianInt(value: String): Int? {
         }
     }
     return digits.toIntOrNull()
+}
+
+@Composable
+fun DfOccupancyVacancyDateSection(
+    vacancyDate: String,
+    enabled: Boolean,
+    onVacancyDateChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val formatted = DateUtils.formatJalaliDate(vacancyDate).orEmpty()
+    var expanded by remember(formatted) { mutableStateOf(formatted.isNotBlank()) }
+    val rotation by animateFloatAsState(targetValue = if (expanded) 180f else 0f, label = "occMore")
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
+        Surface(
+            onClick = { expanded = !expanded },
+            enabled = enabled,
+            shape = AppShapes.Chip,
+            color = DfColors.SurfaceVariant,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Icon(
+                    imageVector = DfIcons.Calendar,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier.size(16.dp),
+                )
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "موارد بیشتر",
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DfColors.TextPrimary,
+                    )
+                    Text(
+                        text = formatted.ifBlank { "تاریخ تخلیه اختیاری — تقویم شمسی" },
+                        style = AppTypography.labelSmall,
+                        color = if (formatted.isBlank()) DfColors.TextMuted else DfColors.Purple,
+                    )
+                }
+                Icon(
+                    imageVector = DfIcons.ChevronDown,
+                    contentDescription = if (expanded) "بستن" else "باز کردن",
+                    tint = DfColors.TextSecondary,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .rotate(rotation),
+                )
+            }
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            DfJalaliDateField(
+                value = vacancyDate,
+                onValueChange = onVacancyDateChange,
+                label = "تاریخ تخلیه",
+                placeholder = "انتخاب از تقویم شمسی",
+                hint = "اختیاری — زمان آماده‌تحویل یا پایان سکونت فعلی",
+                enabled = enabled,
+            )
+        }
+    }
 }
