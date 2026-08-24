@@ -35,4 +35,18 @@ class DateUtilsJalaliTest {
         val formatted = DateUtils.formatJalaliDateTimeFromMillis(millis, zone)
         assertTrue(formatted.contains('۰') || formatted.contains('۱'))
     }
+
+    @Test
+    fun parseJalaliDateToMillis_acceptsPersianDigits() {
+        val millis = DateUtils.parseJalaliDateToMillis("۱۴۰۵/۰۴/۲۷")
+        assertTrue(millis != null)
+        val formatted = DateUtils.formatJalaliDateFromMillis(millis!!)
+        assertEquals("۱۴۰۵/۰۴/۲۷", formatted)
+    }
+
+    @Test
+    fun formatJalaliDate_normalizesPersianJalali() {
+        val formatted = DateUtils.formatJalaliDate("1405/4/27")
+        assertEquals("۱۴۰۵/۰۴/۲۷", formatted)
+    }
 }

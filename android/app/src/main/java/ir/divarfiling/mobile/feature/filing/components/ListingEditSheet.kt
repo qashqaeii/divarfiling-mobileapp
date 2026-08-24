@@ -1,5 +1,11 @@
 package ir.divarfiling.mobile.feature.filing.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,9 +20,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -26,9 +36,11 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
 import ir.divarfiling.mobile.core.design.components.DfMoneyField
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
@@ -56,7 +68,9 @@ fun ListingEditSheet(
 ) {
     val isRent = listing.rent != null || listing.deposit != null || form.deposit.isNotBlank() || form.rent.isNotBlank()
     val groupedFeatures = remember(listing.featureFields) {
-        listing.featureFields.groupBy { it.groupTitle.ifBlank { "سایر جزئیات" } }
+        listing.featureFields
+            .filter { it.key != "تاریخ تخلیه" }
+            .groupBy { it.groupTitle.ifBlank { "سایر جزئیات" } }
     }
 
     DfSheetScaffold(
@@ -209,6 +223,11 @@ fun ListingEditSheet(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 )
             }
+            OccupancyMoreSection(
+                vacancyDate = form.vacancyDate,
+                enabled = !isSubmitting,
+                onVacancyDateChange = { onFormChange(form.copy(vacancyDate = it)) },
+            )
         }
 
         DfSheetSection(title = "مشخصات ملک") {
@@ -438,6 +457,76 @@ fun ListingEditSheet(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
                 enabled = !isSubmitting,
+            )
+        }
+    }
+}
+
+@Composable
+private fun OccupancyMoreSection(
+    vacancyDate: String,
+    enabled: Boolean,
+    onVacancyDateChange: (String) -> Unit,
+) {
+    val formatted = DateUtils.formatJalaliDate(vacancyDate).orEmpty()
+    var expanded by remember { mutableStateOf(formatted.isNotBlank()) }
+    val rotation by animateFloatAsState(targetValue = if (expanded) 180f else 0f, label = "occMore")
+
+    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+        Surface(
+            onClick = { expanded = !expanded },
+            enabled = enabled,
+            shape = AppShapes.Chip,
+            color = DfColors.SurfaceVariant,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Icon(
+                    imageVector = DfIcons.Calendar,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier.size(16.dp),
+                )
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "موارد بیشتر",
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DfColors.TextPrimary,
+                    )
+                    Text(
+                        text = formatted.ifBlank { "تاریخ تخلیه اختیاری — تقویم شمسی" },
+                        style = AppTypography.labelSmall,
+                        color = if (formatted.isBlank()) DfColors.TextMuted else DfColors.Purple,
+                    )
+                }
+                Icon(
+                    imageVector = DfIcons.ChevronDown,
+                    contentDescription = if (expanded) "بستن" else "باز کردن",
+                    tint = DfColors.TextSecondary,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .rotate(rotation),
+                )
+            }
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            DfJalaliDateField(
+                value = vacancyDate,
+                onValueChange = onVacancyDateChange,
+                label = "تاریخ تخلیه",
+                placeholder = "انتخاب از تقویم شمسی",
+                hint = "اختیاری — زمان آماده‌تحویل یا پایان سکونت فعلی",
+                enabled = enabled,
             )
         }
     }

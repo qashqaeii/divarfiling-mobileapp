@@ -11,14 +11,29 @@ import java.time.temporal.ChronoUnit
 object DateUtils {
 
     private val jalaliDatePattern = Regex("""^1[34]\d{2}/\d{2}/\d{2}$""")
+    private val jalaliDateFlexible = Regex("""^(1[34]\d{2})/(\d{1,2})/(\d{1,2})$""")
     private val isoDatePrefix = Regex("""^\d{4}-\d{2}-\d{2}""")
+
+    fun fromPersianDigits(input: String): String = buildString(input.length) {
+        input.forEach { ch ->
+            append(
+                when (ch) {
+                    in '۰'..'۹' -> '0' + (ch - '۰')
+                    else -> ch
+                },
+            )
+        }
+    }
 
     fun formatJalaliDate(value: String?): String? {
         val trimmed = value?.trim().orEmpty()
         if (trimmed.isBlank()) return null
-        if (jalaliDatePattern.matches(trimmed)) return toPersianDigits(trimmed)
+        val latin = fromPersianDigits(trimmed)
+        if (jalaliDatePattern.matches(latin) || jalaliDateFlexible.matches(latin)) {
+            return toPersianDigits(normalizeJalaliYmd(latin) ?: latin)
+        }
         val datePart = when {
-            trimmed.length >= 10 && isoDatePrefix.containsMatchIn(trimmed) -> trimmed.take(10)
+            latin.length >= 10 && isoDatePrefix.containsMatchIn(latin) -> latin.take(10)
             else -> return null
         }
         return parseGregorianDate(datePart)?.let { (y, m, d) ->
@@ -208,6 +223,35 @@ object DateUtils {
             .atZone(zone)
             .toInstant()
             .toEpochMilli()
+    }
+
+    fun parseJalaliDateToMillis(
+        value: String?,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): Long? {
+        val latin = fromPersianDigits(value?.trim().orEmpty())
+        if (latin.isBlank()) return null
+        jalaliDateFlexible.matchEntire(latin)?.let { match ->
+            val jy = match.groupValues[1].toInt()
+            val jm = match.groupValues[2].toInt()
+            val jd = match.groupValues[3].toInt()
+            if (jm !in 1..12) return null
+            val maxDay = jalaliDaysInMonth(jy, jm)
+            if (jd !in 1..maxDay) return null
+            return jalaliDateTimeToMillis(jy, jm, jd, 12, 0, zone)
+        }
+        return parseToInstant(latin, zone)?.toEpochMilli()
+    }
+
+    private fun normalizeJalaliYmd(latin: String): String? {
+        val match = jalaliDateFlexible.matchEntire(latin) ?: return null
+        val jy = match.groupValues[1].toInt()
+        val jm = match.groupValues[2].toInt()
+        val jd = match.groupValues[3].toInt()
+        if (jm !in 1..12) return null
+        val maxDay = jalaliDaysInMonth(jy, jm)
+        if (jd !in 1..maxDay) return null
+        return formatJalali(jy, jm, jd)
     }
 
     val jalaliMonthNames = listOf(

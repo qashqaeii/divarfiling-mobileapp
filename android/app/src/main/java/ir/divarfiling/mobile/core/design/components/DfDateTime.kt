@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +32,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -61,6 +64,18 @@ object DfDateTimePresets {
             DfDateTimePreset("week", "۱ هفته") {
                 keepTime(LocalDate.now(zone).plusDays(7))
             },
+        )
+    }
+
+    fun occupancyDateShortcuts(zone: ZoneId = ZoneId.systemDefault()): List<DfDateTimePreset> {
+        val startOf: (LocalDate) -> Long = { date ->
+            date.atStartOfDay(zone).toInstant().toEpochMilli()
+        }
+        return listOf(
+            DfDateTimePreset("today", "امروز") { startOf(LocalDate.now(zone)) },
+            DfDateTimePreset("tomorrow", "فردا") { startOf(LocalDate.now(zone).plusDays(1)) },
+            DfDateTimePreset("week", "۱ هفته دیگر") { startOf(LocalDate.now(zone).plusDays(7)) },
+            DfDateTimePreset("month", "۱ ماه دیگر") { startOf(LocalDate.now(zone).plusMonths(1)) },
         )
     }
 }
@@ -173,6 +188,114 @@ fun DfDateTimeSelector(
                 pickerMode = null
             },
             onDismiss = { pickerMode = null },
+        )
+    }
+}
+
+/**
+ * فیلد تاریخ شمسی اختیاری برای فرم‌ها — بدون ساعت.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun DfJalaliDateField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "تاریخ",
+    placeholder: String = "انتخاب از تقویم شمسی",
+    hint: String? = null,
+    enabled: Boolean = true,
+    allowClear: Boolean = true,
+    presets: List<DfDateTimePreset> = DfDateTimePresets.occupancyDateShortcuts(),
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    val zone = ZoneId.systemDefault()
+    val display = DateUtils.formatJalaliDate(value).orEmpty()
+    val selectedMillis = DateUtils.parseJalaliDateToMillis(value, zone)
+        ?: System.currentTimeMillis()
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
+        Surface(
+            onClick = { if (enabled) showPicker = true },
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth(),
+            shape = AppShapes.Chip,
+            color = DfColors.PurpleContainer.copy(alpha = 0.55f),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Icon(
+                    imageVector = DfIcons.Calendar,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier.size(18.dp),
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                    Text(
+                        text = display.ifBlank { placeholder },
+                        style = AppTypography.bodyDescription,
+                        fontWeight = if (display.isBlank()) FontWeight.Medium else FontWeight.SemiBold,
+                        color = if (display.isBlank()) DfColors.TextMuted else DfColors.TextPrimary,
+                    )
+                }
+            }
+        }
+        if (!hint.isNullOrBlank()) {
+            Text(hint, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+        }
+        if (presets.isNotEmpty() || (allowClear && display.isNotBlank())) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                presets.forEach { preset ->
+                    FilterChip(
+                        selected = false,
+                        onClick = {
+                            if (enabled) {
+                                onValueChange(DateUtils.formatJalaliDateFromMillis(preset.millisProvider(), zone))
+                            }
+                        },
+                        enabled = enabled,
+                        label = { Text(preset.label, style = AppTypography.labelSmall) },
+                        shape = RoundedCornerShape(999.dp),
+                    )
+                }
+                if (allowClear && display.isNotBlank()) {
+                    FilterChip(
+                        selected = false,
+                        onClick = { if (enabled) onValueChange("") },
+                        enabled = enabled,
+                        label = { Text("پاک کردن", style = AppTypography.labelSmall) },
+                        shape = RoundedCornerShape(999.dp),
+                    )
+                }
+            }
+        }
+    }
+
+    if (showPicker) {
+        DfDateTimePickerDialog(
+            millis = selectedMillis,
+            mode = DfDateTimePickerMode.Date,
+            onConfirm = {
+                onValueChange(DateUtils.formatJalaliDateFromMillis(it, zone))
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
         )
     }
 }

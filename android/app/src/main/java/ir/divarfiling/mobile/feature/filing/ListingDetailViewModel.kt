@@ -52,6 +52,7 @@ data class ListingEditForm(
     val ownerPhone: String = "",
     val tenantName: String = "",
     val tenantPhone: String = "",
+    val vacancyDate: String = "",
     val businessType: String = "",
     val link: String = "",
     val isExpired: Boolean = false,
@@ -322,6 +323,7 @@ class ListingDetailViewModel @Inject constructor(
                     ownerPhone = listing.ownerPhone.orEmpty(),
                     tenantName = listing.tenantName.orEmpty(),
                     tenantPhone = listing.tenantPhone.orEmpty(),
+                    vacancyDate = listing.vacancyDate.orEmpty(),
                     businessType = listing.businessType?.takeIf { it.isNotBlank() } ?: "شخصی",
                     link = listing.link?.takeIf { it.isNotBlank() } ?: listing.shareLink.orEmpty(),
                     isExpired = listing.isExpired,
@@ -336,9 +338,11 @@ class ListingDetailViewModel @Inject constructor(
                     jacuzzi = listing.hasJacuzzi,
                     gym = listing.hasGym,
                     images = listing.images.filter { it.isNotBlank() },
-                    features = listing.featureFields.associate { field ->
-                        field.key to field.value
-                    },
+                    features = listing.featureFields
+                        .filter { it.key != "تاریخ تخلیه" }
+                        .associate { field ->
+                            field.key to field.value
+                        },
                 ),
             )
         }
@@ -379,6 +383,7 @@ class ListingDetailViewModel @Inject constructor(
                 ownerPhone = form.ownerPhone.trim(),
                 tenantName = form.tenantName.trim(),
                 tenantPhone = form.tenantPhone.trim(),
+                vacancyDate = form.vacancyDate.trim(),
                 elevator = form.elevator.toTriPayload(),
                 parking = form.parking.toTriPayload(),
                 storage = form.storage.toTriPayload(),
@@ -389,7 +394,7 @@ class ListingDetailViewModel @Inject constructor(
                 jacuzzi = form.jacuzzi.toTriPayload(),
                 gym = form.gym.toTriPayload(),
                 images = form.images.map { it.trim() }.filter { it.isNotBlank() },
-                features = form.features,
+                features = form.features.filterKeys { it != "تاریخ تخلیه" },
             )
             when (val result = filingRepository.updateListing(token, request)) {
                 is ApiResult.Success -> _uiState.update {

@@ -194,6 +194,9 @@ private fun buildListingSpecSections(listing: ListingDetailDto): List<ListingSpe
         ListingSpecItem("آگهی‌دهنده", listing.businessType?.takeIf { it.isNotBlank() } ?: ListingAdvertiserUtils.displayLabel(listing)),
         listing.unitStatus?.takeIf { it.isNotBlank() }?.let { ListingSpecItem("وضعیت سکونت", it) },
         ListingSpecItem("تخلیه", if (listing.isVacant) "تخلیه است" else "تخلیه نیست"),
+        listing.vacancyDate?.takeIf { it.isNotBlank() }?.let { raw ->
+            DateUtils.formatJalaliDate(raw)?.let { ListingSpecItem("تاریخ تخلیه", it) }
+        },
         listing.scrapedAt?.takeIf { it.isNotBlank() }?.let { scraped ->
             formatScrapedDate(scraped)?.let { ListingSpecItem("تاریخ استخراج", it) }
         },
