@@ -361,7 +361,10 @@ fun PropertiesScreen(
     }
 
     if (state.showCreateDialog) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleCreate(false) }) {
+        DfModalBottomSheet(
+            onDismissRequest = { viewModel.toggleCreate(false) },
+            dismissOnScrimOrSwipe = false,
+        ) {
             PropertyFormSheet(
                 mode = PropertyFormMode.Create,
                 form = state.createForm,
@@ -552,7 +555,10 @@ fun PropertyDetailScreen(
     }
 
     if (state.showEditSheet) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.requestDismissEdit() }) {
+        DfModalBottomSheet(
+            onDismissRequest = { viewModel.requestDismissEdit() },
+            dismissOnScrimOrSwipe = false,
+        ) {
             PropertyFormSheet(
                 mode = PropertyFormMode.Edit,
                 form = state.editForm,

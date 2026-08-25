@@ -155,8 +155,9 @@ fun ExportSecuritySheet(
                 ) {
                     DfTextButton(
                         text = "بازگشت",
-                        onClick = viewModel::backToPassword,
-                        enabled = !state.isBusy,
+                        onClick = {
+                            if (!state.isBusy) viewModel.backToPassword()
+                        },
                     )
                     DfTextButton(
                         text = if (state.resendIn > 0) {
@@ -164,8 +165,9 @@ fun ExportSecuritySheet(
                         } else {
                             "ارسال مجدد"
                         },
-                        onClick = viewModel::resendOtp,
-                        enabled = !state.isBusy && state.resendIn <= 0,
+                        onClick = {
+                            if (!state.isBusy && state.resendIn <= 0) viewModel.resendOtp()
+                        },
                     )
                 }
                 DfPrimaryButton(

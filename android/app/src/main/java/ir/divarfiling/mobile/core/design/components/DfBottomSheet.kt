@@ -25,7 +25,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -52,16 +54,32 @@ import ir.divarfiling.mobile.core.design.DfIcons
 fun DfModalBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    /** false = فقط با دکمه انصراف، ضربدر یا ثبت بسته می‌شود (بدون swipe یا لمس بیرون) */
+    dismissOnScrimOrSwipe: Boolean = true,
+    sheetState: SheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { target ->
+            dismissOnScrimOrSwipe || target != SheetValue.Hidden
+        },
+    ),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = {
+            if (dismissOnScrimOrSwipe) onDismissRequest()
+        },
         sheetState = sheetState,
         modifier = modifier,
         containerColor = DfColors.Surface,
         shape = AppShapes.Sheet,
-        dragHandle = { DfSheetDragHandle() },
+        dragHandle = if (dismissOnScrimOrSwipe) {
+            { DfSheetDragHandle() }
+        } else {
+            { DfSheetTopSpacer() }
+        },
+        properties = ModalBottomSheetProperties(
+            shouldDismissOnBackPress = dismissOnScrimOrSwipe,
+        ),
         tonalElevation = 0.dp,
         scrimColor = Color.Black.copy(alpha = 0.45f),
     ) {
@@ -73,6 +91,16 @@ fun DfModalBottomSheet(
             content = content,
         )
     }
+}
+
+/** فاصله بالای sheet وقتی handle کشیدن غیرفعال است */
+@Composable
+private fun DfSheetTopSpacer(modifier: Modifier = Modifier) {
+    Spacer(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(AppSpacing.sm),
+    )
 }
 
 @Composable

@@ -113,19 +113,20 @@ fun ContactListCard(
                         )
                         contact.phone?.let { phone ->
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(
                                     imageVector = DfIcons.Phone,
                                     contentDescription = null,
-                                    tint = DfThemeColors.textMuted(),
-                                    modifier = Modifier.size(13.dp),
+                                    tint = DfThemeColors.primary(),
+                                    modifier = Modifier.size(15.dp),
                                 )
                                 Text(
                                     text = phone,
-                                    style = AppTypography.labelSmall,
-                                    color = DfThemeColors.textSecondary(),
+                                    style = AppTypography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DfThemeColors.textPrimary(),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )

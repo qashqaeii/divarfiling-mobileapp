@@ -59,7 +59,10 @@ fun PropertyLocationMapPickerSheet(
     val defaultLng = 51.3890
     var mapView by remember { mutableStateOf<MapView?>(null) }
 
-    DfModalBottomSheet(onDismissRequest = onDismiss) {
+    DfModalBottomSheet(
+        onDismissRequest = onDismiss,
+        dismissOnScrimOrSwipe = false,
+    ) {
         DfSheetScaffold(
             title = "انتخاب موقعیت روی نقشه",
             subtitle = "نقشه را جابه‌جا کنید تا نشانگر روی محل دقیق قرار بگیرد",

@@ -553,7 +553,10 @@ fun ContactsScreen(
     )
 
     if (state.showQuickLead) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleQuickLead(false) }) {
+        DfModalBottomSheet(
+            onDismissRequest = { viewModel.toggleQuickLead(false) },
+            dismissOnScrimOrSwipe = false,
+        ) {
             ContactQuickLeadSheet(
                 name = state.leadName,
                 phone = state.leadPhone,

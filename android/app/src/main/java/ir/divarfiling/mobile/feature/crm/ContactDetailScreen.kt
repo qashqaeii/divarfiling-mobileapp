@@ -314,7 +314,10 @@ fun ContactDetailScreen(
     }
 
     if (state.showEditSheet) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.requestDismissEdit() }) {
+        DfModalBottomSheet(
+            onDismissRequest = { viewModel.requestDismissEdit() },
+            dismissOnScrimOrSwipe = false,
+        ) {
             ContactEditSheet(
                 name = state.editName,
                 phone = state.editPhone,
