@@ -67,6 +67,7 @@ import ir.divarfiling.mobile.feature.crm.components.PropertiesSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.PropertiesStatsRow
 import ir.divarfiling.mobile.feature.crm.components.PropertyContactMatchesSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyDetailTabbedContent
+import ir.divarfiling.mobile.feature.crm.components.PropertyLocationMapPickerSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFormMode
 import ir.divarfiling.mobile.feature.crm.components.PropertyFormSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyLinkContactSheet
@@ -487,6 +488,10 @@ fun PropertyDetailScreen(
                         onUploadDocument = { documentPicker.launch("*/*") },
                         onDeleteDocument = viewModel::deleteDocument,
                         onToggleFolder = viewModel::togglePropertyFolder,
+                        onEditLocation = { viewModel.toggleLocationMapPicker(true) },
+                        onFetchNearbyPois = viewModel::fetchNearbyPois,
+                        nearbyPoisPayload = state.nearbyPoisPayload,
+                        nearbyPoisLoading = state.nearbyPoisLoading,
                     )
                 }
             }
@@ -581,6 +586,15 @@ fun PropertyDetailScreen(
             destructive = true,
             onConfirm = viewModel::confirmDiscardEdit,
             onDismiss = viewModel::cancelDiscardEdit,
+        )
+    }
+
+    if (state.showLocationMapPicker && property != null) {
+        PropertyLocationMapPickerSheet(
+            initialLatitude = property.latitude,
+            initialLongitude = property.longitude,
+            onConfirm = viewModel::updatePropertyLocation,
+            onDismiss = { viewModel.toggleLocationMapPicker(false) },
         )
     }
 

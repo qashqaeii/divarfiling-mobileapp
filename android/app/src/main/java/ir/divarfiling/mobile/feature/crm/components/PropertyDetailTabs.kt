@@ -92,6 +92,10 @@ fun PropertyDetailTabbedContent(
     onUploadDocument: () -> Unit,
     onDeleteDocument: (Long) -> Unit,
     onToggleFolder: (folderId: Long, add: Boolean) -> Unit = { _, _ -> },
+    onEditLocation: () -> Unit = {},
+    onFetchNearbyPois: (refresh: Boolean) -> Unit = {},
+    nearbyPoisPayload: ir.divarfiling.mobile.core.network.NearbyPoisPayloadDto? = null,
+    nearbyPoisLoading: Boolean = false,
 ) {
     val property = detail.property
     val tabs = buildPropertyTabs(detail)
@@ -145,6 +149,7 @@ fun PropertyDetailTabbedContent(
                 onWhatsApp = onWhatsApp,
                 onCopyLink = onCopyLink,
                 onOpenLink = onOpenLink,
+                onDelete = if (detail.canEdit) onDelete else null,
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
         }
@@ -222,19 +227,31 @@ fun PropertyDetailTabbedContent(
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
-        }
-
-        if (detail.canEdit) {
             item {
-                TextButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AppSpacing.screenHorizontal),
-                    enabled = !isSubmitting,
-                ) {
-                    Text("حذف ملک", color = DfColors.OverdueAccent)
-                }
+                PropertyLocationSection(
+                    property = property,
+                    canEdit = detail.canEdit,
+                    isSubmitting = isSubmitting,
+                    onEditLocation = onEditLocation,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+            item {
+                PropertyNavigationSection(
+                    mapNavigation = detail.mapNavigation,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+            item {
+                PropertyNearbyPoisSection(
+                    property = property,
+                    nearbyPoisCtx = detail.nearbyPoisCtx,
+                    payload = nearbyPoisPayload,
+                    isLoading = nearbyPoisLoading,
+                    canEdit = detail.canEdit,
+                    onFetch = onFetchNearbyPois,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
             }
         }
     }
@@ -554,7 +571,6 @@ private fun PropertyDossierPanel(
             iconRes = DfDecorIcons.Coins,
             rows = buildList {
                 property.dealMode?.let { add("نوع معامله" to it) }
-                add("وضعیت" to (property.transactionStatus ?: "فعال"))
                 property.publishStatus?.let { add("انتشار" to it) }
                 property.salePrice?.let { add("فروش" to FormatUtils.formatPriceToman(it)) }
                 property.deposit?.let { add("رهن" to FormatUtils.formatPriceToman(it)) }
@@ -573,17 +589,6 @@ private fun PropertyDossierPanel(
                 add("پارکینگ" to PropertyAmenityResolver.label(parking))
                 add("انباری" to PropertyAmenityResolver.label(storage))
                 add("آسانسور" to PropertyAmenityResolver.label(elevator))
-            },
-        )
-        PropertyDossierGroup(
-            title = "موقعیت",
-            iconRes = DfDecorIcons.MapPin,
-            rows = buildList {
-                add("نمایش" to PropertyFilters.locationLabel(property))
-                property.neighborhood?.takeIf { it.isNotBlank() }?.let { add("محله" to it) }
-                property.city?.takeIf { it.isNotBlank() }?.let { add("شهر" to it) }
-                property.district?.takeIf { it.isNotBlank() }?.let { add("منطقه" to it) }
-                property.address?.takeIf { it.isNotBlank() }?.let { add("آدرس" to it) }
             },
         )
         property.amenities?.takeIf { it.isNotBlank() }?.let { amenities ->

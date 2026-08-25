@@ -49,6 +49,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
+import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfMoreAction
 import ir.divarfiling.mobile.core.design.components.DfMoreActionsSheet
 import ir.divarfiling.mobile.core.design.FormatUtils
@@ -583,12 +584,14 @@ fun PropertyDetailQuickActions(
     onCopyLink: () -> Unit,
     onOpenLink: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onDelete: (() -> Unit)? = null,
 ) {
     var showMore by remember { mutableStateOf(false) }
     val moreActions = buildList {
         add(DfMoreAction("ویرایش", onEdit, DfIcons.Pencil))
         add(DfMoreAction("کپی لینک", onCopyLink, DfIcons.Copy))
         if (onOpenLink != null) add(DfMoreAction("مشاهده در دیوار", onOpenLink, DfIcons.ExternalLink))
+        onDelete?.let { add(DfMoreAction("حذف ملک", it, DfIcons.Trash, destructive = true)) }
     }
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -688,28 +691,15 @@ fun PropertyTxStatusSection(
                 Text("در حال به‌روزرسانی…", style = AppTypography.labelSmall, color = DfColors.Purple)
             }
         }
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = AppShapes.Card,
-            color = DfThemeColors.surface(),
-            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
-            shadowElevation = AppElevations.subtle,
-        ) {
-            Column(
-                modifier = Modifier.padding(AppSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                CrmConstants.PROPERTY_TX_STATUSES.forEach { status ->
-                    DfSheetOptionRow(
-                        label = status,
-                        selected = status == currentStatus,
-                        onClick = { if (!isSubmitting && status != currentStatus) onStatusChange(status) },
-                        icon = PropertyFilters.txStatusIcon(status),
-                        trailing = if (status == currentStatus) "فعلی" else null,
-                    )
-                }
-            }
-        }
+        DfDropdown(
+            label = "انتخاب وضعیت",
+            value = currentStatus,
+            options = CrmConstants.PROPERTY_TX_STATUSES,
+            enabled = !isSubmitting,
+            onSelect = { status ->
+                if (status != currentStatus) onStatusChange(status)
+            },
+        )
     }
 }
 

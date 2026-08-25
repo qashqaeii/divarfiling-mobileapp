@@ -21,6 +21,7 @@ import ir.divarfiling.mobile.core.network.PropertyCreateRequest
 import ir.divarfiling.mobile.core.network.PropertyFolderCreateRequest
 import ir.divarfiling.mobile.core.network.PropertyFolderDto
 import ir.divarfiling.mobile.core.network.PropertyFolderUpdateRequest
+import ir.divarfiling.mobile.core.network.NearbyPoisPayloadDto
 import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
@@ -1344,6 +1345,9 @@ data class PropertyDetailUiState(
     val shareApproximateLocation: Boolean = false,
     val shareApproximateLocationRadiusM: String = "500",
     val shareShowNearbyPois: Boolean = false,
+    val showLocationMapPicker: Boolean = false,
+    val nearbyPoisPayload: NearbyPoisPayloadDto? = null,
+    val nearbyPoisLoading: Boolean = false,
 )
 
 enum class PropertyDetailTab(val label: String) {
@@ -1383,6 +1387,7 @@ class PropertyDetailViewModel @Inject constructor(
                             inlineNotes = p.notes.orEmpty(),
                             editForm = form,
                             editFormBaseline = form,
+                            nearbyPoisPayload = result.data.nearbyPoisCtx?.initialPayload,
                             shareConsultantName = publicShare?.consultantName.orEmpty(),
                             shareConsultantPhone = publicShare?.consultantPhone.orEmpty(),
                             shareWelcomeMessage = publicShare?.welcomeMessage.orEmpty(),
@@ -1421,6 +1426,49 @@ class PropertyDetailViewModel @Inject constructor(
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun toggleLocationMapPicker(show: Boolean) = _uiState.update { it.copy(showLocationMapPicker = show) }
+
+    fun updatePropertyLocation(latitude: Double, longitude: Double) {
+        if (_uiState.value.isSubmitting) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, showLocationMapPicker = false) }
+            when (val result = repository.updatePropertyLocation(propertyId, latitude, longitude)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            nearbyPoisPayload = null,
+                            successMessage = "موقعیت ذخیره شد",
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun fetchNearbyPois(refresh: Boolean = false) {
+        if (_uiState.value.nearbyPoisLoading) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(nearbyPoisLoading = true) }
+            when (val result = repository.fetchPropertyNearbyPois(propertyId, refresh)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        nearbyPoisLoading = false,
+                        nearbyPoisPayload = result.data,
+                        successMessage = if (result.data.cached) "امکانات اطراف بارگذاری شد" else "امکانات اطراف ذخیره شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(nearbyPoisLoading = false, error = result.message)
                 }
             }
         }

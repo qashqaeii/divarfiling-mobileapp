@@ -329,6 +329,18 @@ interface MobileApi {
         @Body body: PropertyStatusRequest,
     ): ApiEnvelope
 
+    @POST("crm/properties/{id}/location")
+    suspend fun updatePropertyLocation(
+        @Path("id") propertyId: Long,
+        @Body body: PropertyLocationRequest,
+    ): ApiEnvelope
+
+    @POST("crm/properties/{id}/nearby-pois")
+    suspend fun fetchPropertyNearbyPois(
+        @Path("id") propertyId: Long,
+        @Body body: PropertyNearbyPoisRequest,
+    ): ApiEnvelope
+
     @DELETE("crm/properties/{id}")
     suspend fun deleteProperty(@Path("id") propertyId: Long): ApiEnvelope
 

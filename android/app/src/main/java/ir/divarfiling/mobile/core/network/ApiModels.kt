@@ -968,6 +968,17 @@ data class PropertyStatusRequest(
 )
 
 @Serializable
+data class PropertyLocationRequest(
+    val latitude: Double,
+    val longitude: Double,
+)
+
+@Serializable
+data class PropertyNearbyPoisRequest(
+    val refresh: Boolean = false,
+)
+
+@Serializable
 data class PropertyContactLinkDto(
     val id: Long,
     @SerialName("customer_id") val customerId: Long,
@@ -1028,6 +1039,68 @@ data class ListingFeatureProfileDto(
 )
 
 @Serializable
+data class MapNavigationDto(
+    val latitude: Double,
+    val longitude: Double,
+    @SerialName("google_url") val googleUrl: String = "",
+    @SerialName("neshan_url") val neshanUrl: String = "",
+    @SerialName("waze_url") val wazeUrl: String = "",
+    @SerialName("balad_url") val baladUrl: String = "",
+)
+
+@Serializable
+data class NearbyPoiItemDto(
+    val key: String = "",
+    val label: String = "",
+    val icon: String = "",
+    val color: String = "",
+    val found: Boolean = false,
+    val name: String = "",
+    @SerialName("distance_m") val distanceM: Int? = null,
+    @SerialName("distance_label") val distanceLabel: String = "",
+    @SerialName("walk_label") val walkLabel: String = "",
+    @SerialName("empty_label") val emptyLabel: String = "",
+)
+
+@Serializable
+data class NearbyPoiGroupDto(
+    val key: String = "",
+    val label: String = "",
+    @SerialName("found_count") val foundCount: Int = 0,
+    val items: List<NearbyPoiItemDto> = emptyList(),
+)
+
+@Serializable
+data class NearbyPoisPayloadDto(
+    val ok: Boolean = true,
+    val cached: Boolean = false,
+    @SerialName("fetched_at") val fetchedAt: String? = null,
+    @SerialName("fetched_at_label") val fetchedAtLabel: String? = null,
+    @SerialName("radius_m") val radiusM: Int? = null,
+    @SerialName("found_count") val foundCount: Int = 0,
+    @SerialName("total_count") val totalCount: Int = 0,
+    @SerialName("missing_count") val missingCount: Int = 0,
+    val groups: List<NearbyPoiGroupDto> = emptyList(),
+    val highlights: List<NearbyPoiItemDto> = emptyList(),
+)
+
+@Serializable
+data class NearbyPoisContextDto(
+    @SerialName("has_coords") val hasCoords: Boolean = false,
+    @SerialName("has_stored") val hasStored: Boolean = false,
+    @SerialName("initial_payload") val initialPayload: NearbyPoisPayloadDto? = null,
+    @SerialName("category_count") val categoryCount: Int = 0,
+)
+
+@Serializable
+data class PropertyLocationUpdateData(
+    val latitude: Double,
+    val longitude: Double,
+    @SerialName("map_navigation") val mapNavigation: MapNavigationDto? = null,
+    val property: PropertyDto? = null,
+)
+
+@Serializable
 data class PropertyDetailData(
     val property: PropertyDto,
     val contacts: List<PropertyContactLinkDto> = emptyList(),
@@ -1040,6 +1113,8 @@ data class PropertyDetailData(
     @SerialName("contact_count") val contactCount: Int = 0,
     @SerialName("public_share") val publicShare: ListingPublicShareDto? = null,
     @SerialName("available_folders") val availableFolders: List<PropertyFolderDto> = emptyList(),
+    @SerialName("map_navigation") val mapNavigation: MapNavigationDto? = null,
+    @SerialName("nearby_pois_ctx") val nearbyPoisCtx: NearbyPoisContextDto? = null,
 )
 
 @Serializable

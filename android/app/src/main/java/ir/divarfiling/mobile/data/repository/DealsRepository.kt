@@ -20,9 +20,11 @@ import ir.divarfiling.mobile.core.network.PropertyCreateRequest
 import ir.divarfiling.mobile.core.network.PropertySuggestContactsRequest
 import ir.divarfiling.mobile.core.network.ListingPublicShareDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
+import ir.divarfiling.mobile.core.network.NearbyPoisPayloadDto
 import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
+import ir.divarfiling.mobile.core.network.PropertyLocationUpdateData
 import ir.divarfiling.mobile.core.network.PropertyStatusRequest
 import ir.divarfiling.mobile.core.network.PropertyUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyImageUploadData
@@ -219,6 +221,21 @@ class DealsRepository @Inject constructor(
 
     suspend fun updatePropertyStatus(propertyId: Long, status: String): ApiResult<PropertyDto> = single {
         api.updatePropertyStatus(propertyId, PropertyStatusRequest(status))
+    }
+
+    suspend fun updatePropertyLocation(
+        propertyId: Long,
+        latitude: Double,
+        longitude: Double,
+    ): ApiResult<PropertyLocationUpdateData> = single {
+        api.updatePropertyLocation(propertyId, PropertyLocationRequest(latitude, longitude))
+    }
+
+    suspend fun fetchPropertyNearbyPois(
+        propertyId: Long,
+        refresh: Boolean = false,
+    ): ApiResult<NearbyPoisPayloadDto> = single {
+        api.fetchPropertyNearbyPois(propertyId, PropertyNearbyPoisRequest(refresh))
     }
 
     suspend fun updatePropertyPublicShare(
