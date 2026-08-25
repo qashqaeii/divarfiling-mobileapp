@@ -62,6 +62,7 @@ fun ContactAreasPickerField(
     var expanded by remember { mutableStateOf(true) }
     var search by remember { mutableStateOf("") }
     var customDraft by remember { mutableStateOf("") }
+    val filteredCatalog = remember(search, catalogNeighborhoods) {
         val q = search.trim()
         if (q.isBlank()) catalogNeighborhoods
         else catalogNeighborhoods.filter { it.contains(q, ignoreCase = true) }
