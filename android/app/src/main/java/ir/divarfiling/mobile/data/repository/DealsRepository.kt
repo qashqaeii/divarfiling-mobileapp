@@ -9,6 +9,7 @@ import ir.divarfiling.mobile.core.network.DealFinanceDashboardData
 import ir.divarfiling.mobile.core.network.DealFinanceDefaultsDto
 import ir.divarfiling.mobile.core.network.DealFinanceSaveRequest
 import ir.divarfiling.mobile.core.network.DealFinanceSettingsData
+import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineData
 import ir.divarfiling.mobile.core.network.DealStageRequest

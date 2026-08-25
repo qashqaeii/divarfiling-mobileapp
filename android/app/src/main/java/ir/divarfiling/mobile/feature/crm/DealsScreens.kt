@@ -52,6 +52,7 @@ import ir.divarfiling.mobile.feature.crm.components.DealUiUtils
 import ir.divarfiling.mobile.feature.crm.components.DealsSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.DealsFilters
 import ir.divarfiling.mobile.feature.crm.components.DealsHeader
+import ir.divarfiling.mobile.feature.crm.components.DealsStatsRow
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.feature.crm.components.DealsPipelineBar

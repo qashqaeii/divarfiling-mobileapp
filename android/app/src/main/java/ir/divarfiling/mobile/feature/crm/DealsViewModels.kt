@@ -11,6 +11,7 @@ import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.export.ExportShareHelper
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.ContactSuggestResponse
+import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealFinanceDashboardData
 import ir.divarfiling.mobile.core.network.DealFinanceDefaultsDto
 import ir.divarfiling.mobile.core.network.DealFinanceSaveRequest
