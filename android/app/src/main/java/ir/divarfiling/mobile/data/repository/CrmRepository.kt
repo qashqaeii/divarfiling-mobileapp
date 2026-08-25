@@ -18,6 +18,7 @@ import ir.divarfiling.mobile.core.network.ContactMatchesData
 import ir.divarfiling.mobile.core.network.ContactSuggestRequest
 import ir.divarfiling.mobile.core.network.ContactSuggestResponse
 import ir.divarfiling.mobile.core.network.ContactUpdateRequest
+import ir.divarfiling.mobile.core.network.CrmNeighborhoodsData
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest
 import ir.divarfiling.mobile.core.network.MobileApi
@@ -146,6 +147,16 @@ class CrmRepository @Inject constructor(
             val response = api.quickLead(QuickLeadRequest(fullName, phone))
             if (!response.ok) return ApiResult.Error(response.error ?: "ثبت سرنخ ناموفق")
             ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun getNeighborhoods(): ApiResult<List<String>> {
+        return try {
+            val response = api.getCrmNeighborhoods()
+            if (!response.ok) return ApiResult.Error(response.error ?: "دریافت محله‌ها ناموفق")
+            ApiResult.Success(response.requireData<CrmNeighborhoodsData>(json).neighborhoods)
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }

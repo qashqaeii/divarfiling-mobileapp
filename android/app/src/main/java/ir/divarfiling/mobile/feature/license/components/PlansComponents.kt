@@ -310,7 +310,7 @@ fun LicensePlanCard(
                 ) {
                     plan.features.take(5).forEach { feature ->
                         PlanBadge(
-                            text = feature,
+                            text = feature.text,
                             color = DfThemeColors.textSecondary(),
                             bg = DfThemeColors.surfaceVariant(),
                         )

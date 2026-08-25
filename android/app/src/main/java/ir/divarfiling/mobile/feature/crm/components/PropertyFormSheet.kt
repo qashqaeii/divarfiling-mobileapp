@@ -1,5 +1,9 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -10,19 +14,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -48,6 +54,7 @@ import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.feature.crm.FeatureWidget
 import ir.divarfiling.mobile.feature.crm.PropertyAmenityCatalog
 import ir.divarfiling.mobile.feature.crm.PropertyConstants
+import ir.divarfiling.mobile.feature.crm.PropertyFeatureIcons
 import ir.divarfiling.mobile.feature.crm.PropertyFeatureSchema
 import ir.divarfiling.mobile.feature.crm.PropertyFormState
 import ir.divarfiling.mobile.feature.filing.ListingFeatureChoices
@@ -58,12 +65,37 @@ fun PropertyFormSheet(
     mode: PropertyFormMode,
     form: PropertyFormState,
     isSubmitting: Boolean,
+    isUploadingImages: Boolean = false,
     onFormChange: (PropertyFormState) -> Unit,
+    onGalleryImagesSelected: (List<Uri>) -> Unit = {},
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val profile = remember(form.dealMode, form.propertyType) {
         PropertyFeatureSchema.profileFor(form.dealMode, form.propertyType)
+    }
+    val context = LocalContext.current
+    var showMapPicker by remember { mutableStateOf(false) }
+    val floorOptions = remember { dropdownNumericOptions(max = 30, start = 1) }
+    val totalFloorOptions = remember { dropdownNumericOptions(max = 30, start = 1) }
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris ->
+        if (uris.isNullOrEmpty() || isSubmitting || isUploadingImages) return@rememberLauncherForActivityResult
+        val remaining = MAX_PROPERTY_FORM_IMAGES - form.images.size - form.pendingImageUris.size
+        if (remaining <= 0) return@rememberLauncherForActivityResult
+        val selected = uris.take(remaining)
+        selected.forEach { uri ->
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            } catch (_: SecurityException) {
+                // بعضی URIها قابل persist نیستند؛ همان لحظه آپلود می‌شوند.
+            }
+        }
+        onGalleryImagesSelected(selected)
     }
 
     DfSheetScaffold(
@@ -217,26 +249,32 @@ fun PropertyFormSheet(
                 singleLine = true,
                 enabled = !isSubmitting,
             )
+            PropertyMapLocationButton(
+                latitude = form.latitude,
+                longitude = form.longitude,
+                enabled = !isSubmitting,
+                onClick = { if (!isSubmitting) showMapPicker = true },
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 OutlinedTextField(
                     value = form.latitude,
-                    onValueChange = { onFormChange(form.copy(latitude = it)) },
+                    onValueChange = {},
                     label = { Text("عرض جغرافیایی") },
-                    placeholder = { Text("اختیاری") },
+                    placeholder = { Text("از نقشه") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    enabled = !isSubmitting,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    enabled = false,
+                    readOnly = true,
                 )
                 OutlinedTextField(
                     value = form.longitude,
-                    onValueChange = { onFormChange(form.copy(longitude = it)) },
+                    onValueChange = {},
                     label = { Text("طول جغرافیایی") },
-                    placeholder = { Text("اختیاری") },
+                    placeholder = { Text("از نقشه") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    enabled = !isSubmitting,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    enabled = false,
+                    readOnly = true,
                 )
             }
         }
@@ -262,23 +300,21 @@ fun PropertyFormSheet(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                OutlinedTextField(
-                    value = form.floor,
-                    onValueChange = { onFormChange(form.copy(floor = it)) },
-                    label = { Text("طبقه") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
+                DfDropdown(
+                    label = "طبقه",
+                    value = dropdownDisplayValue(form.floor),
+                    options = floorOptions,
                     enabled = !isSubmitting,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    onSelect = { onFormChange(form.copy(floor = parseDropdownSelection(it))) },
+                    modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
-                    value = form.totalFloors,
-                    onValueChange = { onFormChange(form.copy(totalFloors = it)) },
-                    label = { Text("تعداد کل طبقات") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
+                DfDropdown(
+                    label = "تعداد کل طبقات",
+                    value = dropdownDisplayValue(form.totalFloors),
+                    options = totalFloorOptions,
                     enabled = !isSubmitting,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    onSelect = { onFormChange(form.copy(totalFloors = parseDropdownSelection(it))) },
+                    modifier = Modifier.weight(1f),
                 )
             }
             OutlinedTextField(
@@ -308,16 +344,17 @@ fun PropertyFormSheet(
                 ) {
                     group.labels.forEach { label ->
                         val selected = label in form.amenityLabels
-                        FilterChip(
+                        PropertyAmenitySelectableChip(
+                            label = label,
+                            icon = PropertyAmenityCatalog.iconFor(label),
                             selected = selected,
+                            enabled = !isSubmitting,
                             onClick = {
-                                if (isSubmitting) return@FilterChip
+                                if (isSubmitting) return@PropertyAmenitySelectableChip
                                 val next = form.amenityLabels.toMutableSet()
                                 if (selected) next.remove(label) else next.add(label)
                                 onFormChange(form.copy(amenityLabels = next))
                             },
-                            label = { Text(label, style = AppTypography.labelSmall) },
-                            enabled = !isSubmitting,
                         )
                     }
                 }
@@ -447,50 +484,90 @@ fun PropertyFormSheet(
 
         DfSheetSection(title = "تصاویر") {
             Text(
-                text = "اولین تصویر به‌عنوان کاور نمایش داده می‌شود. لینک تصاویر را اضافه، حذف یا مرتب کنید.",
+                text = "اولین تصویر به‌عنوان کاور نمایش داده می‌شود. از گالری یک یا چند عکس انتخاب کنید.",
                 style = AppTypography.labelSmall,
                 color = DfColors.TextMuted,
             )
-            form.images.forEachIndexed { index, url ->
-                PropertyImageUrlRow(
-                    index = index,
-                    url = url,
-                    isCover = index == 0,
-                    canMoveUp = index > 0,
-                    canMoveDown = index < form.images.lastIndex,
-                    enabled = !isSubmitting,
-                    onUrlChange = { updated ->
-                        val next = form.images.toMutableList().also { it[index] = updated }
-                        onFormChange(form.copy(images = next))
-                    },
-                    onMoveUp = {
+            PropertyFormImageThumbnailRow(
+                imageUrls = form.images,
+                pendingUris = form.pendingImageUris,
+                enabled = !isSubmitting,
+                isUploading = isUploadingImages,
+                onMoveUp = { index, isPending ->
+                    if (isPending) {
                         if (index > 0) {
-                            val next = form.images.toMutableList()
+                            val next = form.pendingImageUris.toMutableList()
                             val item = next.removeAt(index)
                             next.add(index - 1, item)
-                            onFormChange(form.copy(images = next))
+                            onFormChange(form.copy(pendingImageUris = next))
                         }
-                    },
-                    onMoveDown = {
-                        if (index < form.images.lastIndex) {
-                            val next = form.images.toMutableList()
+                    } else if (index > 0) {
+                        val next = form.images.toMutableList()
+                        val item = next.removeAt(index)
+                        next.add(index - 1, item)
+                        onFormChange(form.copy(images = next))
+                    }
+                },
+                onMoveDown = { index, isPending ->
+                    if (isPending) {
+                        if (index < form.pendingImageUris.lastIndex) {
+                            val next = form.pendingImageUris.toMutableList()
                             val item = next.removeAt(index)
                             next.add(index + 1, item)
-                            onFormChange(form.copy(images = next))
+                            onFormChange(form.copy(pendingImageUris = next))
                         }
-                    },
-                    onRemove = {
+                    } else if (index < form.images.lastIndex) {
+                        val next = form.images.toMutableList()
+                        val item = next.removeAt(index)
+                        next.add(index + 1, item)
+                        onFormChange(form.copy(images = next))
+                    }
+                },
+                onRemove = { index, isPending ->
+                    if (isPending) {
+                        onFormChange(
+                            form.copy(
+                                pendingImageUris = form.pendingImageUris.toMutableList().also { it.removeAt(index) },
+                            ),
+                        )
+                    } else {
                         onFormChange(form.copy(images = form.images.toMutableList().also { it.removeAt(index) }))
-                    },
-                )
-            }
+                    }
+                },
+            )
+            val canAddImages = form.images.size + form.pendingImageUris.size < MAX_PROPERTY_FORM_IMAGES
             DfSheetOptionRow(
-                label = "افزودن لینک تصویر",
+                label = when {
+                    isUploadingImages -> "در حال آپلود تصاویر…"
+                    !canAddImages -> "حداکثر $MAX_PROPERTY_FORM_IMAGES تصویر"
+                    else -> "انتخاب از گالری"
+                },
                 selected = false,
-                onClick = { if (!isSubmitting) onFormChange(form.copy(images = form.images + "")) },
-                icon = DfIcons.Plus,
+                onClick = {
+                    if (!isSubmitting && !isUploadingImages && canAddImages) {
+                        galleryLauncher.launch(arrayOf("image/*"))
+                    }
+                },
+                icon = DfIcons.Upload,
             )
         }
+    }
+
+    if (showMapPicker) {
+        PropertyLocationMapPickerSheet(
+            initialLatitude = form.latitude.toDoubleOrNull(),
+            initialLongitude = form.longitude.toDoubleOrNull(),
+            onConfirm = { lat, lng ->
+                onFormChange(
+                    form.copy(
+                        latitude = "%.6f".format(lat),
+                        longitude = "%.6f".format(lng),
+                    ),
+                )
+                showMapPicker = false
+            },
+            onDismiss = { showMapPicker = false },
+        )
     }
 }
 
@@ -507,12 +584,12 @@ private fun PropertyFeatureFieldEditor(
     when (field.widget) {
         FeatureWidget.Toggle -> PropertyAmenityTriRow(
             label = field.label,
-            icon = DfIcons.Sparkles,
+            icon = PropertyFeatureIcons.iconFor(field.key),
             value = value.toTriBool(),
             enabled = enabled,
             onChange = { onValueChange(it.toTriPayload()) },
         )
-        FeatureWidget.Chips, FeatureWidget.Select -> {
+        FeatureWidget.Chips -> {
             val choices = ListingFeatureChoices.choicesFor(field.key, field.choices)
             if (choices.isNotEmpty()) {
                 Text(field.label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
@@ -522,14 +599,41 @@ private fun PropertyFeatureFieldEditor(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     choices.forEach { choice ->
-                        FilterChip(
+                        PropertyAmenitySelectableChip(
+                            label = choice,
+                            icon = PropertyFeatureIcons.iconFor(field.key),
                             selected = value == choice,
-                            onClick = { if (enabled) onValueChange(choice) },
-                            label = { Text(choice, style = AppTypography.labelSmall) },
                             enabled = enabled,
+                            onClick = { if (enabled) onValueChange(choice) },
                         )
                     }
                 }
+            } else {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    label = { Text(field.label) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = enabled,
+                )
+            }
+        }
+        FeatureWidget.Select -> {
+            val choices = ListingFeatureChoices.choicesFor(field.key, field.choices)
+            if (choices.isNotEmpty()) {
+                val options = if (isNumericDropdownChoices(choices)) {
+                    listOf("—") + choices
+                } else {
+                    listOf("—") + choices
+                }
+                DfDropdown(
+                    label = field.label,
+                    value = dropdownDisplayValue(value),
+                    options = options,
+                    enabled = enabled,
+                    onSelect = { onValueChange(parseDropdownSelection(it)) },
+                )
             } else {
                 OutlinedTextField(
                     value = value,
@@ -612,42 +716,6 @@ private fun PropertyAmenityTriRow(
             PropertyChoiceChip("نامشخص", value == null, { onChange(null) }, Modifier.weight(1f))
         }
     }
-}
-
-@Composable
-private fun PropertyImageUrlRow(
-    index: Int,
-    url: String,
-    isCover: Boolean,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
-    enabled: Boolean,
-    onUrlChange: (String) -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    onRemove: () -> Unit,
-) {
-    OutlinedTextField(
-        value = url,
-        onValueChange = onUrlChange,
-        label = { Text(if (isCover) "کاور" else "تصویر ${index + 1}") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        enabled = enabled,
-        trailingIcon = {
-            Row {
-                IconButton(onClick = onMoveUp, enabled = enabled && canMoveUp, modifier = Modifier.size(32.dp)) {
-                    Icon(DfIcons.ChevronUp, contentDescription = "بالا", modifier = Modifier.size(16.dp))
-                }
-                IconButton(onClick = onMoveDown, enabled = enabled && canMoveDown, modifier = Modifier.size(32.dp)) {
-                    Icon(DfIcons.ChevronDown, contentDescription = "پایین", modifier = Modifier.size(16.dp))
-                }
-                IconButton(onClick = onRemove, enabled = enabled, modifier = Modifier.size(32.dp)) {
-                    Icon(DfIcons.X, contentDescription = "حذف", tint = DfColors.Rose, modifier = Modifier.size(16.dp))
-                }
-            }
-        },
-    )
 }
 
 private fun String.toTriBool(): Boolean? = when (trim()) {

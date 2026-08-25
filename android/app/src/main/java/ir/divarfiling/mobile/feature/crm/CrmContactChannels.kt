@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 
 data class ContactChannelDef(
     val key: String,
@@ -30,6 +31,8 @@ object CrmContactChannels {
         ContactChannelDef("soroush", "سروش", DfIcons.MessageCircle, Color(0xFF00A693), placeholder = "آیدی یا ۰۹۱۲…"),
     )
 
+    val phoneDerivedSocialKeys: Set<String> = setOf("telegram", "bale", "rubika", "eitaa", "soroush")
+
     val allKeys: Set<String> = (builtinChannels + socialNetworks).map { it.key }.toSet()
 
     fun defaultActiveChannelsForSource(source: String): Set<String> = when (source.trim()) {
@@ -41,4 +44,29 @@ object CrmContactChannels {
 
     fun channelDef(key: String): ContactChannelDef? =
         (builtinChannels + socialNetworks).firstOrNull { it.key == key }
+
+    fun requiresManualSocialHandle(key: String): Boolean = key == "instagram"
+
+    fun usesPhoneForSocialHandle(key: String): Boolean = key in phoneDerivedSocialKeys
+
+    fun phoneReady(rawPhone: String): Boolean = PhoneNormalizer.normalize(rawPhone).isNotBlank()
+
+    fun autoSocialHandle(networkKey: String, rawPhone: String): String? {
+        if (requiresManualSocialHandle(networkKey)) return null
+        if (!usesPhoneForSocialHandle(networkKey)) return null
+        val normalized = PhoneNormalizer.normalize(rawPhone)
+        return normalized.takeIf { it.isNotBlank() }
+    }
+
+    fun syncPhoneDerivedSocialLinks(
+        activeChannels: Set<String>,
+        phone: String,
+        currentLinks: Map<String, String>,
+    ): Map<String, String> {
+        val next = currentLinks.toMutableMap()
+        activeChannels.filter { usesPhoneForSocialHandle(it) }.forEach { key ->
+            autoSocialHandle(key, phone)?.let { next[key] = it }
+        }
+        return next
+    }
 }

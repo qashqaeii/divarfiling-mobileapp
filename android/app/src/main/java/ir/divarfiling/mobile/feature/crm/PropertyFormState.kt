@@ -35,6 +35,7 @@ data class PropertyFormState(
     val vacancyDate: String = "",
     val notes: String = "",
     val images: List<String> = emptyList(),
+    val pendingImageUris: List<String> = emptyList(),
     val features: Map<String, String> = emptyMap(),
 ) {
     val isRentDeal: Boolean

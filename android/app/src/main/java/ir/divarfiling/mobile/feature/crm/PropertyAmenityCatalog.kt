@@ -1,5 +1,8 @@
 package ir.divarfiling.mobile.feature.crm
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import ir.divarfiling.mobile.core.design.DfIcons
+
 data class PropertyAmenityGroup(
     val id: String,
     val title: String,
@@ -72,4 +75,21 @@ object PropertyAmenityCatalog {
 
     fun syncCoreFlags(selected: Set<String>): Triple<Boolean, Boolean, Boolean> =
         Triple("پارکینگ" in selected, "انباری" in selected, "آسانسور" in selected)
+
+    fun iconFor(label: String): ImageVector = when (label) {
+        "پارکینگ" -> DfIcons.Car
+        "انباری" -> DfIcons.Database
+        "آسانسور" -> DfIcons.Layers
+        "تراس" -> DfIcons.LayoutGrid
+        "لابی" -> DfIcons.Building
+        "آیفون تصویری" -> DfIcons.Smartphone
+        "درب ضدسرقت" -> DfIcons.Lock
+        "سرایداری" -> DfIcons.Users
+        "آنتن مرکزی" -> DfIcons.Zap
+        "روف گاردن" -> DfIcons.Sparkles
+        "سالن ورزش" -> DfIcons.Trophy
+        "سند" -> DfIcons.File
+        "مجوز ساخت" -> DfIcons.ClipboardList
+        else -> DfIcons.CircleCheck
+    }
 }

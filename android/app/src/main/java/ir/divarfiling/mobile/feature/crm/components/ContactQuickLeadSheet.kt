@@ -44,6 +44,7 @@ fun ContactQuickLeadSheet(
     matchingTolerancePercent: Int = 20,
     activeChannels: Set<String> = emptySet(),
     socialLinks: Map<String, String> = emptyMap(),
+    catalogNeighborhoods: List<String> = emptyList(),
     isSubmitting: Boolean,
     onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
@@ -102,10 +103,11 @@ fun ContactQuickLeadSheet(
         onClose = onDismiss,
         footer = {
             DfSheetActions(
-                primaryText = if (isSubmitting) "در حال ثبت…" else "ثبت مخاطب",
+                primaryText = if (isSubmitting) "در حال ثبت…" else "ثبت مخاطب جدید",
                 onPrimary = onSubmit,
                 primaryEnabled = !isSubmitting && name.isNotBlank() && phone.isNotBlank(),
                 isSubmitting = isSubmitting,
+                secondaryText = "انصراف",
                 onSecondary = onDismiss,
             )
         },
@@ -241,6 +243,7 @@ fun ContactQuickLeadSheet(
             onBuilderBuyMaxAreaChange = onBuilderBuyMaxAreaChange,
             onBuilderBuyAreasChange = onBuilderBuyAreasChange,
             onBuilderBuyTypesChange = onBuilderBuyTypesChange,
+            catalogNeighborhoods = catalogNeighborhoods,
         )
 
         ContactPropertyPrefsFormSection(
@@ -263,6 +266,7 @@ fun ContactQuickLeadSheet(
             onWantStorageChange = onWantStorageChange,
             onWantElevatorChange = onWantElevatorChange,
             onMatchingToleranceChange = onMatchingToleranceChange,
+            catalogNeighborhoods = catalogNeighborhoods,
         )
 
         ContactChannelsFormSection(

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -124,9 +125,14 @@ fun DfSheetScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val configuration = LocalConfiguration.current
-    val maxBodyHeight = (configuration.screenHeightDp * bodyHeightFraction.coerceIn(0.35f, 0.86f)).dp
+    val maxSheetHeight = (configuration.screenHeightDp * bodyHeightFraction.coerceIn(0.35f, 0.92f)).dp
     val scrollState = rememberScrollState()
-    Column(modifier = modifier.fillMaxWidth()) {
+    val outerModifier = if (footer != null) {
+        modifier.fillMaxWidth().height(maxSheetHeight)
+    } else {
+        modifier.fillMaxWidth().heightIn(max = maxSheetHeight)
+    }
+    Column(modifier = outerModifier) {
         DfSheetHeader(
             title = title,
             subtitle = subtitle,
@@ -138,17 +144,19 @@ fun DfSheetScaffold(
             onClose = onClose,
         )
         val bodyModifier = Modifier
+            .weight(1f, fill = footer != null)
             .fillMaxWidth()
             .then(
-                when {
-                    scrollable -> Modifier
-                        .heightIn(max = maxBodyHeight)
-                        .verticalScroll(scrollState)
-                    else -> Modifier
+                if (scrollable) {
+                    Modifier.verticalScroll(scrollState)
+                } else if (footer != null) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier.wrapContentHeight()
                 },
             )
             .padding(horizontal = AppSpacing.lg)
-            .padding(bottom = if (footer == null) AppSpacing.xl else 0.dp)
+            .padding(bottom = if (footer == null) AppSpacing.xl else AppSpacing.sm)
         Column(
             modifier = bodyModifier,
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),

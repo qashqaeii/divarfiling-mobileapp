@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfMoneyField
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.feature.crm.ContactTypeVisuals
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 import ir.divarfiling.mobile.feature.crm.CrmContactChannels
@@ -152,6 +153,7 @@ fun ContactMoneyFormSection(
     onBuilderBuyMaxAreaChange: (String) -> Unit,
     onBuilderBuyAreasChange: (String) -> Unit,
     onBuilderBuyTypesChange: (String) -> Unit,
+    catalogNeighborhoods: List<String> = emptyList(),
 ) {
     val profile = CrmTypeProfiles.profileFor(customerType.ifBlank { "سرنخ" })
     val showBudget = CrmTypeProfiles.showsBudget(profile.moneyMode)
@@ -228,13 +230,12 @@ fun ContactMoneyFormSection(
                 onMinChange = onBuilderBuyMinAreaChange,
                 onMaxChange = onBuilderBuyMaxAreaChange,
             )
-            OutlinedTextField(
+            ContactAreasPickerField(
+                label = "محله‌های هدف خرید",
                 value = builder.buyAreas,
-                onValueChange = onBuilderBuyAreasChange,
-                label = { Text("محله‌های هدف خرید") },
-                modifier = Modifier.fillMaxWidth(),
+                catalogNeighborhoods = catalogNeighborhoods,
                 enabled = enabled,
-                placeholder = { Text("اختیاری — ونک، نیاوران، …") },
+                onValueChange = onBuilderBuyAreasChange,
             )
             OutlinedTextField(
                 value = builder.buyPropertyTypes,
@@ -269,6 +270,7 @@ fun ContactPropertyPrefsFormSection(
     onWantStorageChange: (Boolean) -> Unit,
     onWantElevatorChange: (Boolean) -> Unit,
     onMatchingToleranceChange: (Int) -> Unit,
+    catalogNeighborhoods: List<String> = emptyList(),
 ) {
     val showBuilderBuy = CrmTypeProfiles.showsBuilderBuy(
         CrmTypeProfiles.profileFor(customerType).moneyMode,
@@ -320,14 +322,12 @@ fun ContactPropertyPrefsFormSection(
             onMaxChange = onMaxAreaChange,
         )
 
-        OutlinedTextField(
+        ContactAreasPickerField(
+            label = if (showBuilderBuy) "محله‌های فروش / پروژه" else "محله‌های مورد نظر",
             value = prefs.areas,
-            onValueChange = onAreasChange,
-            label = { Text(if (showBuilderBuy) "محله‌های فروش / پروژه" else "محله‌های مورد نظر") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 2,
+            catalogNeighborhoods = catalogNeighborhoods,
             enabled = enabled,
-            placeholder = { Text("اختیاری — ونک، نیاوران، …") },
+            onValueChange = onAreasChange,
         )
 
         if (!landLike) {
@@ -381,59 +381,30 @@ fun ContactChannelsFormSection(
     onToggleChannel: (String, Boolean) -> Unit,
     onSocialLinkChange: (String, String) -> Unit,
 ) {
+    val phoneReady = CrmContactChannels.phoneReady(phone)
+    val normalizedPhone = PhoneNormalizer.normalize(phone)
+
     DfSheetSection(title = "کانال‌های پیام") {
         Text(
             text = "روش‌هایی که می‌توانید با این مخاطب در ارتباط باشید",
             style = MaterialTheme.typography.bodySmall,
             color = DfColors.TextMuted,
         )
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CrmContactChannels.builtinChannels.forEach { channel ->
                 val active = channel.key in activeChannels
-                Surface(
-                    onClick = { onToggleChannel(channel.key, !active) },
-                    enabled = enabled && (channel.usesPhone.not() || phone.isNotBlank()),
-                    shape = AppShapes.Chip,
-                    color = if (active) channel.accent.copy(alpha = 0.14f) else DfThemeColors.surfaceVariant(),
-                    border = BorderStroke(
-                        1.dp,
-                        if (active) channel.accent.copy(alpha = 0.5f) else DfThemeColors.outlineSubtle(),
-                    ),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = channel.icon,
-                            contentDescription = null,
-                            tint = if (active) channel.accent else DfThemeColors.textMuted(),
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            text = channel.label,
-                            style = AppTypography.labelSmall,
-                            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                            color = if (active) channel.accent else DfThemeColors.textSecondary(),
-                        )
-                        if (active) {
-                            Icon(
-                                imageVector = DfIcons.Check,
-                                contentDescription = null,
-                                tint = channel.accent,
-                                modifier = Modifier.size(14.dp),
-                            )
-                        }
-                    }
-                }
+                ContactChannelToggleRow(
+                    label = channel.label,
+                    icon = channel.icon,
+                    accent = channel.accent,
+                    checked = active,
+                    enabled = enabled && (!channel.usesPhone || phoneReady),
+                    hint = if (channel.usesPhone) "از شماره موبایل" else null,
+                    onCheckedChange = { onToggleChannel(channel.key, it) },
+                )
             }
         }
-        if (phone.isBlank()) {
+        if (!phoneReady) {
             Text(
                 text = "شماره موبایل را وارد کنید تا واتساپ، پیامک و تماس فعال شوند.",
                 style = MaterialTheme.typography.bodySmall,
@@ -444,7 +415,7 @@ fun ContactChannelsFormSection(
 
     DfSheetSection(title = "شبکه‌های اجتماعی") {
         Text(
-            text = "شبکه‌هایی که مخاطب در آن‌ها فعال است",
+            text = "برای تلگرام، بله و… از شماره موبایل استفاده می‌شود؛ اینستاگرام نیاز به آیدی دارد.",
             style = MaterialTheme.typography.bodySmall,
             color = DfColors.TextMuted,
         )
@@ -452,6 +423,7 @@ fun ContactChannelsFormSection(
             CrmContactChannels.socialNetworks.forEach { network ->
                 val active = network.key in activeChannels
                 val linkValue = socialLinks[network.key].orEmpty()
+                val usesPhone = CrmContactChannels.usesPhoneForSocialHandle(network.key)
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.Card,
@@ -490,8 +462,13 @@ fun ContactChannelsFormSection(
                             }
                             Switch(
                                 checked = active,
-                                onCheckedChange = { onToggleChannel(network.key, it) },
-                                enabled = enabled,
+                                onCheckedChange = {
+                                    onToggleChannel(network.key, it)
+                                    if (it && usesPhone && normalizedPhone.isNotBlank() && linkValue.isBlank()) {
+                                        onSocialLinkChange(network.key, normalizedPhone)
+                                    }
+                                },
+                                enabled = enabled && (!usesPhone || phoneReady || CrmContactChannels.requiresManualSocialHandle(network.key)),
                             )
                         }
                         AnimatedVisibility(
@@ -499,19 +476,103 @@ fun ContactChannelsFormSection(
                             enter = expandVertically(),
                             exit = shrinkVertically(),
                         ) {
-                            OutlinedTextField(
-                                value = linkValue,
-                                onValueChange = { onSocialLinkChange(network.key, it) },
-                                label = { Text("شناسه ${network.label}") },
-                                placeholder = { Text(network.placeholder) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                enabled = enabled,
-                            )
+                            if (CrmContactChannels.requiresManualSocialHandle(network.key)) {
+                                OutlinedTextField(
+                                    value = linkValue,
+                                    onValueChange = { onSocialLinkChange(network.key, it) },
+                                    label = { Text("آیدی ${network.label}") },
+                                    placeholder = { Text(network.placeholder) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    enabled = enabled,
+                                )
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        text = if (normalizedPhone.isNotBlank()) {
+                                            "شناسه: $normalizedPhone"
+                                        } else {
+                                            "پس از وارد کردن موبایل، شناسه خودکار ساخته می‌شود."
+                                        },
+                                        style = AppTypography.bodyDescription,
+                                        color = DfThemeColors.textSecondary(),
+                                    )
+                                    OutlinedTextField(
+                                        value = linkValue,
+                                        onValueChange = { onSocialLinkChange(network.key, it) },
+                                        label = { Text("شناسه سفارشی (اختیاری)") },
+                                        placeholder = { Text(network.placeholder) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        enabled = enabled && normalizedPhone.isNotBlank(),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ContactChannelToggleRow(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accent: androidx.compose.ui.graphics.Color,
+    checked: Boolean,
+    enabled: Boolean,
+    hint: String?,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = if (checked) accent.copy(alpha = 0.08f) else DfThemeColors.surfaceVariant(),
+        border = BorderStroke(
+            1.dp,
+            if (checked) accent.copy(alpha = 0.35f) else DfThemeColors.outlineSubtle(),
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (checked) accent else DfThemeColors.textMuted(),
+                    modifier = Modifier.size(18.dp),
+                )
+                Column {
+                    Text(
+                        text = label,
+                        style = AppTypography.labelLarge,
+                        fontWeight = if (checked) FontWeight.SemiBold else FontWeight.Medium,
+                    )
+                    hint?.let {
+                        Text(
+                            text = it,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                        )
+                    }
+                }
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled,
+            )
         }
     }
 }

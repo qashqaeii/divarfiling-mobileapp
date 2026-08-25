@@ -126,6 +126,9 @@ interface MobileApi {
         @Query("tag") tag: String? = null,
     ): ApiEnvelope
 
+    @GET("crm/neighborhoods")
+    suspend fun getCrmNeighborhoods(): ApiEnvelope
+
     @GET("crm/contacts/{id}")
     suspend fun getContact(@Path("id") contactId: Long): ApiEnvelope
 
@@ -349,6 +352,13 @@ interface MobileApi {
     suspend fun deletePropertyDocument(
         @Path("id") propertyId: Long,
         @Path("documentId") documentId: Long,
+    ): ApiEnvelope
+
+    @Multipart
+    @POST("crm/properties/{id}/images")
+    suspend fun uploadPropertyImage(
+        @Path("id") propertyId: Long,
+        @Part image: okhttp3.MultipartBody.Part,
     ): ApiEnvelope
 
     @GET("filing/datasets")

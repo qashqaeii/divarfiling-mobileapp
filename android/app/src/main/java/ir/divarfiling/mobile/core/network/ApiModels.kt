@@ -149,6 +149,12 @@ data class PasswordCompleteRequest(
 )
 
 @Serializable
+data class ShopPlanFeatureDto(
+    val text: String,
+    val icon: String = "fa-check",
+)
+
+@Serializable
 data class ShopPlanDto(
     val id: Long,
     val name: String,
@@ -156,7 +162,7 @@ data class ShopPlanDto(
     @SerialName("duration_days") val durationDays: Int? = null,
     @SerialName("duration_label") val durationLabel: String? = null,
     val tagline: String? = null,
-    val features: List<String> = emptyList(),
+    val features: List<ShopPlanFeatureDto> = emptyList(),
     @SerialName("original_price") val originalPrice: Long? = null,
     @SerialName("final_price") val finalPrice: Long? = null,
     @SerialName("discount_amount") val discountAmount: Long? = null,
@@ -377,6 +383,11 @@ data class QuickLeadRequest(
     @SerialName("full_name") val fullName: String,
     val phone: String,
     val source: String = "موبایل",
+)
+
+@Serializable
+data class CrmNeighborhoodsData(
+    val neighborhoods: List<String> = emptyList(),
 )
 
 @Serializable
@@ -873,6 +884,12 @@ data class PropertyCreateRequest(
     @SerialName("owner_name") val ownerName: String = "",
     val notes: String = "",
     @SerialName("feature_data") val featureData: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class PropertyImageUploadData(
+    val url: String = "",
+    val images: List<String> = emptyList(),
 )
 
 @Serializable

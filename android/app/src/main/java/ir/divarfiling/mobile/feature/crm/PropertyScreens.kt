@@ -365,7 +365,9 @@ fun PropertiesScreen(
                 mode = PropertyFormMode.Create,
                 form = state.createForm,
                 isSubmitting = state.isSubmittingCreate,
+                isUploadingImages = state.isUploadingImages,
                 onFormChange = viewModel::onCreateFormReplace,
+                onGalleryImagesSelected = viewModel::onCreateGalleryImagesSelected,
                 onSubmit = viewModel::submitCreate,
                 onDismiss = { viewModel.toggleCreate(false) },
             )
@@ -547,7 +549,9 @@ fun PropertyDetailScreen(
                 mode = PropertyFormMode.Edit,
                 form = state.editForm,
                 isSubmitting = state.isSubmitting,
+                isUploadingImages = state.isUploadingImages,
                 onFormChange = viewModel::onEditFormReplace,
+                onGalleryImagesSelected = viewModel::onEditGalleryImagesSelected,
                 onSubmit = viewModel::saveEdit,
                 onDismiss = { viewModel.requestDismissEdit() },
             )

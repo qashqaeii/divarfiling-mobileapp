@@ -25,6 +25,7 @@ import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
 import ir.divarfiling.mobile.core.network.PropertyStatusRequest
 import ir.divarfiling.mobile.core.network.PropertyUpdateRequest
+import ir.divarfiling.mobile.core.network.PropertyImageUploadData
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
@@ -171,6 +172,29 @@ class DealsRepository @Inject constructor(
                 note = note.toRequestBody("text/plain".toMediaType()),
             )
             if (!response.ok) ApiResult.Error(response.error ?: "آپلود ناموفق")
+            else ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun uploadPropertyImage(propertyId: Long, uri: Uri): ApiResult<PropertyImageUploadData> {
+        return try {
+            val resolver = context.contentResolver
+            val mime = resolver.getType(uri) ?: "image/jpeg"
+            val fileName = resolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+            } ?: "image.jpg"
+            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: return ApiResult.Error("خواندن تصویر ناموفق")
+            val part = MultipartBody.Part.createFormData(
+                "image",
+                fileName,
+                bytes.toRequestBody(mime.toMediaType()),
+            )
+            val response = api.uploadPropertyImage(propertyId = propertyId, image = part)
+            if (!response.ok) ApiResult.Error(response.error ?: "آپلود تصویر ناموفق")
             else ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")

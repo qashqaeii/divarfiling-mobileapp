@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.crm
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -599,6 +600,7 @@ data class PropertiesUiState(
     val showCreateDialog: Boolean = false,
     val createForm: PropertyFormState = PropertyFormState(),
     val isSubmittingCreate: Boolean = false,
+    val isUploadingImages: Boolean = false,
     val isExporting: Boolean = false,
     val showExportSheet: Boolean = false,
     val showSaveFilterDialog: Boolean = false,
@@ -1142,6 +1144,20 @@ class PropertiesViewModel @Inject constructor(
 
     fun onCreateFormReplace(form: PropertyFormState) = _uiState.update { it.copy(createForm = form) }
 
+    fun onCreateGalleryImagesSelected(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        _uiState.update { state ->
+            val form = state.createForm
+            val remaining = 12 - form.images.size - form.pendingImageUris.size
+            if (remaining <= 0) return@update state
+            state.copy(
+                createForm = form.copy(
+                    pendingImageUris = form.pendingImageUris + uris.take(remaining).map { it.toString() },
+                ),
+            )
+        }
+    }
+
     fun submitCreate() {
         val form = _uiState.value.createForm
         if (form.title.trim().isBlank()) {
@@ -1152,6 +1168,15 @@ class PropertiesViewModel @Inject constructor(
             _uiState.update { it.copy(isSubmittingCreate = true, error = null) }
             when (val result = repository.createProperty(PropertyFormMappers.toCreateRequest(form))) {
                 is ApiResult.Success -> {
+                    val pending = form.pendingImageUris
+                    if (pending.isNotEmpty()) {
+                        _uiState.update { it.copy(isUploadingImages = true) }
+                        val uploadError = uploadPendingPropertyImages(result.data.id, pending)
+                        _uiState.update { it.copy(isUploadingImages = false) }
+                        if (uploadError != null) {
+                            _uiState.update { it.copy(error = uploadError) }
+                        }
+                    }
                     toggleCreate(false)
                     _uiState.update { it.copy(isSubmittingCreate = false) }
                     load()
@@ -1161,6 +1186,17 @@ class PropertiesViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private suspend fun uploadPendingPropertyImages(propertyId: Long, uris: List<String>): String? {
+        var lastError: String? = null
+        for (uriStr in uris) {
+            when (val result = repository.uploadPropertyImage(propertyId, Uri.parse(uriStr))) {
+                is ApiResult.Success -> Unit
+                is ApiResult.Error -> lastError = result.message
+            }
+        }
+        return lastError
     }
 
     fun createFromListing(
@@ -1242,6 +1278,7 @@ data class PropertyDetailUiState(
     val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
     val isSubmitting: Boolean = false,
+    val isUploadingImages: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
     val showEditSheet: Boolean = false,
@@ -1444,6 +1481,30 @@ class PropertyDetailViewModel @Inject constructor(
         _uiState.update { it.copy(editForm = transform(it.editForm)) }
 
     fun onEditFormReplace(form: PropertyFormState) = _uiState.update { it.copy(editForm = form) }
+
+    fun onEditGalleryImagesSelected(uris: List<Uri>) {
+        if (uris.isEmpty() || propertyId <= 0) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUploadingImages = true, error = null) }
+            var images = _uiState.value.editForm.images.toMutableList()
+            var lastError: String? = null
+            val remaining = 12 - images.size
+            for (uri in uris.take(remaining.coerceAtLeast(0))) {
+                when (val result = repository.uploadPropertyImage(propertyId, uri)) {
+                    is ApiResult.Success -> images = result.data.images.toMutableList()
+                    is ApiResult.Error -> lastError = result.message
+                }
+            }
+            _uiState.update {
+                it.copy(
+                    isUploadingImages = false,
+                    editForm = it.editForm.copy(images = images),
+                    error = lastError,
+                    successMessage = if (lastError == null && uris.isNotEmpty()) "تصاویر آپلود شد" else it.successMessage,
+                )
+            }
+        }
+    }
 
     fun toggleDeleteDialog(show: Boolean) = _uiState.update { it.copy(showDeleteDialog = show) }
     fun toggleShareSheet(show: Boolean) = _uiState.update { it.copy(showShareSheet = show) }

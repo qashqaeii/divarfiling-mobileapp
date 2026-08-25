@@ -572,6 +572,7 @@ fun ContactsScreen(
                 matchingTolerancePercent = state.leadMatchingTolerance,
                 activeChannels = state.leadActiveChannels,
                 socialLinks = state.leadSocialLinks,
+                catalogNeighborhoods = state.leadDatasetNeighborhoods,
                 isSubmitting = state.isSubmitting,
                 onNameChange = viewModel::onLeadNameChange,
                 onPhoneChange = viewModel::onLeadPhoneChange,

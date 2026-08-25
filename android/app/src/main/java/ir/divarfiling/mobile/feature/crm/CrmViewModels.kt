@@ -59,6 +59,7 @@ data class ContactsUiState(
     val leadMatchingTolerance: Int = 20,
     val leadActiveChannels: Set<String> = emptySet(),
     val leadSocialLinks: Map<String, String> = emptyMap(),
+    val leadDatasetNeighborhoods: List<String> = emptyList(),
     val isExporting: Boolean = false,
     val showExportSheet: Boolean = false,
     val exportMessage: String? = null,
@@ -289,10 +290,29 @@ class ContactsViewModel @Inject constructor(
                 emptySet()
             },
             leadSocialLinks = if (show) it.leadSocialLinks else emptyMap(),
-        )
+        ).also { if (show) loadLeadNeighborhoods() }
+    }
+
+    private fun loadLeadNeighborhoods() {
+        if (_uiState.value.leadDatasetNeighborhoods.isNotEmpty()) return
+        viewModelScope.launch {
+            when (val result = crmRepository.getNeighborhoods()) {
+                is ApiResult.Success -> _uiState.update { it.copy(leadDatasetNeighborhoods = result.data) }
+                is ApiResult.Error -> Unit
+            }
+        }
     }
     fun onLeadNameChange(v: String) = _uiState.update { it.copy(leadName = v) }
-    fun onLeadPhoneChange(v: String) = _uiState.update { it.copy(leadPhone = v) }
+    fun onLeadPhoneChange(v: String) = _uiState.update { state ->
+        state.copy(
+            leadPhone = v,
+            leadSocialLinks = CrmContactChannels.syncPhoneDerivedSocialLinks(
+                activeChannels = state.leadActiveChannels,
+                phone = v,
+                currentLinks = state.leadSocialLinks,
+            ),
+        )
+    }
     fun onLeadCustomerTypeChange(v: String) = _uiState.update { it.copy(leadCustomerType = v) }
     fun onLeadSourceChange(v: String) = _uiState.update {
         it.copy(
@@ -349,7 +369,13 @@ class ContactsViewModel @Inject constructor(
     fun onLeadToggleChannel(key: String, active: Boolean) = _uiState.update { state ->
         val next = state.leadActiveChannels.toMutableSet()
         if (active) next.add(key) else next.remove(key)
-        state.copy(leadActiveChannels = next)
+        val nextLinks = state.leadSocialLinks.toMutableMap()
+        if (active) {
+            CrmContactChannels.autoSocialHandle(key, state.leadPhone)?.let { nextLinks[key] = it }
+        } else if (CrmContactChannels.usesPhoneForSocialHandle(key)) {
+            nextLinks.remove(key)
+        }
+        state.copy(leadActiveChannels = next, leadSocialLinks = nextLinks)
     }
 
     fun onLeadSocialLinkChange(key: String, value: String) = _uiState.update { state ->
@@ -431,6 +457,7 @@ class ContactsViewModel @Inject constructor(
             leadMatchingTolerance = 20,
             leadActiveChannels = emptySet(),
             leadSocialLinks = emptyMap(),
+            leadDatasetNeighborhoods = it.leadDatasetNeighborhoods,
             isSubmitting = false,
         )
     }
