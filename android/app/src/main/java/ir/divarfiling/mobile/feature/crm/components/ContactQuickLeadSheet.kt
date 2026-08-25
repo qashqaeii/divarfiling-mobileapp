@@ -1,29 +1,17 @@
 package ir.divarfiling.mobile.feature.crm.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDropdown
@@ -35,7 +23,7 @@ import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.feature.crm.ContactTypeVisuals
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactQuickLeadSheet(
     name: String,
@@ -50,6 +38,12 @@ fun ContactQuickLeadSheet(
     companyName: String = "",
     nationalId: String = "",
     leaseDeadline: String = "",
+    money: ContactEditMoneyState = ContactEditMoneyState(),
+    prefs: ContactEditPrefsState = ContactEditPrefsState(),
+    builder: ContactEditBuilderState = ContactEditBuilderState(),
+    matchingTolerancePercent: Int = 20,
+    activeChannels: Set<String> = emptySet(),
+    socialLinks: Map<String, String> = emptyMap(),
     isSubmitting: Boolean,
     onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
@@ -63,20 +57,48 @@ fun ContactQuickLeadSheet(
     onCompanyNameChange: (String) -> Unit = {},
     onNationalIdChange: (String) -> Unit = {},
     onLeaseDeadlineChange: (String) -> Unit = {},
+    onBudgetMinChange: (String) -> Unit = {},
+    onBudgetMaxChange: (String) -> Unit = {},
+    onDepositMinChange: (String) -> Unit = {},
+    onDepositMaxChange: (String) -> Unit = {},
+    onRentMinChange: (String) -> Unit = {},
+    onRentMaxChange: (String) -> Unit = {},
+    onPropertyTypeChange: (String) -> Unit = {},
+    onRoomsChange: (String) -> Unit = {},
+    onRoomsMinChange: (String) -> Unit = {},
+    onRoomsMaxChange: (String) -> Unit = {},
+    onMinAreaChange: (String) -> Unit = {},
+    onMaxAreaChange: (String) -> Unit = {},
+    onAreasChange: (String) -> Unit = {},
+    onYearMinChange: (String) -> Unit = {},
+    onYearMaxChange: (String) -> Unit = {},
+    onFloorMinChange: (String) -> Unit = {},
+    onFloorMaxChange: (String) -> Unit = {},
+    onWantParkingChange: (Boolean) -> Unit = {},
+    onWantStorageChange: (Boolean) -> Unit = {},
+    onWantElevatorChange: (Boolean) -> Unit = {},
+    onBuilderBuyBudgetMinChange: (String) -> Unit = {},
+    onBuilderBuyBudgetMaxChange: (String) -> Unit = {},
+    onBuilderBuyMinAreaChange: (String) -> Unit = {},
+    onBuilderBuyMaxAreaChange: (String) -> Unit = {},
+    onBuilderBuyAreasChange: (String) -> Unit = {},
+    onBuilderBuyTypesChange: (String) -> Unit = {},
+    onMatchingToleranceChange: (Int) -> Unit = {},
+    onToggleChannel: (String, Boolean) -> Unit = { _, _ -> },
+    onSocialLinkChange: (String, String) -> Unit = { _, _ -> },
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val selectedType = customerType.ifBlank { "سرنخ" }
     val typeVisual = ContactTypeVisuals.visualFor(selectedType)
-    val extraTypes = CrmConstants.CUSTOMER_TYPES.filterNot { it in ContactTypeVisuals.primaryTypes }
 
     DfSheetScaffold(
         title = "مخاطب جدید",
-        subtitle = "اطلاعات کامل مخاطب",
+        subtitle = "ثبت کامل مخاطب با نقش، مالی، ترجیحات و کانال پیام",
         icon = typeVisual.icon,
         iconContainerColor = typeVisual.container,
         iconTint = typeVisual.accent,
-        bodyHeightFraction = 0.74f,
+        bodyHeightFraction = 0.92f,
         onClose = onDismiss,
         footer = {
             DfSheetActions(
@@ -88,56 +110,11 @@ fun ContactQuickLeadSheet(
             )
         },
     ) {
-        DfSheetSection(title = "نوع مخاطب") {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                ContactTypeVisuals.primaryTypes.forEach { type ->
-                    val visual = ContactTypeVisuals.visualFor(type)
-                    val selected = selectedType == type
-                    Surface(
-                        onClick = { onCustomerTypeChange(type) },
-                        enabled = !isSubmitting,
-                        shape = AppShapes.Chip,
-                        color = if (selected) visual.container else DfThemeColors.surfaceVariant(),
-                        border = BorderStroke(
-                            1.dp,
-                            if (selected) visual.accent.copy(alpha = 0.4f) else DfThemeColors.outlineSubtle(),
-                        ),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = visual.icon,
-                                contentDescription = null,
-                                tint = if (selected) visual.accent else DfThemeColors.textMuted(),
-                                modifier = Modifier.size(15.dp),
-                            )
-                            Text(
-                                text = type,
-                                style = AppTypography.labelSmall,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selected) visual.accent else DfThemeColors.textSecondary(),
-                            )
-                        }
-                    }
-                }
-            }
-            if (extraTypes.isNotEmpty()) {
-                DfDropdown(
-                    label = "سایر نقش‌ها",
-                    value = if (selectedType in extraTypes) selectedType else "انتخاب کنید",
-                    options = extraTypes,
-                    enabled = !isSubmitting,
-                    onSelect = onCustomerTypeChange,
-                )
-            }
-        }
+        ContactTypeSelectorSection(
+            selectedType = selectedType,
+            enabled = !isSubmitting,
+            onTypeChange = onCustomerTypeChange,
+        )
 
         DfSheetSection(title = "اطلاعات تماس") {
             OutlinedTextField(
@@ -185,7 +162,7 @@ fun ContactQuickLeadSheet(
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
                 OutlinedTextField(
                     value = city,
@@ -247,11 +224,62 @@ fun ContactQuickLeadSheet(
             }
         }
 
+        ContactMoneyFormSection(
+            customerType = selectedType,
+            money = money,
+            builder = builder,
+            enabled = !isSubmitting,
+            onBudgetMinChange = onBudgetMinChange,
+            onBudgetMaxChange = onBudgetMaxChange,
+            onDepositMinChange = onDepositMinChange,
+            onDepositMaxChange = onDepositMaxChange,
+            onRentMinChange = onRentMinChange,
+            onRentMaxChange = onRentMaxChange,
+            onBuilderBuyBudgetMinChange = onBuilderBuyBudgetMinChange,
+            onBuilderBuyBudgetMaxChange = onBuilderBuyBudgetMaxChange,
+            onBuilderBuyMinAreaChange = onBuilderBuyMinAreaChange,
+            onBuilderBuyMaxAreaChange = onBuilderBuyMaxAreaChange,
+            onBuilderBuyAreasChange = onBuilderBuyAreasChange,
+            onBuilderBuyTypesChange = onBuilderBuyTypesChange,
+        )
+
+        ContactPropertyPrefsFormSection(
+            customerType = selectedType,
+            prefs = prefs,
+            matchingTolerancePercent = matchingTolerancePercent,
+            enabled = !isSubmitting,
+            onPropertyTypeChange = onPropertyTypeChange,
+            onRoomsChange = onRoomsChange,
+            onRoomsMinChange = onRoomsMinChange,
+            onRoomsMaxChange = onRoomsMaxChange,
+            onMinAreaChange = onMinAreaChange,
+            onMaxAreaChange = onMaxAreaChange,
+            onAreasChange = onAreasChange,
+            onYearMinChange = onYearMinChange,
+            onYearMaxChange = onYearMaxChange,
+            onFloorMinChange = onFloorMinChange,
+            onFloorMaxChange = onFloorMaxChange,
+            onWantParkingChange = onWantParkingChange,
+            onWantStorageChange = onWantStorageChange,
+            onWantElevatorChange = onWantElevatorChange,
+            onMatchingToleranceChange = onMatchingToleranceChange,
+        )
+
+        ContactChannelsFormSection(
+            phone = phone,
+            activeChannels = activeChannels,
+            socialLinks = socialLinks,
+            enabled = !isSubmitting,
+            onToggleChannel = onToggleChannel,
+            onSocialLinkChange = onSocialLinkChange,
+        )
+
         DfSheetSection(title = "یادداشت اولیه") {
             OutlinedTextField(
                 value = notes,
                 onValueChange = onNotesChange,
                 label = { Text("توضیح کوتاه برای پیگیری") },
+                placeholder = { Text("اختیاری") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,

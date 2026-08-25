@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.export.ExportShareHelper
+import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.TodayData
 import ir.divarfiling.mobile.core.datastore.SessionStore
@@ -21,6 +22,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
+import ir.divarfiling.mobile.feature.crm.components.ContactEditBuilderState
+import ir.divarfiling.mobile.feature.crm.components.ContactEditMoneyState
+import ir.divarfiling.mobile.feature.crm.components.ContactEditPrefsState
 import javax.inject.Inject
 
 data class ContactsUiState(
@@ -49,6 +53,12 @@ data class ContactsUiState(
     val leadCompanyName: String = "",
     val leadNationalId: String = "",
     val leadLeaseDeadline: String = "",
+    val leadMoney: ContactEditMoneyState = ContactEditMoneyState(),
+    val leadPrefs: ContactEditPrefsState = ContactEditPrefsState(),
+    val leadBuilder: ContactEditBuilderState = ContactEditBuilderState(),
+    val leadMatchingTolerance: Int = 20,
+    val leadActiveChannels: Set<String> = emptySet(),
+    val leadSocialLinks: Map<String, String> = emptyMap(),
     val isExporting: Boolean = false,
     val showExportSheet: Boolean = false,
     val exportMessage: String? = null,
@@ -247,16 +257,18 @@ class ContactsViewModel @Inject constructor(
 
     fun toggleQuickLead(show: Boolean, customerType: String? = null) = _uiState.update {
         val defaultType = initialCustomerType ?: "سرنخ"
+        val resolvedType = when {
+            !show -> defaultType
+            !customerType.isNullOrBlank() -> customerType
+            else -> it.leadCustomerType.ifBlank { defaultType }
+        }
+        val resolvedSource = if (show) it.leadSource.ifBlank { "موبایل" } else "موبایل"
         it.copy(
             showQuickLead = show,
             leadName = if (show) it.leadName else "",
             leadPhone = if (show) it.leadPhone else "",
-            leadCustomerType = when {
-                !show -> defaultType
-                !customerType.isNullOrBlank() -> customerType
-                else -> it.leadCustomerType.ifBlank { defaultType }
-            },
-            leadSource = if (show) it.leadSource.ifBlank { "موبایل" } else "موبایل",
+            leadCustomerType = resolvedType,
+            leadSource = resolvedSource,
             leadNotes = if (show) it.leadNotes else "",
             leadEmail = if (show) it.leadEmail else "",
             leadCity = if (show) it.leadCity else "",
@@ -265,12 +277,29 @@ class ContactsViewModel @Inject constructor(
             leadCompanyName = if (show) it.leadCompanyName else "",
             leadNationalId = if (show) it.leadNationalId else "",
             leadLeaseDeadline = if (show) it.leadLeaseDeadline else "",
+            leadMoney = if (show) it.leadMoney else ContactEditMoneyState(),
+            leadPrefs = if (show) it.leadPrefs else ContactEditPrefsState(),
+            leadBuilder = if (show) it.leadBuilder else ContactEditBuilderState(),
+            leadMatchingTolerance = if (show) it.leadMatchingTolerance else 20,
+            leadActiveChannels = if (show) {
+                it.leadActiveChannels.ifEmpty {
+                    CrmContactChannels.defaultActiveChannelsForSource(resolvedSource)
+                }
+            } else {
+                emptySet()
+            },
+            leadSocialLinks = if (show) it.leadSocialLinks else emptyMap(),
         )
     }
     fun onLeadNameChange(v: String) = _uiState.update { it.copy(leadName = v) }
     fun onLeadPhoneChange(v: String) = _uiState.update { it.copy(leadPhone = v) }
     fun onLeadCustomerTypeChange(v: String) = _uiState.update { it.copy(leadCustomerType = v) }
-    fun onLeadSourceChange(v: String) = _uiState.update { it.copy(leadSource = v) }
+    fun onLeadSourceChange(v: String) = _uiState.update {
+        it.copy(
+            leadSource = v,
+            leadActiveChannels = CrmContactChannels.defaultActiveChannelsForSource(v),
+        )
+    }
     fun onLeadNotesChange(v: String) = _uiState.update { it.copy(leadNotes = v) }
     fun onLeadEmailChange(v: String) = _uiState.update { it.copy(leadEmail = v) }
     fun onLeadCityChange(v: String) = _uiState.update { it.copy(leadCity = v) }
@@ -279,6 +308,132 @@ class ContactsViewModel @Inject constructor(
     fun onLeadCompanyNameChange(v: String) = _uiState.update { it.copy(leadCompanyName = v) }
     fun onLeadNationalIdChange(v: String) = _uiState.update { it.copy(leadNationalId = v) }
     fun onLeadLeaseDeadlineChange(v: String) = _uiState.update { it.copy(leadLeaseDeadline = v) }
+
+    fun onLeadBudgetMinChange(v: String) = _uiState.update { it.copy(leadMoney = it.leadMoney.copy(budgetMin = v)) }
+    fun onLeadBudgetMaxChange(v: String) = _uiState.update { it.copy(leadMoney = it.leadMoney.copy(budgetMax = v)) }
+    fun onLeadDepositMinChange(v: String) = _uiState.update { it.copy(leadMoney = it.leadMoney.copy(depositMin = v)) }
+    fun onLeadDepositMaxChange(v: String) = _uiState.update { it.copy(leadMoney = it.leadMoney.copy(depositMax = v)) }
+    fun onLeadRentMinChange(v: String) = _uiState.update { it.copy(leadMoney = it.leadMoney.copy(rentMin = v)) }
+    fun onLeadRentMaxChange(v: String) = _uiState.update { it.copy(leadMoney = it.leadMoney.copy(rentMax = v)) }
+
+    fun onLeadPropertyTypeChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(propertyType = v)) }
+    fun onLeadRoomsChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(rooms = v)) }
+    fun onLeadRoomsMinChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(roomsMin = v)) }
+    fun onLeadRoomsMaxChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(roomsMax = v)) }
+    fun onLeadMinAreaChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(minArea = v)) }
+    fun onLeadMaxAreaChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(maxArea = v)) }
+    fun onLeadAreasChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(areas = v)) }
+    fun onLeadYearMinChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(yearMin = v)) }
+    fun onLeadYearMaxChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(yearMax = v)) }
+    fun onLeadFloorMinChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(floorMin = v)) }
+    fun onLeadFloorMaxChange(v: String) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(floorMax = v)) }
+    fun onLeadWantParkingChange(v: Boolean) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(wantParking = v)) }
+    fun onLeadWantStorageChange(v: Boolean) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(wantStorage = v)) }
+    fun onLeadWantElevatorChange(v: Boolean) = _uiState.update { it.copy(leadPrefs = it.leadPrefs.copy(wantElevator = v)) }
+
+    fun onLeadBuilderBuyBudgetMinChange(v: String) =
+        _uiState.update { it.copy(leadBuilder = it.leadBuilder.copy(buyBudgetMin = v)) }
+    fun onLeadBuilderBuyBudgetMaxChange(v: String) =
+        _uiState.update { it.copy(leadBuilder = it.leadBuilder.copy(buyBudgetMax = v)) }
+    fun onLeadBuilderBuyMinAreaChange(v: String) =
+        _uiState.update { it.copy(leadBuilder = it.leadBuilder.copy(buyMinArea = v)) }
+    fun onLeadBuilderBuyMaxAreaChange(v: String) =
+        _uiState.update { it.copy(leadBuilder = it.leadBuilder.copy(buyMaxArea = v)) }
+    fun onLeadBuilderBuyAreasChange(v: String) =
+        _uiState.update { it.copy(leadBuilder = it.leadBuilder.copy(buyAreas = v)) }
+    fun onLeadBuilderBuyTypesChange(v: String) =
+        _uiState.update { it.copy(leadBuilder = it.leadBuilder.copy(buyPropertyTypes = v)) }
+
+    fun onLeadMatchingToleranceChange(v: Int) = _uiState.update { it.copy(leadMatchingTolerance = v) }
+
+    fun onLeadToggleChannel(key: String, active: Boolean) = _uiState.update { state ->
+        val next = state.leadActiveChannels.toMutableSet()
+        if (active) next.add(key) else next.remove(key)
+        state.copy(leadActiveChannels = next)
+    }
+
+    fun onLeadSocialLinkChange(key: String, value: String) = _uiState.update { state ->
+        val next = state.leadSocialLinks.toMutableMap()
+        if (value.isBlank()) next.remove(key) else next[key] = value
+        state.copy(leadSocialLinks = next)
+    }
+
+    private fun parseMoneyInput(raw: String): Long? = FormatUtils.parseLocalizedLong(raw)
+
+    private fun buildLeadUpdateRequest(state: ContactsUiState): ContactUpdateRequest {
+        val money = state.leadMoney
+        val prefs = state.leadPrefs
+        val builder = state.leadBuilder
+        val type = state.leadCustomerType.ifBlank { initialCustomerType ?: "سرنخ" }
+        val socialLinks = state.leadSocialLinks.filterValues { it.isNotBlank() }
+        return ContactUpdateRequest(
+            customerType = type,
+            source = state.leadSource.ifBlank { "موبایل" },
+            notes = state.leadNotes.trim().ifBlank { null },
+            email = state.leadEmail.trim(),
+            city = state.leadCity.trim().ifBlank { prefs.city.trim() },
+            district = state.leadDistrict.trim().ifBlank { prefs.district.trim() },
+            job = state.leadJob.trim(),
+            companyName = state.leadCompanyName.trim(),
+            nationalId = state.leadNationalId.trim(),
+            leaseDeadline = state.leadLeaseDeadline.trim(),
+            budgetMin = parseMoneyInput(money.budgetMin),
+            budgetMax = parseMoneyInput(money.budgetMax),
+            depositMin = parseMoneyInput(money.depositMin),
+            depositMax = parseMoneyInput(money.depositMax),
+            rentMin = parseMoneyInput(money.rentMin),
+            rentMax = parseMoneyInput(money.rentMax),
+            propertyType = prefs.propertyType.ifBlank { if (type == "سازنده") "آپارتمان" else "" },
+            rooms = prefs.rooms,
+            minArea = parseMoneyInput(prefs.minArea)?.toInt(),
+            maxArea = parseMoneyInput(prefs.maxArea)?.toInt(),
+            areas = prefs.areas,
+            builderBuyBudgetMin = parseMoneyInput(builder.buyBudgetMin),
+            builderBuyBudgetMax = parseMoneyInput(builder.buyBudgetMax),
+            builderBuyMinArea = parseMoneyInput(builder.buyMinArea)?.toInt(),
+            builderBuyMaxArea = parseMoneyInput(builder.buyMaxArea)?.toInt(),
+            builderBuyAreas = builder.buyAreas,
+            builderBuyPropertyTypes = builder.buyPropertyTypes,
+            roomsMin = parseMoneyInput(prefs.roomsMin)?.toInt(),
+            roomsMax = parseMoneyInput(prefs.roomsMax)?.toInt(),
+            yearMin = parseMoneyInput(prefs.yearMin)?.toInt(),
+            yearMax = parseMoneyInput(prefs.yearMax)?.toInt(),
+            floorMin = parseMoneyInput(prefs.floorMin)?.toInt(),
+            floorMax = parseMoneyInput(prefs.floorMax)?.toInt(),
+            wantParking = prefs.wantParking,
+            wantStorage = prefs.wantStorage,
+            wantElevator = prefs.wantElevator,
+            matchingTolerancePercent = state.leadMatchingTolerance,
+            socialLinks = socialLinks.ifEmpty { null },
+            activeChannels = state.leadActiveChannels.filter { it in CrmContactChannels.allKeys }.toList()
+                .ifEmpty { null },
+        )
+    }
+
+    private fun resetLeadForm(defaultType: String) = _uiState.update {
+        it.copy(
+            showQuickLead = false,
+            leadName = "",
+            leadPhone = "",
+            leadCustomerType = defaultType,
+            leadSource = "موبایل",
+            leadNotes = "",
+            leadEmail = "",
+            leadCity = "",
+            leadDistrict = "",
+            leadJob = "",
+            leadCompanyName = "",
+            leadNationalId = "",
+            leadLeaseDeadline = "",
+            leadMoney = ContactEditMoneyState(),
+            leadPrefs = ContactEditPrefsState(),
+            leadBuilder = ContactEditBuilderState(),
+            leadMatchingTolerance = 20,
+            leadActiveChannels = emptySet(),
+            leadSocialLinks = emptyMap(),
+            isSubmitting = false,
+        )
+    }
 
     fun submitQuickLead() {
         val state = _uiState.value
@@ -290,58 +445,12 @@ class ContactsViewModel @Inject constructor(
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             when (val result = crmRepository.quickLead(state.leadName, state.leadPhone)) {
                 is ApiResult.Success -> {
-                    val created = result.data
                     val defaultType = initialCustomerType ?: "سرنخ"
-                    val type = state.leadCustomerType.ifBlank { defaultType }
-                    val source = state.leadSource.ifBlank { "موبایل" }
-                    val notes = state.leadNotes.trim()
-                    val email = state.leadEmail.trim()
-                    val city = state.leadCity.trim()
-                    val district = state.leadDistrict.trim()
-                    val job = state.leadJob.trim()
-                    val companyName = state.leadCompanyName.trim()
-                    val nationalId = state.leadNationalId.trim()
-                    val leaseDeadline = state.leadLeaseDeadline.trim()
-                    if (
-                        type.isNotBlank() || source.isNotBlank() || notes.isNotBlank() ||
-                        email.isNotBlank() || city.isNotBlank() || district.isNotBlank() ||
-                        job.isNotBlank() || companyName.isNotBlank() || nationalId.isNotBlank() ||
-                        leaseDeadline.isNotBlank()
-                    ) {
-                        crmRepository.updateContact(
-                            created.id,
-                            ContactUpdateRequest(
-                                customerType = type.takeIf { it.isNotBlank() },
-                                source = source.takeIf { it.isNotBlank() },
-                                notes = notes.takeIf { it.isNotBlank() },
-                                email = email,
-                                city = city,
-                                district = district,
-                                job = job,
-                                companyName = companyName,
-                                nationalId = nationalId,
-                                leaseDeadline = leaseDeadline,
-                            ),
-                        )
-                    }
-                    _uiState.update {
-                        it.copy(
-                            showQuickLead = false,
-                            leadName = "",
-                            leadPhone = "",
-                            leadCustomerType = defaultType,
-                            leadSource = "موبایل",
-                            leadNotes = "",
-                            leadEmail = "",
-                            leadCity = "",
-                            leadDistrict = "",
-                            leadJob = "",
-                            leadCompanyName = "",
-                            leadNationalId = "",
-                            leadLeaseDeadline = "",
-                            isSubmitting = false,
-                        )
-                    }
+                    crmRepository.updateContact(
+                        result.data.id,
+                        buildLeadUpdateRequest(state),
+                    )
+                    resetLeadForm(defaultType)
                     refresh()
                 }
                 is ApiResult.Error -> _uiState.update {

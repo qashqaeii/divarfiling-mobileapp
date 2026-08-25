@@ -1,11 +1,15 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -16,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -177,16 +182,30 @@ fun ZonkanFolderCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.widthIn(min = 128.dp, max = 160.dp),
-        shape = AppShapes.CardSmall,
-        color = if (selected) color.copy(alpha = 0.1f) else DfColors.SurfaceVariant.copy(alpha = 0.65f),
-        border = BorderStroke(
-            width = if (selected) 1.5.dp else 1.dp,
-            color = if (selected) color.copy(alpha = 0.6f) else DfColors.OutlineSubtle,
-        ),
+    val shape = AppShapes.CardSmall
+    Box(
+        modifier = modifier
+            .widthIn(min = 128.dp, max = 160.dp)
+            .zonkanFolderGlassSurface(color = color, selected = selected, shape = shape)
+            .clickable(onClick = onClick),
     ) {
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                color.copy(alpha = 0.15f),
+                                color.copy(alpha = 0.88f),
+                                color.copy(alpha = 0.15f),
+                            ),
+                        ),
+                    ),
+            )
+        }
         Column(
             modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -214,15 +233,16 @@ fun ZonkanFolderCard(
             Text(
                 text = name,
                 style = AppTypography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                color = DfColors.TextPrimary,
+                color = if (selected) color.copy(alpha = 0.92f) else DfColors.TextPrimary,
             )
             Text(
                 text = "$count فایل",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = if (selected) color.copy(alpha = 0.72f) else DfColors.TextMuted,
+                fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
             )
         }
     }
@@ -230,12 +250,13 @@ fun ZonkanFolderCard(
 
 @Composable
 private fun ZonkanEmptyCreateCard(onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.widthIn(min = 128.dp, max = 160.dp),
-        shape = AppShapes.CardSmall,
-        color = DfColors.PurpleContainer.copy(alpha = 0.25f),
-        border = BorderStroke(1.dp, DfColors.Purple.copy(alpha = 0.35f)),
+    val accent = DfColors.Purple
+    val shape = AppShapes.CardSmall
+    Box(
+        modifier = Modifier
+            .widthIn(min = 128.dp, max = 160.dp)
+            .zonkanFolderGlassSurface(color = accent, selected = true, shape = shape)
+            .clickable(onClick = onClick),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
@@ -243,20 +264,20 @@ private fun ZonkanEmptyCreateCard(onClick: () -> Unit) {
         ) {
             PropertyFolderIconBadge(
                 faIcon = "fa-folder-open",
-                color = DfColors.Purple,
+                color = accent,
                 size = 34.dp,
                 iconSize = 16.dp,
             )
             Text(
                 text = "اولین زونکن",
                 style = AppTypography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = DfColors.Purple,
+                fontWeight = FontWeight.Bold,
+                color = accent,
             )
             Text(
                 text = "برای مجتمع، پروژه یا محله",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = accent.copy(alpha = 0.72f),
             )
         }
     }

@@ -529,8 +529,14 @@ fun ContactsScreen(
             add(DfMoreAction("فروشنده", { viewModel.toggleQuickLead(true, "فروشنده") }, DfIcons.Tag))
             add(DfMoreAction("مالک", { viewModel.toggleQuickLead(true, "مالک") }, DfIcons.KeyRound))
             add(DfMoreAction("مستاجر", { viewModel.toggleQuickLead(true, "مستاجر") }, DfIcons.Bed))
+            add(DfMoreAction("موجر", { viewModel.toggleQuickLead(true, "موجر") }, DfIcons.Home))
             add(DfMoreAction("سازنده", { viewModel.toggleQuickLead(true, "سازنده") }, DfIcons.Building))
             add(DfMoreAction("سرمایه‌گذار", { viewModel.toggleQuickLead(true, "سرمایه‌گذار") }, DfIcons.Coins))
+            add(DfMoreAction("سرنخ", { viewModel.toggleQuickLead(true, "سرنخ") }, DfIcons.Sparkles))
+            add(DfMoreAction("متقاضی خرید", { viewModel.toggleQuickLead(true, "متقاضی خرید") }, DfIcons.Handshake))
+            add(DfMoreAction("متقاضی اجاره", { viewModel.toggleQuickLead(true, "متقاضی اجاره") }, DfIcons.Bed))
+            add(DfMoreAction("فروشنده ملک", { viewModel.toggleQuickLead(true, "فروشنده ملک") }, DfIcons.Tag))
+            add(DfMoreAction("اشخاص حقوقی", { viewModel.toggleQuickLead(true, "اشخاص حقوقی") }, DfIcons.Briefcase))
             add(
                 DfMoreAction(
                     label = "ورود گروهی از فایل",
@@ -560,6 +566,12 @@ fun ContactsScreen(
                 companyName = state.leadCompanyName,
                 nationalId = state.leadNationalId,
                 leaseDeadline = state.leadLeaseDeadline,
+                money = state.leadMoney,
+                prefs = state.leadPrefs,
+                builder = state.leadBuilder,
+                matchingTolerancePercent = state.leadMatchingTolerance,
+                activeChannels = state.leadActiveChannels,
+                socialLinks = state.leadSocialLinks,
                 isSubmitting = state.isSubmitting,
                 onNameChange = viewModel::onLeadNameChange,
                 onPhoneChange = viewModel::onLeadPhoneChange,
@@ -573,6 +585,35 @@ fun ContactsScreen(
                 onCompanyNameChange = viewModel::onLeadCompanyNameChange,
                 onNationalIdChange = viewModel::onLeadNationalIdChange,
                 onLeaseDeadlineChange = viewModel::onLeadLeaseDeadlineChange,
+                onBudgetMinChange = viewModel::onLeadBudgetMinChange,
+                onBudgetMaxChange = viewModel::onLeadBudgetMaxChange,
+                onDepositMinChange = viewModel::onLeadDepositMinChange,
+                onDepositMaxChange = viewModel::onLeadDepositMaxChange,
+                onRentMinChange = viewModel::onLeadRentMinChange,
+                onRentMaxChange = viewModel::onLeadRentMaxChange,
+                onPropertyTypeChange = viewModel::onLeadPropertyTypeChange,
+                onRoomsChange = viewModel::onLeadRoomsChange,
+                onRoomsMinChange = viewModel::onLeadRoomsMinChange,
+                onRoomsMaxChange = viewModel::onLeadRoomsMaxChange,
+                onMinAreaChange = viewModel::onLeadMinAreaChange,
+                onMaxAreaChange = viewModel::onLeadMaxAreaChange,
+                onAreasChange = viewModel::onLeadAreasChange,
+                onYearMinChange = viewModel::onLeadYearMinChange,
+                onYearMaxChange = viewModel::onLeadYearMaxChange,
+                onFloorMinChange = viewModel::onLeadFloorMinChange,
+                onFloorMaxChange = viewModel::onLeadFloorMaxChange,
+                onWantParkingChange = viewModel::onLeadWantParkingChange,
+                onWantStorageChange = viewModel::onLeadWantStorageChange,
+                onWantElevatorChange = viewModel::onLeadWantElevatorChange,
+                onBuilderBuyBudgetMinChange = viewModel::onLeadBuilderBuyBudgetMinChange,
+                onBuilderBuyBudgetMaxChange = viewModel::onLeadBuilderBuyBudgetMaxChange,
+                onBuilderBuyMinAreaChange = viewModel::onLeadBuilderBuyMinAreaChange,
+                onBuilderBuyMaxAreaChange = viewModel::onLeadBuilderBuyMaxAreaChange,
+                onBuilderBuyAreasChange = viewModel::onLeadBuilderBuyAreasChange,
+                onBuilderBuyTypesChange = viewModel::onLeadBuilderBuyTypesChange,
+                onMatchingToleranceChange = viewModel::onLeadMatchingToleranceChange,
+                onToggleChannel = viewModel::onLeadToggleChannel,
+                onSocialLinkChange = viewModel::onLeadSocialLinkChange,
                 onSubmit = viewModel::submitQuickLead,
                 onDismiss = { viewModel.toggleQuickLead(false) },
             )

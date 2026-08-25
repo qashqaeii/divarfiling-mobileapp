@@ -66,8 +66,8 @@ import ir.divarfiling.mobile.feature.crm.components.PropertiesSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.PropertiesStatsRow
 import ir.divarfiling.mobile.feature.crm.components.PropertyContactMatchesSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyDetailTabbedContent
-import ir.divarfiling.mobile.feature.crm.components.PropertyEditSheet
-import ir.divarfiling.mobile.feature.crm.components.PropertyCreateSheet
+import ir.divarfiling.mobile.feature.crm.components.PropertyFormMode
+import ir.divarfiling.mobile.feature.crm.components.PropertyFormSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyLinkContactSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFilters
 import ir.divarfiling.mobile.feature.crm.components.PropertyFolderFormSheet
@@ -361,28 +361,11 @@ fun PropertiesScreen(
 
     if (state.showCreateDialog) {
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleCreate(false) }) {
-            PropertyCreateSheet(
-                title = state.createTitle,
-                city = state.createCity,
-                district = state.createDistrict,
-                dealMode = state.createDealMode,
-                propertyType = state.createPropertyType,
-                area = state.createArea,
-                salePrice = state.createPrice,
-                deposit = state.createDeposit,
-                rent = state.createRent,
-                notes = state.createNotes,
+            PropertyFormSheet(
+                mode = PropertyFormMode.Create,
+                form = state.createForm,
                 isSubmitting = state.isSubmittingCreate,
-                onTitleChange = viewModel::onCreateTitleChange,
-                onCityChange = viewModel::onCreateCityChange,
-                onDistrictChange = viewModel::onCreateDistrictChange,
-                onDealModeChange = viewModel::onCreateDealModeChange,
-                onPropertyTypeChange = viewModel::onCreatePropertyTypeChange,
-                onAreaChange = viewModel::onCreateAreaChange,
-                onSalePriceChange = viewModel::onCreatePriceChange,
-                onDepositChange = viewModel::onCreateDepositChange,
-                onRentChange = viewModel::onCreateRentChange,
-                onNotesChange = viewModel::onCreateNotesChange,
+                onFormChange = viewModel::onCreateFormReplace,
                 onSubmit = viewModel::submitCreate,
                 onDismiss = { viewModel.toggleCreate(false) },
             )
@@ -560,60 +543,11 @@ fun PropertyDetailScreen(
 
     if (state.showEditSheet) {
         DfModalBottomSheet(onDismissRequest = { viewModel.requestDismissEdit() }) {
-            PropertyEditSheet(
-                title = state.editTitle,
-                city = state.editCity,
-                district = state.editDistrict,
-                neighborhood = state.editNeighborhood,
-                dealMode = state.editDealMode,
-                propertyType = state.editPropertyType,
-                transactionStatus = state.editTransactionStatus,
-                area = state.editArea,
-                rooms = state.editRooms,
-                salePrice = state.editPrice,
-                deposit = state.editDeposit,
-                rent = state.editRent,
-                address = state.editAddress,
-                notes = state.editNotes,
+            PropertyFormSheet(
+                mode = PropertyFormMode.Edit,
+                form = state.editForm,
                 isSubmitting = state.isSubmitting,
-                floor = state.editFloor,
-                buildYear = state.editBuildYear,
-                amenities = state.editAmenities,
-                hasParking = state.editHasParking,
-                hasStorage = state.editHasStorage,
-                hasElevator = state.editHasElevator,
-                isVacant = state.editIsVacant,
-                tenantName = state.editTenantName,
-                tenantPhone = state.editTenantPhone,
-                vacancyDate = state.editVacancyDate,
-                ownerName = state.editOwnerName,
-                ownerPhone = state.editOwnerPhone,
-                onTitleChange = viewModel::onEditTitleChange,
-                onCityChange = viewModel::onEditCityChange,
-                onDistrictChange = viewModel::onEditDistrictChange,
-                onNeighborhoodChange = viewModel::onEditNeighborhoodChange,
-                onDealModeChange = viewModel::onEditDealModeChange,
-                onPropertyTypeChange = viewModel::onEditPropertyTypeChange,
-                onTransactionStatusChange = viewModel::onEditTransactionStatusChange,
-                onAreaChange = viewModel::onEditAreaChange,
-                onRoomsChange = viewModel::onEditRoomsChange,
-                onSalePriceChange = viewModel::onEditPriceChange,
-                onDepositChange = viewModel::onEditDepositChange,
-                onRentChange = viewModel::onEditRentChange,
-                onAddressChange = viewModel::onEditAddressChange,
-                onNotesChange = viewModel::onEditNotesChange,
-                onFloorChange = viewModel::onEditFloorChange,
-                onBuildYearChange = viewModel::onEditBuildYearChange,
-                onAmenitiesChange = viewModel::onEditAmenitiesChange,
-                onParkingChange = viewModel::onEditParkingChange,
-                onStorageChange = viewModel::onEditStorageChange,
-                onElevatorChange = viewModel::onEditElevatorChange,
-                onVacantChange = viewModel::onEditVacantChange,
-                onTenantNameChange = viewModel::onEditTenantNameChange,
-                onTenantPhoneChange = viewModel::onEditTenantPhoneChange,
-                onVacancyDateChange = viewModel::onEditVacancyDateChange,
-                onOwnerNameChange = viewModel::onEditOwnerNameChange,
-                onOwnerPhoneChange = viewModel::onEditOwnerPhoneChange,
+                onFormChange = viewModel::onEditFormReplace,
                 onSubmit = viewModel::saveEdit,
                 onDismiss = { viewModel.requestDismissEdit() },
             )

@@ -597,16 +597,7 @@ data class PropertiesUiState(
     val hasMore: Boolean = false,
     val error: String? = null,
     val showCreateDialog: Boolean = false,
-    val createTitle: String = "",
-    val createCity: String = "",
-    val createDistrict: String = "",
-    val createDealMode: String = PropertyConstants.DEAL_MODES.first(),
-    val createPropertyType: String = PropertyConstants.PROPERTY_TYPES.first(),
-    val createPrice: String = "",
-    val createDeposit: String = "",
-    val createRent: String = "",
-    val createArea: String = "",
-    val createNotes: String = "",
+    val createForm: PropertyFormState = PropertyFormState(),
     val isSubmittingCreate: Boolean = false,
     val isExporting: Boolean = false,
     val showExportSheet: Boolean = false,
@@ -637,6 +628,8 @@ object PropertyConstants {
     val DEAL_MODES = listOf("فروش", "رهن و اجاره", "اجاره", "پیش‌فروش")
     val PROPERTY_TYPES = listOf("آپارتمان", "ویلا", "کلنگی", "اداری", "مغازه", "زمین", "سایر")
     val TX_STATUSES = listOf("فعال", "در مذاکره", "قرارداد", "فروخته‌شده", "اجاره‌رفته", "بایگانی")
+    val PUBLISH_STATUSES = listOf("پیش‌نویس", "منتشرشده", "مخفی", "بایگانی")
+    val BUSINESS_TYPES = listOf("شخصی", "مشاور املاک", "بنگاه")
 }
 
 object PropertyFolderConstants {
@@ -1139,56 +1132,25 @@ class PropertiesViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 showCreateDialog = show,
-                createTitle = if (!show) "" else it.createTitle,
-                createCity = if (!show) "" else it.createCity,
-                createDistrict = if (!show) "" else it.createDistrict,
-                createPrice = if (!show) "" else it.createPrice,
-                createDeposit = if (!show) "" else it.createDeposit,
-                createRent = if (!show) "" else it.createRent,
-                createArea = if (!show) "" else it.createArea,
-                createNotes = if (!show) "" else it.createNotes,
-                createDealMode = if (!show) PropertyConstants.DEAL_MODES.first() else it.createDealMode,
-                createPropertyType = if (!show) PropertyConstants.PROPERTY_TYPES.first() else it.createPropertyType,
+                createForm = if (!show) PropertyFormState() else it.createForm,
             )
         }
     }
-    fun onCreateTitleChange(v: String) = _uiState.update { it.copy(createTitle = v) }
-    fun onCreateCityChange(v: String) = _uiState.update { it.copy(createCity = v) }
-    fun onCreateDistrictChange(v: String) = _uiState.update { it.copy(createDistrict = v) }
-    fun onCreateDealModeChange(v: String) = _uiState.update { it.copy(createDealMode = v) }
-    fun onCreatePropertyTypeChange(v: String) = _uiState.update { it.copy(createPropertyType = v) }
-    fun onCreatePriceChange(v: String) = _uiState.update { it.copy(createPrice = v) }
-    fun onCreateDepositChange(v: String) = _uiState.update { it.copy(createDeposit = v) }
-    fun onCreateRentChange(v: String) = _uiState.update { it.copy(createRent = v) }
-    fun onCreateAreaChange(v: String) = _uiState.update { it.copy(createArea = v) }
-    fun onCreateNotesChange(v: String) = _uiState.update { it.copy(createNotes = v) }
+
+    fun onCreateFormChange(transform: (PropertyFormState) -> PropertyFormState) =
+        _uiState.update { state -> state.copy(createForm = transform(state.createForm)) }
+
+    fun onCreateFormReplace(form: PropertyFormState) = _uiState.update { it.copy(createForm = form) }
 
     fun submitCreate() {
-        val title = _uiState.value.createTitle.trim()
-        if (title.isBlank()) {
+        val form = _uiState.value.createForm
+        if (form.title.trim().isBlank()) {
             _uiState.update { it.copy(error = "عنوان ملک الزامی است") }
             return
         }
-        val state = _uiState.value
-        val isRent = state.createDealMode.contains("اجاره") || state.createDealMode.contains("رهن")
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingCreate = true, error = null) }
-            when (
-                val result = repository.createProperty(
-                    PropertyCreateRequest(
-                        title = title,
-                        dealMode = state.createDealMode,
-                        propertyType = state.createPropertyType,
-                        city = state.createCity.trim(),
-                        district = state.createDistrict.trim(),
-                        salePrice = if (!isRent) state.createPrice.trim().toLongOrNull() else null,
-                        deposit = if (isRent) state.createDeposit.trim().toLongOrNull() else null,
-                        rent = if (isRent) state.createRent.trim().toLongOrNull() else null,
-                        area = state.createArea.trim().toDoubleOrNull(),
-                        notes = state.createNotes.trim(),
-                    ),
-                )
-            ) {
+            when (val result = repository.createProperty(PropertyFormMappers.toCreateRequest(form))) {
                 is ApiResult.Success -> {
                     toggleCreate(false)
                     _uiState.update { it.copy(isSubmittingCreate = false) }
@@ -1290,32 +1252,8 @@ data class PropertyDetailUiState(
     val linkContactName: String = "",
     val linkContactPhone: String = "",
     val linkContactRole: String = "مالک",
-    val editTitle: String = "",
-    val editCity: String = "",
-    val editDistrict: String = "",
-    val editNeighborhood: String = "",
-    val editDealMode: String = PropertyConstants.DEAL_MODES.first(),
-    val editPropertyType: String = PropertyConstants.PROPERTY_TYPES.first(),
-    val editTransactionStatus: String = CrmConstants.PROPERTY_TX_STATUSES.first(),
-    val editArea: String = "",
-    val editRooms: String = "",
-    val editPrice: String = "",
-    val editDeposit: String = "",
-    val editRent: String = "",
-    val editAddress: String = "",
-    val editNotes: String = "",
-    val editFloor: String = "",
-    val editBuildYear: String = "",
-    val editAmenities: String = "",
-    val editHasParking: Boolean = false,
-    val editHasStorage: Boolean = false,
-    val editHasElevator: Boolean = false,
-    val editIsVacant: Boolean = false,
-    val editTenantName: String = "",
-    val editTenantPhone: String = "",
-    val editVacancyDate: String = "",
-    val editOwnerName: String = "",
-    val editOwnerPhone: String = "",
+    val editForm: PropertyFormState = PropertyFormState(),
+    val editFormBaseline: PropertyFormState = PropertyFormState(),
     val showDiscardEditDialog: Boolean = false,
     val inlineNotes: String = "",
     val showShareSheet: Boolean = false,
@@ -1371,38 +1309,15 @@ class PropertyDetailViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val p = result.data.property
                     val publicShare = result.data.publicShare
+                    val form = PropertyFormState.fromProperty(p)
                     _uiState.update {
                         it.copy(
                             detail = result.data,
                             isLoading = false,
                             isRefreshing = false,
                             inlineNotes = p.notes.orEmpty(),
-                            editTitle = p.title,
-                            editCity = p.city.orEmpty(),
-                            editDistrict = p.district.orEmpty(),
-                            editNeighborhood = p.neighborhood.orEmpty(),
-                            editDealMode = p.dealMode ?: PropertyConstants.DEAL_MODES.first(),
-                            editPropertyType = p.propertyType ?: PropertyConstants.PROPERTY_TYPES.first(),
-                            editTransactionStatus = p.transactionStatus ?: CrmConstants.PROPERTY_TX_STATUSES.first(),
-                            editArea = p.area?.let { v -> if (v % 1.0 == 0.0) v.toInt().toString() else v.toString() }.orEmpty(),
-                            editRooms = p.rooms.orEmpty(),
-                            editPrice = p.salePrice?.toString().orEmpty(),
-                            editDeposit = p.deposit?.toString().orEmpty(),
-                            editRent = p.rent?.toString().orEmpty(),
-                            editAddress = p.address.orEmpty(),
-                            editNotes = p.notes.orEmpty(),
-                            editFloor = p.floor?.toString().orEmpty(),
-                            editBuildYear = p.buildYear?.toString().orEmpty(),
-                            editAmenities = p.amenities.orEmpty(),
-                            editHasParking = p.hasParking,
-                            editHasStorage = p.hasStorage,
-                            editHasElevator = p.hasElevator,
-                            editIsVacant = p.isVacant,
-                            editTenantName = p.tenantName.orEmpty(),
-                            editTenantPhone = p.tenantPhone.orEmpty(),
-                            editVacancyDate = p.vacancyDate.orEmpty(),
-                            editOwnerName = p.ownerName.orEmpty(),
-                            editOwnerPhone = p.phone.orEmpty(),
+                            editForm = form,
+                            editFormBaseline = form,
                             shareConsultantName = publicShare?.consultantName.orEmpty(),
                             shareConsultantPhone = publicShare?.consultantPhone.orEmpty(),
                             shareWelcomeMessage = publicShare?.welcomeMessage.orEmpty(),
@@ -1466,41 +1381,8 @@ class PropertyDetailViewModel @Inject constructor(
         if (_uiState.value.isSubmitting) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            val state = _uiState.value
-            val isRent = state.editDealMode.contains("اجاره") || state.editDealMode.contains("رهن")
-            when (
-                val result = repository.updateProperty(
-                    propertyId,
-                    PropertyUpdateRequest(
-                        title = state.editTitle.trim(),
-                        dealMode = state.editDealMode,
-                        transactionStatus = state.editTransactionStatus,
-                        propertyType = state.editPropertyType,
-                        city = state.editCity.trim(),
-                        district = state.editDistrict.trim(),
-                        neighborhood = state.editNeighborhood.trim(),
-                        area = state.editArea.trim().toDoubleOrNull(),
-                        rooms = state.editRooms.trim(),
-                        salePrice = if (isRent) null else state.editPrice.trim().toLongOrNull(),
-                        deposit = if (isRent) state.editDeposit.trim().toLongOrNull() else null,
-                        rent = if (isRent) state.editRent.trim().toLongOrNull() else null,
-                        address = state.editAddress.trim(),
-                        notes = state.editNotes,
-                        floor = state.editFloor.trim().toIntOrNull(),
-                        buildYear = state.editBuildYear.trim().toIntOrNull(),
-                        amenities = state.editAmenities,
-                        hasParking = state.editHasParking,
-                        hasStorage = state.editHasStorage,
-                        hasElevator = state.editHasElevator,
-                        isVacant = state.editIsVacant,
-                        tenantName = state.editTenantName.trim(),
-                        tenantPhone = state.editTenantPhone.trim(),
-                        vacancyDate = state.editVacancyDate.trim(),
-                        ownerName = state.editOwnerName.trim(),
-                        ownerPhone = state.editOwnerPhone.trim(),
-                    ),
-                )
-            ) {
+            val form = _uiState.value.editForm
+            when (val result = repository.updateProperty(propertyId, PropertyFormMappers.toUpdateRequest(form))) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(isSubmitting = false, showEditSheet = false, successMessage = "ذخیره شد")
@@ -1555,36 +1437,13 @@ class PropertyDetailViewModel @Inject constructor(
         load()
     }
 
-    private fun isPropertyEditDirty(state: PropertyDetailUiState): Boolean {
-        val p = state.detail?.property ?: return false
-        val area = p.area?.let { v -> if (v % 1.0 == 0.0) v.toInt().toString() else v.toString() }.orEmpty()
-        return state.editTitle != p.title ||
-            state.editCity != p.city.orEmpty() ||
-            state.editDistrict != p.district.orEmpty() ||
-            state.editNeighborhood != p.neighborhood.orEmpty() ||
-            state.editDealMode != (p.dealMode ?: PropertyConstants.DEAL_MODES.first()) ||
-            state.editPropertyType != (p.propertyType ?: PropertyConstants.PROPERTY_TYPES.first()) ||
-            state.editTransactionStatus != (p.transactionStatus ?: CrmConstants.PROPERTY_TX_STATUSES.first()) ||
-            state.editArea != area ||
-            state.editRooms != p.rooms.orEmpty() ||
-            state.editPrice != p.salePrice?.toString().orEmpty() ||
-            state.editDeposit != p.deposit?.toString().orEmpty() ||
-            state.editRent != p.rent?.toString().orEmpty() ||
-            state.editAddress != p.address.orEmpty() ||
-            state.editNotes != p.notes.orEmpty() ||
-            state.editFloor != p.floor?.toString().orEmpty() ||
-            state.editBuildYear != p.buildYear?.toString().orEmpty() ||
-            state.editAmenities != p.amenities.orEmpty() ||
-            state.editHasParking != p.hasParking ||
-            state.editHasStorage != p.hasStorage ||
-            state.editHasElevator != p.hasElevator ||
-            state.editIsVacant != p.isVacant ||
-            state.editTenantName != p.tenantName.orEmpty() ||
-            state.editTenantPhone != p.tenantPhone.orEmpty() ||
-            state.editVacancyDate != p.vacancyDate.orEmpty() ||
-            state.editOwnerName != p.ownerName.orEmpty() ||
-            state.editOwnerPhone != p.phone.orEmpty()
-    }
+    private fun isPropertyEditDirty(state: PropertyDetailUiState): Boolean =
+        state.editForm != state.editFormBaseline
+
+    fun onEditFormChange(transform: (PropertyFormState) -> PropertyFormState) =
+        _uiState.update { it.copy(editForm = transform(it.editForm)) }
+
+    fun onEditFormReplace(form: PropertyFormState) = _uiState.update { it.copy(editForm = form) }
 
     fun toggleDeleteDialog(show: Boolean) = _uiState.update { it.copy(showDeleteDialog = show) }
     fun toggleShareSheet(show: Boolean) = _uiState.update { it.copy(showShareSheet = show) }
@@ -1835,38 +1694,6 @@ class PropertyDetailViewModel @Inject constructor(
         }
     }
 
-    fun onEditTitleChange(v: String) = _uiState.update { it.copy(editTitle = v) }
-    fun onEditCityChange(v: String) = _uiState.update { it.copy(editCity = v) }
-    fun onEditDistrictChange(v: String) = _uiState.update { it.copy(editDistrict = v) }
-    fun onEditNeighborhoodChange(v: String) = _uiState.update { it.copy(editNeighborhood = v) }
-    fun onEditDealModeChange(v: String) = _uiState.update { it.copy(editDealMode = v) }
-    fun onEditPropertyTypeChange(v: String) = _uiState.update { it.copy(editPropertyType = v) }
-    fun onEditTransactionStatusChange(v: String) = _uiState.update { it.copy(editTransactionStatus = v) }
-    fun onEditAreaChange(v: String) = _uiState.update { it.copy(editArea = v) }
-    fun onEditRoomsChange(v: String) = _uiState.update { it.copy(editRooms = v) }
-    fun onEditPriceChange(v: String) = _uiState.update { it.copy(editPrice = v) }
-    fun onEditDepositChange(v: String) = _uiState.update { it.copy(editDeposit = v) }
-    fun onEditRentChange(v: String) = _uiState.update { it.copy(editRent = v) }
-    fun onEditAddressChange(v: String) = _uiState.update { it.copy(editAddress = v) }
-    fun onEditNotesChange(v: String) = _uiState.update { it.copy(editNotes = v) }
-    fun onEditFloorChange(v: String) = _uiState.update { it.copy(editFloor = v) }
-    fun onEditBuildYearChange(v: String) = _uiState.update { it.copy(editBuildYear = v) }
-    fun onEditAmenitiesChange(v: String) = _uiState.update { it.copy(editAmenities = v) }
-    fun onEditParkingChange(v: Boolean) = _uiState.update { it.copy(editHasParking = v) }
-    fun onEditStorageChange(v: Boolean) = _uiState.update { it.copy(editHasStorage = v) }
-    fun onEditElevatorChange(v: Boolean) = _uiState.update { it.copy(editHasElevator = v) }
-    fun onEditVacantChange(v: Boolean) = _uiState.update {
-        it.copy(
-            editIsVacant = v,
-            editTenantName = if (v) "" else it.editTenantName,
-            editTenantPhone = if (v) "" else it.editTenantPhone,
-        )
-    }
-    fun onEditTenantNameChange(v: String) = _uiState.update { it.copy(editTenantName = v) }
-    fun onEditTenantPhoneChange(v: String) = _uiState.update { it.copy(editTenantPhone = v) }
-    fun onEditVacancyDateChange(v: String) = _uiState.update { it.copy(editVacancyDate = v) }
-    fun onEditOwnerNameChange(v: String) = _uiState.update { it.copy(editOwnerName = v) }
-    fun onEditOwnerPhoneChange(v: String) = _uiState.update { it.copy(editOwnerPhone = PhoneNormalizer.normalize(v)) }
     fun dismissContactSuggestionResult() = _uiState.update { it.copy(contactSuggestionResult = null) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 }

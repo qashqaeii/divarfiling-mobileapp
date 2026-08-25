@@ -102,4 +102,5 @@ object DfIcons {
     val Pin: ImageVector = LucideIcons.Pin
     val Lightbulb: ImageVector = LucideIcons.Lightbulb
     val EllipsisVertical: ImageVector = LucideIcons.EllipsisVertical
+    val Send: ImageVector = LucideIcons.Send
 }
