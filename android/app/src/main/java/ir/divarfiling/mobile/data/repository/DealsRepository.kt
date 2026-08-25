@@ -24,7 +24,9 @@ import ir.divarfiling.mobile.core.network.NearbyPoisPayloadDto
 import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
+import ir.divarfiling.mobile.core.network.PropertyLocationRequest
 import ir.divarfiling.mobile.core.network.PropertyLocationUpdateData
+import ir.divarfiling.mobile.core.network.PropertyNearbyPoisRequest
 import ir.divarfiling.mobile.core.network.PropertyStatusRequest
 import ir.divarfiling.mobile.core.network.PropertyUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyImageUploadData

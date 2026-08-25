@@ -199,6 +199,11 @@ data class ShopPlanDto(
     @SerialName("has_discount") val hasDiscount: Boolean = false,
     @SerialName("is_featured") val isFeatured: Boolean = false,
     @SerialName("offer_badge") val offerBadge: String? = null,
+    @SerialName("allow_bulk_purchase") val allowBulkPurchase: Boolean = false,
+    @SerialName("min_quantity") val minQuantity: Int = 1,
+    @SerialName("max_quantity") val maxQuantity: Int = 1,
+    @SerialName("unit_original_price") val unitOriginalPrice: Long? = null,
+    @SerialName("unit_final_price") val unitFinalPrice: Long? = null,
     @SerialName("purchase_blocked") val purchaseBlocked: Boolean = false,
     @SerialName("purchase_block_message") val purchaseBlockMessage: String? = null,
     @SerialName("purchase_block_reason") val purchaseBlockReason: String? = null,
@@ -226,18 +231,23 @@ data class ShopCheckoutRequest(
     @SerialName("plan_id") val planId: Long,
     @SerialName("renew_license_id") val renewLicenseId: Long? = null,
     @SerialName("discount_code") val discountCode: String? = null,
+    val quantity: Int = 1,
 )
 
 @Serializable
 data class ShopDiscountPreviewRequest(
     @SerialName("plan_id") val planId: Long,
     @SerialName("discount_code") val discountCode: String,
+    val quantity: Int = 1,
 )
 
 @Serializable
 data class ShopDiscountPreviewData(
     @SerialName("plan_id") val planId: Long? = null,
+    val quantity: Int = 1,
     val code: String? = null,
+    @SerialName("unit_original_price") val unitOriginalPrice: Long? = null,
+    @SerialName("unit_final_price") val unitFinalPrice: Long? = null,
     @SerialName("original_price") val originalPrice: Long? = null,
     @SerialName("base_final_price") val baseFinalPrice: Long? = null,
     @SerialName("discount_amount") val discountAmount: Long? = null,
@@ -251,6 +261,7 @@ data class ShopCheckoutData(
     @SerialName("order_id") val orderId: String,
     val status: String? = null,
     val amount: Long? = null,
+    val quantity: Int = 1,
     @SerialName("plan_name") val planName: String? = null,
     @SerialName("pay_url") val payUrl: String? = null,
     val reused: Boolean = false,

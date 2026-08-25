@@ -34,9 +34,14 @@ class ShopRepository @Inject constructor(
         ApiResult.Error(failure.message, failure.code)
     }
 
-    suspend fun checkout(planId: Long, renewLicenseId: Long?, discountCode: String? = null): ApiResult<ShopCheckoutData> = try {
+    suspend fun checkout(
+        planId: Long,
+        renewLicenseId: Long?,
+        discountCode: String? = null,
+        quantity: Int = 1,
+    ): ApiResult<ShopCheckoutData> = try {
         val response = api.shopCheckout(
-            ShopCheckoutRequest(planId, renewLicenseId, discountCode?.trim()?.ifBlank { null }),
+            ShopCheckoutRequest(planId, renewLicenseId, discountCode?.trim()?.ifBlank { null }, quantity),
         )
         if (!response.ok) ApiResult.Error(
             ir.divarfiling.mobile.core.network.mapApiError(response.code, response.error, null, "شروع خرید ناموفق بود"),
@@ -52,8 +57,8 @@ class ShopRepository @Inject constructor(
         ApiResult.Error(failure.message, failure.code)
     }
 
-    suspend fun previewDiscount(planId: Long, code: String): ApiResult<ShopDiscountPreviewData> = try {
-        val response = api.shopDiscountPreview(ShopDiscountPreviewRequest(planId, code.trim().uppercase()))
+    suspend fun previewDiscount(planId: Long, code: String, quantity: Int = 1): ApiResult<ShopDiscountPreviewData> = try {
+        val response = api.shopDiscountPreview(ShopDiscountPreviewRequest(planId, code.trim().uppercase(), quantity))
         if (!response.ok) ApiResult.Error(
             ir.divarfiling.mobile.core.network.mapApiError(response.code, response.error, null, "اعمال کد تخفیف ناموفق بود"),
             response.code,

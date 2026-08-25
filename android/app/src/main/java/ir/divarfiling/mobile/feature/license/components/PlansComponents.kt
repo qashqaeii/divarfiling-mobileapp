@@ -13,8 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,10 +37,15 @@ import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.ShopPlanDto
+import ir.divarfiling.mobile.feature.license.isAgencyPlan
+import ir.divarfiling.mobile.feature.license.totalFinalPrice
+import ir.divarfiling.mobile.feature.license.unitFinalPrice
+import ir.divarfiling.mobile.feature.license.unitOriginalPrice
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -50,9 +56,9 @@ fun LicenseStatusHero(
 ) {
     val isActive = license.valid
     val gradient = if (isActive) {
-        Brush.linearGradient(listOf(DfColors.Purple.copy(alpha = 0.92f), DfColors.Blue.copy(alpha = 0.85f)))
+        Brush.linearGradient(listOf(DfColors.Purple.copy(alpha = 0.94f), DfColors.Blue.copy(alpha = 0.88f)))
     } else {
-        Brush.linearGradient(listOf(DfColors.Rose.copy(alpha = 0.85f), DfColors.Amber.copy(alpha = 0.75f)))
+        Brush.linearGradient(listOf(DfColors.Rose.copy(alpha = 0.88f), DfColors.Amber.copy(alpha = 0.78f)))
     }
     val statusLabel = when {
         isActive && license.expiringSoon -> "فعال — نزدیک انقضا"
@@ -162,6 +168,296 @@ fun LicenseStatusHero(
 }
 
 @Composable
+fun PlansSectionHeader(
+    title: String,
+    subtitle: String,
+    badge: String? = null,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = AppTypography.sectionTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            badge?.let {
+                PlanBadge(text = it, color = DfColors.Purple, bg = DfColors.PurpleLight.copy(alpha = 0.35f))
+            }
+        }
+        Text(
+            text = subtitle,
+            style = AppTypography.bodyDescription,
+            color = DfThemeColors.textSecondary(),
+        )
+    }
+}
+
+@Composable
+fun AgencyPricingInfoBanner(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfColors.PurpleLight.copy(alpha = 0.22f),
+        border = BorderStroke(1.dp, DfColors.Purple.copy(alpha = 0.18f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(AppSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(DfColors.Purple.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(DfIcons.Users, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(18.dp))
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "قیمت پلن آژانس — به ازای هر مشاور",
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.textPrimary(),
+                )
+                Text(
+                    "مبلغ نمایش‌داده‌شده برای یک لایسنس است. تعداد مشاوران را انتخاب کنید تا مبلغ نهایی محاسبه شود.",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LicenseQuantityStepper(
+    quantity: Int,
+    minQuantity: Int,
+    maxQuantity: Int,
+    unitPrice: Long,
+    onQuantityChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val persianQty = DateUtils.toPersianDigits(quantity.toString())
+    val total = unitPrice * quantity
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.5.dp, DfColors.Purple.copy(alpha = 0.22f)),
+        shadowElevation = AppElevations.subtle,
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "تعداد لایسنس آژانس",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                    )
+                    Text(
+                        "هر لایسنس برای یک مشاور · بازه ${DateUtils.toPersianDigits(minQuantity.toString())} تا ${DateUtils.toPersianDigits(maxQuantity.toString())}",
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textSecondary(),
+                    )
+                }
+                Surface(shape = AppShapes.Chip, color = DfColors.PurpleLight.copy(alpha = 0.35f)) {
+                    Text(
+                        "$persianQty نفر",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.Purple,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                QuantityStepButton(
+                    label = "کاهش",
+                    enabled = enabled && quantity > minQuantity,
+                    onClick = { onQuantityChange(quantity - 1) },
+                    text = "−",
+                )
+                Column(
+                    modifier = Modifier.padding(horizontal = AppSpacing.lg),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        persianQty,
+                        style = AppTypography.statNumber,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.primary(),
+                    )
+                    Text(
+                        "لایسنس",
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textMuted(),
+                    )
+                }
+                QuantityStepButton(
+                    label = "افزایش",
+                    enabled = enabled && quantity < maxQuantity,
+                    onClick = { onQuantityChange(quantity + 1) },
+                    text = "+",
+                )
+            }
+
+            Surface(
+                shape = AppShapes.GlassSmall,
+                color = DfThemeColors.primaryContainer().copy(alpha = 0.45f),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(AppSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("قیمت هر لایسنس", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
+                        Text(
+                            FormatUtils.formatPriceToman(unitPrice),
+                            style = AppTypography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DfThemeColors.textPrimary(),
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            "$persianQty × ${FormatUtils.formatPriceToman(unitPrice).removeSuffix(" تومان")}",
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textSecondary(),
+                        )
+                        Text(
+                            FormatUtils.formatPriceToman(total),
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = DfThemeColors.primary(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuantityStepButton(
+    label: String,
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CircleShape,
+        color = if (enabled) DfThemeColors.primary() else DfThemeColors.surfaceVariant(),
+        shadowElevation = if (enabled) AppElevations.subtle else AppElevations.none,
+        modifier = Modifier.size(44.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = text,
+                style = AppTypography.sectionTitle,
+                fontWeight = FontWeight.Bold,
+                color = if (enabled) Color.White else DfThemeColors.textMuted(),
+            )
+        }
+    }
+}
+
+@Composable
+fun LicenseCheckoutSummary(
+    planName: String,
+    quantity: Int,
+    unitPrice: Long,
+    totalPrice: Long,
+    isAgency: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val persianQty = DateUtils.toPersianDigits(quantity.toString())
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.CardSmall,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                "خلاصه سفارش",
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textMuted(),
+            )
+            Text(
+                planName,
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
+            if (isAgency && quantity > 1) {
+                Text(
+                    "$persianQty لایسنس × ${FormatUtils.formatPriceToman(unitPrice)}",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+            } else if (isAgency) {
+                Text(
+                    "۱ لایسنس · ${FormatUtils.formatPriceToman(unitPrice)}",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text("مبلغ قابل پرداخت", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
+                Text(
+                    FormatUtils.formatPriceToman(totalPrice),
+                    style = AppTypography.sectionTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.primary(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun LicenseMetaChip(
     label: String,
     value: String,
@@ -198,19 +494,27 @@ private fun formatLicenseDate(iso: String?): String? {
 fun LicensePlanCard(
     plan: ShopPlanDto,
     selected: Boolean,
+    quantity: Int,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val format = remember { NumberFormat.getInstance(Locale("fa", "IR")) }
     val blocked = plan.purchaseBlocked
+    val isAgency = plan.isAgencyPlan()
+    val unitPrice = plan.unitFinalPrice()
+    val displayTotal = if (selected && isAgency) plan.totalFinalPrice(quantity) else unitPrice
     val borderColor = when {
         blocked -> DfThemeColors.outlineSubtle()
+        selected && isAgency -> DfColors.Purple
         selected -> DfThemeColors.primary()
+        isAgency -> DfColors.Purple.copy(alpha = 0.35f)
         else -> DfThemeColors.outlineSubtle()
     }
     val container = when {
         blocked -> DfThemeColors.surfaceVariant().copy(alpha = 0.55f)
+        selected && isAgency -> DfColors.PurpleLight.copy(alpha = 0.18f)
         selected -> DfThemeColors.primaryContainer().copy(alpha = 0.45f)
+        isAgency -> DfThemeColors.surface()
         else -> DfThemeColors.surface()
     }
 
@@ -238,6 +542,7 @@ fun LicensePlanCard(
                         .clip(CircleShape)
                         .background(
                             when {
+                                selected && isAgency -> DfColors.Purple
                                 selected -> DfThemeColors.primary()
                                 else -> DfThemeColors.surfaceVariant()
                             },
@@ -266,12 +571,9 @@ fun LicensePlanCard(
                             modifier = Modifier.weight(1f, fill = false),
                         )
                         when {
-                            !plan.offerBadge.isNullOrBlank() -> {
-                                PlanBadge(text = plan.offerBadge, color = DfColors.Amber, bg = DfColors.AmberLight)
-                            }
-                            plan.isFeatured -> {
-                                PlanBadge(text = "پیشنهادی", color = DfThemeColors.primary(), bg = DfThemeColors.primaryContainer())
-                            }
+                            isAgency -> PlanBadge(text = "آژانس", color = DfColors.Purple, bg = DfColors.PurpleLight.copy(alpha = 0.45f))
+                            !plan.offerBadge.isNullOrBlank() -> PlanBadge(text = plan.offerBadge, color = DfColors.Amber, bg = DfColors.AmberLight)
+                            plan.isFeatured -> PlanBadge(text = "پیشنهادی", color = DfThemeColors.primary(), bg = DfThemeColors.primaryContainer())
                         }
                     }
                     plan.durationLabel?.let {
@@ -280,6 +582,14 @@ fun LicensePlanCard(
                     plan.tagline?.takeIf { it.isNotBlank() }?.let {
                         Text(it, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
                     }
+                    if (isAgency) {
+                        Text(
+                            "قیمت هر لایسنس · ${DateUtils.toPersianDigits(plan.minQuantity.toString())} تا ${DateUtils.toPersianDigits(plan.maxQuantity.toString())} نفر",
+                            style = AppTypography.labelSmall,
+                            color = DfColors.Purple,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
 
@@ -287,20 +597,39 @@ fun LicensePlanCard(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
-                if (plan.hasDiscount && plan.originalPrice != null) {
+                if (plan.hasDiscount && plan.unitOriginalPrice() > unitPrice) {
                     Text(
-                        "${format.format(plan.originalPrice)}",
+                        format.format(plan.unitOriginalPrice()),
                         style = AppTypography.meta,
                         color = DfThemeColors.textMuted(),
                         textDecoration = TextDecoration.LineThrough,
                     )
                 }
-                Text(
-                    "${format.format(plan.finalPrice ?: 0)} تومان",
-                    style = AppTypography.sectionTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = if (selected) DfThemeColors.primary() else DfThemeColors.textPrimary(),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        if (isAgency && selected && quantity > 1) {
+                            FormatUtils.formatPriceToman(displayTotal)
+                        } else {
+                            "${format.format(unitPrice)} تومان"
+                        },
+                        style = AppTypography.sectionTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            selected && isAgency -> DfColors.Purple
+                            selected -> DfThemeColors.primary()
+                            else -> DfThemeColors.textPrimary()
+                        },
+                    )
+                    Text(
+                        when {
+                            isAgency && selected && quantity > 1 -> "${DateUtils.toPersianDigits(quantity.toString())} لایسنس × ${FormatUtils.formatPriceToman(unitPrice)}"
+                            isAgency -> "به ازای هر مشاور"
+                            else -> "مبلغ پلن"
+                        },
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textMuted(),
+                    )
+                }
             }
 
             if (plan.features.isNotEmpty()) {
@@ -326,10 +655,10 @@ fun LicensePlanCard(
                 )
             } else if (selected) {
                 Text(
-                    "پلن انتخاب‌شده برای خرید",
+                    if (isAgency) "پلن آژانس انتخاب شد — تعداد را تنظیم کنید" else "پلن انتخاب‌شده برای خرید",
                     style = AppTypography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = DfThemeColors.primary(),
+                    color = if (isAgency) DfColors.Purple else DfThemeColors.primary(),
                 )
             }
         }

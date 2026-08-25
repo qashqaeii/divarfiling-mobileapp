@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.ShopCheckoutData
+import ir.divarfiling.mobile.core.network.ShopDiscountPreviewData
 import ir.divarfiling.mobile.core.network.ShopPlanDto
 import ir.divarfiling.mobile.core.network.ShopPlansData
 import ir.divarfiling.mobile.data.repository.ApiResult
@@ -23,6 +24,7 @@ data class PlansUiState(
     val renewableLicenseId: Long? = null,
     val phoneVerified: Boolean = true,
     val selectedPlanId: Long? = null,
+    val planQuantities: Map<Long, Int> = emptyMap(),
     val checkout: ShopCheckoutData? = null,
     val license: LicenseState = LicenseState(),
     val isLoading: Boolean = false,
@@ -30,12 +32,36 @@ data class PlansUiState(
     val isVerifying: Boolean = false,
     val isApplyingDiscount: Boolean = false,
     val discountCode: String = "",
-    val discountPreview: ir.divarfiling.mobile.core.network.ShopDiscountPreviewData? = null,
+    val discountPreview: ShopDiscountPreviewData? = null,
     val error: String? = null,
     val successMessage: String? = null,
     val orderStatus: String? = null,
     val orderStatusMessage: String? = null,
-)
+) {
+    val selectedPlan: ShopPlanDto?
+        get() = plans.firstOrNull { it.id == selectedPlanId }
+
+    val selectedQuantity: Int
+        get() {
+            val plan = selectedPlan ?: return 1
+            return planQuantities[plan.id] ?: plan.defaultQuantity()
+        }
+
+    val isRenewalCheckout: Boolean
+        get() = license.canRenew
+
+    val checkoutTotal: Long?
+        get() {
+            val plan = selectedPlan ?: return null
+            return resolveCheckoutTotal(plan, selectedQuantity, discountPreview)
+        }
+
+    val personalPlans: List<ShopPlanDto>
+        get() = plans.filter { !it.isAgencyPlan() }
+
+    val agencyPlans: List<ShopPlanDto>
+        get() = plans.filter { it.isAgencyPlan() }
+}
 
 @HiltViewModel
 class PlansViewModel @Inject constructor(
@@ -68,12 +94,16 @@ class PlansViewModel @Inject constructor(
                     val recommended = visiblePlans.firstOrNull { it.isFeatured && !it.purchaseBlocked }
                         ?: visiblePlans.firstOrNull { !it.purchaseBlocked }
                     val selectedStillVisible = visiblePlans.any { it.id == _uiState.value.selectedPlanId }
+                    val defaultQuantities = visiblePlans.associate { it.id to it.defaultQuantity() }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             plans = visiblePlans,
                             renewableLicenseId = data.renewableLicense?.licenseId,
                             phoneVerified = data.phoneVerified,
+                            planQuantities = defaultQuantities + it.planQuantities.filterKeys { id ->
+                                visiblePlans.any { plan -> plan.id == id }
+                            },
                             selectedPlanId = when {
                                 selectedStillVisible -> it.selectedPlanId
                                 else -> recommended?.id
@@ -101,7 +131,8 @@ class PlansViewModel @Inject constructor(
         if (code.isBlank() || state.isApplyingDiscount) return
         viewModelScope.launch {
             _uiState.update { it.copy(isApplyingDiscount = true, error = null) }
-            when (val result = shopRepository.previewDiscount(planId, code)) {
+            val quantity = checkoutQuantity(state)
+            when (val result = shopRepository.previewDiscount(planId, code, quantity)) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(isApplyingDiscount = false, discountPreview = result.data, error = null)
                 }
@@ -115,7 +146,28 @@ class PlansViewModel @Inject constructor(
     fun selectPlan(id: Long) {
         val plan = _uiState.value.plans.firstOrNull { it.id == id } ?: return
         if (plan.purchaseBlocked) return
-        _uiState.update { it.copy(selectedPlanId = id, error = null, discountPreview = null) }
+        val qty = _uiState.value.planQuantities[id] ?: plan.defaultQuantity()
+        _uiState.update {
+            it.copy(
+                selectedPlanId = id,
+                planQuantities = it.planQuantities + (id to qty),
+                error = null,
+                discountPreview = null,
+            )
+        }
+    }
+
+    fun setQuantity(planId: Long, quantity: Int) {
+        val plan = _uiState.value.plans.firstOrNull { it.id == planId } ?: return
+        if (!plan.isAgencyPlan() || plan.purchaseBlocked) return
+        val clamped = plan.clampQuantity(quantity)
+        _uiState.update {
+            it.copy(
+                planQuantities = it.planQuantities + (planId to clamped),
+                discountPreview = null,
+                error = null,
+            )
+        }
     }
 
     fun startCheckout(onPayUrl: (String) -> Unit) {
@@ -128,9 +180,17 @@ class PlansViewModel @Inject constructor(
             return
         }
         val renewId = if (state.license.canRenew) state.renewableLicenseId ?: state.license.licenseId else null
+        val quantity = checkoutQuantity(state)
         viewModelScope.launch {
             _uiState.update { it.copy(isCheckingOut = true, error = null) }
-            when (val result = shopRepository.checkout(planId, renewId, state.discountPreview?.code ?: state.discountCode.trim().ifBlank { null })) {
+            when (
+                val result = shopRepository.checkout(
+                    planId,
+                    renewId,
+                    state.discountPreview?.code ?: state.discountCode.trim().ifBlank { null },
+                    quantity,
+                )
+            ) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isCheckingOut = false, checkout = result.data) }
                     val url = result.data.payUrl
@@ -190,6 +250,12 @@ class PlansViewModel @Inject constructor(
     }
 
     fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
+
+    private fun checkoutQuantity(state: PlansUiState): Int {
+        if (state.isRenewalCheckout) return 1
+        val plan = state.selectedPlan ?: return 1
+        return state.planQuantities[plan.id] ?: plan.defaultQuantity()
+    }
 
     companion object {
         fun orderStatusMessageFa(status: String?, missing: Boolean = false): String = when {

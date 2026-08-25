@@ -47,13 +47,11 @@ object ContactSocialShare {
             "whatsapp" -> hasPhone || "whatsapp" in active
             "bale" -> hasPhone || "bale" in active || !links["bale"].isNullOrBlank()
             "instagram" -> "instagram" in active && !links["instagram"].isNullOrBlank()
-            else -> {
-                if (key !in active && key !in links.keys) return false
-                if (CrmContactChannels.usesPhoneForSocialHandle(key)) {
+            else -> when {
+                key !in active && key !in links.keys -> false
+                CrmContactChannels.usesPhoneForSocialHandle(key) ->
                     !links[key].isNullOrBlank() || hasPhone
-                } else {
-                    !links[key].isNullOrBlank()
-                }
+                else -> !links[key].isNullOrBlank()
             }
         }
 

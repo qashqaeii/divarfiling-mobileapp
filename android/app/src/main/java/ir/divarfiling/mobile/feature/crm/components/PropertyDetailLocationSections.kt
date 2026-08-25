@@ -294,7 +294,8 @@ fun PropertyNearbyPoisSection(
                     color = DfColors.TextMuted,
                 )
             }
-        } ?: if (!isLoading) {
+        }
+        if (payload == null && !isLoading) {
             Text(
                 "برای نمایش مترو، بیمارستان، پارک و… دکمه «محاسبه» را بزنید.",
                 style = AppTypography.labelSmall,

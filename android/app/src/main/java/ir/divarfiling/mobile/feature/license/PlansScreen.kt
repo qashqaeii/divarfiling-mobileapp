@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -35,6 +36,7 @@ import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.ExternalBrowser
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
@@ -48,9 +50,13 @@ import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.DfTextField
+import ir.divarfiling.mobile.feature.license.components.AgencyPricingInfoBanner
 import ir.divarfiling.mobile.feature.license.components.DiscountApplyButton
+import ir.divarfiling.mobile.feature.license.components.LicenseCheckoutSummary
 import ir.divarfiling.mobile.feature.license.components.LicensePlanCard
+import ir.divarfiling.mobile.feature.license.components.LicenseQuantityStepper
 import ir.divarfiling.mobile.feature.license.components.LicenseStatusHero
+import ir.divarfiling.mobile.feature.license.components.PlansSectionHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,7 +91,10 @@ fun PlansScreen(
         }
     }
 
-    val selectedPlan = state.plans.firstOrNull { it.id == state.selectedPlanId }
+    val selectedPlan = state.selectedPlan
+    val selectedQuantity = state.selectedQuantity
+    val checkoutTotal = state.checkoutTotal
+    val showAgencyQuantity = selectedPlan?.isAgencyPlan() == true && !state.isRenewalCheckout
 
     Scaffold(
         containerColor = DfScreenContainerColor,
@@ -99,15 +108,20 @@ fun PlansScreen(
                     .padding(top = AppSpacing.xs, bottom = AppSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
+                if (selectedPlan != null && checkoutTotal != null) {
+                    LicenseCheckoutSummary(
+                        planName = selectedPlan.name,
+                        quantity = selectedQuantity,
+                        unitPrice = selectedPlan.unitFinalPrice(),
+                        totalPrice = checkoutTotal,
+                        isAgency = selectedPlan.isAgencyPlan(),
+                    )
+                }
                 if (state.license.valid) {
                     DfPrimaryButton(text = "شروع استفاده", onClick = onStartUsing)
                 }
                 DfPrimaryButton(
-                    text = when {
-                        selectedPlan != null -> "خرید ${selectedPlan.name}"
-                        state.license.valid || state.license.canRenew -> "تمدید / ادامه خرید"
-                        else -> "ادامه خرید"
-                    },
+                    text = buildCheckoutButtonLabel(selectedPlan, selectedQuantity, checkoutTotal),
                     onClick = {
                         viewModel.startCheckout { url -> ExternalBrowser.open(context, url) }
                     },
@@ -128,7 +142,7 @@ fun PlansScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .statusBarsPadding(),
-            contentPadding = PaddingValues(bottom = 160.dp),
+            contentPadding = PaddingValues(bottom = 220.dp),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
             item {
@@ -174,32 +188,86 @@ fun PlansScreen(
                 }
             }
 
-            item {
-                Column(
-                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                ) {
-                    Text(
-                        text = "پلن‌های موجود",
-                        style = AppTypography.sectionTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = DfThemeColors.textPrimary(),
+            if (state.isLoading) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(AppSpacing.lg),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        CircularProgressIndicator(color = DfThemeColors.primary())
+                    }
+                }
+            }
+
+            if (state.personalPlans.isNotEmpty()) {
+                item {
+                    PlansSectionHeader(
+                        title = "پلن‌های شخصی",
+                        subtitle = "مناسب مشاور مستقل — یک لایسنس برای خودتان",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
-                    Text(
-                        text = "یک پلن را انتخاب کنید؛ قیمت‌ها مستقیم از سرور خوانده می‌شود.",
-                        style = AppTypography.bodyDescription,
-                        color = DfThemeColors.textSecondary(),
+                }
+                items(state.personalPlans, key = { "personal-${it.id}" }) { plan ->
+                    LicensePlanCard(
+                        plan = plan,
+                        selected = plan.id == state.selectedPlanId,
+                        quantity = 1,
+                        onSelect = { viewModel.selectPlan(plan.id) },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
             }
 
-            items(state.plans, key = { it.id }) { plan ->
-                LicensePlanCard(
-                    plan = plan,
-                    selected = plan.id == state.selectedPlanId,
-                    onSelect = { viewModel.selectPlan(plan.id) },
-                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                )
+            if (state.agencyPlans.isNotEmpty()) {
+                item {
+                    PlansSectionHeader(
+                        title = "پلن‌های آژانس",
+                        subtitle = "برای تیم مشاورین — قیمت به ازای هر نفر",
+                        badge = "چند لایسنس",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+                item {
+                    AgencyPricingInfoBanner(
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+                items(state.agencyPlans, key = { "agency-${it.id}" }) { plan ->
+                    LicensePlanCard(
+                        plan = plan,
+                        selected = plan.id == state.selectedPlanId,
+                        quantity = state.planQuantities[plan.id] ?: plan.defaultQuantity(),
+                        onSelect = { viewModel.selectPlan(plan.id) },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+
+            if (showAgencyQuantity && selectedPlan != null) {
+                item {
+                    LicenseQuantityStepper(
+                        quantity = selectedQuantity,
+                        minQuantity = selectedPlan.minQuantity,
+                        maxQuantity = selectedPlan.maxQuantity,
+                        unitPrice = selectedPlan.unitFinalPrice(),
+                        onQuantityChange = { viewModel.setQuantity(selectedPlan.id, it) },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        enabled = !state.isCheckingOut,
+                    )
+                }
+            }
+
+            if (state.isRenewalCheckout && selectedPlan?.isAgencyPlan() == true) {
+                item {
+                    DfStatusBanner(
+                        message = "تمدید فقط برای لایسنس فعلی شما انجام می‌شود. برای خرید چند لایسنس جدید، تمدید را بدون انتخاب لایسنس قبلی انجام دهید یا از وب استفاده کنید.",
+                        tone = DfStatusTone.Info,
+                        title = "تمدید آژانس",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
             }
 
             item {
@@ -251,11 +319,25 @@ fun PlansScreen(
             item {
                 DfContinueOnWebRow(
                     title = "مدیریت کامل اشتراک در وب",
-                    subtitle = "داشبورد لایسنس، فاکتور و تمدید پیشرفته",
+                    subtitle = "داشبورد لایسنس، تخصیص کلید آژانس و فاکتور",
                     url = AppLinks.DASHBOARD_LICENSES,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
         }
     }
+}
+
+private fun buildCheckoutButtonLabel(
+    plan: ir.divarfiling.mobile.core.network.ShopPlanDto?,
+    quantity: Int,
+    total: Long?,
+): String = when {
+    plan == null -> "ادامه خرید"
+    plan.isAgencyPlan() && total != null && quantity > 1 ->
+        "خرید ${DateUtils.toPersianDigits(quantity.toString())} لایسنس · ${FormatUtils.formatPriceToman(total)}"
+    plan.isAgencyPlan() && total != null ->
+        "خرید لایسنس آژانس · ${FormatUtils.formatPriceToman(total)}"
+    total != null -> "خرید ${plan.name} · ${FormatUtils.formatPriceToman(total)}"
+    else -> "خرید ${plan.name}"
 }
