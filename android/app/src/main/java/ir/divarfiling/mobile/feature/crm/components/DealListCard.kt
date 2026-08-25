@@ -45,9 +45,10 @@ fun DealListCard(
     deal: DealDto,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    stageDef: ir.divarfiling.mobile.core.network.DealStageDefDto? = null,
 ) {
     val stage = deal.stage ?: "سرنخ"
-    val stageColors = DealUiUtils.dealStageColors(stage)
+    val stageColors = DealUiUtils.dealStageColors(stage, stageDef ?: DealUiUtils.defFor(stage, emptyList()))
     val progress = DealsFilters.progressPercent(deal)
     val (jalaliDate, jalaliTime) = DealsFilters.splitDateTime(deal.updatedAt)
 
@@ -122,6 +123,18 @@ fun DealListCard(
                     DealStageBadge(stage = stage, colors = stageColors)
                 }
 
+                if (deal.isStale) {
+                    Surface(shape = AppShapes.Chip, color = DfColors.AmberLight) {
+                        Text(
+                            text = "کهنه در این مرحله — ${deal.daysInStage} روز",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = AppTypography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DfColors.Amber,
+                        )
+                    }
+                }
+
                 deal.propertyTitle?.takeIf { it.isNotBlank() }?.let { property ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -165,16 +178,30 @@ fun DealListCard(
                         style = AppTypography.labelSmall,
                         color = DfColors.TextMuted,
                     )
-                    deal.commissionAmount?.takeIf { it > 0 }?.let { commission ->
-                        Surface(shape = AppShapes.Chip, color = DfColors.GreenLight) {
-                            Text(
-                                text = "کمیسیون ${FormatUtils.formatPriceShort(commission)}",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = AppTypography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = DfColors.Green,
-                                maxLines = 1,
-                            )
+                    run {
+                        val advisor = deal.advisorCommission?.takeIf { it > 0 }
+                        val commission = deal.commissionAmount?.takeIf { it > 0 }
+                        when {
+                            advisor != null -> Surface(shape = AppShapes.Chip, color = DfColors.GreenLight) {
+                                Text(
+                                    text = "سهم شما ${FormatUtils.formatPriceShort(advisor)}",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = AppTypography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = DfColors.Green,
+                                    maxLines = 1,
+                                )
+                            }
+                            commission != null -> Surface(shape = AppShapes.Chip, color = DfColors.GreenLight) {
+                                Text(
+                                    text = "کمیسیون ${FormatUtils.formatPriceShort(commission)}",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = AppTypography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = DfColors.Green,
+                                    maxLines = 1,
+                                )
+                            }
                         }
                     }
                 }

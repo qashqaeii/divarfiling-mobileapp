@@ -5,6 +5,7 @@ import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
+import ir.divarfiling.mobile.core.network.DealStageDefDto
 
 enum class DealsSortOrder { Newest, Oldest }
 
@@ -36,8 +37,8 @@ object DealsFilters {
         return listOf(ALL_OWNERS) + owners
     }
 
-    fun activeCount(deals: List<DealDto>): Int =
-        deals.count { !isClosed(it.stage) && !isLost(it.stage) }
+    fun activeCount(deals: List<DealDto>, defs: List<DealStageDefDto> = emptyList()): Int =
+        deals.count { !isClosed(it.stage, defs) && !isLost(it.stage, defs) }
 
     fun pipelineValue(deals: List<DealDto>, columns: List<DealPipelineColumnDto>): Long {
         val fromColumns = columns.sumOf { it.totalValue }
@@ -45,26 +46,32 @@ object DealsFilters {
         return deals.sumOf { it.amount ?: 0L }
     }
 
-    fun weightedForecast(deals: List<DealDto>): Long =
+    fun weightedForecast(deals: List<DealDto>, defs: List<DealStageDefDto> = emptyList()): Long =
         deals.sumOf { deal ->
             val amount = deal.amount ?: 0L
-            val probability = deal.probability ?: defaultProbability(deal.stage)
+            val probability = deal.probability ?: stageProbability(deal.stage, defs)
             (amount * probability / 100.0).toLong()
         }
 
-    fun closedCommission(deals: List<DealDto>): Long =
-        deals.filter { isClosed(it.stage) }.sumOf { it.commissionAmount ?: 0L }
+    fun closedCommission(deals: List<DealDto>, defs: List<DealStageDefDto> = emptyList()): Long =
+        deals.filter { isClosed(it.stage, defs) }.sumOf { it.commissionAmount ?: 0L }
 
-    fun closingRate(deals: List<DealDto>): Int {
+    fun closingRate(deals: List<DealDto>, defs: List<DealStageDefDto> = emptyList()): Int {
         if (deals.isEmpty()) return 0
-        val closed = deals.count { isClosed(it.stage) }
-        return ((closed.toDouble() / deals.size) * 100).toInt()
+        val closed = deals.count { isClosed(it.stage, defs) }
+        val lost = deals.count { isLost(it.stage, defs) }
+        val decided = closed + lost
+        if (decided == 0) return 0
+        return ((closed.toDouble() / decided) * 100).toInt()
     }
 
-    fun progressPercent(deal: DealDto): Int =
-        deal.probability ?: stageProbability(deal.stage)
+    fun progressPercent(deal: DealDto, defs: List<DealStageDefDto> = emptyList()): Int =
+        deal.probability ?: stageProbability(deal.stage, defs)
 
-    fun stageProbability(stage: String?): Int = defaultProbability(stage)
+    fun stageProbability(stage: String?, defs: List<DealStageDefDto> = emptyList()): Int {
+        defs.firstOrNull { it.name == stage }?.let { return it.probability }
+        return defaultProbability(stage)
+    }
 
     fun formatCompactToman(value: Long): String =
         FormatUtils.formatPriceShort(value) + " تومان"
@@ -101,11 +108,15 @@ object DealsFilters {
             deal.stage?.contains(q, ignoreCase = true) == true
     }
 
-    private fun isClosed(stage: String?): Boolean =
-        stage?.contains("بسته") == true || stage?.contains("قرارداد") == true
+    private fun isClosed(stage: String?, defs: List<DealStageDefDto> = emptyList()): Boolean {
+        defs.firstOrNull { it.name == stage }?.let { return it.kind == "won" }
+        return stage?.contains("بسته") == true
+    }
 
-    private fun isLost(stage: String?): Boolean =
-        stage?.contains("از دست") == true || stage?.contains("سرد") == true
+    private fun isLost(stage: String?, defs: List<DealStageDefDto> = emptyList()): Boolean {
+        defs.firstOrNull { it.name == stage }?.let { return it.kind == "lost" }
+        return stage?.contains("از دست") == true || stage?.contains("سرد") == true
+    }
 
     private fun defaultProbability(stage: String?): Int = when {
         isLost(stage) -> 0

@@ -17,6 +17,7 @@ fun DealsActionBar(
     onNewDeal: () -> Unit,
     onContactsClick: () -> Unit,
     onSalesStagesClick: () -> Unit,
+    onFinanceClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -31,6 +32,11 @@ fun DealsActionBar(
             icon = DfIcons.Plus,
             filled = true,
             onClick = onNewDeal,
+        )
+        DfActionButton(
+            text = "مالی",
+            icon = DfIcons.Coins,
+            onClick = onFinanceClick,
         )
         DfActionButton(
             text = "مخاطبین",

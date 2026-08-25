@@ -30,6 +30,7 @@ import ir.divarfiling.mobile.feature.crm.ContactDetailScreen
 import ir.divarfiling.mobile.feature.crm.ContactsScreen
 import ir.divarfiling.mobile.feature.crm.CrmHubScreen
 import ir.divarfiling.mobile.feature.crm.DealDetailScreen
+import ir.divarfiling.mobile.feature.crm.DealFinanceDashboardScreen
 import ir.divarfiling.mobile.feature.crm.DealsScreen
 import ir.divarfiling.mobile.feature.crm.PropertiesScreen
 import ir.divarfiling.mobile.feature.crm.PropertyDetailScreen
@@ -92,6 +93,7 @@ object Routes {
     const val SUPPORT_DETAIL = "support/{ticketId}"
     const val CLOUD_EXTRACT = "cloud-extract"
     const val CRM_DEALS = "crm/deals"
+    const val CRM_DEALS_FINANCE = "crm/deals/finance"
     const val CRM_DEAL_DETAIL = "crm/deals/{dealId}"
     const val CRM_PROPERTIES = "crm/properties"
     const val CRM_PROPERTY_DETAIL = "crm/properties/{propertyId}"
@@ -247,6 +249,7 @@ fun DivarFilingNavHost(
                             onContacts = { navController.navigate(Routes.contacts()) },
                             onToday = { navController.navigate(Routes.CRM_TODAY) },
                             onDeals = { navController.navigate(Routes.CRM_DEALS) },
+                            onFinance = { navController.navigate(Routes.CRM_DEALS_FINANCE) },
                             onProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                             onOwners = { navController.navigate(Routes.contacts("مالک")) },
                             onTemplates = { navController.navigate(Routes.TEMPLATES) },
@@ -303,6 +306,13 @@ fun DivarFilingNavHost(
                             onNavigateContacts = { navController.navigate(Routes.contacts()) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onNavigateFinance = { navController.navigate(Routes.CRM_DEALS_FINANCE) },
+                        )
+                    }
+                    composable(Routes.CRM_DEALS_FINANCE) {
+                        DealFinanceDashboardScreen(
+                            onBack = { navController.popBackStack() },
+                            onDealClick = { id -> navController.navigate(Routes.dealDetail(id)) },
                         )
                     }
                     composable(

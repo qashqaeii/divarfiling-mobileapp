@@ -5,11 +5,15 @@ import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.core.network.DealChecklistToggleRequest
 import ir.divarfiling.mobile.core.network.DealChecklistToggleResponse
-import ir.divarfiling.mobile.core.network.DealCreateRequest
+import ir.divarfiling.mobile.core.network.DealFinanceDashboardData
+import ir.divarfiling.mobile.core.network.DealFinanceDefaultsDto
+import ir.divarfiling.mobile.core.network.DealFinanceSaveRequest
+import ir.divarfiling.mobile.core.network.DealFinanceSettingsData
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineData
 import ir.divarfiling.mobile.core.network.DealStageRequest
 import ir.divarfiling.mobile.core.network.DealStagesData
+import ir.divarfiling.mobile.core.network.DealStagesSaveRequest
 import ir.divarfiling.mobile.core.network.DealUpdateRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
@@ -68,12 +72,48 @@ class DealsRepository @Inject constructor(
         ApiResult.Error(e.message ?: "خطای شبکه")
     }
 
-    suspend fun getStages(): ApiResult<List<String>> = try {
+    suspend fun getStages(): ApiResult<DealStagesData> = try {
         val response = api.getDealStages()
         if (!response.ok) ApiResult.Error(response.error ?: "خطا")
-        else ApiResult.Success(response.requireData<DealStagesData>(json).stages)
+        else ApiResult.Success(response.requireData(json))
     } catch (e: Exception) {
         ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun saveStages(request: DealStagesSaveRequest): ApiResult<DealStagesData> = try {
+        val response = api.saveDealStages(request)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun getFinanceDashboard(period: String = "month"): ApiResult<DealFinanceDashboardData> = try {
+        val response = api.getDealFinanceDashboard(period)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun getFinanceSettings(): ApiResult<DealFinanceSettingsData> = try {
+        val response = api.getDealFinanceSettings()
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun saveFinanceSettings(defaults: DealFinanceDefaultsDto): ApiResult<DealFinanceSettingsData> = try {
+        val response = api.saveDealFinanceSettings(defaults)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun updateDealFinance(dealId: Long, request: DealFinanceSaveRequest): ApiResult<DealDto> = single {
+        api.updateDealFinance(dealId, request)
     }
 
     suspend fun createDeal(request: DealCreateRequest): ApiResult<DealDto> = single {

@@ -783,6 +783,31 @@ data class DealDto(
     @SerialName("contract_number") val contractNumber: String? = null,
     @SerialName("contract_amount") val contractAmount: Long? = null,
     @SerialName("expected_close_date") val expectedCloseDate: String? = null,
+    @SerialName("is_stale") val isStale: Boolean = false,
+    @SerialName("days_in_stage") val daysInStage: Int = 0,
+    @SerialName("stage_color") val stageColor: String? = null,
+    @SerialName("stage_bg") val stageBg: String? = null,
+    @SerialName("stage_icon") val stageIcon: String? = null,
+    @SerialName("rot_days") val rotDays: Int = 0,
+    @SerialName("stage_description") val stageDescription: String? = null,
+    @SerialName("deal_kind") val dealKind: String? = null,
+    @SerialName("deal_kind_label") val dealKindLabel: String? = null,
+    @SerialName("commission_mode") val commissionMode: String? = null,
+    @SerialName("buyer_commission_rate") val buyerCommissionRate: Double? = null,
+    @SerialName("seller_commission_rate") val sellerCommissionRate: Double? = null,
+    @SerialName("buyer_commission_amount") val buyerCommissionAmount: Long? = null,
+    @SerialName("seller_commission_amount") val sellerCommissionAmount: Long? = null,
+    @SerialName("advisor_share_percent") val advisorSharePercent: Double? = null,
+    @SerialName("agency_share_percent") val agencySharePercent: Double? = null,
+    @SerialName("advisor_commission") val advisorCommission: Long? = null,
+    @SerialName("agency_commission") val agencyCommission: Long? = null,
+    @SerialName("deal_costs") val dealCosts: Long? = null,
+    @SerialName("received_amount") val receivedAmount: Long? = null,
+    val outstanding: Long? = null,
+    @SerialName("net_advisor") val netAdvisor: Long? = null,
+    @SerialName("payout_status") val payoutStatus: String? = null,
+    @SerialName("payout_status_label") val payoutStatusLabel: String? = null,
+    @SerialName("payout_notes") val payoutNotes: String? = null,
 )
 
 @Serializable
@@ -847,6 +872,8 @@ data class DealCreateRequest(
     @SerialName("listing_token") val listingToken: String? = null,
     val notes: String = "",
     @SerialName("commission_rate") val commissionRate: Double? = null,
+    @SerialName("expected_close_date") val expectedCloseDate: String? = null,
+    val probability: Int? = null,
 )
 
 @Serializable
@@ -858,6 +885,7 @@ data class DealUpdateRequest(
     val probability: Int? = null,
     @SerialName("commission_rate") val commissionRate: Double? = null,
     @SerialName("property_id") val propertyId: Long? = null,
+    @SerialName("expected_close_date") val expectedCloseDate: String? = null,
 )
 
 @Serializable
@@ -1177,19 +1205,185 @@ data class PropertyFolderReorderRequest(
 data class DealPipelineData(
     val stages: List<String> = emptyList(),
     val columns: List<DealPipelineColumnDto> = emptyList(),
+    val definitions: List<DealStageDefDto> = emptyList(),
 )
 
 @Serializable
 data class DealPipelineColumnDto(
     val stage: String,
     val count: Int = 0,
+    @SerialName("stale_count") val staleCount: Int = 0,
     @SerialName("total_value") val totalValue: Long = 0,
+    val color: String? = null,
+    val bg: String? = null,
+    val icon: String? = null,
+    val probability: Int? = null,
     val deals: List<DealDto> = emptyList(),
+)
+
+@Serializable
+data class DealStageDefDto(
+    val id: String = "",
+    val name: String = "",
+    val color: String = "#6366f1",
+    val bg: String = "#eef2ff",
+    val icon: String = "fa-handshake",
+    val probability: Int = 50,
+    @SerialName("rot_days") val rotDays: Int = 0,
+    val kind: String = "active",
+    val description: String = "",
+    val locked: Boolean = false,
+)
+
+@Serializable
+data class DealStagePresetDto(
+    val id: String = "",
+    val name: String = "",
+    val description: String = "",
+    val definitions: List<DealStageDefDto> = emptyList(),
+    @SerialName("stage_names") val stageNames: List<String> = emptyList(),
 )
 
 @Serializable
 data class DealStagesData(
     val stages: List<String> = emptyList(),
+    val definitions: List<DealStageDefDto> = emptyList(),
+    val presets: List<DealStagePresetDto> = emptyList(),
+    @SerialName("won_stage") val wonStage: String = "بسته‌شده",
+    @SerialName("lost_stage") val lostStage: String = "از دست رفته",
+    val counts: Map<String, Int> = emptyMap(),
+    val icons: List<String> = emptyList(),
+    val colors: List<String> = emptyList(),
+    @SerialName("max_stages") val maxStages: Int = 14,
+    @SerialName("min_stages") val minStages: Int = 3,
+)
+
+@Serializable
+data class DealStagesSaveRequest(
+    val definitions: List<DealStageDefDto>? = null,
+    val stages: List<String>? = null,
+    val preset: String? = null,
+    val reset: Boolean? = null,
+)
+
+@Serializable
+data class DealFinanceSaveRequest(
+    @SerialName("deal_kind") val dealKind: String? = null,
+    @SerialName("commission_mode") val commissionMode: String? = null,
+    @SerialName("buyer_commission_rate") val buyerCommissionRate: Double? = null,
+    @SerialName("seller_commission_rate") val sellerCommissionRate: Double? = null,
+    @SerialName("buyer_commission_amount") val buyerCommissionAmount: Long? = null,
+    @SerialName("seller_commission_amount") val sellerCommissionAmount: Long? = null,
+    @SerialName("advisor_share_percent") val advisorSharePercent: Double? = null,
+    @SerialName("agency_share_percent") val agencySharePercent: Double? = null,
+    @SerialName("deal_costs") val dealCosts: Long? = null,
+    @SerialName("received_amount") val receivedAmount: Long? = null,
+    @SerialName("payout_status") val payoutStatus: String? = null,
+    @SerialName("payout_notes") val payoutNotes: String? = null,
+)
+
+@Serializable
+data class DealFinanceDefaultsDto(
+    @SerialName("sale_buyer_rate") val saleBuyerRate: Double = 0.5,
+    @SerialName("sale_seller_rate") val saleSellerRate: Double = 0.5,
+    @SerialName("rent_buyer_rate") val rentBuyerRate: Double = 50.0,
+    @SerialName("rent_seller_rate") val rentSellerRate: Double = 50.0,
+    @SerialName("advisor_share_percent") val advisorSharePercent: Double = 70.0,
+    @SerialName("agency_share_percent") val agencySharePercent: Double = 30.0,
+)
+
+@Serializable
+data class DealFinanceSettingsData(
+    val defaults: DealFinanceDefaultsDto = DealFinanceDefaultsDto(),
+)
+
+@Serializable
+data class DealFinancePeriodDto(
+    val id: String = "",
+    val label: String = "",
+)
+
+@Serializable
+data class DealFinanceKpisDto(
+    @SerialName("closed_count") val closedCount: Int = 0,
+    val volume: Long = 0,
+    @SerialName("commission_total") val commissionTotal: Long = 0,
+    @SerialName("advisor_income") val advisorIncome: Long = 0,
+    @SerialName("agency_income") val agencyIncome: Long = 0,
+    val costs: Long = 0,
+    @SerialName("net_income") val netIncome: Long = 0,
+    val received: Long = 0,
+    val outstanding: Long = 0,
+    @SerialName("avg_deal") val avgDeal: Long = 0,
+    @SerialName("avg_commission") val avgCommission: Long = 0,
+    @SerialName("avg_advisor") val avgAdvisor: Long = 0,
+)
+
+@Serializable
+data class DealFinanceSplitDto(
+    val advisor: Long = 0,
+    val agency: Long = 0,
+    @SerialName("advisor_percent") val advisorPercent: Int = 70,
+    @SerialName("agency_percent") val agencyPercent: Int = 30,
+)
+
+@Serializable
+data class DealFinancePayoutDto(
+    val status: String = "",
+    val label: String = "",
+    val count: Int = 0,
+    val amount: Long = 0,
+    val received: Long = 0,
+)
+
+@Serializable
+data class DealFinanceMonthDto(
+    val key: String = "",
+    val label: String = "",
+    val year: Int = 0,
+    val count: Int = 0,
+    val volume: Long = 0,
+    val commission: Long = 0,
+    val advisor: Long = 0,
+    @SerialName("commission_pct") val commissionPct: Int = 0,
+    @SerialName("advisor_pct") val advisorPct: Int = 0,
+)
+
+@Serializable
+data class DealFinanceForecastDto(
+    @SerialName("active_count") val activeCount: Int = 0,
+    @SerialName("weighted_volume") val weightedVolume: Long = 0,
+    @SerialName("weighted_commission") val weightedCommission: Long = 0,
+    @SerialName("weighted_advisor") val weightedAdvisor: Long = 0,
+)
+
+@Serializable
+data class DealFinanceDealRowDto(
+    val id: Long,
+    val title: String = "",
+    @SerialName("customer_name") val customerName: String = "",
+    val stage: String = "",
+    val value: Long = 0,
+    @SerialName("commission_amount") val commissionAmount: Long = 0,
+    @SerialName("advisor_commission") val advisorCommission: Long = 0,
+    @SerialName("agency_commission") val agencyCommission: Long = 0,
+    @SerialName("payout_status") val payoutStatus: String = "",
+    @SerialName("payout_status_label") val payoutStatusLabel: String = "",
+    @SerialName("deal_kind_label") val dealKindLabel: String = "",
+)
+
+@Serializable
+data class DealFinanceDashboardData(
+    val period: String = "month",
+    @SerialName("period_label") val periodLabel: String = "",
+    val periods: List<DealFinancePeriodDto> = emptyList(),
+    val kpis: DealFinanceKpisDto = DealFinanceKpisDto(),
+    val split: DealFinanceSplitDto = DealFinanceSplitDto(),
+    val payout: List<DealFinancePayoutDto> = emptyList(),
+    val monthly: List<DealFinanceMonthDto> = emptyList(),
+    val deals: List<DealFinanceDealRowDto> = emptyList(),
+    val forecast: DealFinanceForecastDto = DealFinanceForecastDto(),
+    val defaults: DealFinanceDefaultsDto = DealFinanceDefaultsDto(),
 )
 
 @Serializable

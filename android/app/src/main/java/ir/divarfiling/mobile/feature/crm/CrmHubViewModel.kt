@@ -48,10 +48,15 @@ class CrmHubViewModel @Inject constructor(
         }
 
         var dealsTotal = 0L
+        var advisorIncome = 0L
         when (val dealsResult = dealsRepository.getDeals(page = 1)) {
             is ApiResult.Success -> {
                 dealsTotal = dealsResult.data.items.sumOf { deal -> deal.amount ?: 0L }
             }
+            is ApiResult.Error -> Unit
+        }
+        when (val financeResult = dealsRepository.getFinanceDashboard("month")) {
+            is ApiResult.Success -> advisorIncome = financeResult.data.kpis.advisorIncome
             is ApiResult.Error -> Unit
         }
 
@@ -68,6 +73,7 @@ class CrmHubViewModel @Inject constructor(
                         overdueCount = stats.overdueCount,
                         activeDealsCount = stats.deals,
                         dealsTotalValue = dealsTotal,
+                        advisorIncome = advisorIncome,
                         propertiesCount = stats.properties,
                         openCasesCount = stats.contactsInProgress + stats.overdueFollowups,
                     )
@@ -78,6 +84,7 @@ class CrmHubViewModel @Inject constructor(
                     isLoading = false,
                     isRefreshing = false,
                     dealsTotalValue = dealsTotal.takeIf { value -> value > 0 } ?: it.dealsTotalValue,
+                    advisorIncome = advisorIncome.takeIf { value -> value > 0 } ?: it.advisorIncome,
                 )
             }
         }

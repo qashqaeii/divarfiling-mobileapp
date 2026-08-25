@@ -45,7 +45,10 @@ import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.feature.crm.components.DealChecklistSection
 import ir.divarfiling.mobile.feature.crm.components.DealCreateSheet
 import ir.divarfiling.mobile.feature.crm.components.DealEditSheet
+import ir.divarfiling.mobile.feature.crm.components.DealFinanceCard
+import ir.divarfiling.mobile.feature.crm.components.DealFinanceSheet
 import ir.divarfiling.mobile.feature.crm.components.DealListCard
+import ir.divarfiling.mobile.feature.crm.components.DealUiUtils
 import ir.divarfiling.mobile.feature.crm.components.DealsSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.DealsFilters
 import ir.divarfiling.mobile.feature.crm.components.DealsHeader
@@ -53,7 +56,8 @@ import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.feature.crm.components.DealsPipelineBar
 import ir.divarfiling.mobile.feature.crm.components.DealsSortOrder
-import ir.divarfiling.mobile.feature.crm.components.DealsStatsRow
+import ir.divarfiling.mobile.feature.crm.components.DealsActionBar
+import ir.divarfiling.mobile.feature.crm.components.DealStagesEditorSheet
 import ir.divarfiling.mobile.feature.crm.components.DealDetailHeroCard
 import ir.divarfiling.mobile.feature.crm.components.DealDetailQuickActions
 import ir.divarfiling.mobile.feature.crm.components.DealStageSection
@@ -67,6 +71,7 @@ fun DealsScreen(
     onNavigateContacts: () -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
+    onNavigateFinance: () -> Unit = {},
     viewModel: DealsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -175,25 +180,34 @@ fun DealsScreen(
                 if (state.deals.isNotEmpty() || state.pipelineColumns.isNotEmpty()) {
                     item {
                         DealsStatsRow(
-                            activeCount = DealsFilters.activeCount(state.deals),
+                            activeCount = DealsFilters.activeCount(state.deals, state.stageDefs),
                             pipelineValueLabel = DealsFilters.formatCompactToman(
                                 DealsFilters.pipelineValue(state.deals, state.pipelineColumns),
                             ),
                             weightedForecastLabel = DealsFilters.formatCompactToman(
-                                DealsFilters.weightedForecast(state.deals),
+                                DealsFilters.weightedForecast(state.deals, state.stageDefs),
                             ),
                             closedCommissionLabel = DealsFilters.formatCompactToman(
-                                DealsFilters.closedCommission(state.deals),
+                                DealsFilters.closedCommission(state.deals, state.stageDefs),
                             ),
-                            closingRate = DealsFilters.closingRate(state.deals),
+                            closingRate = DealsFilters.closingRate(state.deals, state.stageDefs),
                         )
                     }
+                }
+                item {
+                    DealsActionBar(
+                        onNewDeal = { viewModel.toggleCreate(true) },
+                        onContactsClick = onNavigateContacts,
+                        onSalesStagesClick = viewModel::openStagesEditor,
+                        onFinanceClick = onNavigateFinance,
+                    )
                 }
                 if (state.pipelineColumns.isNotEmpty()) {
                     item {
                         DealsPipelineBar(
                             columns = state.pipelineColumns,
                             selectedStage = state.selectedStage,
+                            definitions = state.stageDefs,
                             onStageClick = viewModel::selectStage,
                         )
                     }
@@ -285,6 +299,7 @@ fun DealsScreen(
                         items(displayedDeals, key = { it.id }) { deal ->
                             DealListCard(
                                 deal = deal,
+                                stageDef = DealUiUtils.defFor(deal.stage, state.stageDefs),
                                 onClick = { onDealClick(deal.id) },
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
@@ -302,6 +317,7 @@ fun DealsScreen(
                             items(deals, key = { it.id }) { deal ->
                                 DealListCard(
                                     deal = deal,
+                                    stageDef = DealUiUtils.defFor(deal.stage, state.stageDefs),
                                     onClick = { onDealClick(deal.id) },
                                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                                 )
@@ -327,6 +343,7 @@ fun DealsScreen(
                 contacts = state.contactPicker,
                 properties = state.propertyPicker,
                 stages = state.stages,
+                stageDefs = state.stageDefs,
                 selectedContactId = state.createCustomerId,
                 selectedPropertyId = state.createPropertyId,
                 selectedStage = state.createStage,
@@ -344,6 +361,38 @@ fun DealsScreen(
                 onNotesChange = viewModel::onCreateNotesChange,
                 onSubmit = viewModel::submitCreate,
                 onDismiss = { viewModel.toggleCreate(false) },
+            )
+        }
+    }
+
+    if (state.showStagesEditor) {
+        DfModalBottomSheet(
+            onDismissRequest = viewModel::dismissStagesEditor,
+            dismissOnScrimOrSwipe = false,
+        ) {
+            DealStagesEditorSheet(
+                definitions = state.editorDefs,
+                presets = state.stagePresets,
+                counts = state.stageCounts,
+                colors = state.stageColors,
+                icons = state.stageIcons,
+                expandedId = state.editorExpandedId,
+                isSaving = state.isSavingStages,
+                onPreset = viewModel::applyEditorPreset,
+                onAdd = viewModel::addEditorStage,
+                onReset = viewModel::resetStages,
+                onExpand = viewModel::expandEditorStage,
+                onNameChange = viewModel::onEditorNameChange,
+                onDescriptionChange = viewModel::onEditorDescriptionChange,
+                onProbabilityChange = viewModel::onEditorProbabilityChange,
+                onRotDaysChange = viewModel::onEditorRotDaysChange,
+                onColorChange = viewModel::onEditorColorChange,
+                onIconChange = viewModel::onEditorIconChange,
+                onMoveUp = { viewModel.moveEditorStage(it, -1) },
+                onMoveDown = { viewModel.moveEditorStage(it, 1) },
+                onRemove = viewModel::removeEditorStage,
+                onSave = viewModel::saveStages,
+                onDismiss = viewModel::dismissStagesEditor,
             )
         }
     }
@@ -399,8 +448,16 @@ fun DealDetailScreen(
                         item {
                             DealDetailHeroCard(
                                 deal = deal,
+                                stageDef = DealUiUtils.defFor(deal.stage, state.stageDefs),
                                 onContactClick = { deal.customerId?.let(onContactClick) },
                                 onPropertyClick = deal.propertyId?.let { { onPropertyClick(it) } },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                        item {
+                            DealFinanceCard(
+                                deal = deal,
+                                onEdit = { viewModel.toggleFinanceSheet(true) },
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
@@ -416,6 +473,7 @@ fun DealDetailScreen(
                         item {
                             DealStageSection(
                                 stages = state.stages,
+                                stageDefs = state.stageDefs,
                                 currentStage = deal.stage,
                                 isSubmitting = state.isSubmitting,
                                 onStageSelect = viewModel::changeStage,
@@ -425,6 +483,7 @@ fun DealDetailScreen(
                         item {
                             DealDetailQuickActions(
                                 onEdit = { viewModel.toggleEditSheet(true) },
+                                onFinance = { viewModel.toggleFinanceSheet(true) },
                                 onDelete = { viewModel.toggleDeleteDialog(true) },
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
@@ -443,6 +502,7 @@ fun DealDetailScreen(
                 commissionRate = state.editCommissionRate,
                 notes = state.editNotes,
                 stages = state.stages,
+                stageDefs = state.stageDefs,
                 selectedStage = state.editStage.ifBlank { deal?.stage.orEmpty() },
                 properties = state.propertyPicker,
                 selectedPropertyId = state.editPropertyId,
@@ -455,6 +515,41 @@ fun DealDetailScreen(
                 onPropertySelect = viewModel::onEditPropertySelect,
                 onSave = viewModel::saveEdit,
                 onDismiss = { viewModel.toggleEditSheet(false) },
+            )
+        }
+    }
+
+    if (state.showFinanceSheet && deal != null) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleFinanceSheet(false) }) {
+            DealFinanceSheet(
+                dealKind = state.financeDealKind,
+                commissionMode = state.financeCommissionMode,
+                buyerRate = state.financeBuyerRate,
+                sellerRate = state.financeSellerRate,
+                buyerAmount = state.financeBuyerAmount,
+                sellerAmount = state.financeSellerAmount,
+                advisorPercent = state.financeAdvisorPercent,
+                agencyPercent = state.financeAgencyPercent,
+                costs = state.financeCosts,
+                received = state.financeReceived,
+                payoutStatus = state.financePayoutStatus,
+                notes = state.financeNotes,
+                basis = deal.contractAmount ?: deal.amount ?: 0L,
+                isSubmitting = state.isSubmitting,
+                onDealKindChange = viewModel::onFinanceDealKindChange,
+                onCommissionModeChange = viewModel::onFinanceModeChange,
+                onBuyerRateChange = viewModel::onFinanceBuyerRateChange,
+                onSellerRateChange = viewModel::onFinanceSellerRateChange,
+                onBuyerAmountChange = viewModel::onFinanceBuyerAmountChange,
+                onSellerAmountChange = viewModel::onFinanceSellerAmountChange,
+                onAdvisorPercentChange = viewModel::onFinanceAdvisorPercentChange,
+                onAgencyPercentChange = viewModel::onFinanceAgencyPercentChange,
+                onCostsChange = viewModel::onFinanceCostsChange,
+                onReceivedChange = viewModel::onFinanceReceivedChange,
+                onPayoutChange = viewModel::onFinancePayoutChange,
+                onNotesChange = viewModel::onFinanceNotesChange,
+                onSave = viewModel::saveFinance,
+                onDismiss = { viewModel.toggleFinanceSheet(false) },
             )
         }
     }

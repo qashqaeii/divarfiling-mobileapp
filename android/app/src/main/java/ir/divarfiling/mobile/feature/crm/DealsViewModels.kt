@@ -11,9 +11,14 @@ import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.export.ExportShareHelper
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.ContactSuggestResponse
-import ir.divarfiling.mobile.core.network.DealCreateRequest
+import ir.divarfiling.mobile.core.network.DealFinanceDashboardData
+import ir.divarfiling.mobile.core.network.DealFinanceDefaultsDto
+import ir.divarfiling.mobile.core.network.DealFinanceSaveRequest
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
+import ir.divarfiling.mobile.core.network.DealStageDefDto
+import ir.divarfiling.mobile.core.network.DealStagePresetDto
+import ir.divarfiling.mobile.core.network.DealStagesSaveRequest
 import ir.divarfiling.mobile.core.network.DealUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyContactMatchItemDto
 import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
@@ -52,6 +57,11 @@ data class DealsUiState(
     val savedFilters: List<SavedFilterDto> = emptyList(),
     val activeSavedFilterId: Long? = null,
     val stages: List<String> = CrmConstants.DEAL_STAGES,
+    val stageDefs: List<DealStageDefDto> = emptyList(),
+    val stagePresets: List<DealStagePresetDto> = emptyList(),
+    val stageCounts: Map<String, Int> = emptyMap(),
+    val stageColors: List<String> = emptyList(),
+    val stageIcons: List<String> = emptyList(),
     val selectedStage: String? = null,
     val query: String = "",
     val isLoading: Boolean = false,
@@ -61,6 +71,10 @@ data class DealsUiState(
     val page: Int = 1,
     val error: String? = null,
     val showCreateDialog: Boolean = false,
+    val showStagesEditor: Boolean = false,
+    val editorDefs: List<DealStageDefDto> = emptyList(),
+    val editorExpandedId: String? = null,
+    val isSavingStages: Boolean = false,
     val createTitle: String = "",
     val createCustomerId: Long? = null,
     val createStage: String = "سرنخ",
@@ -125,7 +139,17 @@ class DealsViewModel @Inject constructor(
             }
             repository.getStages().let { result ->
                 if (result is ApiResult.Success) {
-                    _uiState.update { it.copy(stages = result.data) }
+                    _uiState.update {
+                        it.copy(
+                            stages = result.data.stages.ifEmpty { it.stages },
+                            stageDefs = result.data.definitions,
+                            stagePresets = result.data.presets,
+                            stageCounts = result.data.counts,
+                            stageColors = result.data.colors,
+                            stageIcons = result.data.icons,
+                            createStage = result.data.stages.firstOrNull() ?: it.createStage,
+                        )
+                    }
                 }
             }
             repository.getPipeline().let { result ->
@@ -299,7 +323,7 @@ class DealsViewModel @Inject constructor(
                 createCustomerId = if (show) it.createCustomerId else null,
                 createPropertyId = if (show) it.createPropertyId else null,
                 createCommissionRate = if (show) it.createCommissionRate else "",
-                createStage = if (show) it.createStage else "سرنخ",
+                createStage = if (show) it.createStage else (it.stages.firstOrNull() ?: "سرنخ"),
             )
         }
         if (show) {
@@ -391,6 +415,132 @@ class DealsViewModel @Inject constructor(
             }
         }
     }
+
+    fun openStagesEditor() {
+        val defs = _uiState.value.stageDefs.ifEmpty {
+            _uiState.value.stages.mapIndexed { index, name ->
+                DealStageDefDto(id = "stage-$index", name = name)
+            }
+        }
+        _uiState.update {
+            it.copy(showStagesEditor = true, editorDefs = defs, editorExpandedId = null)
+        }
+    }
+
+    fun dismissStagesEditor() = _uiState.update { it.copy(showStagesEditor = false) }
+
+    fun expandEditorStage(id: String?) = _uiState.update { it.copy(editorExpandedId = id) }
+
+    private fun updateEditorDef(id: String, transform: (DealStageDefDto) -> DealStageDefDto) {
+        _uiState.update { state ->
+            state.copy(editorDefs = state.editorDefs.map { if (it.id == id) transform(it) else it })
+        }
+    }
+
+    fun onEditorNameChange(id: String, name: String) = updateEditorDef(id) { it.copy(name = name) }
+    fun onEditorDescriptionChange(id: String, value: String) = updateEditorDef(id) { it.copy(description = value) }
+    fun onEditorProbabilityChange(id: String, value: Int) = updateEditorDef(id) { it.copy(probability = value.coerceIn(0, 100)) }
+    fun onEditorRotDaysChange(id: String, value: Int) = updateEditorDef(id) { it.copy(rotDays = value.coerceIn(0, 90)) }
+    fun onEditorColorChange(id: String, color: String) = updateEditorDef(id) { it.copy(color = color) }
+    fun onEditorIconChange(id: String, icon: String) = updateEditorDef(id) { it.copy(icon = icon) }
+
+    fun moveEditorStage(id: String, delta: Int) {
+        _uiState.update { state ->
+            val list = state.editorDefs.toMutableList()
+            val idx = list.indexOfFirst { it.id == id }
+            val target = idx + delta
+            if (idx < 0 || target < 0 || target > list.lastIndex) return@update state
+            if (list[idx].locked || list[target].locked) return@update state
+            val item = list.removeAt(idx)
+            list.add(target, item)
+            state.copy(editorDefs = list)
+        }
+    }
+
+    fun removeEditorStage(id: String) {
+        _uiState.update { state ->
+            val remaining = state.editorDefs.filter { it.id != id }
+            val activeCount = remaining.count { !it.locked }
+            if (activeCount < 1) return@update state
+            state.copy(editorDefs = remaining, editorExpandedId = state.editorExpandedId.takeUnless { it == id })
+        }
+    }
+
+    fun addEditorStage() {
+        _uiState.update { state ->
+            if (state.editorDefs.size >= 14) return@update state
+            val insertAt = state.editorDefs.indexOfFirst { it.locked }.takeIf { it >= 0 } ?: state.editorDefs.size
+            val color = state.stageColors.getOrNull(insertAt) ?: "#6366f1"
+            val def = DealStageDefDto(
+                id = "stage-new-${System.currentTimeMillis()}",
+                name = "مرحله ${insertAt + 1}",
+                color = color,
+                bg = color,
+                icon = "fa-handshake",
+                probability = 50,
+                rotDays = 5,
+                kind = "active",
+            )
+            val list = state.editorDefs.toMutableList()
+            list.add(insertAt, def)
+            state.copy(editorDefs = list, editorExpandedId = def.id)
+        }
+    }
+
+    fun applyEditorPreset(presetId: String) {
+        val preset = _uiState.value.stagePresets.firstOrNull { it.id == presetId } ?: return
+        _uiState.update {
+            it.copy(editorDefs = preset.definitions, editorExpandedId = null)
+        }
+    }
+
+    fun saveStages() {
+        val defs = _uiState.value.editorDefs
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingStages = true, error = null) }
+            when (val result = repository.saveStages(DealStagesSaveRequest(definitions = defs))) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSavingStages = false,
+                            showStagesEditor = false,
+                            stages = result.data.stages,
+                            stageDefs = result.data.definitions,
+                            stagePresets = result.data.presets,
+                            stageCounts = result.data.counts,
+                            error = null,
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSavingStages = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun resetStages() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingStages = true, error = null) }
+            when (val result = repository.saveStages(DealStagesSaveRequest(reset = true))) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSavingStages = false,
+                            editorDefs = result.data.definitions,
+                            stages = result.data.stages,
+                            stageDefs = result.data.definitions,
+                            editorExpandedId = null,
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSavingStages = false, error = result.message)
+                }
+            }
+        }
+    }
 }
 
 data class DealDetailUiState(
@@ -401,6 +551,7 @@ data class DealDetailUiState(
     val error: String? = null,
     val successMessage: String? = null,
     val stages: List<String> = CrmConstants.DEAL_STAGES,
+    val stageDefs: List<DealStageDefDto> = emptyList(),
     val showEditSheet: Boolean = false,
     val showDeleteDialog: Boolean = false,
     val showLostReasonDialog: Boolean = false,
@@ -413,6 +564,19 @@ data class DealDetailUiState(
     val editCommissionRate: String = "",
     val editPropertyId: Long? = null,
     val propertyPicker: List<PropertyDto> = emptyList(),
+    val showFinanceSheet: Boolean = false,
+    val financeDealKind: String = "sale",
+    val financeCommissionMode: String = "percent",
+    val financeBuyerRate: String = "0.5",
+    val financeSellerRate: String = "0.5",
+    val financeBuyerAmount: String = "",
+    val financeSellerAmount: String = "",
+    val financeAdvisorPercent: String = "70",
+    val financeAgencyPercent: String = "30",
+    val financeCosts: String = "0",
+    val financeReceived: String = "0",
+    val financePayoutStatus: String = "unpaid",
+    val financeNotes: String = "",
 )
 
 @HiltViewModel
@@ -432,21 +596,31 @@ class DealDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = it.deal == null, error = null) }
             repository.getStages().let { r ->
-                if (r is ApiResult.Success) _uiState.update { it.copy(stages = r.data) }
+                if (r is ApiResult.Success) {
+                    _uiState.update {
+                        it.copy(
+                            stages = r.data.stages.ifEmpty { it.stages },
+                            stageDefs = r.data.definitions,
+                        )
+                    }
+                }
             }
             when (val result = repository.getDeal(dealId)) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        deal = result.data,
-                        isLoading = false,
-                        isRefreshing = false,
-                        editTitle = result.data.title,
-                        editAmount = result.data.amount?.toString().orEmpty(),
-                        editNotes = result.data.notes.orEmpty(),
-                        editStage = result.data.stage.orEmpty(),
-                        editCommissionRate = result.data.commissionRate?.toString().orEmpty(),
-                        editPropertyId = result.data.propertyId,
-                    )
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            deal = result.data,
+                            isLoading = false,
+                            isRefreshing = false,
+                            editTitle = result.data.title,
+                            editAmount = result.data.amount?.toString().orEmpty(),
+                            editNotes = result.data.notes.orEmpty(),
+                            editStage = result.data.stage.orEmpty(),
+                            editCommissionRate = result.data.commissionRate?.toString().orEmpty(),
+                            editPropertyId = result.data.propertyId,
+                        )
+                    }
+                    hydrateFinance(result.data)
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoading = false, isRefreshing = false, error = result.message)
@@ -580,6 +754,157 @@ class DealDetailViewModel @Inject constructor(
     fun onEditStageChange(v: String) = _uiState.update { it.copy(editStage = v) }
     fun onEditCommissionRateChange(v: String) = _uiState.update { it.copy(editCommissionRate = v) }
     fun onEditPropertySelect(id: Long?) = _uiState.update { it.copy(editPropertyId = id) }
+    fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
+
+    private fun hydrateFinance(deal: DealDto) {
+        _uiState.update {
+            it.copy(
+                financeDealKind = deal.dealKind ?: "sale",
+                financeCommissionMode = deal.commissionMode ?: "percent",
+                financeBuyerRate = deal.buyerCommissionRate?.toString() ?: "0.5",
+                financeSellerRate = deal.sellerCommissionRate?.toString() ?: "0.5",
+                financeBuyerAmount = deal.buyerCommissionAmount?.toString().orEmpty(),
+                financeSellerAmount = deal.sellerCommissionAmount?.toString().orEmpty(),
+                financeAdvisorPercent = deal.advisorSharePercent?.toString() ?: "70",
+                financeAgencyPercent = deal.agencySharePercent?.toString() ?: "30",
+                financeCosts = (deal.dealCosts ?: 0L).toString(),
+                financeReceived = (deal.receivedAmount ?: 0L).toString(),
+                financePayoutStatus = deal.payoutStatus ?: "unpaid",
+                financeNotes = deal.payoutNotes.orEmpty(),
+            )
+        }
+    }
+
+    fun toggleFinanceSheet(show: Boolean) = _uiState.update { it.copy(showFinanceSheet = show) }
+    fun onFinanceDealKindChange(v: String) = _uiState.update { it.copy(financeDealKind = v) }
+    fun onFinanceModeChange(v: String) = _uiState.update { it.copy(financeCommissionMode = v) }
+    fun onFinanceBuyerRateChange(v: String) = _uiState.update { it.copy(financeBuyerRate = v) }
+    fun onFinanceSellerRateChange(v: String) = _uiState.update { it.copy(financeSellerRate = v) }
+    fun onFinanceBuyerAmountChange(v: String) = _uiState.update { it.copy(financeBuyerAmount = v) }
+    fun onFinanceSellerAmountChange(v: String) = _uiState.update { it.copy(financeSellerAmount = v) }
+    fun onFinanceAdvisorPercentChange(v: String) = _uiState.update { it.copy(financeAdvisorPercent = v) }
+    fun onFinanceAgencyPercentChange(v: String) = _uiState.update { it.copy(financeAgencyPercent = v) }
+    fun onFinanceCostsChange(v: String) = _uiState.update { it.copy(financeCosts = v) }
+    fun onFinanceReceivedChange(v: String) = _uiState.update { it.copy(financeReceived = v) }
+    fun onFinancePayoutChange(v: String) = _uiState.update { it.copy(financePayoutStatus = v) }
+    fun onFinanceNotesChange(v: String) = _uiState.update { it.copy(financeNotes = v) }
+
+    fun saveFinance() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            val state = _uiState.value
+            when (val result = repository.updateDealFinance(
+                    dealId,
+                    DealFinanceSaveRequest(
+                        dealKind = state.financeDealKind,
+                        commissionMode = state.financeCommissionMode,
+                        buyerCommissionRate = state.financeBuyerRate.toDoubleOrNull(),
+                        sellerCommissionRate = state.financeSellerRate.toDoubleOrNull(),
+                        buyerCommissionAmount = state.financeBuyerAmount.toLongOrNull(),
+                        sellerCommissionAmount = state.financeSellerAmount.toLongOrNull(),
+                        advisorSharePercent = state.financeAdvisorPercent.toDoubleOrNull(),
+                        agencySharePercent = state.financeAgencyPercent.toDoubleOrNull(),
+                        dealCosts = state.financeCosts.toLongOrNull(),
+                        receivedAmount = state.financeReceived.toLongOrNull(),
+                        payoutStatus = state.financePayoutStatus,
+                        payoutNotes = state.financeNotes,
+                    ),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(isSubmitting = false, showFinanceSheet = false, successMessage = "تنظیمات مالی ذخیره شد")
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = result.message) }
+            }
+        }
+    }
+}
+
+data class DealFinanceUiState(
+    val dashboard: DealFinanceDashboardData? = null,
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val isSubmitting: Boolean = false,
+    val error: String? = null,
+    val successMessage: String? = null,
+    val showSettings: Boolean = false,
+    val editDefaults: DealFinanceDefaultsDto = DealFinanceDefaultsDto(),
+)
+
+@HiltViewModel
+class DealFinanceViewModel @Inject constructor(
+    private val repository: DealsRepository,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(DealFinanceUiState(isLoading = true))
+    val uiState: StateFlow<DealFinanceUiState> = _uiState.asStateFlow()
+
+    init {
+        load()
+    }
+
+    fun load(period: String? = null) {
+        viewModelScope.launch {
+            val selected = period ?: _uiState.value.dashboard?.period ?: "month"
+            _uiState.update { it.copy(isLoading = it.dashboard == null, error = null) }
+            when (val result = repository.getFinanceDashboard(selected)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        dashboard = result.data,
+                        editDefaults = result.data.defaults,
+                        isLoading = false,
+                        isRefreshing = false,
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun refresh() {
+        _uiState.update { it.copy(isRefreshing = true) }
+        load()
+    }
+
+    fun selectPeriod(period: String) = load(period)
+
+    fun toggleSettings(show: Boolean) {
+        val defaults = _uiState.value.dashboard?.defaults ?: DealFinanceDefaultsDto()
+        _uiState.update { it.copy(showSettings = show, editDefaults = defaults) }
+    }
+
+    fun onSaleBuyerChange(v: String) = updateDefaults { it.copy(saleBuyerRate = v.toDoubleOrNull() ?: it.saleBuyerRate) }
+    fun onSaleSellerChange(v: String) = updateDefaults { it.copy(saleSellerRate = v.toDoubleOrNull() ?: it.saleSellerRate) }
+    fun onRentBuyerChange(v: String) = updateDefaults { it.copy(rentBuyerRate = v.toDoubleOrNull() ?: it.rentBuyerRate) }
+    fun onRentSellerChange(v: String) = updateDefaults { it.copy(rentSellerRate = v.toDoubleOrNull() ?: it.rentSellerRate) }
+    fun onDefaultAdvisorChange(v: String) = updateDefaults { it.copy(advisorSharePercent = v.toDoubleOrNull() ?: it.advisorSharePercent) }
+    fun onDefaultAgencyChange(v: String) = updateDefaults { it.copy(agencySharePercent = v.toDoubleOrNull() ?: it.agencySharePercent) }
+
+    private fun updateDefaults(block: (DealFinanceDefaultsDto) -> DealFinanceDefaultsDto) {
+        _uiState.update { it.copy(editDefaults = block(it.editDefaults)) }
+    }
+
+    fun saveSettings() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = repository.saveFinanceSettings(_uiState.value.editDefaults)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isSubmitting = false,
+                        showSettings = false,
+                        editDefaults = result.data.defaults,
+                        successMessage = "پیش‌فرض کمیسیون ذخیره شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = result.message) }
+            }
+        }
+    }
+
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 }
 

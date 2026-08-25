@@ -47,9 +47,10 @@ fun DealDetailHeroCard(
     onContactClick: () -> Unit,
     onPropertyClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    stageDef: ir.divarfiling.mobile.core.network.DealStageDefDto? = null,
 ) {
     val stage = deal.stage ?: "سرنخ"
-    val stageColors = DealUiUtils.dealStageColors(stage)
+    val stageColors = DealUiUtils.dealStageColors(stage, stageDef)
     val progress = DealsFilters.progressPercent(deal)
     val accent = DealUiUtils.dealAccentColor(deal.customerName ?: deal.title)
     val (jalaliDate, jalaliTime) = DealsFilters.splitDateTime(deal.updatedAt)
@@ -152,10 +153,22 @@ fun DealDetailHeroCard(
                 )
 
                 Text(
-                    text = "احتمال بسته‌شدن بر اساس مرحله فروش",
+                    text = DealUiUtils.stageDescription(stage, stageDef),
                     style = AppTypography.labelSmall,
                     color = DfColors.TextMuted,
                 )
+
+                if (deal.isStale) {
+                    Surface(shape = AppShapes.Chip, color = DfColors.AmberLight) {
+                        Text(
+                            text = "این معامله ${deal.daysInStage} روز در این مرحله مانده و نیاز به پیگیری دارد",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            style = AppTypography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DfColors.Amber,
+                        )
+                    }
+                }
 
                 HorizontalDivider(color = DfThemeColors.outlineSubtle())
 
@@ -197,9 +210,25 @@ fun DealDetailHeroCard(
                 deal.commissionAmount?.let { commission ->
                     DealDetailMetaRow(
                         icon = DfIcons.Coins,
-                        label = "کمیسیون",
+                        label = "کمیسیون کل",
                         value = FormatUtils.formatPriceToman(commission),
                         valueColor = DfColors.Green,
+                    )
+                }
+                deal.advisorCommission?.let { advisor ->
+                    DealDetailMetaRow(
+                        icon = DfIcons.Handshake,
+                        label = "سهم مشاور",
+                        value = FormatUtils.formatPriceToman(advisor),
+                        valueColor = DfColors.Green,
+                    )
+                }
+                deal.agencyCommission?.let { agency ->
+                    DealDetailMetaRow(
+                        icon = DfIcons.Landmark,
+                        label = "سهم املاک",
+                        value = FormatUtils.formatPriceToman(agency),
+                        valueColor = DfColors.Purple,
                     )
                 }
                 deal.commissionRate?.let { rate ->
@@ -270,6 +299,7 @@ fun DealStageSection(
     isSubmitting: Boolean,
     onStageSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    stageDefs: List<ir.divarfiling.mobile.core.network.DealStageDefDto> = emptyList(),
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -299,6 +329,7 @@ fun DealStageSection(
             currentStage = currentStage,
             isSubmitting = isSubmitting,
             onStageSelect = onStageSelect,
+            stageDefs = stageDefs,
         )
     }
 }
@@ -306,6 +337,7 @@ fun DealStageSection(
 @Composable
 fun DealDetailQuickActions(
     onEdit: () -> Unit,
+    onFinance: () -> Unit = {},
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -319,6 +351,14 @@ fun DealDetailQuickActions(
             background = DfColors.PurpleContainer,
             iconTint = DfColors.Purple,
             onClick = onEdit,
+            modifier = Modifier.weight(1f),
+        )
+        DealQuickAction(
+            label = "مالی",
+            icon = DfIcons.Coins,
+            background = DfColors.GreenLight,
+            iconTint = DfColors.Green,
+            onClick = onFinance,
             modifier = Modifier.weight(1f),
         )
         DealQuickAction(

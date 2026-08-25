@@ -25,6 +25,7 @@ fun DealCreateSheet(
     contacts: List<ContactDto>,
     properties: List<PropertyDto>,
     stages: List<String>,
+    stageDefs: List<ir.divarfiling.mobile.core.network.DealStageDefDto> = emptyList(),
     selectedContactId: Long?,
     selectedPropertyId: Long?,
     selectedStage: String,
@@ -147,6 +148,7 @@ fun DealCreateSheet(
             )
             DealStageOptionList(
                 stages = stageOptions,
+                stageDefs = stageDefs,
                 selectedStage = resolvedStage,
                 onStageSelect = onStageChange,
                 enabled = !isSubmitting,

@@ -918,6 +918,7 @@ fun CrmHubScreen(
     onContacts: () -> Unit,
     onToday: () -> Unit,
     onDeals: () -> Unit = {},
+    onFinance: () -> Unit = onDeals,
     onProperties: () -> Unit = {},
     onOwners: () -> Unit = onContacts,
     onTemplates: () -> Unit = onContacts,
@@ -928,6 +929,11 @@ fun CrmHubScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dealsValueLabel = if (state.dealsTotalValue > 0) {
         FormatUtils.formatPriceShort(state.dealsTotalValue) + " تومان"
+    } else {
+        "—"
+    }
+    val advisorIncomeLabel = if (state.advisorIncome > 0) {
+        FormatUtils.formatPriceShort(state.advisorIncome) + " تومان"
     } else {
         "—"
     }
@@ -1045,6 +1051,27 @@ fun CrmHubScreen(
                             CrmHubStatChip("ارزش کل", dealsValueLabel, iconRes = DfDecorIcons.BarChart),
                         ),
                         onClick = onDeals,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        illustration = {
+                            CrmDealsIllustration(
+                                tint = DfColors.Green,
+                                background = DfColors.GreenLight,
+                            )
+                        },
+                    )
+                }
+                item {
+                    CrmHubFeatureCard(
+                        title = "مالی معاملات",
+                        subtitle = "کمیسیون مشاور، سهم املاک و وصول",
+                        iconRes = DfDecorIcons.Coins,
+                        tint = DfColors.Green,
+                        background = DfColors.GreenLight,
+                        stats = listOf(
+                            CrmHubStatChip("درآمد این ماه", advisorIncomeLabel, iconRes = DfDecorIcons.Coins),
+                            CrmHubStatChip("معاملات فعال", state.activeDealsCount.toString(), iconRes = DfDecorIcons.Handshake),
+                        ),
+                        onClick = onFinance,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         illustration = {
                             CrmDealsIllustration(

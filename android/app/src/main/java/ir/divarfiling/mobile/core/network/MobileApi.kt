@@ -248,6 +248,21 @@ interface MobileApi {
     @GET("crm/deals/stages")
     suspend fun getDealStages(): ApiEnvelope
 
+    @POST("crm/deals/stages")
+    suspend fun saveDealStages(@Body body: DealStagesSaveRequest): ApiEnvelope
+
+    @GET("crm/deals/finance")
+    suspend fun getDealFinanceDashboard(@Query("period") period: String? = null): ApiEnvelope
+
+    @GET("crm/deals/finance/settings")
+    suspend fun getDealFinanceSettings(): ApiEnvelope
+
+    @POST("crm/deals/finance/settings")
+    suspend fun saveDealFinanceSettings(@Body body: DealFinanceDefaultsDto): ApiEnvelope
+
+    @PATCH("crm/deals/{id}/finance")
+    suspend fun updateDealFinance(@Path("id") dealId: Long, @Body body: DealFinanceSaveRequest): ApiEnvelope
+
     @GET("crm/deals/{id}")
     suspend fun getDeal(@Path("id") dealId: Long): ApiEnvelope
 

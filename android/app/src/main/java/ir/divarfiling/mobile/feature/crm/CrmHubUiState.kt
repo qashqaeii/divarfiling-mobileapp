@@ -10,6 +10,7 @@ data class CrmHubUiState(
     val overdueCount: Int = 0,
     val activeDealsCount: Int = 0,
     val dealsTotalValue: Long = 0,
+    val advisorIncome: Long = 0,
     val propertiesCount: Int = 0,
     val openCasesCount: Int = 0,
 )

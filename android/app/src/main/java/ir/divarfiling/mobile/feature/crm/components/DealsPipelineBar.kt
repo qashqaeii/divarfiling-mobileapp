@@ -36,6 +36,7 @@ fun DealsPipelineBar(
     selectedStage: String?,
     onStageClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    definitions: List<ir.divarfiling.mobile.core.network.DealStageDefDto> = emptyList(),
 ) {
     if (columns.isEmpty()) return
     val total = columns.sumOf { it.count }.coerceAtLeast(1)
@@ -58,7 +59,7 @@ fun DealsPipelineBar(
                     modifier = Modifier
                         .weight(weight)
                         .height(10.dp)
-                        .background(stageColor(column.stage)),
+                        .background(columnStageColor(column, definitions)),
                 )
             }
         }
@@ -73,7 +74,7 @@ fun DealsPipelineBar(
                 Surface(
                     onClick = { onStageClick(column.stage) },
                     shape = AppShapes.Chip,
-                    color = if (selected) stageColor(column.stage).copy(alpha = 0.14f) else DfColors.Surface,
+                    color = if (selected) columnStageColor(column, definitions).copy(alpha = 0.14f) else DfColors.Surface,
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -84,12 +85,12 @@ fun DealsPipelineBar(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(stageColor(column.stage)),
+                                .background(columnStageColor(column, definitions)),
                         )
                         Text(
                             text = "${column.stage} ${column.count}",
                             style = AppTypography.labelSmall,
-                            color = if (selected) stageColor(column.stage) else DfColors.TextSecondary,
+                            color = if (selected) columnStageColor(column, definitions) else DfColors.TextSecondary,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         )
                     }
@@ -97,6 +98,15 @@ fun DealsPipelineBar(
             }
         }
     }
+}
+
+private fun columnStageColor(
+    column: DealPipelineColumnDto,
+    definitions: List<ir.divarfiling.mobile.core.network.DealStageDefDto>,
+): Color {
+    column.color?.takeIf { it.isNotBlank() }?.let { return DealUiUtils.hexColor(it) }
+    DealUiUtils.defFor(column.stage, definitions)?.let { return DealUiUtils.hexColor(it.color) }
+    return stageColor(column.stage)
 }
 
 private fun stageColor(stage: String): Color = when {

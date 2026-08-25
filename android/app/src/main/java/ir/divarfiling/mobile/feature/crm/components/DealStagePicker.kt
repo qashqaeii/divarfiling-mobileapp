@@ -35,6 +35,8 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
 
+import ir.divarfiling.mobile.core.network.DealStageDefDto
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DealStageOptionList(
@@ -43,18 +45,20 @@ fun DealStageOptionList(
     onStageSelect: (String) -> Unit,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
+    stageDefs: List<DealStageDefDto> = emptyList(),
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
         stages.forEach { stage ->
-            val probability = DealsFilters.stageProbability(stage)
+            val def = DealUiUtils.defFor(stage, stageDefs)
+            val probability = def?.probability ?: DealsFilters.stageProbability(stage)
             DfSheetOptionRow(
                 label = stage,
                 selected = stage == selectedStage,
                 onClick = { if (enabled) onStageSelect(stage) },
-                icon = DealUiUtils.stageIcon(stage),
+                icon = DealUiUtils.stageIcon(stage, def),
                 trailing = "$probability٪",
             )
         }
@@ -69,6 +73,7 @@ fun DealStagePipeline(
     isSubmitting: Boolean,
     onStageSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    stageDefs: List<DealStageDefDto> = emptyList(),
 ) {
     val resolvedStage = currentStage ?: stages.firstOrNull().orEmpty()
     val currentIndex = stages.indexOf(resolvedStage).coerceAtLeast(0)
@@ -89,12 +94,13 @@ fun DealStagePipeline(
             stages.forEachIndexed { index, stage ->
                 val isPast = index < currentIndex
                 val isCurrent = index == currentIndex
-                val colors = DealUiUtils.dealStageColors(stage)
-                val probability = DealsFilters.stageProbability(stage)
+                val def = DealUiUtils.defFor(stage, stageDefs)
+                val colors = DealUiUtils.dealStageColors(stage, def)
+                val probability = def?.probability ?: DealsFilters.stageProbability(stage)
 
                 DealPipelineStepRow(
                     stage = stage,
-                    description = DealUiUtils.stageDescription(stage),
+                    description = DealUiUtils.stageDescription(stage, def),
                     probability = probability,
                     accent = colors.first,
                     background = colors.second,

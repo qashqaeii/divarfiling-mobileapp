@@ -36,6 +36,7 @@ fun DealEditSheet(
     onPropertySelect: (Long?) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
+    stageDefs: List<ir.divarfiling.mobile.core.network.DealStageDefDto> = emptyList(),
 ) {
     val propertyOptions = listOf(NO_PROPERTY) + properties.map { it.title }
     val selectedPropertyLabel = properties.firstOrNull { it.id == selectedPropertyId }?.title ?: NO_PROPERTY
@@ -111,6 +112,7 @@ fun DealEditSheet(
         DfSheetSection(title = "مرحله فروش") {
             DealStageOptionList(
                 stages = stages,
+                stageDefs = stageDefs,
                 selectedStage = selectedStage,
                 onStageSelect = onStageChange,
                 enabled = !isSubmitting,
