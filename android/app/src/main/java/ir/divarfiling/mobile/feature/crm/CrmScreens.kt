@@ -45,6 +45,7 @@ import ir.divarfiling.mobile.feature.crm.components.ContactsFilters
 import ir.divarfiling.mobile.feature.crm.components.ContactsStatsRow
 import ir.divarfiling.mobile.feature.crm.components.ContactsToolsPanel
 import ir.divarfiling.mobile.feature.crm.components.ContactsExportSheet
+import ir.divarfiling.mobile.feature.export.ExportSecurityGate
 import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 import ir.divarfiling.mobile.feature.crm.components.TodayFilterChip
@@ -633,6 +634,13 @@ fun ContactsScreen(
             )
         }
     }
+
+    ExportSecurityGate(
+        visible = state.showExportSecuritySheet,
+        exportLabel = "مخاطبین",
+        onVerified = { viewModel.onExportSecurityCompleted(context) },
+        onDismiss = viewModel::dismissExportSecuritySheet,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

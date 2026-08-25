@@ -16,6 +16,7 @@ import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.ExportRepository
+import ir.divarfiling.mobile.data.repository.ExportSecurityRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,6 +63,8 @@ data class ContactsUiState(
     val leadDatasetNeighborhoods: List<String> = emptyList(),
     val isExporting: Boolean = false,
     val showExportSheet: Boolean = false,
+    val showExportSecuritySheet: Boolean = false,
+    val pendingExportFormat: ExportFormat? = null,
     val exportMessage: String? = null,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
@@ -73,6 +76,7 @@ data class ContactsUiState(
 class ContactsViewModel @Inject constructor(
     private val crmRepository: CrmRepository,
     private val exportRepository: ExportRepository,
+    private val exportSecurityRepository: ExportSecurityRepository,
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
     private val extrasRepository: ir.divarfiling.mobile.data.repository.WorkspaceExtrasRepository,
@@ -494,6 +498,30 @@ class ContactsViewModel @Inject constructor(
     fun clearExportMessage() = _uiState.update { it.copy(exportMessage = null) }
 
     fun exportContacts(context: Context, format: ExportFormat) {
+        if (!exportSecurityRepository.hasValidToken()) {
+            _uiState.update {
+                it.copy(
+                    pendingExportFormat = format,
+                    showExportSecuritySheet = true,
+                    showExportSheet = false,
+                )
+            }
+            return
+        }
+        performExportContacts(context, format)
+    }
+
+    fun dismissExportSecuritySheet() = _uiState.update {
+        it.copy(showExportSecuritySheet = false, pendingExportFormat = null)
+    }
+
+    fun onExportSecurityCompleted(context: Context) {
+        val format = _uiState.value.pendingExportFormat ?: return
+        _uiState.update { it.copy(showExportSecuritySheet = false, pendingExportFormat = null) }
+        performExportContacts(context, format)
+    }
+
+    private fun performExportContacts(context: Context, format: ExportFormat) {
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isExporting = true) }

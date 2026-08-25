@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.DealsRepository
 import ir.divarfiling.mobile.data.repository.ExportRepository
+import ir.divarfiling.mobile.data.repository.ExportSecurityRepository
 import ir.divarfiling.mobile.data.repository.WorkspaceExtrasRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -603,6 +604,8 @@ data class PropertiesUiState(
     val isUploadingImages: Boolean = false,
     val isExporting: Boolean = false,
     val showExportSheet: Boolean = false,
+    val showExportSecuritySheet: Boolean = false,
+    val pendingExportFormat: ExportFormat? = null,
     val showSaveFilterDialog: Boolean = false,
     val saveFilterName: String = "",
     val showCreateFolderDialog: Boolean = false,
@@ -661,6 +664,7 @@ object PropertyFolderConstants {
 class PropertiesViewModel @Inject constructor(
     private val repository: DealsRepository,
     private val exportRepository: ExportRepository,
+    private val exportSecurityRepository: ExportSecurityRepository,
     private val extrasRepository: WorkspaceExtrasRepository,
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
@@ -1241,6 +1245,30 @@ class PropertiesViewModel @Inject constructor(
     fun clearExportMessage() = _uiState.update { it.copy(exportMessage = null) }
 
     fun exportProperties(context: Context, format: ExportFormat) {
+        if (!exportSecurityRepository.hasValidToken()) {
+            _uiState.update {
+                it.copy(
+                    pendingExportFormat = format,
+                    showExportSecuritySheet = true,
+                    showExportSheet = false,
+                )
+            }
+            return
+        }
+        performExportProperties(context, format)
+    }
+
+    fun dismissExportSecuritySheet() = _uiState.update {
+        it.copy(showExportSecuritySheet = false, pendingExportFormat = null)
+    }
+
+    fun onExportSecurityCompleted(context: Context) {
+        val format = _uiState.value.pendingExportFormat ?: return
+        _uiState.update { it.copy(showExportSecuritySheet = false, pendingExportFormat = null) }
+        performExportProperties(context, format)
+    }
+
+    private fun performExportProperties(context: Context, format: ExportFormat) {
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isExporting = true) }

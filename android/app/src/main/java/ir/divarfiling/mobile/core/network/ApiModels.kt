@@ -149,6 +149,36 @@ data class PasswordCompleteRequest(
 )
 
 @Serializable
+data class ExportPasswordRequest(val password: String)
+
+@Serializable
+data class ExportOtpVerifyRequest(
+    @SerialName("password_challenge") val passwordChallenge: String,
+    val code: String,
+)
+
+@Serializable
+data class ExportResendOtpRequest(
+    @SerialName("password_challenge") val passwordChallenge: String,
+)
+
+@Serializable
+data class ExportSecurityChallengeData(
+    @SerialName("phone_display") val phoneDisplay: String? = null,
+    @SerialName("expires_in") val expiresIn: Int? = null,
+    @SerialName("resend_in") val resendIn: Int? = null,
+    @SerialName("password_challenge") val passwordChallenge: String? = null,
+    @SerialName("debug_code") val debugCode: String? = null,
+)
+
+@Serializable
+data class ExportSecurityTokenData(
+    @SerialName("export_token") val exportToken: String,
+    @SerialName("expires_in") val expiresIn: Long? = null,
+    @SerialName("phone_display") val phoneDisplay: String? = null,
+)
+
+@Serializable
 data class ShopPlanFeatureDto(
     val text: String,
     val icon: String = "fa-check",

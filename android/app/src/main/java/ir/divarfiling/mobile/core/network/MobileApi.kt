@@ -38,6 +38,15 @@ interface MobileApi {
     @POST("auth/password-reset")
     suspend fun completePasswordReset(@Body body: PasswordCompleteRequest): ApiEnvelope
 
+    @POST("export-security/verify-password")
+    suspend fun exportSecurityVerifyPassword(@Body body: ExportPasswordRequest): ApiEnvelope
+
+    @POST("export-security/verify-otp")
+    suspend fun exportSecurityVerifyOtp(@Body body: ExportOtpVerifyRequest): ApiEnvelope
+
+    @POST("export-security/resend-otp")
+    suspend fun exportSecurityResendOtp(@Body body: ExportResendOtpRequest): ApiEnvelope
+
     @POST("auth/verify-phone/request")
     suspend fun verifyPhoneRequest(): ApiEnvelope
 

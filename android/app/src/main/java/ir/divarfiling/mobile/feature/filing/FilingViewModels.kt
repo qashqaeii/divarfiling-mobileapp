@@ -17,6 +17,7 @@ import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.ExportRepository
+import ir.divarfiling.mobile.data.repository.ExportSecurityRepository
 import ir.divarfiling.mobile.data.repository.FilingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,6 +35,8 @@ data class DatasetsUiState(
     val isLoadingMore: Boolean = false,
     val isExporting: Boolean = false,
     val showExportSheet: Boolean = false,
+    val showExportSecuritySheet: Boolean = false,
+    val pendingExportFormat: ExportFormat? = null,
     val exportTarget: DatasetDto? = null,
     val exportMessage: String? = null,
     val showDeleteSheet: Boolean = false,
@@ -49,6 +52,7 @@ data class DatasetsUiState(
 class DatasetsViewModel @Inject constructor(
     private val filingRepository: FilingRepository,
     private val exportRepository: ExportRepository,
+    private val exportSecurityRepository: ExportSecurityRepository,
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
 ) : ViewModel() {
@@ -161,6 +165,31 @@ class DatasetsViewModel @Inject constructor(
 
     fun exportDataset(context: Context, format: ExportFormat) {
         val target = _uiState.value.exportTarget ?: return
+        if (!exportSecurityRepository.hasValidToken()) {
+            _uiState.update {
+                it.copy(
+                    pendingExportFormat = format,
+                    showExportSecuritySheet = true,
+                    showExportSheet = false,
+                )
+            }
+            return
+        }
+        performExportDataset(context, target, format)
+    }
+
+    fun dismissExportSecuritySheet() = _uiState.update {
+        it.copy(showExportSecuritySheet = false, pendingExportFormat = null)
+    }
+
+    fun onExportSecurityCompleted(context: Context) {
+        val target = _uiState.value.exportTarget ?: return
+        val format = _uiState.value.pendingExportFormat ?: return
+        _uiState.update { it.copy(showExportSecuritySheet = false, pendingExportFormat = null) }
+        performExportDataset(context, target, format)
+    }
+
+    private fun performExportDataset(context: Context, target: DatasetDto, format: ExportFormat) {
         viewModelScope.launch {
             _uiState.update { it.copy(isExporting = true, exportMessage = null) }
             when (val result = exportRepository.exportDataset(context, target.id, target.name, format)) {
@@ -197,6 +226,8 @@ data class ListingsUiState(
     val isExporting: Boolean = false,
     val isDatasetActionLoading: Boolean = false,
     val showExportSheet: Boolean = false,
+    val showExportSecuritySheet: Boolean = false,
+    val pendingExportFormat: ExportFormat? = null,
     val showRenameDialog: Boolean = false,
     val renameDraft: String = "",
     val pendingDeleteConsultants: Boolean = false,
@@ -217,6 +248,7 @@ data class ListingsUiState(
 class ListingsViewModel @Inject constructor(
     private val filingRepository: FilingRepository,
     private val exportRepository: ExportRepository,
+    private val exportSecurityRepository: ExportSecurityRepository,
     private val extrasRepository: WorkspaceExtrasRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -520,6 +552,31 @@ class ListingsViewModel @Inject constructor(
 
     fun exportDataset(context: Context, format: ExportFormat) {
         val datasetId = _uiState.value.datasetId ?: return
+        if (!exportSecurityRepository.hasValidToken()) {
+            _uiState.update {
+                it.copy(
+                    pendingExportFormat = format,
+                    showExportSecuritySheet = true,
+                    showExportSheet = false,
+                )
+            }
+            return
+        }
+        performExportDataset(context, datasetId, format)
+    }
+
+    fun dismissExportSecuritySheet() = _uiState.update {
+        it.copy(showExportSecuritySheet = false, pendingExportFormat = null)
+    }
+
+    fun onExportSecurityCompleted(context: Context) {
+        val datasetId = _uiState.value.datasetId ?: return
+        val format = _uiState.value.pendingExportFormat ?: return
+        _uiState.update { it.copy(showExportSecuritySheet = false, pendingExportFormat = null) }
+        performExportDataset(context, datasetId, format)
+    }
+
+    private fun performExportDataset(context: Context, datasetId: String, format: ExportFormat) {
         val datasetName = _uiState.value.datasetName ?: "dataset"
         viewModelScope.launch {
             _uiState.update { it.copy(isExporting = true) }

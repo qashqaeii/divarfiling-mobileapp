@@ -55,6 +55,7 @@ import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfExportSheet
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
 import ir.divarfiling.mobile.core.export.ExportFormat
+import ir.divarfiling.mobile.feature.export.ExportSecurityGate
 import ir.divarfiling.mobile.feature.crm.components.PropertiesHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -386,6 +387,13 @@ fun PropertiesScreen(
             )
         }
     }
+
+    ExportSecurityGate(
+        visible = state.showExportSecuritySheet,
+        exportLabel = "فایل‌های شخصی",
+        onVerified = { viewModel.onExportSecurityCompleted(context) },
+        onDismiss = viewModel::dismissExportSecuritySheet,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

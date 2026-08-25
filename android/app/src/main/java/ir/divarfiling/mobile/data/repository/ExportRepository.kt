@@ -18,6 +18,7 @@ import javax.inject.Singleton
 class ExportRepository @Inject constructor(
     @Named("mobile") private val client: OkHttpClient,
     private val sessionStore: SessionStore,
+    private val exportSecurityStore: ir.divarfiling.mobile.core.security.ExportSecurityStore,
 ) {
     suspend fun downloadExport(
         context: Context,
@@ -54,12 +55,24 @@ class ExportRepository @Inject constructor(
             if (!deviceId.isNullOrBlank()) {
                 requestBuilder.header("X-Device-Id", deviceId)
             }
+            exportSecurityStore.getToken()?.let { exportToken ->
+                requestBuilder.header("X-Export-Token", exportToken)
+            }
 
             client.newCall(requestBuilder.build()).execute().use { response ->
         if (!response.isSuccessful) {
                     val code = response.code
+                    val bodyText = response.body?.string().orEmpty()
                     val message = when (code) {
-                        403 -> "لایسنس فعال برای خروجی فایل نیاز است"
+                        403 -> when {
+                            bodyText.contains("EXPORT_VERIFICATION_REQUIRED", ignoreCase = true) ||
+                                bodyText.contains("تأیید هویت", ignoreCase = false) ->
+                                "برای خروجی، تأیید هویت (رمز + کد پیامک) لازم است"
+                            bodyText.contains("LICENSE_REQUIRED", ignoreCase = true) ||
+                                bodyText.contains("لایسنس", ignoreCase = false) ->
+                                "لایسنس فعال برای خروجی فایل نیاز است"
+                            else -> "دسترسی به خروجی مجاز نیست"
+                        }
                         404 -> "فایل یافت نشد یا حذف شده است"
                         else -> "خطا در دریافت فایل ($code)"
                     }

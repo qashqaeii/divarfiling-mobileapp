@@ -54,6 +54,7 @@ import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.export.ExportFormat
+import ir.divarfiling.mobile.feature.export.ExportSecurityGate
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
@@ -244,6 +245,13 @@ fun DatasetsScreen(
             )
         }
     }
+
+    ExportSecurityGate(
+        visible = state.showExportSecuritySheet,
+        exportLabel = state.exportTarget?.name ?: "فایل فایلینگ",
+        onVerified = { viewModel.onExportSecurityCompleted(context) },
+        onDismiss = viewModel::dismissExportSecuritySheet,
+    )
 
     if (state.showDeleteSheet) {
         val target = state.deleteTarget
@@ -585,6 +593,13 @@ fun ListingsScreen(
             )
         }
     }
+
+    ExportSecurityGate(
+        visible = state.showExportSecuritySheet,
+        exportLabel = state.datasetName ?: "فایل فایلینگ",
+        onVerified = { viewModel.onExportSecurityCompleted(context) },
+        onDismiss = viewModel::dismissExportSecuritySheet,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
