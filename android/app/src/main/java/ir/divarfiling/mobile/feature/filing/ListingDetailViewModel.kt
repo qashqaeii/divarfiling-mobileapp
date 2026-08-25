@@ -124,6 +124,9 @@ data class ListingDetailUiState(
     val aiSummary: String = "",
     val isSummarizing: Boolean = false,
     val aiIsFallback: Boolean = false,
+    val aiModelLabel: String = "",
+    val aiSummaryHighlights: List<String> = emptyList(),
+    val aiNegotiationTip: String = "",
     val showDeleteDialog: Boolean = false,
     val isDeleting: Boolean = false,
 )
@@ -657,6 +660,9 @@ class ListingDetailViewModel @Inject constructor(
                         isSummarizing = false,
                         aiSummary = result.data.text,
                         aiIsFallback = result.data.isFallback,
+                        aiModelLabel = result.data.modelLabel.orEmpty(),
+                        aiSummaryHighlights = result.data.summaryDetail?.highlights.orEmpty(),
+                        aiNegotiationTip = result.data.summaryDetail?.negotiationTip.orEmpty(),
                     )
                 }
                 is ApiResult.Error -> _uiState.update {

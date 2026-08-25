@@ -84,7 +84,7 @@ data class ContactDetailUiState(
     val messageTemplates: List<MessageTemplateDto> = emptyList(),
     val templatesLoading: Boolean = false,
     val showTemplatePicker: Boolean = false,
-    val pendingWhatsAppShare: String? = null,
+    val pendingSocialShare: PendingContactSocialShare? = null,
     val showMatchesSheet: Boolean = false,
     val matchesData: ContactMatchesData? = null,
     val matchesLoading: Boolean = false,
@@ -535,7 +535,16 @@ class ContactDetailViewModel @Inject constructor(
                             showSendFilingSheet = false,
                             sendListingNote = "",
                             successMessage = "فایل به مخاطب ارسال شد",
-                            pendingWhatsAppShare = if (shareViaWhatsApp) shareMessage else null,
+                            pendingSocialShare = if (shareViaWhatsApp) {
+                                PendingContactSocialShare(
+                                    channel = "whatsapp",
+                                    message = shareMessage,
+                                    phone = _uiState.value.data?.contact?.phone,
+                                    socialLinks = _uiState.value.data?.contact?.socialLinks.orEmpty(),
+                                )
+                            } else {
+                                null
+                            },
                         )
                     }
                     load()
@@ -580,13 +589,15 @@ class ContactDetailViewModel @Inject constructor(
         }
     }
 
-    fun suggestMatches(matches: List<PropertyMatchDto>, shareViaWhatsApp: Boolean = false) {
+    fun suggestMatches(matches: List<PropertyMatchDto>, shareChannel: String? = null) {
         if (matches.isEmpty()) return
         val note = _uiState.value.matchSuggestNote.trim().ifBlank { null }
+        val contact = _uiState.value.data?.contact
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             when (val result = crmRepository.suggestContactMatches(contactId, matches, note)) {
                 is ApiResult.Success -> {
+                    val shareText = result.data.whatsappText?.takeIf { it.isNotBlank() }
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
@@ -594,8 +605,13 @@ class ContactDetailViewModel @Inject constructor(
                             matchSuggestNote = "",
                             showMatchTemplatePicker = false,
                             successMessage = "${result.data.suggestedCount} ملک پیشنهاد شد",
-                            pendingWhatsAppShare = if (shareViaWhatsApp) {
-                                result.data.whatsappText
+                            pendingSocialShare = if (shareChannel != null && shareText != null) {
+                                PendingContactSocialShare(
+                                    channel = shareChannel,
+                                    message = shareText,
+                                    phone = contact?.phone,
+                                    socialLinks = contact?.socialLinks.orEmpty(),
+                                )
                             } else {
                                 null
                             },
@@ -674,7 +690,7 @@ class ContactDetailViewModel @Inject constructor(
         }
         it.copy(matchSuggestNote = next, showMatchTemplatePicker = false)
     }
-    fun clearPendingWhatsAppShare() = _uiState.update { it.copy(pendingWhatsAppShare = null) }
+    fun clearPendingSocialShare() = _uiState.update { it.copy(pendingSocialShare = null) }
     fun toggleNoteDialog(show: Boolean) = _uiState.update { it.copy(showNoteDialog = show) }
     fun toggleReminderDialog(show: Boolean) = _uiState.update {
         if (show) {

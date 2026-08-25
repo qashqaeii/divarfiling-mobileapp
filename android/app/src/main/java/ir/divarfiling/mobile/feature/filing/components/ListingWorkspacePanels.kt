@@ -29,6 +29,9 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.HorizontalDivider
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
@@ -374,6 +377,11 @@ fun ListingAiSummarySection(
     onCopy: () -> Unit,
     onOpenAssistant: () -> Unit,
     modifier: Modifier = Modifier,
+    title: String = "خلاصه هوشمند",
+    modelLabel: String? = null,
+    highlights: List<String> = emptyList(),
+    negotiationTip: String = "",
+    emptyHint: String = "نکات کلیدی این آگهی را برای تماس و پیشنهاد به مشتری خلاصه کنید.",
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -404,14 +412,16 @@ fun ListingAiSummarySection(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = "خلاصه هوشمند",
+                        text = title,
                         style = AppTypography.cardTitle,
                         fontWeight = FontWeight.SemiBold,
                         color = DfThemeColors.textPrimary(),
                     )
                 }
-                if (isFallback && summary.isNotBlank()) {
-                    DfBadge(text = "محلی", color = DfColors.SurfaceVariant, textColor = DfThemeColors.textMuted())
+                val badgeLabel = modelLabel?.takeIf { it.isNotBlank() }
+                    ?: if (isFallback && summary.isNotBlank()) "مدل داخلی سیستم" else null
+                badgeLabel?.let {
+                    DfBadge(text = it, color = DfColors.SurfaceVariant, textColor = DfThemeColors.textMuted())
                 }
             }
 
@@ -435,17 +445,18 @@ fun ListingAiSummarySection(
                 }
                 summary.isBlank() -> {
                     Text(
-                        text = "نکات کلیدی این آگهی را برای تماس و پیشنهاد به مشتری خلاصه کنید.",
+                        text = emptyHint,
                         style = AppTypography.bodyDescription,
                         color = DfThemeColors.textMuted(),
                     )
                     TextButton(onClick = onGenerate) { Text("تولید خلاصه") }
                 }
                 else -> {
-                    Text(
-                        text = summary,
-                        style = AppTypography.bodyDescription,
-                        color = DfThemeColors.textSecondary(),
+                    AiSummaryStructuredBody(
+                        summary = summary,
+                        highlights = highlights,
+                        negotiationTip = negotiationTip,
+                        isFallback = isFallback,
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -455,6 +466,82 @@ fun ListingAiSummarySection(
                         TextButton(onClick = onGenerate) { Text("تولید مجدد") }
                         TextButton(onClick = onOpenAssistant) { Text("دستیار") }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiSummaryStructuredBody(
+    summary: String,
+    highlights: List<String>,
+    negotiationTip: String,
+    isFallback: Boolean,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        summary.lines().filter { it.isNotBlank() }.forEachIndexed { index, line ->
+            if (index > 0) Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = line.trim(),
+                style = if (index == 0) AppTypography.labelLarge else AppTypography.bodyDescription,
+                fontWeight = if (index == 0) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (index == 0) DfThemeColors.textPrimary() else DfThemeColors.textSecondary(),
+            )
+        }
+
+        if (highlights.isNotEmpty()) {
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = DfThemeColors.outlineSubtle(),
+            )
+            Text(
+                "نکات کلیدی",
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textMuted(),
+            )
+            highlights.forEach { item ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("•", style = AppTypography.bodyDescription, color = DfColors.Purple)
+                    Text(
+                        item,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+
+        negotiationTip.takeIf { it.isNotBlank() }?.let { tip ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.CardSmall,
+                color = if (isFallback) DfColors.AmberLight.copy(alpha = 0.55f) else DfColors.PurpleContainer.copy(alpha = 0.45f),
+                border = BorderStroke(0.5.dp, if (isFallback) DfColors.Amber.copy(alpha = 0.25f) else DfColors.Purple.copy(alpha = 0.18f)),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        "نکته مذاکره",
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isFallback) DfColors.Amber else DfColors.Purple,
+                    )
+                    Text(
+                        tip,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                    )
                 }
             }
         }

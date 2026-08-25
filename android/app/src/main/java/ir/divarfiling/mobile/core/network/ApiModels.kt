@@ -343,6 +343,8 @@ data class ContactDto(
     val address: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("matching_tolerance_percent") val matchingTolerancePercent: Int? = null,
+    @SerialName("social_links") val socialLinks: Map<String, String> = emptyMap(),
+    @SerialName("active_channels") val activeChannels: List<String> = emptyList(),
 )
 
 @Serializable
@@ -1754,11 +1756,27 @@ data class AiSummarizeListingRequest(
 )
 
 @Serializable
+data class AiSummarizePropertyRequest(
+    @SerialName("property_id") val propertyId: Long,
+)
+
+@Serializable
+data class AiSummaryDetail(
+    val summary: String = "",
+    val highlights: List<String> = emptyList(),
+    @SerialName("negotiation_tip") val negotiationTip: String = "",
+)
+
+@Serializable
 data class AiTextResult(
     val text: String = "",
     @SerialName("quota_remaining") val quotaRemaining: Int? = null,
     @SerialName("is_fallback") val isFallback: Boolean = false,
     val source: String? = null,
+    val provider: String? = null,
+    val model: String? = null,
+    @SerialName("model_label") val modelLabel: String? = null,
+    @SerialName("summary") val summaryDetail: AiSummaryDetail? = null,
 )
 
 @Serializable

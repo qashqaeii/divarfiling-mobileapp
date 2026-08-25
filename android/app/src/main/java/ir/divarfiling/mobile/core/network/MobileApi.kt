@@ -571,6 +571,9 @@ interface MobileApi {
     @POST("ai/summarize-listing")
     suspend fun aiSummarizeListing(@Body body: AiSummarizeListingRequest): ApiEnvelope
 
+    @POST("ai/summarize-property")
+    suspend fun aiSummarizeProperty(@Body body: AiSummarizePropertyRequest): ApiEnvelope
+
     @GET("crm/team/overview")
     suspend fun getTeamOverview(): ApiEnvelope
 

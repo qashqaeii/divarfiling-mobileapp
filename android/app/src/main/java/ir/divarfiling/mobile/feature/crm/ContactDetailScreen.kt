@@ -86,14 +86,10 @@ fun ContactDetailScreen(
         uri?.let { viewModel.uploadDocument(it) }
     }
 
-    LaunchedEffect(state.pendingWhatsAppShare) {
-        val message = state.pendingWhatsAppShare ?: return@LaunchedEffect
-        contact?.phone?.let { phone ->
-            val wa = phone.removePrefix("0")
-            val text = Uri.encode(message)
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/98$wa?text=$text")))
-        }
-        viewModel.clearPendingWhatsAppShare()
+    LaunchedEffect(state.pendingSocialShare) {
+        val pending = state.pendingSocialShare ?: return@LaunchedEffect
+        ContactSocialShare.open(context, pending)
+        viewModel.clearPendingSocialShare()
     }
 
     LaunchedEffect(state.successMessage, state.error) {
@@ -509,6 +505,8 @@ fun ContactDetailScreen(
         isLoading = state.matchesLoading,
         isSubmitting = state.isSubmitting,
         contactPhone = contact?.phone,
+        activeChannels = contact?.activeChannels.orEmpty(),
+        socialLinks = contact?.socialLinks.orEmpty(),
         note = state.matchSuggestNote,
         templates = state.messageTemplates,
         templatesLoading = state.templatesLoading,
@@ -517,8 +515,8 @@ fun ContactDetailScreen(
         onToggleTemplatePicker = viewModel::toggleMatchTemplatePicker,
         onApplyTemplate = viewModel::applyMatchMessageTemplate,
         onDismiss = { viewModel.toggleMatchesSheet(false) },
-        onSuggest = { selected, viaWhatsApp ->
-            viewModel.suggestMatches(selected, shareViaWhatsApp = viaWhatsApp)
+        onSuggest = { selected, shareChannel ->
+            viewModel.suggestMatches(selected, shareChannel = shareChannel)
         },
     )
 }

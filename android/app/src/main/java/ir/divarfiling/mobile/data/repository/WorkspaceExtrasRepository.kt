@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.data.repository
 import ir.divarfiling.mobile.core.network.AiDraftMessageRequest
 import ir.divarfiling.mobile.core.network.AiQuotaData
 import ir.divarfiling.mobile.core.network.AiSummarizeListingRequest
+import ir.divarfiling.mobile.core.network.AiSummarizePropertyRequest
 import ir.divarfiling.mobile.core.network.AiTextResult
 import ir.divarfiling.mobile.core.network.ApiEnvelope
 import ir.divarfiling.mobile.core.network.CloudExtractionCreateRequest
@@ -183,6 +184,9 @@ class WorkspaceExtrasRepository @Inject constructor(
 
     suspend fun aiSummarizeListing(request: AiSummarizeListingRequest): ApiResult<AiTextResult> =
         single { api.aiSummarizeListing(request) }
+
+    suspend fun aiSummarizeProperty(request: AiSummarizePropertyRequest): ApiResult<AiTextResult> =
+        single { api.aiSummarizeProperty(request) }
 
     suspend fun createCloudExtraction(request: CloudExtractionCreateRequest): ApiResult<CloudExtractionJobDto> =
         single { api.createCloudExtraction(request) }

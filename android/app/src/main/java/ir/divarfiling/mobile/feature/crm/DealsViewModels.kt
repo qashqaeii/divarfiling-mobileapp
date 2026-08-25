@@ -26,6 +26,7 @@ import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyLinkContactRequest
 import ir.divarfiling.mobile.core.network.PropertyUpdateRequest
+import ir.divarfiling.mobile.core.network.AiSummarizePropertyRequest
 import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterCreateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterDto
@@ -1348,6 +1349,12 @@ data class PropertyDetailUiState(
     val showLocationMapPicker: Boolean = false,
     val nearbyPoisPayload: NearbyPoisPayloadDto? = null,
     val nearbyPoisLoading: Boolean = false,
+    val aiSummary: String = "",
+    val isSummarizing: Boolean = false,
+    val aiIsFallback: Boolean = false,
+    val aiModelLabel: String = "",
+    val aiSummaryHighlights: List<String> = emptyList(),
+    val aiNegotiationTip: String = "",
 )
 
 enum class PropertyDetailTab(val label: String) {
@@ -1469,6 +1476,28 @@ class PropertyDetailViewModel @Inject constructor(
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(nearbyPoisLoading = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun summarizeProperty() {
+        if (_uiState.value.isSummarizing || propertyId <= 0) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSummarizing = true, error = null) }
+            when (val result = extrasRepository.aiSummarizeProperty(AiSummarizePropertyRequest(propertyId))) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isSummarizing = false,
+                        aiSummary = result.data.text,
+                        aiIsFallback = result.data.isFallback,
+                        aiModelLabel = result.data.modelLabel.orEmpty(),
+                        aiSummaryHighlights = result.data.summaryDetail?.highlights.orEmpty(),
+                        aiNegotiationTip = result.data.summaryDetail?.negotiationTip.orEmpty(),
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSummarizing = false, error = result.message)
                 }
             }
         }

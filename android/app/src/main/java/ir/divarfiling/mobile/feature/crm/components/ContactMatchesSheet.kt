@@ -51,7 +51,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -61,8 +60,6 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
-import ir.divarfiling.mobile.core.design.components.DfGlassButton
-import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -72,6 +69,9 @@ import ir.divarfiling.mobile.core.network.ContactMatchGroupDto
 import ir.divarfiling.mobile.core.network.ContactMatchesData
 import ir.divarfiling.mobile.core.network.MessageTemplateDto
 import ir.divarfiling.mobile.core.network.PropertyMatchDto
+import androidx.compose.ui.res.painterResource
+import ir.divarfiling.mobile.feature.crm.ContactShareChannel
+import ir.divarfiling.mobile.feature.crm.ContactSocialShare
 
 private enum class MatchFilter(val label: String) {
     ALL("همه"),
@@ -90,6 +90,8 @@ fun ContactMatchesSheet(
     isLoading: Boolean,
     isSubmitting: Boolean,
     contactPhone: String?,
+    activeChannels: List<String> = emptyList(),
+    socialLinks: Map<String, String> = emptyMap(),
     note: String,
     templates: List<MessageTemplateDto>,
     templatesLoading: Boolean,
@@ -98,7 +100,7 @@ fun ContactMatchesSheet(
     onToggleTemplatePicker: (Boolean) -> Unit,
     onApplyTemplate: (MessageTemplateDto) -> Unit,
     onDismiss: () -> Unit,
-    onSuggest: (List<PropertyMatchDto>, shareViaWhatsApp: Boolean) -> Unit,
+    onSuggest: (List<PropertyMatchDto>, shareChannel: String?) -> Unit,
 ) {
     if (!visible) return
 
@@ -126,11 +128,14 @@ fun ContactMatchesSheet(
         }
     }
 
-    val hasPhone = !contactPhone.isNullOrBlank()
     val selectedCount = selected.size
     val allSelected = filteredMatches.isNotEmpty() && filteredMatches.all { matchKey(it) in selected }
     val canSubmit = selectedCount > 0 && !isSubmitting
     val topMatches = remember(allMatches) { allMatches.take(3) }
+
+    val shareChannels = remember(contactPhone, activeChannels, socialLinks) {
+        ContactSocialShare.resolveMessagingChannels(contactPhone, activeChannels, socialLinks)
+    }
 
     DfModalBottomSheet(onDismissRequest = onDismiss) {
         DfSheetScaffold(
@@ -143,6 +148,7 @@ fun ContactMatchesSheet(
             iconContainerColor = DfColors.PurpleContainer,
             iconTint = DfColors.Purple,
             onClose = onDismiss,
+            bodyHeightFraction = 0.78f,
             footer = if (!isLoading && matches?.eligible != false && allMatches.isNotEmpty()) {
                 {
                     MatchSuggestFooter(
@@ -152,7 +158,7 @@ fun ContactMatchesSheet(
                         allSelected = allSelected,
                         canSubmit = canSubmit,
                         isSubmitting = isSubmitting,
-                        hasPhone = hasPhone,
+                        shareChannels = shareChannels,
                         onToggleSelectAll = {
                             selected = if (allSelected) {
                                 selected - filteredMatches.map { matchKey(it) }.toSet()
@@ -164,10 +170,10 @@ fun ContactMatchesSheet(
                             selected = topMatches.map { matchKey(it) }.toSet()
                         },
                         onSuggest = {
-                            onSuggest(allMatches.filter { matchKey(it) in selected }, false)
+                            onSuggest(allMatches.filter { matchKey(it) in selected }, null)
                         },
-                        onSuggestWhatsApp = {
-                            onSuggest(allMatches.filter { matchKey(it) in selected }, true)
+                        onSuggestViaChannel = { channel ->
+                            onSuggest(allMatches.filter { matchKey(it) in selected }, channel)
                         },
                     )
                 }
@@ -432,28 +438,16 @@ private fun MatchSuggestFooter(
     allSelected: Boolean,
     canSubmit: Boolean,
     isSubmitting: Boolean,
-    hasPhone: Boolean,
+    shareChannels: List<ContactShareChannel>,
     onToggleSelectAll: () -> Unit,
     onSelectTop: () -> Unit,
     onSuggest: () -> Unit,
-    onSuggestWhatsApp: () -> Unit,
+    onSuggestViaChannel: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        if (selectedCount > 0) {
-            LinearProgressIndicator(
-                progress = { selectedCount.toFloat() / totalCount.coerceAtLeast(1) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(AppShapes.Chip),
-                color = DfColors.Purple,
-                trackColor = DfColors.PurpleContainer,
-            )
-        }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -464,7 +458,7 @@ private fun MatchSuggestFooter(
                     text = if (selectedCount == 0) {
                         "ملک‌های مناسب را انتخاب کنید"
                     } else {
-                        "${DateUtils.toPersianDigits(selectedCount.toString())} فایل انتخاب‌شده"
+                        "${DateUtils.toPersianDigits(selectedCount.toString())} فایل انتخاب‌شده از ${DateUtils.toPersianDigits(totalCount.toString())}"
                     },
                     style = AppTypography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
@@ -472,7 +466,7 @@ private fun MatchSuggestFooter(
                 )
                 if (filteredCount < totalCount && selectedCount == 0) {
                     Text(
-                        "${DateUtils.toPersianDigits(filteredCount.toString())} در فیلتر فعلی",
+                        "${DateUtils.toPersianDigits(filteredCount.toString())} مورد در فیلتر فعلی",
                         style = AppTypography.labelSmall,
                         color = DfColors.TextMuted,
                     )
@@ -481,11 +475,23 @@ private fun MatchSuggestFooter(
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 DfGlassTextButton(text = "۳ برتر", onClick = onSelectTop, compact = true)
                 DfGlassTextButton(
-                    text = if (allSelected) "لغو" else "همه",
+                    text = if (allSelected) "لغو انتخاب" else "انتخاب همه",
                     onClick = onToggleSelectAll,
                     compact = true,
                 )
             }
+        }
+
+        if (selectedCount > 0) {
+            LinearProgressIndicator(
+                progress = { selectedCount.toFloat() / totalCount.coerceAtLeast(1) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(AppShapes.Chip),
+                color = DfColors.Purple,
+                trackColor = DfColors.PurpleContainer.copy(alpha = 0.45f),
+            )
         }
 
         DfPrimaryButton(
@@ -500,17 +506,85 @@ private fun MatchSuggestFooter(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        if (hasPhone) {
-            DfGlassButton(
-                text = "ثبت + ارسال واتساپ",
-                onClick = onSuggestWhatsApp,
+        if (shareChannels.isNotEmpty()) {
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                icon = DfIcons.MessageCircle,
-                accent = DfColors.Green,
-                variant = DfGlassButtonVariant.Accent,
-                enabled = canSubmit,
-            )
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                Text(
+                    "ثبت و ارسال در",
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfColors.TextMuted,
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    shareChannels.forEach { channel ->
+                        MatchSocialShareButton(
+                            channel = channel,
+                            enabled = canSubmit,
+                            onClick = { onSuggestViaChannel(channel.key) },
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun MatchSocialShareButton(
+    channel: ContactShareChannel,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Surface(
+            onClick = onClick,
+            enabled = enabled,
+            shape = CircleShape,
+            color = channel.accent.copy(alpha = if (enabled) 0.14f else 0.07f),
+            border = BorderStroke(0.5.dp, channel.accent.copy(alpha = if (enabled) 0.35f else 0.18f)),
+            modifier = Modifier.size(52.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                when {
+                    channel.iconRes != null -> {
+                        Icon(
+                            painter = painterResource(channel.iconRes),
+                            contentDescription = channel.label,
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+                    channel.emoji != null -> {
+                        Text(channel.emoji, style = AppTypography.sectionTitle)
+                    }
+                    channel.vectorIcon != null -> {
+                        Icon(
+                            channel.vectorIcon,
+                            contentDescription = channel.label,
+                            tint = channel.accent,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            channel.label,
+            style = AppTypography.labelSmall,
+            color = if (enabled) DfColors.TextSecondary else DfColors.TextMuted,
+            maxLines = 1,
+        )
     }
 }
 
@@ -526,92 +600,108 @@ private fun MatchInsightHero(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = Color.Transparent,
-        shadowElevation = AppElevations.subtle,
+        color = DfColors.Surface,
+        border = BorderStroke(0.5.dp, DfColors.Purple.copy(alpha = 0.12f)),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(AppShapes.Card)
                 .background(
-                    Brush.linearGradient(
+                    Brush.horizontalGradient(
                         listOf(
-                            DfColors.Purple.copy(alpha = 0.14f),
-                            DfColors.Blue.copy(alpha = 0.09f),
-                            DfColors.Green.copy(alpha = 0.05f),
+                            DfColors.Purple.copy(alpha = 0.05f),
+                            DfColors.Blue.copy(alpha = 0.03f),
+                            Color.Transparent,
                         ),
                     ),
                 )
-                .padding(AppSpacing.md),
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f),
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(DfColors.Purple.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             DfIcons.WandSparkles,
                             contentDescription = null,
                             tint = DfColors.Purple,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(16.dp),
                         )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             if (isBuilder) "پیشنهاد دوگانه سازنده" else "تحلیل هوشمند",
                             style = AppTypography.labelLarge,
                             fontWeight = FontWeight.Bold,
+                            color = DfColors.TextPrimary,
+                        )
+                        Text(
+                            "بر اساس نیاز و بودجه مخاطب",
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextMuted,
+                        )
+                    }
+                }
+                if (selectedCount > 0) {
+                    Surface(shape = AppShapes.Chip, color = DfColors.Purple.copy(alpha = 0.12f)) {
+                        Text(
+                            "${DateUtils.toPersianDigits(selectedCount.toString())} انتخاب",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = AppTypography.labelSmall,
+                            fontWeight = FontWeight.Bold,
                             color = DfColors.Purple,
                         )
                     }
-                    if (selectedCount > 0) {
-                        Surface(shape = AppShapes.Chip, color = DfColors.Purple) {
-                            Text(
-                                "${DateUtils.toPersianDigits(selectedCount.toString())} انتخاب",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                style = AppTypography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                            )
-                        }
-                    }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                InsightStat(
+                    label = "پیشنهاد",
+                    value = DateUtils.toPersianDigits(total.toString()),
+                    accent = DfColors.Purple,
+                    modifier = Modifier.weight(1f),
+                )
+                if (crmCount > 0) {
                     InsightStat(
-                        label = "پیشنهاد",
-                        value = DateUtils.toPersianDigits(total.toString()),
+                        label = "شخصی",
+                        value = DateUtils.toPersianDigits(crmCount.toString()),
                         accent = DfColors.Purple,
                         modifier = Modifier.weight(1f),
                     )
-                    if (crmCount > 0) {
-                        InsightStat(
-                            label = "شخصی",
-                            value = DateUtils.toPersianDigits(crmCount.toString()),
-                            accent = DfColors.Purple,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    if (divarCount > 0) {
-                        InsightStat(
-                            label = "دیوار",
-                            value = DateUtils.toPersianDigits(divarCount.toString()),
-                            accent = DfColors.Blue,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
+                }
+                if (divarCount > 0) {
                     InsightStat(
-                        label = "بهترین",
-                        value = DateUtils.toPersianDigits(topScore.toString()),
-                        accent = scoreAccent(topScore),
+                        label = "دیوار",
+                        value = DateUtils.toPersianDigits(divarCount.toString()),
+                        accent = DfColors.Blue,
                         modifier = Modifier.weight(1f),
                     )
                 }
+                InsightStat(
+                    label = "بهترین",
+                    value = DateUtils.toPersianDigits(topScore.toString()),
+                    accent = scoreAccent(topScore),
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -627,8 +717,8 @@ private fun InsightStat(
     Column(
         modifier = modifier
             .clip(AppShapes.CardSmall)
-            .background(DfColors.Surface.copy(alpha = 0.82f))
-            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            .background(DfColors.SurfaceVariant.copy(alpha = 0.35f))
+            .padding(horizontal = AppSpacing.xs, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -720,15 +810,16 @@ private fun SmartMatchCard(
             .clickable(onClick = onToggle),
         shape = AppShapes.Card,
         color = bg,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, borderColor),
-        shadowElevation = if (selected) AppElevations.subtle else AppElevations.none,
+        border = BorderStroke(if (selected) 1.dp else 0.5.dp, borderColor),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
-                    .width(4.dp)
+                    .width(3.dp)
                     .fillMaxHeight()
-                    .background(if (selected) DfColors.Purple else sourceAccent.copy(alpha = 0.35f)),
+                    .background(if (selected) DfColors.Purple else sourceAccent.copy(alpha = 0.45f)),
             )
             Row(
                 modifier = Modifier
@@ -877,12 +968,12 @@ private fun MatchScoreRing(score: Int, accent: Color) {
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Box(
-            modifier = Modifier.size(52.dp),
+            modifier = Modifier.size(44.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Canvas(modifier = Modifier.size(52.dp)) {
-                val stroke = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
-                drawCircle(color = accent.copy(alpha = 0.15f), style = stroke)
+            Canvas(modifier = Modifier.size(44.dp)) {
+                val stroke = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+                drawCircle(color = accent.copy(alpha = 0.12f), style = stroke)
                 drawArc(
                     color = accent,
                     startAngle = -90f,

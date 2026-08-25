@@ -492,6 +492,20 @@ fun PropertyDetailScreen(
                         onFetchNearbyPois = viewModel::fetchNearbyPois,
                         nearbyPoisPayload = state.nearbyPoisPayload,
                         nearbyPoisLoading = state.nearbyPoisLoading,
+                        aiSummary = state.aiSummary,
+                        isSummarizing = state.isSummarizing,
+                        aiIsFallback = state.aiIsFallback,
+                        aiModelLabel = state.aiModelLabel,
+                        aiSummaryHighlights = state.aiSummaryHighlights,
+                        aiNegotiationTip = state.aiNegotiationTip,
+                        onGenerateSummary = viewModel::summarizeProperty,
+                        onCopySummary = {
+                            val text = state.aiSummary
+                            if (text.isNotBlank()) {
+                                copyToClipboard(context, text)
+                                scope.launch { snackbar.showSnackbar("خلاصه کپی شد") }
+                            }
+                        },
                     )
                 }
             }

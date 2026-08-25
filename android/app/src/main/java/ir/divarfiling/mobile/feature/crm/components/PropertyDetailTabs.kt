@@ -68,6 +68,7 @@ import ir.divarfiling.mobile.core.network.PropertyContactLinkDto
 import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.feature.crm.PropertyDetailTab
+import ir.divarfiling.mobile.feature.filing.components.ListingAiSummarySection
 
 @Composable
 fun PropertyDetailTabbedContent(
@@ -96,6 +97,14 @@ fun PropertyDetailTabbedContent(
     onFetchNearbyPois: (refresh: Boolean) -> Unit = {},
     nearbyPoisPayload: ir.divarfiling.mobile.core.network.NearbyPoisPayloadDto? = null,
     nearbyPoisLoading: Boolean = false,
+    aiSummary: String = "",
+    isSummarizing: Boolean = false,
+    aiIsFallback: Boolean = false,
+    aiModelLabel: String = "",
+    aiSummaryHighlights: List<String> = emptyList(),
+    aiNegotiationTip: String = "",
+    onGenerateSummary: () -> Unit = {},
+    onCopySummary: () -> Unit = {},
 ) {
     val property = detail.property
     val tabs = buildPropertyTabs(detail)
@@ -250,6 +259,22 @@ fun PropertyDetailTabbedContent(
                     isLoading = nearbyPoisLoading,
                     canEdit = detail.canEdit,
                     onFetch = onFetchNearbyPois,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+            item {
+                ListingAiSummarySection(
+                    title = "خلاصه هوشمند فایل",
+                    summary = aiSummary,
+                    isLoading = isSummarizing,
+                    isFallback = aiIsFallback,
+                    modelLabel = aiModelLabel.takeIf { it.isNotBlank() },
+                    highlights = aiSummaryHighlights,
+                    negotiationTip = aiNegotiationTip,
+                    emptyHint = "خلاصه حرفه‌ای این ملک را برای ارائه به مشتری و مذاکره تولید کنید.",
+                    onGenerate = onGenerateSummary,
+                    onCopy = onCopySummary,
+                    onOpenAssistant = onGenerateSummary,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
