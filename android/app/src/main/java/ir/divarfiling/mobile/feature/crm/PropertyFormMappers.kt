@@ -96,7 +96,6 @@ object PropertyFormMappers {
     private fun buildFeaturePayload(form: PropertyFormState): Map<String, String> {
         val activeKeys = PropertyFeatureSchema.profileFor(form.dealMode, form.propertyType)
             .groups.flatMap { it.keys }.toSet()
-            .groups.flatMap { it.keys }.toSet()
         val payload = form.features.filterKeys { it in activeKeys }
             .filterValues { it.isNotBlank() }
             .toMutableMap()

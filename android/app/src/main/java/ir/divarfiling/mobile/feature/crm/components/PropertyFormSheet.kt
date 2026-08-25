@@ -496,6 +496,7 @@ fun PropertyFormSheet(
 
 enum class PropertyFormMode { Create, Edit }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PropertyFeatureFieldEditor(
     field: ir.divarfiling.mobile.feature.crm.FeatureFieldDef,
