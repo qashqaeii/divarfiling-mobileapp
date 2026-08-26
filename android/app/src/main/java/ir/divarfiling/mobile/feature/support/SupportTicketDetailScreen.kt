@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -26,24 +26,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ir.divarfiling.mobile.core.design.AppColors
-import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDestructiveButton
@@ -57,8 +55,6 @@ import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.DfTextButton
 import ir.divarfiling.mobile.core.design.components.DfTextField
-import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.network.SupportTicketMessageDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,11 +66,21 @@ fun SupportTicketDetailScreen(
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     val ticket = state.ticket
-    val isClosed = ticket?.status == "closed"
+    val isClosed = ticket?.status == TICKET_STATUS_CLOSED
     var showCloseConfirm by remember { mutableStateOf(false) }
     var showReopenConfirm by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    var headerItemCount by remember { mutableIntStateOf(2) }
     val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let(viewModel::selectAttachment)
+    }
+
+    LaunchedEffect(state.scrollToLatest, ticket?.messages?.size) {
+        val messages = ticket?.messages.orEmpty()
+        if (messages.isNotEmpty()) {
+            val targetIndex = headerItemCount + messages.lastIndex
+            listState.animateScrollToItem(targetIndex)
+        }
     }
 
     LaunchedEffect(state.successMessage, state.error) {
@@ -138,6 +144,7 @@ fun SupportTicketDetailScreen(
                 .statusBarsPadding(),
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
@@ -163,6 +170,12 @@ fun SupportTicketDetailScreen(
                 }
                 if (ticket != null) {
                     item {
+                        SupportTicketTimeline(
+                            status = ticket.status,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
+                    item {
                         DfCard(
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             containerColor = DfThemeColors.surface(),
@@ -181,15 +194,17 @@ fun SupportTicketDetailScreen(
                                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
+                                    val (sBg, sFg) = ticketStatusColors(ticket.status)
                                     DfBadge(
                                         text = ticketStatusLabel(ticket.status),
-                                        color = ticketStatusColors(ticket.status).first,
-                                        textColor = ticketStatusColors(ticket.status).second,
+                                        color = sBg,
+                                        textColor = sFg,
                                     )
+                                    val (pBg, pFg) = supportPriorityColors(ticket.priority)
                                     DfBadge(
                                         text = supportPriorityLabel(ticket.priority),
-                                        color = DfThemeColors.primaryContainer(),
-                                        textColor = DfThemeColors.onPrimaryContainer(),
+                                        color = pBg,
+                                        textColor = pFg,
                                     )
                                     DfBadge(
                                         text = supportCategoryLabel(ticket.category),
@@ -206,7 +221,7 @@ fun SupportTicketDetailScreen(
                         }
                     }
                     items(ticket.messages, key = { it.id }) { message ->
-                        MessageBubble(
+                        SupportMessageBubble(
                             message = message,
                             onOpenAttachment = { url ->
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
@@ -237,6 +252,11 @@ fun SupportTicketDetailScreen(
                                         singleLine = false,
                                         minLines = 3,
                                         enabled = !state.isSubmitting,
+                                    )
+                                    Text(
+                                        text = "پیوست: jpg، png، pdf، doc، xls، txt، zip — حداکثر ۱۰ مگابایت",
+                                        style = AppTypography.labelSmall,
+                                        color = DfThemeColors.textMuted(),
                                     )
                                     DfSecondaryButton(
                                         text = if (state.selectedAttachmentName.isBlank()) {
@@ -315,91 +335,8 @@ fun SupportTicketDetailScreen(
             }
         }
     }
-}
 
-@Composable
-private fun MessageBubble(
-    message: SupportTicketMessageDto,
-    onOpenAttachment: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isStaff = message.isStaffReply
-    val align = if (isStaff) Alignment.CenterStart else Alignment.CenterEnd
-    val container = if (isStaff) DfThemeColors.surfaceVariant() else DfThemeColors.primaryContainer()
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = align) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(0.88f),
-            shape = AppShapes.Card,
-            color = container,
-            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
-            shadowElevation = AppElevations.subtle,
-            tonalElevation = AppElevations.none,
-        ) {
-            Column(
-                modifier = Modifier.padding(AppSpacing.cardPadding),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                Text(
-                    if (isStaff) "پشتیبانی" else "شما",
-                    style = AppTypography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DfThemeColors.primary(),
-                )
-                Text(
-                    message.body,
-                    style = AppTypography.bodyDescription,
-                    color = DfThemeColors.textPrimary(),
-                )
-                message.attachments.forEach { att ->
-                    if (att.url.isNotBlank()) {
-                        DfTextButton(
-                            text = att.originalFilename.ifBlank { "پیوست" },
-                            onClick = { onOpenAttachment(att.url) },
-                            compact = true,
-                        )
-                    }
-                }
-                message.createdAt?.let {
-                    Text(
-                        DateUtils.formatForDisplay(it),
-                        style = AppTypography.labelSmall,
-                        color = DfThemeColors.textMuted(),
-                    )
-                }
-            }
-        }
+    LaunchedEffect(state.error, ticket) {
+        headerItemCount = 1 + (if (state.error != null) 1 else 0) + (if (ticket != null) 2 else 0)
     }
-}
-
-fun ticketStatusLabel(status: String): String = when (status) {
-    "open" -> "باز"
-    "in_review" -> "در حال بررسی"
-    "answered" -> "پاسخ داده‌شده"
-    "waiting_user" -> "منتظر شما"
-    "closed" -> "بسته"
-    else -> status
-}
-
-private fun supportCategoryLabel(value: String): String = when (value) {
-    "billing" -> "پرداخت و اشتراک"
-    "technical" -> "مشکل فنی"
-    "crm" -> "مدیریت مشتری"
-    "filing" -> "فایلینگ و استخراج"
-    else -> "عمومی"
-}
-
-private fun supportPriorityLabel(value: String): String = when (value) {
-    "low" -> "کم"
-    "high" -> "زیاد"
-    "urgent" -> "فوری"
-    else -> "عادی"
-}
-
-private fun ticketStatusColors(status: String): Pair<Color, Color> = when (status) {
-    "open" -> AppColors.BlueLight to AppColors.Blue
-    "in_review" -> AppColors.AmberLight to AppColors.Amber
-    "answered" -> AppColors.GreenLight to AppColors.Green
-    "waiting_user" -> AppColors.PurpleContainer to AppColors.PurpleDark
-    "closed" -> AppColors.LockedContainer to AppColors.OnLocked
-    else -> AppColors.SurfaceVariant to AppColors.TextSecondary
 }

@@ -80,6 +80,9 @@ data class ContactDetailUiState(
     val filingDatasets: List<DatasetDto> = emptyList(),
     val filingListings: List<ListingDto> = emptyList(),
     val selectedDatasetId: String? = null,
+    val filingDatasetQuery: String = "",
+    val filingListingQuery: String = "",
+    val selectedListingToken: String? = null,
     val isFilingLoading: Boolean = false,
     val messageTemplates: List<MessageTemplateDto> = emptyList(),
     val templatesLoading: Boolean = false,
@@ -110,6 +113,7 @@ class ContactDetailViewModel @Inject constructor(
     private val openMatchesOnLoad: Boolean = savedStateHandle.get<Boolean>("openMatches") ?: false
     private val _uiState = MutableStateFlow(ContactDetailUiState())
     val uiState: StateFlow<ContactDetailUiState> = _uiState.asStateFlow()
+    private var filingListingSearchJob: kotlinx.coroutines.Job? = null
 
     private val isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
@@ -444,6 +448,9 @@ class ContactDetailViewModel @Inject constructor(
                 filingPickerStep = 0,
                 selectedDatasetId = null,
                 filingListings = emptyList(),
+                filingDatasetQuery = "",
+                filingListingQuery = "",
+                selectedListingToken = null,
                 sendListingNote = if (show) it.sendListingNote else "",
                 showTemplatePicker = false,
             )
@@ -482,19 +489,43 @@ class ContactDetailViewModel @Inject constructor(
         }
     }
 
-    fun selectFilingDataset(datasetId: String) {
+    fun onFilingDatasetQueryChange(query: String) {
+        _uiState.update { it.copy(filingDatasetQuery = query) }
+    }
+
+    fun onFilingListingQueryChange(query: String) {
+        val datasetId = _uiState.value.selectedDatasetId ?: return
+        _uiState.update { it.copy(filingListingQuery = query) }
+        filingListingSearchJob?.cancel()
+        filingListingSearchJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(300)
+            loadFilingListings(datasetId, query)
+        }
+    }
+
+    fun selectFilingListing(token: String) {
+        _uiState.update { it.copy(selectedListingToken = token) }
+    }
+
+    fun sendSelectedListingFromFiling(shareViaWhatsApp: Boolean = false) {
+        val listing = _uiState.value.filingListings.find {
+            it.token == _uiState.value.selectedListingToken
+        } ?: return
+        sendListingFromFiling(listing, shareViaWhatsApp)
+    }
+
+    private fun loadFilingListings(datasetId: String, query: String = _uiState.value.filingListingQuery) {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    selectedDatasetId = datasetId,
-                    filingPickerStep = 1,
-                    isFilingLoading = true,
-                    filingListings = emptyList(),
-                )
-            }
-            when (val result = filingRepository.getListings(datasetId, pageSize = 50)) {
+            _uiState.update { it.copy(isFilingLoading = true) }
+            when (val result = filingRepository.getListings(datasetId, query = query, pageSize = 50)) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(filingListings = result.data.items, isFilingLoading = false)
+                    it.copy(
+                        filingListings = result.data.items,
+                        isFilingLoading = false,
+                        selectedListingToken = it.selectedListingToken?.takeIf { token ->
+                            result.data.items.any { listing -> listing.token == token }
+                        },
+                    )
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isFilingLoading = false, error = result.message)
@@ -503,9 +534,29 @@ class ContactDetailViewModel @Inject constructor(
         }
     }
 
+    fun selectFilingDataset(datasetId: String) {
+        _uiState.update {
+            it.copy(
+                selectedDatasetId = datasetId,
+                filingPickerStep = 1,
+                isFilingLoading = true,
+                filingListings = emptyList(),
+                filingListingQuery = "",
+                selectedListingToken = null,
+            )
+        }
+        loadFilingListings(datasetId)
+    }
+
     fun backToFilingDatasets() {
         _uiState.update {
-            it.copy(filingPickerStep = 0, selectedDatasetId = null, filingListings = emptyList())
+            it.copy(
+                filingPickerStep = 0,
+                selectedDatasetId = null,
+                filingListings = emptyList(),
+                filingListingQuery = "",
+                selectedListingToken = null,
+            )
         }
     }
 

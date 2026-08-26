@@ -18,6 +18,8 @@ import ir.divarfiling.mobile.core.network.SavedFilterCreateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterDto
 import ir.divarfiling.mobile.core.network.SupportTicketCreateRequest
 import ir.divarfiling.mobile.core.network.SupportTicketDto
+import ir.divarfiling.mobile.core.network.SupportTicketStatsDto
+import ir.divarfiling.mobile.core.network.SupportTicketsPage
 import ir.divarfiling.mobile.core.network.SupportTicketReplyResult
 import ir.divarfiling.mobile.core.network.requireData
 import ir.divarfiling.mobile.core.network.toUserMessage
@@ -133,13 +135,34 @@ class WorkspaceExtrasRepository @Inject constructor(
         }
     }
 
-    suspend fun getSupportTickets(): ApiResult<List<SupportTicketDto>> {
-        return decodeList(
-            decode = { el ->
-                json.decodeFromJsonElement(ListSerializer(SupportTicketDto.serializer()), el)
-            },
-            call = { api.getSupportTickets() },
-        )
+    suspend fun getSupportTickets(
+        status: String? = null,
+        priority: String? = null,
+        query: String? = null,
+    ): ApiResult<SupportTicketsPage> {
+        return try {
+            val response = api.getSupportTickets(
+                status = status?.ifBlank { null },
+                priority = priority?.ifBlank { null },
+                query = query?.ifBlank { null },
+            )
+            if (!response.ok) {
+                ApiResult.Error(response.error ?: "خطا")
+            } else {
+                val tickets = response.data?.let { el ->
+                    json.decodeFromJsonElement(ListSerializer(SupportTicketDto.serializer()), el)
+                }.orEmpty()
+                ApiResult.Success(
+                    SupportTicketsPage(
+                        tickets = tickets,
+                        stats = response.meta?.stats ?: SupportTicketStatsDto(),
+                        total = response.meta?.total ?: tickets.size,
+                    ),
+                )
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(e.toUserMessage("خطای شبکه"))
+        }
     }
 
     suspend fun createSupportTicket(request: SupportTicketCreateRequest): ApiResult<SupportTicketDto> =

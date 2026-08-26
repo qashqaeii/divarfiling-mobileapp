@@ -1,17 +1,15 @@
 package ir.divarfiling.mobile.feature.support
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
@@ -21,24 +19,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ir.divarfiling.mobile.core.design.AppColors
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.DfThemeColors
-import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -49,13 +35,13 @@ import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
+import ir.divarfiling.mobile.core.design.components.DfSearchField
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.DfTextField
-import ir.divarfiling.mobile.core.network.SupportTicketDto
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -66,14 +52,14 @@ fun SupportTicketsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    var selectedFilter by remember { mutableStateOf(SupportTicketFilter.All) }
-    val filteredTickets = remember(state.tickets, selectedFilter) {
-        when (selectedFilter) {
-            SupportTicketFilter.All -> state.tickets
-            SupportTicketFilter.Unread -> state.tickets.filter { it.userHasUnread }
-            SupportTicketFilter.Open -> state.tickets.filter { it.status == "open" || it.status == "in_review" }
-            SupportTicketFilter.WaitingUser -> state.tickets.filter { it.status == "waiting_user" }
-            SupportTicketFilter.Closed -> state.tickets.filter { it.status == "closed" }
+    val filteredTickets = remember(state.tickets, state.statusFilter) {
+        state.statusFilter.applyClientFilter(state.tickets)
+    }
+
+    LaunchedEffect(state.navigateToTicketId) {
+        state.navigateToTicketId?.let { ticketId ->
+            viewModel.consumeNavigation()
+            onOpenTicket(ticketId)
         }
     }
 
@@ -95,7 +81,7 @@ fun SupportTicketsScreen(
                         onPrimary = viewModel::createTicket,
                         primaryEnabled = !state.isSubmitting &&
                             state.subject.isNotBlank() &&
-                            state.body.isNotBlank(),
+                            state.body.trim().length >= 10,
                         isSubmitting = state.isSubmitting,
                         onSecondary = { viewModel.toggleCreateDialog(false) },
                     )
@@ -164,13 +150,38 @@ fun SupportTicketsScreen(
                 item {
                     DfHubPageHeader(
                         title = "پشتیبانی",
-                        subtitle = "تیکت‌ها و درخواست‌های کمک",
+                        subtitle = "مرکز تیکت و درخواست کمک",
                         sectionLabel = DfHeaderSections.SUPPORT,
                         titleIconRes = DfDecorIcons.Phone,
                         onBack = onBack,
                     )
                 }
-                if (state.tickets.isNotEmpty()) {
+                if (!state.isLoading || state.stats.total > 0) {
+                    item {
+                        SupportStatsRow(
+                            stats = state.stats,
+                            selectedFilter = state.statusFilter,
+                            onFilterSelect = viewModel::onStatusFilterChange,
+                        )
+                    }
+                }
+                if (state.stats.unreadReplies > 0) {
+                    item {
+                        SupportUnreadBanner(
+                            unreadCount = state.stats.unreadReplies,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
+                }
+                item {
+                    DfSearchField(
+                        value = state.searchQuery,
+                        onValueChange = viewModel::onSearchChange,
+                        placeholder = "جستجو در عنوان یا شماره تیکت…",
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+                if (state.tickets.isNotEmpty() || state.stats.total > 0) {
                     item {
                         FlowRow(
                             modifier = Modifier
@@ -180,12 +191,12 @@ fun SupportTicketsScreen(
                             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                         ) {
                             SupportTicketFilter.entries.forEach { filter ->
-                                val count = filter.count(state.tickets)
+                                val count = filter.count(state.stats, state.tickets)
                                 FilterChip(
-                                    selected = selectedFilter == filter,
-                                    onClick = { selectedFilter = filter },
+                                    selected = state.statusFilter == filter,
+                                    onClick = { viewModel.onStatusFilterChange(filter) },
                                     label = {
-                                        Text(if (count > 0) "${filter.label} $count" else filter.label)
+                                        Text(if (count > 0) "${filter.label} ($count)" else filter.label)
                                     },
                                 )
                             }
@@ -208,7 +219,7 @@ fun SupportTicketsScreen(
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
-                } else if (state.tickets.isEmpty()) {
+                } else if (state.tickets.isEmpty() && state.searchQuery.isBlank()) {
                     item {
                         DfEmptyState(
                             title = "تیکتی ثبت نشده",
@@ -222,15 +233,15 @@ fun SupportTicketsScreen(
                 } else if (filteredTickets.isEmpty()) {
                     item {
                         DfEmptyState(
-                            title = "تیکتی با این فیلتر نیست",
-                            subtitle = "فیلتر دیگری را انتخاب کنید یا همه تیکت‌ها را ببینید.",
+                            title = "نتیجه‌ای یافت نشد",
+                            subtitle = "عبارت جستجو یا فیلتر را تغییر دهید.",
                             variant = DfEmptyVariant.NoResults,
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 } else {
                     items(filteredTickets, key = { it.id }) { ticket ->
-                        TicketCard(
+                        SupportTicketListCard(
                             ticket = ticket,
                             onClick = { onOpenTicket(ticket.id) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -241,158 +252,3 @@ fun SupportTicketsScreen(
         }
     }
 }
-
-private enum class SupportTicketFilter(val label: String) {
-    All("همه"),
-    Unread("جدید"),
-    Open("باز"),
-    WaitingUser("منتظر شما"),
-    Closed("بسته");
-
-    fun count(items: List<SupportTicketDto>): Int = when (this) {
-        All -> items.size
-        Unread -> items.count { it.userHasUnread }
-        Open -> items.count { it.status == "open" || it.status == "in_review" }
-        WaitingUser -> items.count { it.status == "waiting_user" }
-        Closed -> items.count { it.status == "closed" }
-    }
-}
-
-@Composable
-private fun TicketCard(
-    ticket: SupportTicketDto,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val (badgeBg, badgeFg) = ticketStatusColors(ticket.status)
-    DfCard(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick,
-        containerColor = DfThemeColors.surface(),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.titleSubtitleGap),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    ticket.subject,
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DfThemeColors.textPrimary(),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                if (ticket.userHasUnread) {
-                    DfBadge(
-                        text = "جدید",
-                        color = AppColors.RoseLight,
-                        textColor = AppColors.Rose,
-                    )
-                }
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "#${ticket.ticketNumber}",
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textMuted(),
-                )
-                DfBadge(
-                    text = ticketStatusLabel(ticket.status),
-                    color = badgeBg,
-                    textColor = badgeFg,
-                )
-                ticket.priority.takeIf { it.isNotBlank() }?.let {
-                    DfBadge(
-                        text = supportPriorityLabel(it),
-                        color = AppColors.PurpleContainer,
-                        textColor = AppColors.PurpleDark,
-                    )
-                }
-            }
-            ticket.category.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    supportCategoryLabel(it),
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textMuted(),
-                )
-            }
-            ticket.lastMessageAt?.let {
-                Text(
-                    DateUtils.formatForDisplay(it),
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textSecondary(),
-                )
-            } ?: ticket.createdAt?.let {
-                Text(
-                    DateUtils.formatForDisplay(it),
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textSecondary(),
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SupportChipGroup(
-    options: List<Pair<String, String>>,
-    selected: String,
-    onSelect: (String) -> Unit,
-    enabled: Boolean,
-) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-    ) {
-        options.forEach { (value, label) ->
-            FilterChip(
-                selected = selected == value,
-                onClick = { onSelect(value) },
-                label = { Text(label) },
-                enabled = enabled,
-            )
-        }
-    }
-}
-
-private fun ticketStatusColors(status: String): Pair<Color, Color> =
-    when (status) {
-        "open" -> AppColors.BlueLight to AppColors.Blue
-        "in_review" -> AppColors.AmberLight to AppColors.Amber
-        "answered" -> AppColors.GreenLight to AppColors.Green
-        "waiting_user" -> AppColors.PurpleContainer to AppColors.PurpleDark
-        "closed" -> AppColors.LockedContainer to AppColors.OnLocked
-        else -> AppColors.PurpleContainer to AppColors.PurpleDark
-    }
-
-private val supportCategoryOptions = listOf(
-    "other" to "عمومی",
-    "billing" to "پرداخت و اشتراک",
-    "technical" to "مشکل فنی",
-    "crm" to "مدیریت مشتری",
-    "filing" to "فایلینگ و استخراج",
-)
-
-private val supportPriorityOptions = listOf(
-    "low" to "کم",
-    "normal" to "عادی",
-    "high" to "زیاد",
-    "urgent" to "فوری",
-)
-
-private fun supportCategoryLabel(value: String): String =
-    supportCategoryOptions.firstOrNull { it.first == value }?.second ?: value
-
-private fun supportPriorityLabel(value: String): String =
-    supportPriorityOptions.firstOrNull { it.first == value }?.second ?: value

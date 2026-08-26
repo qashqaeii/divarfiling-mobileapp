@@ -23,6 +23,7 @@ data class ApiMeta(
     @SerialName("page_size") val pageSize: Int? = null,
     val neighborhoods: List<String> = emptyList(),
     val sort: String? = null,
+    val stats: SupportTicketStatsDto? = null,
 )
 
 @Serializable
@@ -1887,6 +1888,22 @@ data class SavedFilterCreateRequest(
     val scope: String,
     val params: Map<String, String>,
     @SerialName("is_pinned") val isPinned: Boolean = false,
+)
+
+@Serializable
+data class SupportTicketStatsDto(
+    val total: Int = 0,
+    val open: Int = 0,
+    @SerialName("waiting_user") val waitingUser: Int = 0,
+    val closed: Int = 0,
+    @SerialName("unread_replies") val unreadReplies: Int = 0,
+)
+
+@Serializable
+data class SupportTicketsPage(
+    val tickets: List<SupportTicketDto> = emptyList(),
+    val stats: SupportTicketStatsDto = SupportTicketStatsDto(),
+    val total: Int = 0,
 )
 
 @Serializable

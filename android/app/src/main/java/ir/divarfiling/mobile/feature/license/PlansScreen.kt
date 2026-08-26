@@ -54,6 +54,7 @@ import ir.divarfiling.mobile.feature.license.components.AgencyPricingInfoBanner
 import ir.divarfiling.mobile.feature.license.components.DiscountApplyButton
 import ir.divarfiling.mobile.feature.license.components.LicenseCheckoutSummary
 import ir.divarfiling.mobile.feature.license.components.LicensePlanCard
+import ir.divarfiling.mobile.feature.license.components.LicenseRenewalModeToggle
 import ir.divarfiling.mobile.feature.license.components.LicenseQuantityStepper
 import ir.divarfiling.mobile.feature.license.components.LicenseStatusHero
 import ir.divarfiling.mobile.feature.license.components.PlansSectionHeader
@@ -94,7 +95,7 @@ fun PlansScreen(
     val selectedPlan = state.selectedPlan
     val selectedQuantity = state.selectedQuantity
     val checkoutTotal = state.checkoutTotal
-    val showAgencyQuantity = selectedPlan?.isAgencyPlan() == true && !state.isRenewalCheckout
+    val showAgencyQuantity = state.canChooseQuantity
 
     Scaffold(
         containerColor = DfScreenContainerColor,
@@ -108,6 +109,17 @@ fun PlansScreen(
                     .padding(top = AppSpacing.xs, bottom = AppSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
+                if (showAgencyQuantity && selectedPlan != null) {
+                    LicenseQuantityStepper(
+                        quantity = selectedQuantity,
+                        minQuantity = selectedPlan.minQuantity,
+                        maxQuantity = selectedPlan.maxQuantity,
+                        unitPrice = selectedPlan.unitFinalPrice(),
+                        onQuantityChange = { viewModel.setQuantity(selectedPlan.id, it) },
+                        enabled = !state.isCheckingOut,
+                        compact = true,
+                    )
+                }
                 if (selectedPlan != null && checkoutTotal != null) {
                     LicenseCheckoutSummary(
                         planName = selectedPlan.name,
@@ -142,7 +154,7 @@ fun PlansScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .statusBarsPadding(),
-            contentPadding = PaddingValues(bottom = 220.dp),
+            contentPadding = PaddingValues(bottom = 280.dp),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
             item {
@@ -201,6 +213,16 @@ fun PlansScreen(
                 }
             }
 
+            if (state.license.canRenew) {
+                item {
+                    LicenseRenewalModeToggle(
+                        renewCurrentLicense = state.renewCurrentLicense,
+                        onRenewCurrentLicenseChange = viewModel::setRenewCurrentLicense,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+
             if (state.personalPlans.isNotEmpty()) {
                 item {
                     PlansSectionHeader(
@@ -240,21 +262,9 @@ fun PlansScreen(
                         selected = plan.id == state.selectedPlanId,
                         quantity = state.planQuantities[plan.id] ?: plan.defaultQuantity(),
                         onSelect = { viewModel.selectPlan(plan.id) },
+                        showQuantityControls = state.canChooseQuantity && plan.id == state.selectedPlanId,
+                        onQuantityChange = { qty -> viewModel.setQuantity(plan.id, qty) },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                    )
-                }
-            }
-
-            if (showAgencyQuantity && selectedPlan != null) {
-                item {
-                    LicenseQuantityStepper(
-                        quantity = selectedQuantity,
-                        minQuantity = selectedPlan.minQuantity,
-                        maxQuantity = selectedPlan.maxQuantity,
-                        unitPrice = selectedPlan.unitFinalPrice(),
-                        onQuantityChange = { viewModel.setQuantity(selectedPlan.id, it) },
-                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                        enabled = !state.isCheckingOut,
                     )
                 }
             }

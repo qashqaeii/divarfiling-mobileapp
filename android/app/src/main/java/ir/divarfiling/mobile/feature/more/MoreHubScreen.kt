@@ -123,7 +123,7 @@ fun MoreHubScreen(
         MoreHubSection(
             "استخراج و فایلینگ",
             listOf(
-                MoreHubItem("استخراج سبک", "استخراج آگهی دیوار روی گوشی", DfIcons.Download, MoreHubAction.Navigate("extract"), featured = true),
+                MoreHubItem("استخراج حرفه‌ای", "استخراج کامل آگهی‌های دیوار", DfIcons.Download, MoreHubAction.Navigate("extract"), featured = true),
             ),
         ),
         MoreHubSection(

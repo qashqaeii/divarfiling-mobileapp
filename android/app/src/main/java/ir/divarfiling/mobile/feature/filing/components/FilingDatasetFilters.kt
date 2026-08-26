@@ -48,11 +48,8 @@ object FilingDatasetFilters {
             .sortedWith(compareBy({ it.first == UNGROUPED_LOCATION }, { it.first }))
             .map { (location, group) ->
                 location to group.sortedWith(
-                    compareBy(
-                        { it.transactionType.orEmpty() },
-                        { it.subcategory.orEmpty() },
-                        { it.name },
-                    ),
+                    compareByDescending<DatasetDto> { it.updatedAt.orEmpty() }
+                        .thenByDescending { it.createdAt.orEmpty() },
                 )
             }
     }

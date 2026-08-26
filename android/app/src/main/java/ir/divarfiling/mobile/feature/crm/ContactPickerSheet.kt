@@ -1,15 +1,12 @@
 package ir.divarfiling.mobile.feature.crm
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,22 +18,16 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfContactListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfContactRow
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
-import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
-import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSearchField
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
-import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.network.ContactDto
-import ir.divarfiling.mobile.core.network.DatasetDto
 import ir.divarfiling.mobile.core.network.ListingDto
-import ir.divarfiling.mobile.core.network.MessageTemplateDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import androidx.lifecycle.ViewModel
@@ -82,166 +73,6 @@ class ContactPickerViewModel @Inject constructor(
     fun onQueryChange(query: String) {
         _uiState.update { it.copy(query = query) }
         load(query)
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SendFilingSheet(
-    step: Int,
-    datasets: List<DatasetDto>,
-    listings: List<ListingDto>,
-    note: String,
-    isLoading: Boolean,
-    isSubmitting: Boolean,
-    templates: List<MessageTemplateDto>,
-    templatesLoading: Boolean,
-    showTemplatePicker: Boolean,
-    onNoteChange: (String) -> Unit,
-    onToggleTemplatePicker: (Boolean) -> Unit,
-    onApplyTemplate: (MessageTemplateDto) -> Unit,
-    onDismiss: () -> Unit,
-    onDatasetSelected: (String) -> Unit,
-    onBackToDatasets: () -> Unit,
-    onListingSend: (ListingDto, Boolean) -> Unit,
-) {
-    DfModalBottomSheet(onDismissRequest = onDismiss) {
-        DfSheetScaffold(
-            title = if (step == 0) "انتخاب فایلینگ" else "انتخاب آگهی",
-            subtitle = if (step == 0) "فایل استخراج‌شده را برای ارسال به مخاطب انتخاب کنید" else "آگهی مناسب را به همراه یادداشت ارسال کنید",
-            icon = if (step == 0) DfIcons.Folder else DfIcons.Home,
-            onClose = onDismiss,
-            scrollable = false,
-        ) {
-            if (step == 1) {
-                DfSheetSection(title = "یادداشت ارسال") {
-                    OutlinedTextField(
-                        value = note,
-                        onValueChange = onNoteChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("یادداشت برای مخاطب") },
-                        minLines = 2,
-                        placeholder = { Text("مثلاً: این ملک مناسب بودجه شماست") },
-                    )
-                    DfGlassTextButton(
-                        text = if (showTemplatePicker) "بستن قالب‌های پیام" else "استفاده از قالب پیام",
-                        onClick = { onToggleTemplatePicker(!showTemplatePicker) },
-                    )
-                    if (showTemplatePicker) {
-                        when {
-                            templatesLoading -> DfCardListSkeleton(count = 3, itemHeight = 72.dp)
-                            templates.isEmpty() -> DfEmptyState(
-                                title = "قالبی آماده نیست",
-                                subtitle = "قالب‌های پیام از workspace همگام می‌شوند.",
-                            )
-                            else -> {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentPadding = PaddingValues(bottom = AppSpacing.sm),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    items(templates, key = { it.id }) { template ->
-                                        DfPremiumCard(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable { onApplyTemplate(template) },
-                                        ) {
-                                            Column(
-                                                modifier = Modifier.padding(4.dp),
-                                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                                            ) {
-                                                Text(template.title, style = AppTypography.cardTitle)
-                                                template.category.takeIf { it.isNotBlank() }?.let {
-                                                    Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-                                                }
-                                                Text(
-                                                    template.body,
-                                                    style = AppTypography.bodyDescription,
-                                                    color = DfColors.TextSecondary,
-                                                    maxLines = 3,
-                                                )
-                                                DfPrimaryButton(
-                                                    text = "جایگذاری در پیام",
-                                                    onClick = { onApplyTemplate(template) },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    DfGlassTextButton(text = "بازگشت به لیست فایلینگ", onClick = onBackToDatasets)
-                }
-            }
-            when {
-                isLoading -> DfCardListSkeleton(count = 4, itemHeight = 72.dp)
-                step == 0 -> {
-                    if (datasets.isEmpty()) {
-                        DfEmptyState(title = "فایلینگی یافت نشد", subtitle = "ابتدا استخراج انجام دهید")
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(bottom = AppSpacing.xl),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            items(datasets, key = { it.id }) { dataset ->
-                                DfPremiumCard(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onDatasetSelected(dataset.id) },
-                                ) {
-                                    Column(Modifier.padding(4.dp)) {
-                                        Text(dataset.name ?: dataset.id, style = AppTypography.cardTitle)
-                                        dataset.itemCount.let {
-                                            if (it > 0) Text("$it آگهی", style = AppTypography.bodyDescription)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                listings.isEmpty() -> DfEmptyState(title = "آگهی‌ای یافت نشد", subtitle = "")
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(bottom = AppSpacing.xl),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(listings, key = { it.token }) { listing ->
-                            DfPremiumCard(modifier = Modifier.fillMaxWidth()) {
-                                Column(
-                                    modifier = Modifier.padding(4.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Text(listing.title ?: listing.token, style = AppTypography.cardTitle)
-                                    listing.price?.let {
-                                        Text(FormatUtils.formatPriceToman(it), style = AppTypography.bodyDescription)
-                                    }
-                                    listing.district?.let {
-                                        Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-                                    }
-                                    DfPrimaryButton(
-                                        text = "ارسال به مخاطب",
-                                        onClick = { onListingSend(listing, false) },
-                                        enabled = !isSubmitting,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                    DfPrimaryButton(
-                                        text = "ارسال + واتساپ",
-                                        onClick = { onListingSend(listing, true) },
-                                        enabled = !isSubmitting,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

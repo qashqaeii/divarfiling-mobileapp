@@ -224,8 +224,8 @@ fun FilingDatasetCard(
                     }
                 }
 
-                dataset.createdAt?.let { created ->
-                    DateUtils.formatJalaliDateTime(created) ?: DateUtils.formatJalaliDate(created)
+                (dataset.updatedAt ?: dataset.createdAt)?.let { timestamp ->
+                    DateUtils.formatJalaliDateTime(timestamp) ?: DateUtils.formatJalaliDate(timestamp)
                 }?.let { jalaliDate ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),

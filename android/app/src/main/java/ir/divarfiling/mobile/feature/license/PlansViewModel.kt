@@ -37,6 +37,7 @@ data class PlansUiState(
     val successMessage: String? = null,
     val orderStatus: String? = null,
     val orderStatusMessage: String? = null,
+    val renewCurrentLicense: Boolean = false,
 ) {
     val selectedPlan: ShopPlanDto?
         get() = plans.firstOrNull { it.id == selectedPlanId }
@@ -48,7 +49,13 @@ data class PlansUiState(
         }
 
     val isRenewalCheckout: Boolean
-        get() = license.canRenew
+        get() = renewCurrentLicense && license.canRenew
+
+    val canChooseQuantity: Boolean
+        get() {
+            val plan = selectedPlan ?: return false
+            return plan.isAgencyPlan() && !isRenewalCheckout
+        }
 
     val checkoutTotal: Long?
         get() {
@@ -143,6 +150,16 @@ class PlansViewModel @Inject constructor(
         }
     }
 
+    fun setRenewCurrentLicense(enabled: Boolean) {
+        _uiState.update {
+            it.copy(
+                renewCurrentLicense = enabled && it.license.canRenew,
+                discountPreview = null,
+                error = null,
+            )
+        }
+    }
+
     fun selectPlan(id: Long) {
         val plan = _uiState.value.plans.firstOrNull { it.id == id } ?: return
         if (plan.purchaseBlocked) return
@@ -179,7 +196,11 @@ class PlansViewModel @Inject constructor(
             _uiState.update { it.copy(error = "برای خرید، ابتدا شماره موبایل حساب را تأیید کنید") }
             return
         }
-        val renewId = if (state.license.canRenew) state.renewableLicenseId ?: state.license.licenseId else null
+        val renewId = if (state.renewCurrentLicense && state.license.canRenew) {
+            state.renewableLicenseId ?: state.license.licenseId
+        } else {
+            null
+        }
         val quantity = checkoutQuantity(state)
         viewModelScope.launch {
             _uiState.update { it.copy(isCheckingOut = true, error = null) }

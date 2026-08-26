@@ -66,6 +66,7 @@ import ir.divarfiling.mobile.feature.crm.components.ContactProfileDossier
 import ir.divarfiling.mobile.feature.crm.components.ContactReminderCard
 import ir.divarfiling.mobile.feature.crm.components.ContactReminderSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
+import ir.divarfiling.mobile.feature.crm.components.SendFilingSheet
 import ir.divarfiling.mobile.feature.team.TeamMemberSelectList
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -423,19 +424,26 @@ fun ContactDetailScreen(
             step = state.filingPickerStep,
             datasets = state.filingDatasets,
             listings = state.filingListings,
+            selectedDatasetId = state.selectedDatasetId,
+            selectedListingToken = state.selectedListingToken,
+            datasetQuery = state.filingDatasetQuery,
+            listingQuery = state.filingListingQuery,
             note = state.sendListingNote,
             isLoading = state.isFilingLoading,
             isSubmitting = state.isSubmitting,
             templates = state.messageTemplates,
             templatesLoading = state.templatesLoading,
             showTemplatePicker = state.showTemplatePicker,
+            onDatasetQueryChange = viewModel::onFilingDatasetQueryChange,
+            onListingQueryChange = viewModel::onFilingListingQueryChange,
             onNoteChange = viewModel::onSendListingNoteChange,
             onToggleTemplatePicker = viewModel::toggleTemplatePicker,
             onApplyTemplate = viewModel::applyMessageTemplate,
             onDismiss = { viewModel.toggleSendFilingSheet(false) },
             onDatasetSelected = viewModel::selectFilingDataset,
             onBackToDatasets = viewModel::backToFilingDatasets,
-            onListingSend = viewModel::sendListingFromFiling,
+            onListingSelect = viewModel::selectFilingListing,
+            onSend = viewModel::sendSelectedListingFromFiling,
         )
     }
 

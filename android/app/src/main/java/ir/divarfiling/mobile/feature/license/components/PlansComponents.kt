@@ -246,7 +246,20 @@ fun LicenseQuantityStepper(
     onQuantityChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    compact: Boolean = false,
 ) {
+    if (compact) {
+        LicenseQuantityStepperCompact(
+            quantity = quantity,
+            minQuantity = minQuantity,
+            maxQuantity = maxQuantity,
+            unitPrice = unitPrice,
+            onQuantityChange = onQuantityChange,
+            modifier = modifier,
+            enabled = enabled,
+        )
+        return
+    }
     val persianQty = DateUtils.toPersianDigits(quantity.toString())
     val total = unitPrice * quantity
     Surface(
@@ -370,11 +383,165 @@ fun LicenseQuantityStepper(
 }
 
 @Composable
+fun LicenseQuantityStepperCompact(
+    quantity: Int,
+    minQuantity: Int,
+    maxQuantity: Int,
+    unitPrice: Long,
+    onQuantityChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val persianQty = DateUtils.toPersianDigits(quantity.toString())
+    val total = unitPrice * quantity
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.CardSmall,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfColors.Purple.copy(alpha = 0.2f)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "تعداد لایسنس",
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.textPrimary(),
+                )
+                Text(
+                    FormatUtils.formatPriceToman(total),
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfThemeColors.primary(),
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                QuantityStepButton(
+                    label = "کاهش",
+                    enabled = enabled && quantity > minQuantity,
+                    onClick = { onQuantityChange(quantity - 1) },
+                    text = "−",
+                    size = 36.dp,
+                )
+                Text(
+                    persianQty,
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.primary(),
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                QuantityStepButton(
+                    label = "افزایش",
+                    enabled = enabled && quantity < maxQuantity,
+                    onClick = { onQuantityChange(quantity + 1) },
+                    text = "+",
+                    size = 36.dp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LicenseRenewalModeToggle(
+    renewCurrentLicense: Boolean,
+    onRenewCurrentLicenseChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            Text(
+                "نوع خرید",
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                RenewalModeChip(
+                    label = "خرید لایسنس جدید",
+                    subtitle = "چند لایسنس آژانس",
+                    selected = !renewCurrentLicense,
+                    onClick = { onRenewCurrentLicenseChange(false) },
+                    modifier = Modifier.weight(1f),
+                )
+                RenewalModeChip(
+                    label = "تمدید لایسنس فعلی",
+                    subtitle = "فقط یک لایسنس",
+                    selected = renewCurrentLicense,
+                    onClick = { onRenewCurrentLicenseChange(true) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RenewalModeChip(
+    label: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = AppShapes.CardSmall,
+        color = if (selected) DfColors.PurpleContainer.copy(alpha = 0.55f) else DfThemeColors.surfaceVariant(),
+        border = BorderStroke(
+            if (selected) 1.5.dp else 1.dp,
+            if (selected) DfColors.Purple else DfThemeColors.outlineSubtle(),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                label,
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (selected) DfColors.Purple else DfThemeColors.textPrimary(),
+                maxLines = 2,
+            )
+            Text(
+                subtitle,
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textMuted(),
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
 private fun QuantityStepButton(
     label: String,
     text: String,
     enabled: Boolean,
     onClick: () -> Unit,
+    size: androidx.compose.ui.unit.Dp = 44.dp,
 ) {
     Surface(
         onClick = onClick,
@@ -382,7 +549,7 @@ private fun QuantityStepButton(
         shape = CircleShape,
         color = if (enabled) DfThemeColors.primary() else DfThemeColors.surfaceVariant(),
         shadowElevation = if (enabled) AppElevations.subtle else AppElevations.none,
-        modifier = Modifier.size(44.dp),
+        modifier = Modifier.size(size),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
@@ -435,7 +602,7 @@ fun LicenseCheckoutSummary(
                 )
             } else if (isAgency) {
                 Text(
-                    "۱ لایسنس · ${FormatUtils.formatPriceToman(unitPrice)}",
+                    "${DateUtils.toPersianDigits(quantity.toString())} لایسنس · ${FormatUtils.formatPriceToman(unitPrice)}",
                     style = AppTypography.bodyDescription,
                     color = DfThemeColors.textSecondary(),
                 )
@@ -497,6 +664,8 @@ fun LicensePlanCard(
     quantity: Int,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
+    showQuantityControls: Boolean = false,
+    onQuantityChange: ((Int) -> Unit)? = null,
 ) {
     val format = remember { NumberFormat.getInstance(Locale("fa", "IR")) }
     val blocked = plan.purchaseBlocked
@@ -659,6 +828,17 @@ fun LicensePlanCard(
                     style = AppTypography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isAgency) DfColors.Purple else DfThemeColors.primary(),
+                )
+            }
+
+            if (showQuantityControls && selected && isAgency && onQuantityChange != null) {
+                LicenseQuantityStepperCompact(
+                    quantity = quantity,
+                    minQuantity = plan.minQuantity,
+                    maxQuantity = plan.maxQuantity,
+                    unitPrice = unitPrice,
+                    onQuantityChange = onQuantityChange,
+                    enabled = true,
                 )
             }
         }

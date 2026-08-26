@@ -555,7 +555,11 @@ interface MobileApi {
     suspend fun pinSavedFilter(@Path("id") filterId: Long): ApiEnvelope
 
     @GET("support/tickets")
-    suspend fun getSupportTickets(): ApiEnvelope
+    suspend fun getSupportTickets(
+        @Query("status") status: String? = null,
+        @Query("priority") priority: String? = null,
+        @Query("q") query: String? = null,
+    ): ApiEnvelope
 
     @POST("support/tickets")
     suspend fun createSupportTicket(@Body body: SupportTicketCreateRequest): ApiEnvelope

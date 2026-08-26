@@ -27,6 +27,7 @@ data class SupportTicketDetailUiState(
     val isSubmitting: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+    val scrollToLatest: Int = 0,
 )
 
 @HiltViewModel
@@ -51,7 +52,12 @@ class SupportTicketDetailViewModel @Inject constructor(
             }
             when (val result = repository.getSupportTicket(ticketId)) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(ticket = result.data, isLoading = false, isRefreshing = false)
+                    it.copy(
+                        ticket = result.data,
+                        isLoading = false,
+                        isRefreshing = false,
+                        scrollToLatest = it.scrollToLatest + 1,
+                    )
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoading = false, isRefreshing = false, error = result.message)
@@ -76,10 +82,23 @@ class SupportTicketDetailViewModel @Inject constructor(
                     val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
                     if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
                 } ?: "attachment"
+                val size = resolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                    if (sizeIndex >= 0 && cursor.moveToFirst()) cursor.getLong(sizeIndex) else 0L
+                } ?: 0L
+                SupportAttachmentRules.validate(fileName, size)?.let { error ->
+                    _uiState.update { it.copy(error = error) }
+                    return@launch
+                }
                 val tempFile = File(context.cacheDir, "support-${ticketId}-${System.currentTimeMillis()}-$fileName")
                 resolver.openInputStream(uri)?.use { input ->
                     tempFile.outputStream().use { output -> input.copyTo(output) }
                 } ?: error("خواندن فایل ناموفق بود")
+                SupportAttachmentRules.validate(tempFile)?.let { error ->
+                    tempFile.delete()
+                    _uiState.update { it.copy(error = error) }
+                    return@launch
+                }
                 selectedAttachmentFile?.delete()
                 selectedAttachmentFile = tempFile
                 selectedAttachmentMime = mime

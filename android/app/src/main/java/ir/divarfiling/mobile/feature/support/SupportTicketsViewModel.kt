@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.network.SupportTicketCreateRequest
 import ir.divarfiling.mobile.core.network.SupportTicketDto
+import ir.divarfiling.mobile.core.network.SupportTicketStatsDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.WorkspaceExtrasRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,16 +19,21 @@ import javax.inject.Inject
 
 data class SupportTicketsUiState(
     val tickets: List<SupportTicketDto> = emptyList(),
+    val stats: SupportTicketStatsDto = SupportTicketStatsDto(),
+    val total: Int = 0,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isSubmitting: Boolean = false,
     val showCreateDialog: Boolean = false,
+    val searchQuery: String = "",
+    val statusFilter: SupportTicketFilter = SupportTicketFilter.All,
     val subject: String = "",
     val body: String = "",
     val category: String = "other",
     val priority: String = "normal",
     val error: String? = null,
     val successMessage: String? = null,
+    val navigateToTicketId: Long? = null,
 )
 
 @HiltViewModel
@@ -34,15 +42,33 @@ class SupportTicketsViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SupportTicketsUiState())
     val uiState: StateFlow<SupportTicketsUiState> = _uiState.asStateFlow()
+    private var searchJob: Job? = null
 
     init { load() }
 
     fun load() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = it.tickets.isEmpty() && !it.isRefreshing, error = null) }
-            when (val result = repository.getSupportTickets()) {
+            val state = _uiState.value
+            _uiState.update {
+                it.copy(
+                    isLoading = it.tickets.isEmpty() && !it.isRefreshing,
+                    error = null,
+                )
+            }
+            when (
+                val result = repository.getSupportTickets(
+                    status = state.statusFilter.apiStatusParam(),
+                    query = state.searchQuery.trim().ifBlank { null },
+                )
+            ) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(tickets = result.data, isLoading = false, isRefreshing = false)
+                    it.copy(
+                        tickets = result.data.tickets,
+                        stats = result.data.stats,
+                        total = result.data.total,
+                        isLoading = false,
+                        isRefreshing = false,
+                    )
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoading = false, isRefreshing = false, error = result.message)
@@ -53,6 +79,21 @@ class SupportTicketsViewModel @Inject constructor(
 
     fun refresh() {
         _uiState.update { it.copy(isRefreshing = true) }
+        load()
+    }
+
+    fun onSearchChange(value: String) {
+        _uiState.update { it.copy(searchQuery = value) }
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(400)
+            load()
+        }
+    }
+
+    fun onStatusFilterChange(filter: SupportTicketFilter) {
+        if (_uiState.value.statusFilter == filter) return
+        _uiState.update { it.copy(statusFilter = filter) }
         load()
     }
 
@@ -78,6 +119,10 @@ class SupportTicketsViewModel @Inject constructor(
             _uiState.update { it.copy(error = "موضوع و متن الزامی است") }
             return
         }
+        if (body.length < 10) {
+            _uiState.update { it.copy(error = "متن درخواست باید حداقل ۱۰ کاراکتر باشد") }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             when (
@@ -98,7 +143,7 @@ class SupportTicketsViewModel @Inject constructor(
                         body = "",
                         category = "other",
                         priority = "normal",
-                        successMessage = "تیکت ثبت شد",
+                        navigateToTicketId = result.data.id,
                     )
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -108,6 +153,8 @@ class SupportTicketsViewModel @Inject constructor(
             load()
         }
     }
+
+    fun consumeNavigation() = _uiState.update { it.copy(navigateToTicketId = null) }
 
     fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
 }
