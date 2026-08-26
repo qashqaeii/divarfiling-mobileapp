@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -467,6 +466,7 @@ private fun SendFilingDatasetBreadcrumb(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SendFilingDatasetRow(
     dataset: DatasetDto,
@@ -651,9 +651,9 @@ private fun SendFilingListingRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (priceLine.isNotBlank()) {
+                priceLine?.let { line ->
                     Text(
-                        priceLine,
+                        text = line.value,
                         style = AppTypography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = DfColors.Purple,

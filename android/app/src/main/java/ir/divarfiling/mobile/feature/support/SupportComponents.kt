@@ -213,7 +213,7 @@ fun SupportTicketTimeline(
                                 style = AppTypography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isCurrent || isDone) {
-                                    DfThemeColors.onPrimary()
+                                    Color.White
                                 } else {
                                     DfThemeColors.textMuted()
                                 },
