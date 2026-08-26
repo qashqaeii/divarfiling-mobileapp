@@ -66,6 +66,8 @@ import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.feature.crm.components.PropertiesSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.PropertiesStatsRow
 import ir.divarfiling.mobile.feature.crm.components.PropertyContactMatchesSheet
+import ir.divarfiling.mobile.feature.crm.components.PropertySuggestionResultSheet
+import ir.divarfiling.mobile.feature.crm.components.suggestionMessage
 import ir.divarfiling.mobile.feature.crm.components.PropertyDetailTabbedContent
 import ir.divarfiling.mobile.feature.crm.components.PropertyLocationMapPickerSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFormMode
@@ -417,6 +419,12 @@ fun PropertyDetailScreen(
         androidx.activity.result.contract.ActivityResultContracts.GetContent(),
     ) { uri -> uri?.let { viewModel.uploadDocument(it) } }
 
+    LaunchedEffect(state.pendingSocialShare) {
+        val pending = state.pendingSocialShare ?: return@LaunchedEffect
+        ContactSocialShare.open(context, pending)
+        viewModel.clearPendingSocialShare()
+    }
+
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
@@ -690,63 +698,31 @@ fun PropertyDetailScreen(
     )
 
     state.contactSuggestionResult?.let { result ->
-        DfModalBottomSheet(onDismissRequest = viewModel::dismissContactSuggestionResult) {
-            DfCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppSpacing.screenHorizontal)
-                    .padding(bottom = AppSpacing.xl),
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                ) {
-                    Text(
-                        text = "پیشنهاد برای مشتری‌ها ثبت شد",
-                        style = ir.divarfiling.mobile.core.design.AppTypography.cardTitle,
-                    )
-                    Text(
-                        text = when {
-                            result.publicUrl.isNullOrBlank() && result.whatsappText.isNullOrBlank() ->
-                                "پیشنهاد برای ${result.suggestedCount} مشتری ذخیره شد."
-                            else ->
-                                "پیشنهاد برای ${result.suggestedCount} مشتری ثبت شد. حالا می‌توانید متن آماده را مستقیم ارسال کنید یا لینک صفحه عمومی را باز و کپی کنید."
-                        },
-                        style = ir.divarfiling.mobile.core.design.AppTypography.bodyDescription,
-                    )
-                    result.whatsappText?.takeIf { it.isNotBlank() }?.let { text ->
-                        DfPrimaryButton(
-                            text = "ارسال در واتساپ",
-                            onClick = { DossierShareActions.openWhatsApp(context, text) },
-                        )
-                        DfSecondaryButton(
-                            text = "ارسال در بله",
-                            onClick = { DossierShareActions.openBale(context, text) },
-                        )
-                        DfSecondaryButton(
-                            text = "کپی متن پیام",
-                            onClick = {
-                                DossierShareActions.copyToClipboard(context, text)
-                                scope.launch { snackbar.showSnackbar("متن پیام کپی شد") }
-                            },
-                        )
-                    }
-                    result.publicUrl?.takeIf { it.isNotBlank() }?.let { url ->
-                        DfSecondaryButton(
-                            text = "باز کردن لینک عمومی",
-                            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
-                        )
-                        DfSecondaryButton(
-                            text = "کپی لینک عمومی",
-                            onClick = {
-                                DossierShareActions.copyToClipboard(context, url)
-                                scope.launch { snackbar.showSnackbar("لینک عمومی کپی شد") }
-                            },
-                        )
-                    }
-                }
-            }
-        }
+        PropertySuggestionResultSheet(
+            result = result,
+            onDismiss = viewModel::dismissContactSuggestionResult,
+            onShare = { item, channel ->
+                val message = suggestionMessage(item, result.publicUrl)
+                ContactSocialShare.open(
+                    context = context,
+                    channel = channel,
+                    message = message,
+                    phone = item.phone,
+                    socialLinks = item.socialLinks,
+                )
+            },
+            onCopyText = { text ->
+                DossierShareActions.copyToClipboard(context, text)
+                scope.launch { snackbar.showSnackbar("متن پیام کپی شد") }
+            },
+            onOpenPublicLink = { url ->
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            },
+            onCopyPublicLink = { url ->
+                DossierShareActions.copyToClipboard(context, url)
+                scope.launch { snackbar.showSnackbar("لینک عمومی کپی شد") }
+            },
+        )
     }
 }
 

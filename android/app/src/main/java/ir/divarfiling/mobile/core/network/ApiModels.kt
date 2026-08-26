@@ -412,6 +412,18 @@ data class ContactSuggestResponse(
     @SerialName("suggested_count") val suggestedCount: Int = 0,
     @SerialName("whatsapp_text") val whatsappText: String? = null,
     @SerialName("public_url") val publicUrl: String? = null,
+    val suggestions: List<ContactSuggestionItemDto> = emptyList(),
+)
+
+@Serializable
+data class ContactSuggestionItemDto(
+    @SerialName("customer_id") val customerId: Long = 0,
+    val name: String? = null,
+    val phone: String? = null,
+    @SerialName("whatsapp_text") val whatsappText: String? = null,
+    @SerialName("whatsapp_url") val whatsappUrl: String? = null,
+    @SerialName("active_channels") val activeChannels: List<String> = emptyList(),
+    @SerialName("social_links") val socialLinks: Map<String, String> = emptyMap(),
 )
 
 @Serializable
@@ -1836,10 +1848,22 @@ data class PropertyContactMatchItemDto(
     @SerialName("customer_id") val customerId: Long,
     val score: Int = 0,
     @SerialName("full_name") val fullName: String? = null,
+    val name: String? = null,
     val phone: String? = null,
     @SerialName("customer_type") val customerType: String? = null,
     val reasons: List<String> = emptyList(),
-)
+    val areas: String? = null,
+    @SerialName("budget_label") val budgetLabel: String? = null,
+    @SerialName("property_type") val propertyType: String? = null,
+    @SerialName("intent_label") val intentLabel: String? = null,
+    val status: String? = null,
+    @SerialName("active_channels") val activeChannels: List<String> = emptyList(),
+    @SerialName("social_links") val socialLinks: Map<String, String> = emptyMap(),
+) {
+    fun displayName(): String = fullName?.takeIf { it.isNotBlank() }
+        ?: name?.takeIf { it.isNotBlank() }
+        ?: "بدون نام"
+}
 
 @Serializable
 data class PropertyContactMatchesData(

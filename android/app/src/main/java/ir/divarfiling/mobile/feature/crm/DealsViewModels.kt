@@ -10,6 +10,7 @@ import ir.divarfiling.mobile.core.design.DossierShareOptions
 import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.core.export.ExportShareHelper
 import ir.divarfiling.mobile.core.network.ContactDto
+import ir.divarfiling.mobile.core.network.ContactSuggestionItemDto
 import ir.divarfiling.mobile.core.network.ContactSuggestResponse
 import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealFinanceDashboardData
@@ -21,6 +22,7 @@ import ir.divarfiling.mobile.core.network.DealStageDefDto
 import ir.divarfiling.mobile.core.network.DealStagePresetDto
 import ir.divarfiling.mobile.core.network.DealStagesSaveRequest
 import ir.divarfiling.mobile.core.network.DealUpdateRequest
+import ir.divarfiling.mobile.feature.crm.components.suggestionMessage
 import ir.divarfiling.mobile.core.network.PropertyContactMatchItemDto
 import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
@@ -1655,6 +1657,7 @@ data class PropertyDetailUiState(
     val contactMatchesData: PropertyContactMatchesData? = null,
     val contactMatchesLoading: Boolean = false,
     val contactSuggestionResult: ContactSuggestResponse? = null,
+    val pendingSocialShare: PendingContactSocialShare? = null,
     val shareNote: String = "",
     val shareIncludeLink: Boolean = false,
     val shareIncludeAddress: Boolean = false,
@@ -2163,18 +2166,40 @@ class PropertyDetailViewModel @Inject constructor(
         }
     }
 
-    fun suggestContactMatches(matches: List<PropertyContactMatchItemDto>) {
+    fun suggestContactMatches(matches: List<PropertyContactMatchItemDto>, shareChannel: String? = null) {
         if (matches.isEmpty()) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             when (val result = repository.suggestPropertyContacts(propertyId, matches.map { it.customerId })) {
                 is ApiResult.Success -> {
+                    val response = result.data
+                    val primarySuggestion = response.suggestions.firstOrNull()
+                    val shareItem = when {
+                        matches.size == 1 -> {
+                            val selectedId = matches.first().customerId
+                            response.suggestions.firstOrNull { it.customerId == selectedId }
+                                ?: primarySuggestion
+                        }
+                        else -> primarySuggestion
+                    }
+                    val shareText = suggestionMessage(shareItem ?: ContactSuggestionItemDto(), response.publicUrl)
+                        .takeIf { it.isNotBlank() }
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             showContactMatchesSheet = false,
-                            contactSuggestionResult = result.data,
-                            successMessage = "${result.data.suggestedCount} مشتری پیشنهاد شد",
+                            contactSuggestionResult = if (shareChannel == null) response else null,
+                            pendingSocialShare = if (shareChannel != null && shareText != null && shareItem != null) {
+                                PendingContactSocialShare(
+                                    channel = shareChannel,
+                                    message = shareText,
+                                    phone = shareItem.phone ?: matches.firstOrNull()?.phone,
+                                    socialLinks = shareItem.socialLinks,
+                                )
+                            } else {
+                                null
+                            },
+                            successMessage = "${response.suggestedCount} مشتری پیشنهاد شد",
                         )
                     }
                     load()
@@ -2185,6 +2210,8 @@ class PropertyDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun clearPendingSocialShare() = _uiState.update { it.copy(pendingSocialShare = null) }
 
     fun dismissContactSuggestionResult() = _uiState.update { it.copy(contactSuggestionResult = null) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }

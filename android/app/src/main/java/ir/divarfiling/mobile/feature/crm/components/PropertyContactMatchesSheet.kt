@@ -6,19 +6,26 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,11 +40,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -52,6 +59,8 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.network.PropertyContactMatchItemDto
 import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
+import ir.divarfiling.mobile.feature.crm.ContactShareChannel
+import ir.divarfiling.mobile.feature.crm.ContactSocialShare
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +70,7 @@ fun PropertyContactMatchesSheet(
     isLoading: Boolean,
     isSubmitting: Boolean,
     onDismiss: () -> Unit,
-    onSuggest: (List<PropertyContactMatchItemDto>) -> Unit,
+    onSuggest: (List<PropertyContactMatchItemDto>, shareChannel: String?) -> Unit,
 ) {
     if (!visible) return
 
@@ -69,65 +78,54 @@ fun PropertyContactMatchesSheet(
         matches?.matches.orEmpty().sortedByDescending { it.score }
     }
     var selected by remember(allMatches) { mutableStateOf(emptySet<Long>()) }
+    val selectedMatches = remember(allMatches, selected) {
+        allMatches.filter { it.customerId in selected }
+    }
     val selectedCount = selected.size
     val allSelected = allMatches.isNotEmpty() && selectedCount == allMatches.size
     val canSubmit = selectedCount > 0 && !isSubmitting
+    val topMatches = remember(allMatches) { allMatches.take(3) }
+
+    val shareChannels = remember(selectedMatches) {
+        if (selectedMatches.size == 1) {
+            val match = selectedMatches.first()
+            ContactSocialShare.resolveMessagingChannels(
+                match.phone,
+                match.activeChannels,
+                match.socialLinks,
+            )
+        } else {
+            emptyList()
+        }
+    }
 
     DfModalBottomSheet(onDismissRequest = onDismiss) {
         DfSheetScaffold(
             title = "مخاطب‌های پیشنهادی",
-            subtitle = "مشتریانی که با این فایل شخصی هم‌خوانی دارند",
+            subtitle = "مشتریانی که با این فایل شخصی هم‌خوانی دارند — انتخاب کنید و ارسال کنید",
             icon = DfIcons.Users,
             iconContainerColor = DfColors.BlueLight,
             iconTint = DfColors.Blue,
             onClose = onDismiss,
+            bodyHeightFraction = 0.84f,
             footer = if (!isLoading && matches?.eligible != false && matches?.forbidden != true && allMatches.isNotEmpty()) {
                 {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = if (selectedCount == 0) {
-                                    "مشتریان مناسب را انتخاب کنید"
-                                } else {
-                                    "${DateUtils.toPersianDigits(selectedCount.toString())} از ${DateUtils.toPersianDigits(allMatches.size.toString())} انتخاب‌شده"
-                                },
-                                style = AppTypography.labelSmall,
-                                color = DfColors.TextSecondary,
-                                modifier = Modifier.weight(1f),
-                            )
-                            DfGlassTextButton(
-                                text = if (allSelected) "لغو همه" else "انتخاب همه",
-                                onClick = {
-                                    selected = if (allSelected) {
-                                        emptySet()
-                                    } else {
-                                        allMatches.map { it.customerId }.toSet()
-                                    }
-                                },
-                                compact = true,
-                            )
-                        }
-                        DfPrimaryButton(
-                            text = if (selectedCount > 0) {
-                                "ثبت پیشنهاد (${DateUtils.toPersianDigits(selectedCount.toString())})"
-                            } else {
-                                "ثبت پیشنهاد"
-                            },
-                            onClick = {
-                                onSuggest(allMatches.filter { it.customerId in selected })
-                            },
-                            enabled = canSubmit,
-                            loading = isSubmitting,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
+                    PropertyMatchSuggestFooter(
+                        selectedCount = selectedCount,
+                        totalCount = allMatches.size,
+                        allSelected = allSelected,
+                        canSubmit = canSubmit,
+                        isSubmitting = isSubmitting,
+                        shareChannels = shareChannels,
+                        onToggleSelectAll = {
+                            selected = if (allSelected) emptySet() else allMatches.map { it.customerId }.toSet()
+                        },
+                        onSelectTop = {
+                            selected = topMatches.map { it.customerId }.toSet()
+                        },
+                        onSuggest = { onSuggest(selectedMatches, null) },
+                        onSuggestViaChannel = { channel -> onSuggest(selectedMatches, channel) },
+                    )
                 }
             } else {
                 null
@@ -168,6 +166,7 @@ fun PropertyContactMatchesSheet(
                     PropertyMatchInsightStrip(
                         total = allMatches.size,
                         topScore = allMatches.maxOfOrNull { it.score } ?: 0,
+                        selectedCount = selectedCount,
                     )
                     allMatches.forEach { match ->
                         PropertySmartMatchCard(
@@ -189,64 +188,188 @@ fun PropertyContactMatchesSheet(
 }
 
 @Composable
-private fun PropertyMatchInsightStrip(total: Int, topScore: Int) {
-    Surface(
+private fun PropertyMatchSuggestFooter(
+    selectedCount: Int,
+    totalCount: Int,
+    allSelected: Boolean,
+    canSubmit: Boolean,
+    isSubmitting: Boolean,
+    shareChannels: List<ContactShareChannel>,
+    onToggleSelectAll: () -> Unit,
+    onSelectTop: () -> Unit,
+    onSuggest: () -> Unit,
+    onSuggestViaChannel: (String) -> Unit,
+) {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.Card,
-        color = Color.Transparent,
-        shadowElevation = AppElevations.subtle,
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(AppShapes.Card)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            DfColors.Blue.copy(alpha = 0.12f),
-                            DfColors.Purple.copy(alpha = 0.08f),
-                            DfColors.Green.copy(alpha = 0.06f),
-                        ),
-                    ),
-                )
-                .padding(AppSpacing.md),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (selectedCount == 0) {
+                        "مشتریان مناسب را انتخاب کنید"
+                    } else {
+                        "${DateUtils.toPersianDigits(selectedCount.toString())} مشتری از ${DateUtils.toPersianDigits(totalCount.toString())}"
+                    },
+                    style = AppTypography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selectedCount > 0) DfColors.Blue else DfColors.TextSecondary,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                DfGlassTextButton(text = "۳ برتر", onClick = onSelectTop, compact = true)
+                DfGlassTextButton(
+                    text = if (allSelected) "لغو انتخاب" else "انتخاب همه",
+                    onClick = onToggleSelectAll,
+                    compact = true,
+                )
+            }
+        }
+
+        if (selectedCount > 0) {
+            LinearProgressIndicator(
+                progress = { selectedCount.toFloat() / totalCount.coerceAtLeast(1) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(AppShapes.Chip),
+                color = DfColors.Blue,
+                trackColor = DfColors.BlueLight.copy(alpha = 0.45f),
+            )
+        }
+
+        DfPrimaryButton(
+            text = if (selectedCount > 0) {
+                "ثبت پیشنهاد (${DateUtils.toPersianDigits(selectedCount.toString())})"
+            } else {
+                "ثبت پیشنهاد"
+            },
+            onClick = onSuggest,
+            enabled = canSubmit,
+            loading = isSubmitting,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (shareChannels.isNotEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                Text(
+                    "ثبت و ارسال در",
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfColors.TextMuted,
+                )
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                ) {
+                    shareChannels.forEach { channel ->
+                        PropertySocialShareButton(
+                            channel = channel,
+                            enabled = canSubmit,
+                            onClick = { onSuggestViaChannel(channel.key) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PropertyMatchInsightStrip(total: Int, topScore: Int, selectedCount: Int) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(AppShapes.Card)
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        DfColors.Blue.copy(alpha = 0.06f),
+                        DfColors.Purple.copy(alpha = 0.04f),
+                        Color.Transparent,
+                    ),
+                ),
+            )
+            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(DfColors.Blue.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         DfIcons.WandSparkles,
                         contentDescription = null,
                         tint = DfColors.Blue,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                     )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         "تحلیل هوشمند مخاطبان",
                         style = AppTypography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.Blue,
+                        color = DfColors.TextPrimary,
                     )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    PropertyInsightStat(
-                        label = "مشتری",
-                        value = DateUtils.toPersianDigits(total.toString()),
-                        accent = DfColors.Blue,
-                        modifier = Modifier.weight(1f),
-                    )
-                    PropertyInsightStat(
-                        label = "بهترین امتیاز",
-                        value = DateUtils.toPersianDigits(topScore.toString()),
-                        accent = propertyScoreAccent(topScore),
-                        modifier = Modifier.weight(1f),
+                    Text(
+                        "بر اساس بودجه، محله و نیاز مشتری",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
                     )
                 }
             }
+            if (selectedCount > 0) {
+                Surface(shape = AppShapes.Chip, color = DfColors.Blue.copy(alpha = 0.12f)) {
+                    Text(
+                        "${DateUtils.toPersianDigits(selectedCount.toString())} انتخاب",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.Blue,
+                    )
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PropertyInsightStat(
+                label = "مشتری",
+                value = DateUtils.toPersianDigits(total.toString()),
+                accent = DfColors.Blue,
+                modifier = Modifier.weight(1f),
+            )
+            PropertyInsightStat(
+                label = "بهترین امتیاز",
+                value = DateUtils.toPersianDigits(topScore.toString()),
+                accent = propertyScoreAccent(topScore),
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
@@ -261,8 +384,8 @@ private fun PropertyInsightStat(
     Column(
         modifier = modifier
             .clip(AppShapes.CardSmall)
-            .background(DfColors.Surface.copy(alpha = 0.75f))
-            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            .background(DfColors.SurfaceVariant.copy(alpha = 0.35f))
+            .padding(horizontal = AppSpacing.xs, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -290,15 +413,11 @@ private fun PropertySmartMatchCard(
     onToggle: () -> Unit,
 ) {
     val borderColor by animateColorAsState(
-        targetValue = if (selected) DfColors.Blue else DfColors.Outline.copy(alpha = 0.35f),
+        targetValue = if (selected) DfColors.Blue else DfColors.Outline.copy(alpha = 0.25f),
         label = "contactMatchBorder",
     )
     val bg by animateColorAsState(
-        targetValue = if (selected) {
-            DfColors.BlueLight.copy(alpha = 0.75f)
-        } else {
-            DfColors.Surface
-        },
+        targetValue = if (selected) DfColors.BlueLight.copy(alpha = 0.55f) else DfColors.Surface,
         label = "contactMatchBg",
     )
     val scoreColor = propertyScoreAccent(match.score)
@@ -306,62 +425,158 @@ private fun PropertySmartMatchCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .clickable(onClick = onToggle),
-        shape = AppShapes.CardSmall,
+        shape = AppShapes.Card,
         color = bg,
-        border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
-        shadowElevation = AppElevations.subtle,
+        border = BorderStroke(if (selected) 1.dp else 0.5.dp, borderColor),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(if (selected) DfColors.Blue else DfColors.SurfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (selected) {
-                    Icon(DfIcons.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                }
-            }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    match.fullName.orEmpty().ifBlank { "بدون نام" },
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val meta = listOfNotNull(
-                    match.customerType?.takeIf { it.isNotBlank() },
-                    match.phone?.takeIf { it.isNotBlank() },
-                ).joinToString(" · ")
-                if (meta.isNotBlank()) {
-                    Text(meta, style = AppTypography.labelSmall, color = DfColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                if (match.reasons.isNotEmpty()) {
-                    Text(
-                        match.reasons.take(3).joinToString("  ·  "),
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Text(
-                DateUtils.toPersianDigits(match.score.toString()),
-                style = AppTypography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = scoreColor,
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .background(if (selected) DfColors.Blue else scoreColor.copy(alpha = 0.45f)),
             )
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PropertySelectionMark(selected = selected)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            match.displayName(),
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        match.customerType?.takeIf { it.isNotBlank() }?.let { type ->
+                            PropertyMatchChip(text = type, accent = DfColors.Blue)
+                        }
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        match.budgetLabel?.takeIf { it.isNotBlank() }?.let { budget ->
+                            Text(
+                                budget,
+                                style = AppTypography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = DfColors.Green,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        match.intentLabel?.takeIf { it.isNotBlank() }?.let { intent ->
+                            PropertyMatchChip(text = intent, accent = DfColors.Purple, filled = false)
+                        }
+                    }
+
+                    val meta = listOfNotNull(
+                        match.phone?.takeIf { it.isNotBlank() },
+                        match.areas?.takeIf { it.isNotBlank() },
+                    ).joinToString(" · ")
+                    if (meta.isNotBlank()) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                DfIcons.MapPin,
+                                contentDescription = null,
+                                tint = DfColors.TextMuted,
+                                modifier = Modifier.size(13.dp),
+                            )
+                            Text(
+                                meta,
+                                style = AppTypography.labelSmall,
+                                color = DfColors.TextSecondary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        match.propertyType?.takeIf { it.isNotBlank() }?.let { type ->
+                            PropertyMatchChip(text = type, accent = DfColors.TextSecondary)
+                        }
+                        match.status?.takeIf { it.isNotBlank() }?.let { status ->
+                            PropertyMatchChip(text = status, accent = DfColors.Amber, filled = false)
+                        }
+                    }
+
+                    if (match.reasons.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            match.reasons.take(4).forEach { reason ->
+                                PropertyMatchChip(text = reason, accent = scoreColor, filled = false)
+                            }
+                        }
+                    }
+                }
+                PropertyMatchScoreRing(score = match.score, accent = scoreColor)
+            }
         }
+    }
+}
+
+@Composable
+private fun PropertySelectionMark(selected: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(CircleShape)
+            .background(if (selected) DfColors.Blue else DfColors.SurfaceVariant),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            Icon(DfIcons.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+        }
+    }
+}
+
+@Composable
+private fun PropertyMatchChip(
+    text: String,
+    accent: Color,
+    filled: Boolean = true,
+) {
+    Surface(
+        shape = AppShapes.Chip,
+        color = if (filled) accent.copy(alpha = 0.12f) else Color.Transparent,
+        border = if (filled) null else BorderStroke(0.5.dp, accent.copy(alpha = 0.35f)),
+    ) {
+        Text(
+            text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            style = AppTypography.labelSmall,
+            color = if (filled) accent else DfColors.TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -391,6 +606,57 @@ private fun PropertyMatchScoreRing(score: Int, accent: Color) {
             style = AppTypography.labelLarge.copy(fontSize = 14.sp),
             fontWeight = FontWeight.Bold,
             color = accent,
+        )
+    }
+}
+
+@Composable
+internal fun PropertySocialShareButton(
+    channel: ContactShareChannel,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Surface(
+            onClick = onClick,
+            enabled = enabled,
+            shape = CircleShape,
+            color = channel.accent.copy(alpha = if (enabled) 0.14f else 0.07f),
+            border = BorderStroke(0.5.dp, channel.accent.copy(alpha = if (enabled) 0.35f else 0.18f)),
+            modifier = Modifier.size(52.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                when {
+                    channel.iconRes != null -> {
+                        Icon(
+                            painter = painterResource(channel.iconRes),
+                            contentDescription = channel.label,
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+                    channel.emoji != null -> {
+                        Text(channel.emoji, style = AppTypography.sectionTitle)
+                    }
+                    channel.vectorIcon != null -> {
+                        Icon(
+                            channel.vectorIcon,
+                            contentDescription = channel.label,
+                            tint = channel.accent,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            channel.label,
+            style = AppTypography.labelSmall,
+            color = if (enabled) DfColors.TextSecondary else DfColors.TextMuted,
+            maxLines = 1,
         )
     }
 }
