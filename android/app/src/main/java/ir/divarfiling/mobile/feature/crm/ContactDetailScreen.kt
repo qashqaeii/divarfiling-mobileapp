@@ -333,6 +333,9 @@ fun ContactDetailScreen(
                 prefs = state.editPrefs,
                 builder = state.editBuilder,
                 notes = state.editNotes,
+                activeChannels = state.editActiveChannels,
+                socialLinks = state.editSocialLinks,
+                catalogNeighborhoods = state.editDatasetNeighborhoods,
                 isSubmitting = state.isSubmitting,
                 onNameChange = viewModel::onEditNameChange,
                 onPhoneChange = viewModel::onEditPhoneChange,
@@ -375,6 +378,8 @@ fun ContactDetailScreen(
                 onBuilderBuyMaxAreaChange = viewModel::onEditBuilderBuyMaxAreaChange,
                 onBuilderBuyAreasChange = viewModel::onEditBuilderBuyAreasChange,
                 onBuilderBuyTypesChange = viewModel::onEditBuilderBuyTypesChange,
+                onToggleChannel = viewModel::onEditToggleChannel,
+                onSocialLinkChange = viewModel::onEditSocialLinkChange,
                 onNotesChange = viewModel::onEditNotesChange,
                 onSave = {
                     haptics.confirm()

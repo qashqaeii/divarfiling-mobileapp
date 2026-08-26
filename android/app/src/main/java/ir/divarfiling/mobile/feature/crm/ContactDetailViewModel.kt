@@ -15,6 +15,7 @@ import ir.divarfiling.mobile.core.network.MessageTemplateDto
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.ListingMessageFormatter
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.network.PropertyMatchDto
 import ir.divarfiling.mobile.core.network.SendListingRequest
@@ -70,6 +71,9 @@ data class ContactDetailUiState(
     val editPrefs: ContactEditPrefsState = ContactEditPrefsState(),
     val editBuilder: ContactEditBuilderState = ContactEditBuilderState(),
     val editNotes: String = "",
+    val editActiveChannels: Set<String> = emptySet(),
+    val editSocialLinks: Map<String, String> = emptyMap(),
+    val editDatasetNeighborhoods: List<String> = emptyList(),
     val showDiscardEditDialog: Boolean = false,
     val activityContent: String = "",
     val selectedActivityType: String = "پیگیری",
@@ -155,6 +159,8 @@ class ContactDetailViewModel @Inject constructor(
                             editPrefs = editFields.editPrefs,
                             editBuilder = editFields.editBuilder,
                             editNotes = editFields.editNotes,
+                            editActiveChannels = editFields.editActiveChannels,
+                            editSocialLinks = editFields.editSocialLinks,
                         )
                     }
                     if (openMatchesOnLoad || _uiState.value.showMatchesSheet) {
@@ -398,6 +404,9 @@ class ContactDetailViewModel @Inject constructor(
                     wantParking = prefs.wantParking,
                     wantStorage = prefs.wantStorage,
                     wantElevator = prefs.wantElevator,
+                    socialLinks = state.editSocialLinks.filterValues { it.isNotBlank() }.ifEmpty { null },
+                    activeChannels = state.editActiveChannels.filter { it in CrmContactChannels.allKeys }.toList()
+                        .ifEmpty { null },
                 ),
             )) {
                 is ApiResult.Success -> {
@@ -759,8 +768,19 @@ class ContactDetailViewModel @Inject constructor(
     fun toggleEditSheet(show: Boolean) {
         if (show) {
             _uiState.update { it.copy(showEditSheet = true, showDiscardEditDialog = false) }
+            loadEditNeighborhoods()
         } else {
             requestDismissEdit()
+        }
+    }
+
+    private fun loadEditNeighborhoods() {
+        if (_uiState.value.editDatasetNeighborhoods.isNotEmpty()) return
+        viewModelScope.launch {
+            when (val result = crmRepository.getNeighborhoods()) {
+                is ApiResult.Success -> _uiState.update { it.copy(editDatasetNeighborhoods = result.data) }
+                is ApiResult.Error -> Unit
+            }
         }
     }
 
@@ -804,6 +824,8 @@ class ContactDetailViewModel @Inject constructor(
                     editPrefs = editFields.editPrefs,
                     editBuilder = editFields.editBuilder,
                     editNotes = editFields.editNotes,
+                    editActiveChannels = editFields.editActiveChannels,
+                    editSocialLinks = editFields.editSocialLinks,
                 )
             }
         }
@@ -859,7 +881,9 @@ class ContactDetailViewModel @Inject constructor(
             prefs.floorMax != contact.floorMax?.toString().orEmpty() ||
             prefs.wantParking != contact.wantParking ||
             prefs.wantStorage != contact.wantStorage ||
-            prefs.wantElevator != contact.wantElevator
+            prefs.wantElevator != contact.wantElevator ||
+            state.editActiveChannels != contact.activeChannels.orEmpty().toSet() ||
+            state.editSocialLinks != contact.socialLinks.orEmpty()
     }
 
     fun openActivitySheet(type: String = "پیگیری", content: String = "") = _uiState.update {
@@ -887,7 +911,16 @@ class ContactDetailViewModel @Inject constructor(
     fun onReminderDueChange(millis: Long) = _uiState.update { it.copy(reminderDueMillis = millis) }
     fun onReminderRecurrenceChange(v: String) = _uiState.update { it.copy(reminderRecurrence = v) }
     fun onEditNameChange(v: String) = _uiState.update { it.copy(editName = v) }
-    fun onEditPhoneChange(v: String) = _uiState.update { it.copy(editPhone = v) }
+    fun onEditPhoneChange(v: String) = _uiState.update { state ->
+        state.copy(
+            editPhone = PhoneNormalizer.normalize(v),
+            editSocialLinks = CrmContactChannels.syncPhoneDerivedSocialLinks(
+                activeChannels = state.editActiveChannels,
+                phone = PhoneNormalizer.normalize(v),
+                currentLinks = state.editSocialLinks,
+            ),
+        )
+    }
     fun onEditPhoneAltChange(v: String) = _uiState.update { it.copy(editPhoneAlt = v) }
     fun onEditEmailChange(v: String) = _uiState.update { it.copy(editEmail = v) }
     fun onEditJobChange(v: String) = _uiState.update { it.copy(editJob = v) }
@@ -928,6 +961,24 @@ class ContactDetailViewModel @Inject constructor(
     fun onEditBuilderBuyAreasChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyAreas = v)) }
     fun onEditBuilderBuyTypesChange(v: String) = _uiState.update { it.copy(editBuilder = it.editBuilder.copy(buyPropertyTypes = v)) }
     fun onEditNotesChange(v: String) = _uiState.update { it.copy(editNotes = v) }
+
+    fun onEditToggleChannel(key: String, active: Boolean) = _uiState.update { state ->
+        val next = state.editActiveChannels.toMutableSet()
+        if (active) next.add(key) else next.remove(key)
+        val nextLinks = state.editSocialLinks.toMutableMap()
+        if (active) {
+            CrmContactChannels.autoSocialHandle(key, state.editPhone)?.let { nextLinks[key] = it }
+        } else if (CrmContactChannels.usesPhoneForSocialHandle(key)) {
+            nextLinks.remove(key)
+        }
+        state.copy(editActiveChannels = next, editSocialLinks = nextLinks)
+    }
+
+    fun onEditSocialLinkChange(key: String, value: String) = _uiState.update { state ->
+        val next = state.editSocialLinks.toMutableMap()
+        if (value.isBlank()) next.remove(key) else next[key] = value
+        state.copy(editSocialLinks = next)
+    }
     fun onActivityContentChange(v: String) = _uiState.update { it.copy(activityContent = v) }
     fun onActivityTypeChange(v: String) = _uiState.update {
         it.copy(
@@ -1039,6 +1090,8 @@ private data class ContactEditFieldsSnapshot(
     val editPrefs: ContactEditPrefsState,
     val editBuilder: ContactEditBuilderState,
     val editNotes: String,
+    val editActiveChannels: Set<String>,
+    val editSocialLinks: Map<String, String>,
 )
 
 private fun editFieldsFromContact(contact: ContactDto): ContactEditFieldsSnapshot = ContactEditFieldsSnapshot(
@@ -1093,6 +1146,8 @@ private fun editFieldsFromContact(contact: ContactDto): ContactEditFieldsSnapsho
             .ifBlank { "ویلا, کلنگی, زمین" },
     ),
     editNotes = contact.notes.orEmpty(),
+    editActiveChannels = contact.activeChannels.orEmpty().toSet(),
+    editSocialLinks = contact.socialLinks.orEmpty(),
 )
 
 private fun defaultStatusForActivityType(type: String): String = when (type) {
