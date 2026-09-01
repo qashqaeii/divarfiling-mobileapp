@@ -37,6 +37,8 @@ fun ListingDetailGallerySection(
     onSaveAsPersonal: () -> Unit,
     onOpenDivar: (() -> Unit)?,
     onNavigate: (() -> Unit)?,
+    isAddedToPersonal: Boolean = false,
+    onViewPersonalProperty: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     quickActions: @Composable () -> Unit = {},
 ) {
@@ -57,6 +59,8 @@ fun ListingDetailGallerySection(
             onSaveAsPersonal = onSaveAsPersonal,
             onOpenDivar = onOpenDivar,
             onNavigate = onNavigate,
+            isAddedToPersonal = isAddedToPersonal,
+            onViewPersonalProperty = onViewPersonalProperty,
             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
         )
 
@@ -150,6 +154,8 @@ private fun ListingGalleryActionsRow(
     onSaveAsPersonal: () -> Unit,
     onOpenDivar: (() -> Unit)?,
     onNavigate: (() -> Unit)?,
+    isAddedToPersonal: Boolean = false,
+    onViewPersonalProperty: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -174,12 +180,18 @@ private fun ListingGalleryActionsRow(
                 modifier = Modifier.weight(1f),
             )
             GalleryActionChip(
-                label = "فایل شخصی",
+                label = if (isAddedToPersonal) "مشاهده فایل شخصی" else "فایل شخصی",
                 icon = DfIcons.Building,
                 tint = DfColors.Amber,
                 background = DfColors.AmberLight,
-                enabled = true,
-                onClick = onSaveAsPersonal,
+                enabled = !isAddedToPersonal || onViewPersonalProperty != null,
+                onClick = {
+                    if (isAddedToPersonal) {
+                        onViewPersonalProperty?.invoke()
+                    } else {
+                        onSaveAsPersonal()
+                    }
+                },
                 modifier = Modifier.weight(1f),
             )
             GalleryActionChip(

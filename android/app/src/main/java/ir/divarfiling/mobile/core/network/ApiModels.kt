@@ -551,6 +551,8 @@ data class ListingDto(
     @SerialName("value_score") val valueScore: Double? = null,
     @SerialName("market_tier") val marketTier: String? = null,
     val verdict: String? = null,
+    @SerialName("is_added_to_personal") val isAddedToPersonal: Boolean = false,
+    @SerialName("personal_property_id") val personalPropertyId: Long? = null,
 )
 
 @Serializable
@@ -873,6 +875,8 @@ data class PropertyDto(
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
     val folders: List<PropertyFolderBriefDto> = emptyList(),
+    @SerialName("already_added") val alreadyAdded: Boolean = false,
+    val created: Boolean = true,
 )
 
 @Serializable
@@ -1555,6 +1559,8 @@ data class ListingDetailDto(
     @SerialName("value_score") val valueScore: Double? = null,
     @SerialName("market_tier") val marketTier: String? = null,
     val verdict: String? = null,
+    @SerialName("is_added_to_personal") val isAddedToPersonal: Boolean = false,
+    @SerialName("personal_property_id") val personalPropertyId: Long? = null,
 )
 
 @Serializable

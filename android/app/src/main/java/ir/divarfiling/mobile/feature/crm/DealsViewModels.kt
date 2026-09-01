@@ -977,6 +977,10 @@ data class PropertiesUiState(
     val exportMessage: String? = null,
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
+    val showDuplicateDialog: Boolean = false,
+    val duplicateTargetId: Long? = null,
+    val isDuplicating: Boolean = false,
+    val duplicateNavigateId: Long? = null,
 )
 
 object PropertyConstants {
@@ -1937,6 +1941,41 @@ class PropertiesViewModel @Inject constructor(
             }
         }
     }
+
+    fun requestDuplicateProperty(propertyId: Long) {
+        _uiState.update { it.copy(showDuplicateDialog = true, duplicateTargetId = propertyId) }
+    }
+
+    fun dismissDuplicateDialog() {
+        _uiState.update { it.copy(showDuplicateDialog = false, duplicateTargetId = null) }
+    }
+
+    fun confirmDuplicateProperty() {
+        val id = _uiState.value.duplicateTargetId ?: return
+        if (_uiState.value.isDuplicating) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDuplicating = true, error = null) }
+            when (val result = repository.duplicateProperty(id)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isDuplicating = false,
+                            showDuplicateDialog = false,
+                            duplicateTargetId = null,
+                            duplicateNavigateId = result.data.id,
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isDuplicating = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun consumeDuplicateNavigate() {
+        _uiState.update { it.copy(duplicateNavigateId = null) }
+    }
 }
 
 data class PropertyDetailUiState(
@@ -1994,6 +2033,9 @@ data class PropertyDetailUiState(
     val aiModelLabel: String = "",
     val aiSummaryHighlights: List<String> = emptyList(),
     val aiNegotiationTip: String = "",
+    val showDuplicateDialog: Boolean = false,
+    val isDuplicating: Boolean = false,
+    val duplicateNavigateId: Long? = null,
 )
 
 enum class PropertyDetailTab(val label: String) {
@@ -2012,6 +2054,8 @@ class PropertyDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val propertyId: Long = savedStateHandle.get<Long>("propertyId") ?: 0L
+    private val openEditOnLoad: Boolean = savedStateHandle.get<Boolean>("openEdit") ?: false
+    private var openEditHandled = false
     private val _uiState = MutableStateFlow(PropertyDetailUiState())
     val uiState: StateFlow<PropertyDetailUiState> = _uiState.asStateFlow()
 
@@ -2046,6 +2090,13 @@ class PropertyDetailViewModel @Inject constructor(
                             shareApproximateLocationRadiusM = (publicShare?.approximateLocationRadiusM ?: 500).toString(),
                             shareShowNearbyPois = publicShare?.showNearbyPois ?: false,
                         )
+                    }
+                    if (openEditOnLoad && !openEditHandled && result.data.canEdit) {
+                        openEditHandled = true
+                        val form = PropertyFormState.fromProperty(p)
+                        _uiState.update {
+                            it.copy(showEditSheet = true, editForm = form, editFormBaseline = form)
+                        }
                     }
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -2190,6 +2241,35 @@ class PropertyDetailViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun toggleDuplicateDialog(show: Boolean) {
+        _uiState.update { it.copy(showDuplicateDialog = show) }
+    }
+
+    fun confirmDuplicateProperty() {
+        if (_uiState.value.isDuplicating) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDuplicating = true, error = null) }
+            when (val result = repository.duplicateProperty(propertyId)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isDuplicating = false,
+                            showDuplicateDialog = false,
+                            duplicateNavigateId = result.data.id,
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isDuplicating = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun consumeDuplicateNavigate() {
+        _uiState.update { it.copy(duplicateNavigateId = null) }
     }
 
     fun toggleEditSheet(show: Boolean) {

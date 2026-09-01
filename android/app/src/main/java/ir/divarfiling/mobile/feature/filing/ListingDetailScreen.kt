@@ -158,6 +158,9 @@ fun ListingDetailScreen(
                         },
                         onSetReminder = viewModel::openReminderSheet,
                         onSaveAsPersonal = viewModel::saveAsPersonalProperty,
+                        onViewPersonalProperty = listing.personalPropertyId?.let { id ->
+                            { onOpenCreatedProperty(id) }
+                        },
                         onOpenAi = { onOpenAi(listing.token) },
                         onDelete = viewModel::requestDelete,
                         onEditNotes = viewModel::openNotesSheet,
@@ -447,6 +450,7 @@ private fun ListingDetailContent(
     onOpenDivar: (() -> Unit)?,
     onSetReminder: () -> Unit,
     onSaveAsPersonal: () -> Unit,
+    onViewPersonalProperty: (() -> Unit)? = null,
     onOpenAi: () -> Unit,
     onDelete: () -> Unit,
     onEditNotes: () -> Unit,
@@ -487,6 +491,8 @@ private fun ListingDetailContent(
                     onSaveAsPersonal = onSaveAsPersonal,
                     onOpenDivar = if (canOpenDivar) onOpenDivar else null,
                     onNavigate = if (canNavigate) onNavigate else null,
+                    isAddedToPersonal = listing.isAddedToPersonal,
+                    onViewPersonalProperty = onViewPersonalProperty,
                     quickActions = {
                         ListingQuickActionsRow(
                             onSendToContact = onSendToContact,
@@ -498,7 +504,7 @@ private fun ListingDetailContent(
                             onSaveAsPersonal = onSaveAsPersonal,
                             onOpenAi = onOpenAi,
                             onDelete = onDelete,
-                            showSaveAsPersonal = false,
+                            showSaveAsPersonal = !listing.isAddedToPersonal,
                         )
                     },
                 )

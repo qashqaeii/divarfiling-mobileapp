@@ -711,12 +711,23 @@ class ListingDetailViewModel @Inject constructor(
                     ownerName = listing.ownerName.orEmpty(),
                 ),
             )) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        isSavingProperty = false,
-                        pendingCreatedPropertyId = result.data.id,
-                        successMessage = "به فایل‌های شخصی اضافه شد",
-                    )
+                is ApiResult.Success -> {
+                    val alreadyAdded = result.data.alreadyAdded
+                    _uiState.update {
+                        it.copy(
+                            isSavingProperty = false,
+                            pendingCreatedPropertyId = if (!alreadyAdded) result.data.id else null,
+                            successMessage = if (alreadyAdded) {
+                                "این فایل قبلاً به فایل‌های شخصی اضافه شده است."
+                            } else {
+                                "به فایل‌های شخصی اضافه شد"
+                            },
+                            listing = it.listing?.copy(
+                                isAddedToPersonal = true,
+                                personalPropertyId = result.data.id,
+                            ),
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSavingProperty = false, error = result.message)

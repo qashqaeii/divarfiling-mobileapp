@@ -387,6 +387,9 @@ interface MobileApi {
         @Body body: PropertyNearbyPoisRequest,
     ): ApiEnvelope
 
+    @POST("crm/properties/{id}/duplicate")
+    suspend fun duplicateProperty(@Path("id") propertyId: Long): ApiEnvelope
+
     @DELETE("crm/properties/{id}")
     suspend fun deleteProperty(@Path("id") propertyId: Long): ApiEnvelope
 

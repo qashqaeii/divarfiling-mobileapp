@@ -17,6 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +47,7 @@ fun PropertyListCard(
     property: PropertyDto,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onDuplicate: (() -> Unit)? = null,
 ) {
     val txStatus = property.transactionStatus ?: "فعال"
     val (statusColor, statusBg) = PropertyFilters.txStatusColors(txStatus)
@@ -98,6 +100,19 @@ fun PropertyListCard(
                                 color = DfColors.TextSecondary,
                                 bg = DfColors.SurfaceVariant,
                             )
+                        }
+                        if (onDuplicate != null) {
+                            IconButton(
+                                onClick = onDuplicate,
+                                modifier = Modifier.size(28.dp),
+                            ) {
+                                Icon(
+                                    imageVector = DfIcons.ClipboardList,
+                                    contentDescription = "کپی فایل",
+                                    tint = DfColors.TextSecondary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
                         }
                     }
 

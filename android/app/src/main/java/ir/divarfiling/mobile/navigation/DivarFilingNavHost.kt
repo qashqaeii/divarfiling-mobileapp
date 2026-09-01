@@ -96,7 +96,7 @@ object Routes {
     const val CRM_DEALS_FINANCE = "crm/deals/finance"
     const val CRM_DEAL_DETAIL = "crm/deals/{dealId}"
     const val CRM_PROPERTIES = "crm/properties"
-    const val CRM_PROPERTY_DETAIL = "crm/properties/{propertyId}"
+    const val CRM_PROPERTY_DETAIL = "crm/properties/{propertyId}?openEdit={openEdit}"
     const val NOTIFICATIONS = "notifications"
     const val TOOLS = "tools"
     const val TOOL_CALCULATOR = "tools/{toolId}"
@@ -115,7 +115,8 @@ object Routes {
     fun contactDetail(contactId: Long, openMatches: Boolean = false) =
         "crm/contacts/$contactId?openMatches=$openMatches"
     fun dealDetail(dealId: Long) = "crm/deals/$dealId"
-    fun propertyDetail(propertyId: Long) = "crm/properties/$propertyId"
+    fun propertyDetail(propertyId: Long, openEdit: Boolean = false) =
+        "crm/properties/$propertyId?openEdit=$openEdit"
     fun listingDetail(token: String) = "filing/listing/$token"
     fun datasetInsights(datasetId: String) = "filing/$datasetId/insights"
     fun datasetMap(datasetId: String) = "filing/$datasetId/map"
@@ -329,17 +330,34 @@ fun DivarFilingNavHost(
                         PropertiesScreen(
                             onBack = { navController.popBackStack() },
                             onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                            onPropertyDuplicated = { id ->
+                                navController.navigate(Routes.propertyDetail(id, openEdit = true))
+                            },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                         )
                     }
                     composable(
                         route = Routes.CRM_PROPERTY_DETAIL,
-                        arguments = listOf(navArgument("propertyId") { type = NavType.LongType }),
+                        arguments = listOf(
+                            navArgument("propertyId") { type = NavType.LongType },
+                            navArgument("openEdit") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            },
+                        ),
                     ) {
                         PropertyDetailScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onDuplicated = { newId ->
+                                navController.navigate(Routes.propertyDetail(newId, openEdit = true)) {
+                                    val current = navController.currentBackStackEntry?.destination?.id
+                                    if (current != null) {
+                                        popUpTo(current) { inclusive = true }
+                                    }
+                                }
+                            },
                         )
                     }
                     composable(Routes.CRM_TODAY) {

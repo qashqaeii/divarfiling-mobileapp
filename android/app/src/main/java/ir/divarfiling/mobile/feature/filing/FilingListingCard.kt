@@ -131,6 +131,12 @@ fun FilingListingCard(
                             accent = valueTierAccent(value.tier),
                         )
                     }
+                    if (listing.isAddedToPersonal) {
+                        ListingGlassTag(
+                            text = "به فایل‌های شخصی اضافه شده",
+                            accent = DfColors.Green,
+                        )
+                    }
                 }
             }
 

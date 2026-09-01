@@ -585,10 +585,12 @@ fun PropertyDetailQuickActions(
     onOpenLink: (() -> Unit)?,
     modifier: Modifier = Modifier,
     onDelete: (() -> Unit)? = null,
+    onDuplicate: (() -> Unit)? = null,
 ) {
     var showMore by remember { mutableStateOf(false) }
     val moreActions = buildList {
         add(DfMoreAction("ویرایش", onEdit, DfIcons.Pencil))
+        onDuplicate?.let { add(DfMoreAction("کپی فایل", it, DfIcons.ClipboardList)) }
         add(DfMoreAction("کپی لینک", onCopyLink, DfIcons.Copy))
         if (onOpenLink != null) add(DfMoreAction("مشاهده در دیوار", onOpenLink, DfIcons.ExternalLink))
         onDelete?.let { add(DfMoreAction("حذف ملک", it, DfIcons.Trash, destructive = true)) }

@@ -87,6 +87,7 @@ import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 fun PropertiesScreen(
     onBack: () -> Unit = {},
     onPropertyClick: (Long) -> Unit = {},
+    onPropertyDuplicated: (Long) -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
     viewModel: PropertiesViewModel = hiltViewModel(),
@@ -124,6 +125,26 @@ fun PropertiesScreen(
             onConfirm = viewModel::confirmDeleteCabinet,
             onDismiss = viewModel::dismissDeleteCabinetDialog,
         )
+    }
+
+    if (state.showDuplicateDialog) {
+        DfConfirmBottomSheet(
+            title = "کپی این فایل ساخته شود؟",
+            message = "یک فایل جدید با همین اطلاعات ساخته می‌شود و می‌توانید مشخصات آن را تغییر دهید.",
+            confirmText = "ساخت کپی",
+            cancelText = "انصراف",
+            isSubmitting = state.isDuplicating,
+            onConfirm = viewModel::confirmDuplicateProperty,
+            onDismiss = viewModel::dismissDuplicateDialog,
+        )
+    }
+
+    LaunchedEffect(state.duplicateNavigateId) {
+        state.duplicateNavigateId?.let { newId ->
+            onPropertyDuplicated(newId)
+            viewModel.consumeDuplicateNavigate()
+            snackbar.showSnackbar("فایل جدید ساخته شد")
+        }
     }
 
     if (state.showSaveFilterDialog) {
@@ -326,6 +347,7 @@ fun PropertiesScreen(
                         PropertyListCard(
                             property = prop,
                             onClick = { onPropertyClick(prop.id) },
+                            onDuplicate = { viewModel.requestDuplicateProperty(prop.id) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -475,6 +497,7 @@ fun PropertiesScreen(
 fun PropertyDetailScreen(
     onBack: () -> Unit,
     onContactClick: (Long) -> Unit = {},
+    onDuplicated: (Long) -> Unit = {},
     viewModel: PropertyDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -496,6 +519,14 @@ fun PropertyDetailScreen(
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+    }
+
+    LaunchedEffect(state.duplicateNavigateId) {
+        state.duplicateNavigateId?.let { newId ->
+            onDuplicated(newId)
+            viewModel.consumeDuplicateNavigate()
+            snackbar.showSnackbar("فایل جدید ساخته شد")
+        }
     }
 
     Scaffold(
@@ -556,6 +587,7 @@ fun PropertyDetailScreen(
                         },
                         onStatusChange = viewModel::changeStatus,
                         onDelete = { viewModel.toggleDeleteDialog(true) },
+                        onDuplicate = { viewModel.toggleDuplicateDialog(true) },
                         onLinkContact = { viewModel.toggleLinkContactSheet(true) },
                         onContactMatches = { viewModel.toggleContactMatchesSheet(true) },
                         onContactClick = onContactClick,
@@ -697,6 +729,18 @@ fun PropertyDetailScreen(
             isSubmitting = state.isSubmitting,
             onConfirm = { viewModel.deleteProperty(onBack) },
             onDismiss = { viewModel.toggleDeleteDialog(false) },
+        )
+    }
+
+    if (state.showDuplicateDialog) {
+        DfConfirmBottomSheet(
+            title = "کپی این فایل ساخته شود؟",
+            message = "یک فایل جدید با همین اطلاعات ساخته می‌شود و می‌توانید مشخصات آن را تغییر دهید.",
+            confirmText = "ساخت کپی",
+            cancelText = "انصراف",
+            isSubmitting = state.isDuplicating,
+            onConfirm = viewModel::confirmDuplicateProperty,
+            onDismiss = { viewModel.toggleDuplicateDialog(false) },
         )
     }
 

@@ -85,6 +85,7 @@ fun PropertyDetailTabbedContent(
     onOpenLink: (() -> Unit)?,
     onStatusChange: (String) -> Unit,
     onDelete: () -> Unit,
+    onDuplicate: (() -> Unit)? = null,
     onLinkContact: () -> Unit,
     onContactMatches: () -> Unit = {},
     onContactClick: (Long) -> Unit,
@@ -159,6 +160,7 @@ fun PropertyDetailTabbedContent(
                 onCopyLink = onCopyLink,
                 onOpenLink = onOpenLink,
                 onDelete = if (detail.canEdit) onDelete else null,
+                onDuplicate = if (detail.canEdit) onDuplicate else null,
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
         }

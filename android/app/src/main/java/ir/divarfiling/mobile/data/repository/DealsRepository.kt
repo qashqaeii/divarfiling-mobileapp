@@ -321,6 +321,14 @@ class DealsRepository @Inject constructor(
         ApiResult.Error(e.message ?: "خطای شبکه")
     }
 
+    suspend fun duplicateProperty(propertyId: Long): ApiResult<PropertyDto> = try {
+        val response = api.duplicateProperty(propertyId)
+        if (!response.ok) ApiResult.Error(response.error ?: "کپی فایل ناموفق بود")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
     private suspend inline fun <reified T> single(
         crossinline call: suspend () -> ir.divarfiling.mobile.core.network.ApiEnvelope,
     ): ApiResult<T> = try {
