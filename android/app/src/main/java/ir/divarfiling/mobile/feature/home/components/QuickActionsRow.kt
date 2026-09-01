@@ -5,13 +5,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -50,26 +47,31 @@ fun QuickActionsRow(
     actions: List<QuickAction>,
     modifier: Modifier = Modifier,
 ) {
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = AppSpacing.screenHorizontal),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = AppSpacing.screenHorizontal),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
     ) {
-        items(actions, key = { it.label }) { action ->
-            QuickActionItem(action)
+        actions.forEach { action ->
+            QuickActionItem(
+                action = action,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickActionItem(action: QuickAction) {
+private fun QuickActionItem(
+    action: QuickAction,
+    modifier: Modifier = Modifier,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        modifier = Modifier
-            .width(72.dp)
-            .padding(vertical = AppSpacing.xxs),
+        modifier = modifier.padding(vertical = AppSpacing.xxs),
     ) {
         Surface(
             onClick = action.onClick,
@@ -117,10 +119,10 @@ private fun QuickActionsRowPreview() {
     DivarFilingTheme {
         QuickActionsRow(
             actions = listOf(
-                QuickAction("یادآور جدید", DfColors.Pink, {}, iconRes = DfDecorIcons.StickyNote),
+                QuickAction("استخراج جدید", DfColors.Green, {}, iconRes = DfDecorIcons.Sparkles),
+                QuickAction("پیدا کردن فایل", DfColors.Purple, {}, iconRes = DfDecorIcons.Search),
+                QuickAction("فایل شخصی جدید", DfColors.Blue, {}, iconRes = DfDecorIcons.Building),
                 QuickAction("مخاطب جدید", DfColors.Amber, {}, iconRes = DfDecorIcons.Upload),
-                QuickAction("فایل‌ها", DfColors.Blue, {}, iconRes = DfDecorIcons.Layers),
-                QuickAction("مخاطبین", DfColors.Purple, {}, iconRes = DfDecorIcons.ClipboardList),
             ),
         )
     }

@@ -185,9 +185,10 @@ fun HomeScreen(
                 item {
                     QuickActionsRow(
                         actions = buildQuickActions(
-                            onNavigateContacts = onNavigateContacts,
-                            onNavigateProperties = onNavigateProperties,
+                            onNavigateExtract = onNavigateExtract,
                             onNavigateFilingSearch = onNavigateFilingSearch,
+                            onNavigateProperties = onNavigateProperties,
+                            onNavigateContacts = onNavigateContacts,
                         ),
                     )
                 }
@@ -210,9 +211,10 @@ fun HomeScreen(
                 item {
                     QuickActionsRow(
                         actions = buildQuickActions(
-                            onNavigateContacts = onNavigateContacts,
-                            onNavigateProperties = onNavigateProperties,
+                            onNavigateExtract = onNavigateExtract,
                             onNavigateFilingSearch = onNavigateFilingSearch,
+                            onNavigateProperties = onNavigateProperties,
+                            onNavigateContacts = onNavigateContacts,
                         ),
                     )
                 }
@@ -276,13 +278,15 @@ fun HomeScreen(
 }
 
 private fun buildQuickActions(
-    onNavigateContacts: () -> Unit,
-    onNavigateProperties: () -> Unit,
+    onNavigateExtract: () -> Unit,
     onNavigateFilingSearch: () -> Unit,
+    onNavigateProperties: () -> Unit,
+    onNavigateContacts: () -> Unit,
 ): List<QuickAction> = listOf(
-    QuickAction("مخاطب جدید", DfColors.Amber, onNavigateContacts, iconRes = DfDecorIcons.Upload),
-    QuickAction("فایل شخصی جدید", DfColors.Blue, onNavigateProperties, iconRes = DfDecorIcons.Building),
+    QuickAction("استخراج جدید", DfColors.Green, onNavigateExtract, iconRes = DfDecorIcons.Sparkles),
     QuickAction("پیدا کردن فایل", DfColors.Purple, onNavigateFilingSearch, iconRes = DfDecorIcons.Search),
+    QuickAction("فایل شخصی جدید", DfColors.Blue, onNavigateProperties, iconRes = DfDecorIcons.Building),
+    QuickAction("مخاطب جدید", DfColors.Amber, onNavigateContacts, iconRes = DfDecorIcons.Upload),
 )
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800, name = "Home 360×800")
@@ -336,7 +340,7 @@ internal fun HomeScreenContentPreview() {
         }
         item {
             QuickActionsRow(
-                actions = buildQuickActions({}, {}, {}),
+                actions = buildQuickActions({}, {}, {}, {}),
             )
         }
         item {
