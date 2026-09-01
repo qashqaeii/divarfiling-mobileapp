@@ -45,6 +45,44 @@ object CrmConstants {
         "سرنخ", "مذاکره", "بازدید", "پیش‌قرارداد", "قرارداد", "بسته‌شده", "از دست رفته",
     )
 
+    val DEAL_NEXT_ACTION_TYPES = listOf(
+        "call" to "تماس",
+        "message" to "پیام",
+        "send_file" to "ارسال فایل",
+        "visit" to "بازدید",
+        "negotiation" to "مذاکره",
+        "contract_followup" to "پیگیری قرارداد",
+        "documents" to "دریافت مدارک",
+        "commission" to "پیگیری کمیسیون",
+        "other" to "سایر",
+    )
+
+    val DEAL_FOLLOWUP_TYPES = listOf(
+        "call" to "تماس",
+        "message" to "پیام",
+        "visit" to "بازدید",
+        "negotiation" to "مذاکره",
+        "send_file" to "ارسال فایل",
+        "contract_followup" to "پیگیری قرارداد",
+        "note" to "یادداشت",
+        "other" to "سایر",
+    )
+
+    val DEAL_LOST_REASONS = listOf(
+        "قیمت بالا",
+        "رقبا",
+        "انصراف مشتری",
+        "ملک فروخته شد",
+        "مدارک ناقص",
+        "سایر",
+    )
+
+    fun dealNextActionLabel(key: String?): String =
+        DEAL_NEXT_ACTION_TYPES.firstOrNull { it.first == key }?.second ?: "— بدون اقدام —"
+
+    fun dealFollowUpLabel(key: String?): String =
+        DEAL_FOLLOWUP_TYPES.firstOrNull { it.first == key }?.second ?: "تماس"
+
     val PROPERTY_TX_STATUSES = listOf(
         "فعال", "در مذاکره", "قرارداد", "فروخته‌شده", "اجاره‌رفته", "بایگانی",
     )

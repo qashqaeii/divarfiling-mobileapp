@@ -497,6 +497,7 @@ fun PropertiesScreen(
 fun PropertyDetailScreen(
     onBack: () -> Unit,
     onContactClick: (Long) -> Unit = {},
+    onCreateDeal: (customerId: Long?, propertyId: Long) -> Unit = { _, _ -> },
     onDuplicated: (Long) -> Unit = {},
     viewModel: PropertyDetailViewModel = hiltViewModel(),
 ) {
@@ -569,6 +570,10 @@ fun PropertyDetailScreen(
                         onEdit = { viewModel.toggleEditSheet(true) },
                         onShare = { viewModel.toggleShareSheet(true) },
                         onWhatsApp = { viewModel.toggleShareSheet(true) },
+                        onCreateDeal = {
+                            val primary = detail.contacts.firstOrNull { it.isPrimary } ?: detail.contacts.firstOrNull()
+                            onCreateDeal(primary?.customerId ?: property.contactId, property.id)
+                        },
                         onCopyLink = {
                             val publicUrl = detail.publicShare?.shareUrl?.takeIf { it.isNotBlank() }
                             if (publicUrl != null) {

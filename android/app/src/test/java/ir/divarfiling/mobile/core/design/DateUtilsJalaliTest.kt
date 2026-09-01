@@ -49,4 +49,19 @@ class DateUtilsJalaliTest {
         val formatted = DateUtils.formatJalaliDate("1405/4/27")
         assertEquals("۱۴۰۵/۰۴/۲۷", formatted)
     }
+
+    @Test
+    fun parseJalaliDateTimeToMillis_acceptsTime() {
+        val zone = ZoneId.systemDefault()
+        val millis = DateUtils.parseJalaliDateTimeToMillis("۱۴۰۴/۰۶/۱۵ ۱۸:۳۰", zone)
+        assertTrue(millis != null)
+        val formatted = DateUtils.formatJalaliDateTimeLatinFromMillis(millis!!, zone)
+        assertEquals("1404/06/15 18:30", formatted)
+    }
+
+    @Test
+    fun jalaliDateToIso_convertsExpectedCloseDate() {
+        val iso = DateUtils.jalaliDateToIso("1404/01/01")
+        assertTrue(iso != null && iso.startsWith("2025-03"))
+    }
 }

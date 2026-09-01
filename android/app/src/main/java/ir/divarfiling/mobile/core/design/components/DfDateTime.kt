@@ -320,6 +320,107 @@ fun DfJalaliDateField(
     }
 }
 
+/**
+ * فیلد تاریخ و ساعت شمسی اختیاری — مقدار ذخیره‌شده لاتین است (`1404/06/15 18:00`).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun DfJalaliDateTimeField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = "تاریخ و ساعت",
+    placeholder: String = "انتخاب از تقویم شمسی",
+    enabled: Boolean = true,
+    allowClear: Boolean = true,
+    presets: List<DfDateTimePreset> = DfDateTimePresets.defaultShortcuts(),
+) {
+    val zone = ZoneId.systemDefault()
+    val selectedMillis = DateUtils.parseJalaliDateTimeToMillis(value, zone)
+        ?: System.currentTimeMillis()
+    val display = DateUtils.formatJalaliDateTime(value)
+        ?: DateUtils.formatJalaliDate(value).orEmpty()
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
+        if (display.isBlank()) {
+            Surface(
+                onClick = {
+                    if (enabled) {
+                        onValueChange(DateUtils.formatJalaliDateTimeLatinFromMillis(selectedMillis, zone))
+                    }
+                },
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.Chip,
+                color = DfColors.PurpleContainer.copy(alpha = 0.55f),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    Icon(
+                        imageVector = DfIcons.Clock,
+                        contentDescription = null,
+                        tint = DfColors.Purple,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                        Text(
+                            text = placeholder,
+                            style = AppTypography.bodyDescription,
+                            fontWeight = FontWeight.Medium,
+                            color = DfColors.TextMuted,
+                        )
+                    }
+                }
+            }
+        } else {
+            Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+            DfDateTimeSelector(
+                millis = selectedMillis,
+                onChange = { onValueChange(DateUtils.formatJalaliDateTimeLatinFromMillis(it, zone)) },
+                enabled = enabled,
+                allowClear = allowClear,
+                onClear = { onValueChange("") },
+                presets = presets,
+            )
+        }
+        if (display.isBlank() && presets.isNotEmpty()) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                presets.forEach { preset ->
+                    FilterChip(
+                        selected = false,
+                        onClick = {
+                            if (enabled) {
+                                onValueChange(
+                                    DateUtils.formatJalaliDateTimeLatinFromMillis(preset.millisProvider(), zone),
+                                )
+                            }
+                        },
+                        enabled = enabled,
+                        label = { Text(preset.label, style = AppTypography.labelSmall) },
+                        shape = RoundedCornerShape(999.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DfDateTimePickerDialog(

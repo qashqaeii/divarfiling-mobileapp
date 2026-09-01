@@ -12,6 +12,7 @@ object DateUtils {
 
     private val jalaliDatePattern = Regex("""^1[34]\d{2}/\d{2}/\d{2}$""")
     private val jalaliDateFlexible = Regex("""^(1[34]\d{2})/(\d{1,2})/(\d{1,2})$""")
+    private val jalaliDateTimeFlexible = Regex("""^(1[34]\d{2})/(\d{1,2})/(\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?$""")
     private val isoDatePrefix = Regex("""^\d{4}-\d{2}-\d{2}""")
 
     fun fromPersianDigits(input: String): String = buildString(input.length) {
@@ -57,14 +58,15 @@ object DateUtils {
             )
             "$date $time"
         }.getOrElse {
-            formatJalaliDate(trimmed)?.let { date ->
-                val timePart = trimmed.drop(11).take(5)
-                if (timePart.matches(Regex("""\d{2}:\d{2}"""))) {
-                    "$date ${toPersianDigits(timePart)}"
-                } else {
-                    date
+            parseJalaliDateTimeToMillis(trimmed)?.let { formatJalaliDateTimeFromMillis(it) }
+                ?: formatJalaliDate(trimmed)?.let { date ->
+                    val timePart = fromPersianDigits(trimmed.drop(11).take(5))
+                    if (timePart.matches(Regex("""\d{2}:\d{2}"""))) {
+                        "$date ${toPersianDigits(timePart)}"
+                    } else {
+                        date
+                    }
                 }
-            }
         }
     }
 
@@ -231,7 +233,7 @@ object DateUtils {
     ): Long? {
         val latin = fromPersianDigits(value?.trim().orEmpty())
         if (latin.isBlank()) return null
-        jalaliDateFlexible.matchEntire(latin)?.let { match ->
+        jalaliDateFlexible.matchEntire(latin.take(10).replace('-', '/'))?.let { match ->
             val jy = match.groupValues[1].toInt()
             val jm = match.groupValues[2].toInt()
             val jd = match.groupValues[3].toInt()
@@ -241,6 +243,54 @@ object DateUtils {
             return jalaliDateTimeToMillis(jy, jm, jd, 12, 0, zone)
         }
         return parseToInstant(latin, zone)?.toEpochMilli()
+    }
+
+    fun parseJalaliDateTimeToMillis(
+        value: String?,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): Long? {
+        val latin = fromPersianDigits(value?.trim().orEmpty())
+        if (latin.isBlank()) return null
+        jalaliDateTimeFlexible.matchEntire(latin.replace('-', '/'))?.let { match ->
+            val jy = match.groupValues[1].toInt()
+            val jm = match.groupValues[2].toInt()
+            val jd = match.groupValues[3].toInt()
+            val hour = match.groupValues[4].toIntOrNull() ?: 12
+            val minute = match.groupValues[5].toIntOrNull() ?: 0
+            if (jm !in 1..12) return null
+            val maxDay = jalaliDaysInMonth(jy, jm)
+            if (jd !in 1..maxDay) return null
+            return jalaliDateTimeToMillis(
+                jy,
+                jm,
+                jd,
+                hour.coerceIn(0, 23),
+                minute.coerceIn(0, 59),
+                zone,
+            )
+        }
+        return parseToInstant(latin, zone)?.toEpochMilli()
+            ?: parseJalaliDateToMillis(latin, zone)
+    }
+
+    /** تبدیل تاریخ شمسی یا ISO به `YYYY-MM-DD` برای API موبایل. */
+    fun jalaliDateToIso(
+        value: String?,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String? {
+        val millis = parseJalaliDateToMillis(value, zone) ?: return null
+        val zoned = Instant.ofEpochMilli(millis).atZone(zone)
+        return "%04d-%02d-%02d".format(zoned.year, zoned.monthValue, zoned.dayOfMonth)
+    }
+
+    /** خروجی لاتین برای ارسال به سرور، مثلاً `1404/06/15 18:00`. */
+    fun formatJalaliDateTimeLatinFromMillis(
+        millis: Long,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String {
+        val date = fromPersianDigits(formatJalaliDateFromMillis(millis, zone))
+        val time = fromPersianDigits(formatTimeFromMillis(millis, zone))
+        return "$date $time"
     }
 
     private fun normalizeJalaliYmd(latin: String): String? {

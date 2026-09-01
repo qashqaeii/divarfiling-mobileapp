@@ -213,6 +213,7 @@ fun DealFinanceSheet(
         iconContainerColor = DfColors.GreenLight,
         iconTint = DfColors.Green,
         onClose = onDismiss,
+        bodyHeightFraction = 0.92f,
         footer = {
             DfSheetActions(
                 primaryText = if (isSubmitting) "در حال ذخیره…" else "ذخیره مالی",

@@ -39,6 +39,7 @@ import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
@@ -75,6 +76,7 @@ fun ContactDetailScreen(
     onBack: () -> Unit,
     onDealClick: (Long) -> Unit = {},
     onPropertyClick: (Long) -> Unit = {},
+    onCreateDeal: (Long) -> Unit = {},
     onOpenAi: (Long) -> Unit = {},
     viewModel: ContactDetailViewModel = hiltViewModel(),
 ) {
@@ -140,6 +142,7 @@ fun ContactDetailScreen(
                         viewModel = viewModel,
                         pickDocument = documentPicker::launch,
                         onOpenAi = { onOpenAi(contactInfo.id) },
+                        onCreateDeal = { onCreateDeal(contactInfo.id) },
                     )
 
                     LazyColumn(
@@ -209,8 +212,16 @@ fun ContactDetailScreen(
                         }
 
                         val deals = detail.deals
-                        if (deals.isNotEmpty()) {
-                            item { ContactDetailSectionHeader("معاملات", deals.size) }
+                        item { ContactDetailSectionHeader("معاملات", deals.size) }
+                        if (deals.isEmpty()) {
+                            item {
+                                ir.divarfiling.mobile.core.design.components.DfPrimaryButton(
+                                    text = "ایجاد معامله جدید",
+                                    onClick = { onCreateDeal(contactInfo.id) },
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                )
+                            }
+                        } else {
                             items(deals, key = { it.id }) { deal ->
                                 ContactDealCard(deal, onClick = { onDealClick(deal.id) })
                             }
@@ -601,7 +612,11 @@ private fun buildMoreContactActions(
     viewModel: ContactDetailViewModel,
     pickDocument: (String) -> Unit,
     onOpenAi: () -> Unit,
+    onCreateDeal: () -> Unit,
 ): List<ContactQuickActionItem> = buildList {
+    add(ContactQuickActionItem("معامله جدید", DfColors.Purple, icon = DfIcons.Handshake) {
+        onCreateDeal()
+    })
     add(ContactQuickActionItem("ارسال فایل", DfColors.Blue, icon = DfIcons.Share2) {
         viewModel.toggleSendFilingSheet(true)
     })

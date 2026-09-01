@@ -127,6 +127,13 @@ fun DealsScreen(
         }
     }
 
+    LaunchedEffect(state.createdDealId) {
+        state.createdDealId?.let { id ->
+            viewModel.consumeCreatedDeal()
+            onDealClick(id)
+        }
+    }
+
     if (state.showSaveFilterDialog) {
         AlertDialog(
             onDismissRequest = viewModel::dismissSaveFilterDialog,
@@ -344,7 +351,10 @@ fun DealsScreen(
     }
 
     if (state.showCreateDialog) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleCreate(false) }) {
+        DfModalBottomSheet(
+            onDismissRequest = { viewModel.toggleCreate(false) },
+            dismissOnScrimOrSwipe = false,
+        ) {
             DealCreateSheet(
                 contacts = state.contactPicker,
                 properties = state.propertyPicker,
@@ -358,7 +368,10 @@ fun DealsScreen(
                 nextActionType = state.createNextActionType,
                 nextActionAt = state.createNextActionAt,
                 nextActionNote = state.createNextActionNote,
+                expectedCloseDate = state.createExpectedCloseDate,
+                notes = state.createNotes,
                 isSubmitting = state.isSubmittingCreate,
+                customerLocked = state.createCustomerLocked,
                 onContactSelect = viewModel::onCreateCustomerSelect,
                 onPropertySelect = viewModel::onCreatePropertySelect,
                 onStageChange = viewModel::onCreateStageChange,
@@ -367,6 +380,10 @@ fun DealsScreen(
                 onNextActionTypeChange = viewModel::onCreateNextActionTypeChange,
                 onNextActionAtChange = viewModel::onCreateNextActionAtChange,
                 onNextActionNoteChange = viewModel::onCreateNextActionNoteChange,
+                onExpectedCloseDateChange = viewModel::onCreateExpectedCloseDateChange,
+                onNotesChange = viewModel::onCreateNotesChange,
+                onContactSearch = viewModel::onCreateContactSearch,
+                onPropertySearch = viewModel::onCreatePropertySearch,
                 onSubmit = viewModel::submitCreate,
                 onDismiss = { viewModel.toggleCreate(false) },
             )
@@ -468,6 +485,7 @@ fun DealDetailScreen(
                                 onComplete = viewModel::completeNextAction,
                                 onEdit = { viewModel.toggleNextActionSheet(true) },
                                 onSet = { viewModel.toggleNextActionSheet(true) },
+                                isSubmitting = state.isSubmitting,
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
@@ -526,7 +544,10 @@ fun DealDetailScreen(
     }
 
     if (state.showNextActionSheet) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleNextActionSheet(false) }) {
+        DfModalBottomSheet(
+            onDismissRequest = { viewModel.toggleNextActionSheet(false) },
+            dismissOnScrimOrSwipe = false,
+        ) {
             DealNextActionSheet(
                 actionType = state.nextActionType,
                 actionAt = state.nextActionAt,
@@ -542,7 +563,10 @@ fun DealDetailScreen(
     }
 
     if (state.showFollowUpSheet) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleFollowUpSheet(false) }) {
+        DfModalBottomSheet(
+            onDismissRequest = { viewModel.toggleFollowUpSheet(false) },
+            dismissOnScrimOrSwipe = false,
+        ) {
             DealFollowUpSheet(
                 followUpType = state.followUpType,
                 note = state.followUpNote,
@@ -562,7 +586,10 @@ fun DealDetailScreen(
     }
 
     if (state.showEditSheet) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleEditSheet(false) }) {
+        DfModalBottomSheet(
+            onDismissRequest = { viewModel.toggleEditSheet(false) },
+            dismissOnScrimOrSwipe = false,
+        ) {
             DealEditSheet(
                 title = state.editTitle,
                 amount = state.editAmount,
@@ -573,6 +600,9 @@ fun DealDetailScreen(
                 selectedStage = state.editStage.ifBlank { deal?.stage.orEmpty() },
                 properties = state.propertyPicker,
                 selectedPropertyId = state.editPropertyId,
+                expectedCloseDate = state.editExpectedCloseDate,
+                listingToken = state.editListingToken,
+                probability = state.editProbability,
                 isSubmitting = state.isSubmitting,
                 onTitleChange = viewModel::onEditTitleChange,
                 onAmountChange = viewModel::onEditAmountChange,
@@ -580,6 +610,10 @@ fun DealDetailScreen(
                 onNotesChange = viewModel::onEditNotesChange,
                 onStageChange = viewModel::onEditStageChange,
                 onPropertySelect = viewModel::onEditPropertySelect,
+                onExpectedCloseDateChange = viewModel::onEditExpectedCloseDateChange,
+                onListingTokenChange = viewModel::onEditListingTokenChange,
+                onProbabilityChange = viewModel::onEditProbabilityChange,
+                onPropertySearch = viewModel::onEditPropertySearch,
                 onSave = viewModel::saveEdit,
                 onDismiss = { viewModel.toggleEditSheet(false) },
             )
@@ -587,7 +621,10 @@ fun DealDetailScreen(
     }
 
     if (state.showFinanceSheet && deal != null) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleFinanceSheet(false) }) {
+        DfModalBottomSheet(
+            onDismissRequest = { viewModel.toggleFinanceSheet(false) },
+            dismissOnScrimOrSwipe = false,
+        ) {
             DealFinanceSheet(
                 dealKind = state.financeDealKind,
                 commissionMode = state.financeCommissionMode,
@@ -634,25 +671,17 @@ fun DealDetailScreen(
     }
 
     if (state.showLostReasonDialog) {
-        AlertDialog(
+        DfModalBottomSheet(
             onDismissRequest = viewModel::dismissLostReasonDialog,
-            title = { Text("دلیل از دست رفتن") },
-            text = {
-                OutlinedTextField(
-                    value = state.lostReasonInput,
-                    onValueChange = viewModel::onLostReasonChange,
-                    label = { Text("علت بسته نشدن معامله") },
-                    placeholder = { Text("مثلاً: قیمت بالا، انتخاب رقیب، انصراف مشتری") },
-                    minLines = 3,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::confirmLostReason) { Text("ثبت و تغییر مرحله") }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::dismissLostReasonDialog) { Text("انصراف") }
-            },
-        )
+            dismissOnScrimOrSwipe = false,
+        ) {
+            ir.divarfiling.mobile.feature.crm.components.DealLostReasonSheet(
+                selectedReason = state.lostReasonInput,
+                onReasonChange = viewModel::onLostReasonChange,
+                onConfirm = viewModel::confirmLostReason,
+                onDismiss = viewModel::dismissLostReasonDialog,
+                isSubmitting = state.isSubmitting,
+            )
+        }
     }
 }

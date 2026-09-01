@@ -92,7 +92,7 @@ object Routes {
     const val SUPPORT = "support"
     const val SUPPORT_DETAIL = "support/{ticketId}"
     const val CLOUD_EXTRACT = "cloud-extract"
-    const val CRM_DEALS = "crm/deals"
+    const val CRM_DEALS = "crm/deals?customerId={customerId}&propertyId={propertyId}&openCreate={openCreate}"
     const val CRM_DEALS_FINANCE = "crm/deals/finance"
     const val CRM_DEAL_DETAIL = "crm/deals/{dealId}"
     const val CRM_PROPERTIES = "crm/properties"
@@ -115,6 +115,11 @@ object Routes {
     fun contactDetail(contactId: Long, openMatches: Boolean = false) =
         "crm/contacts/$contactId?openMatches=$openMatches"
     fun dealDetail(dealId: Long) = "crm/deals/$dealId"
+    fun deals(
+        customerId: Long? = null,
+        propertyId: Long? = null,
+        openCreate: Boolean = false,
+    ) = "crm/deals?customerId=${customerId ?: 0}&propertyId=${propertyId ?: 0}&openCreate=$openCreate"
     fun propertyDetail(propertyId: Long, openEdit: Boolean = false) =
         "crm/properties/$propertyId?openEdit=$openEdit"
     fun listingDetail(token: String) = "filing/listing/$token"
@@ -249,7 +254,7 @@ fun DivarFilingNavHost(
                             onBack = { navController.popBackStack() },
                             onContacts = { navController.navigate(Routes.contacts()) },
                             onToday = { navController.navigate(Routes.CRM_TODAY) },
-                            onDeals = { navController.navigate(Routes.CRM_DEALS) },
+                            onDeals = { navController.navigate(Routes.deals()) },
                             onFinance = { navController.navigate(Routes.CRM_DEALS_FINANCE) },
                             onProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                             onOwners = { navController.navigate(Routes.contacts("مالک")) },
@@ -295,12 +300,31 @@ fun DivarFilingNavHost(
                             onBack = { navController.popBackStack() },
                             onDealClick = { id -> navController.navigate(Routes.dealDetail(id)) },
                             onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                            onCreateDeal = { contactId ->
+                                navController.navigate(Routes.deals(customerId = contactId, openCreate = true))
+                            },
                             onOpenAi = { contactId ->
                                 navController.navigate(Routes.ai(contactId = contactId, mode = "draft"))
                             },
                         )
                     }
-                    composable(Routes.CRM_DEALS) {
+                    composable(
+                        route = Routes.CRM_DEALS,
+                        arguments = listOf(
+                            navArgument("customerId") {
+                                type = NavType.LongType
+                                defaultValue = 0L
+                            },
+                            navArgument("propertyId") {
+                                type = NavType.LongType
+                                defaultValue = 0L
+                            },
+                            navArgument("openCreate") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            },
+                        ),
+                    ) {
                         DealsScreen(
                             onBack = { navController.popBackStack() },
                             onDealClick = { id -> navController.navigate(Routes.dealDetail(id)) },
@@ -350,6 +374,15 @@ fun DivarFilingNavHost(
                         PropertyDetailScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onCreateDeal = { customerId, propertyId ->
+                                navController.navigate(
+                                    Routes.deals(
+                                        customerId = customerId,
+                                        propertyId = propertyId,
+                                        openCreate = true,
+                                    ),
+                                )
+                            },
                             onDuplicated = { newId ->
                                 navController.navigate(Routes.propertyDetail(newId, openEdit = true)) {
                                     val current = navController.currentBackStackEntry?.destination?.id
@@ -489,7 +522,7 @@ fun DivarFilingNavHost(
                             onNavigateInstallHelp = { navController.navigate(Routes.SETTINGS_INSTALL_HELP) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
-                            onNavigateDeals = { navController.navigate(Routes.CRM_DEALS) },
+                            onNavigateDeals = { navController.navigate(Routes.deals()) },
                             onNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
                             onNavigatePlans = { navController.navigate(Routes.PLANS) },

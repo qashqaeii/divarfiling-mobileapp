@@ -286,6 +286,68 @@ fun DfSheetHeader(
 }
 
 @Composable
+fun DfSheetExpandableSection(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
+        Surface(
+            onClick = onToggle,
+            modifier = Modifier.fillMaxWidth(),
+            shape = AppShapes.Chip,
+            color = DfColors.PurpleContainer.copy(alpha = if (expanded) 0.55f else 0.35f),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = title,
+                        style = AppTypography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DfColors.Purple,
+                    )
+                    subtitle?.takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            text = it,
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextMuted,
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) DfIcons.ChevronUp else DfIcons.ChevronDown,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        if (expanded) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                content = content,
+            )
+        }
+    }
+}
+
+@Composable
 fun DfSheetSection(
     title: String,
     modifier: Modifier = Modifier,

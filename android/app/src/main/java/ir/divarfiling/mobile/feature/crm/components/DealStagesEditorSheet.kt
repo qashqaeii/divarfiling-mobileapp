@@ -89,7 +89,7 @@ fun DealStagesEditorSheet(
         subtitle = "مراحل، رنگ، احتمال بستن و مهلت پیگیری را مثل میزکار وب تنظیم کنید",
         icon = DfIcons.SlidersHorizontal,
         onClose = onDismiss,
-        bodyHeightFraction = 0.9f,
+        bodyHeightFraction = 0.92f,
         footer = {
             DfSheetActions(
                 primaryText = if (isSaving) "در حال ذخیره…" else "ذخیره قیف",

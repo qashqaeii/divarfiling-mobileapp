@@ -838,6 +838,7 @@ data class DealNextActionDto(
     @SerialName("schedule_label") val scheduleLabel: String? = null,
     @SerialName("compact_label") val compactLabel: String? = null,
     val icon: String? = null,
+    @SerialName("at_input") val atInput: String? = null,
 )
 
 @Serializable
@@ -965,6 +966,7 @@ data class DealUpdateRequest(
     @SerialName("commission_rate") val commissionRate: Double? = null,
     @SerialName("property_id") val propertyId: Long? = null,
     @SerialName("expected_close_date") val expectedCloseDate: String? = null,
+    @SerialName("listing_token") val listingToken: String? = null,
 )
 
 @Serializable

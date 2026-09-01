@@ -44,6 +44,7 @@ import ir.divarfiling.mobile.core.network.AiSummarizePropertyRequest
 import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterCreateRequest
 import ir.divarfiling.mobile.core.network.SavedFilterDto
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.data.repository.ApiResult
@@ -91,7 +92,11 @@ data class DealsUiState(
     val createNextActionType: String = "",
     val createNextActionAt: String = "",
     val createNextActionNote: String = "",
+    val createExpectedCloseDate: String = "",
+    val createNotes: String = "",
     val createPropertyId: Long? = null,
+    val createCustomerLocked: Boolean = false,
+    val createdDealId: Long? = null,
     val contactPicker: List<ContactDto> = emptyList(),
     val propertyPicker: List<PropertyDto> = emptyList(),
     val isSubmittingCreate: Boolean = false,
@@ -108,6 +113,7 @@ class DealsViewModel @Inject constructor(
     private val extrasRepository: WorkspaceExtrasRepository,
     private val sessionStore: SessionStore,
     private val dashboardRepository: DashboardRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DealsUiState())
     val uiState: StateFlow<DealsUiState> = _uiState.asStateFlow()
@@ -130,6 +136,12 @@ class DealsViewModel @Inject constructor(
         }
         loadSavedFilters()
         load()
+        val openCreate = savedStateHandle.get<Boolean>("openCreate") == true
+        val prefillCustomer = savedStateHandle.get<Long>("customerId")?.takeIf { it > 0 }
+        val prefillProperty = savedStateHandle.get<Long>("propertyId")?.takeIf { it > 0 }
+        if (openCreate) {
+            toggleCreate(true, customerId = prefillCustomer, propertyId = prefillProperty, lockCustomer = prefillCustomer != null)
+        }
     }
 
     fun loadSavedFilters() {
@@ -323,7 +335,12 @@ class DealsViewModel @Inject constructor(
         }
     }
 
-    fun toggleCreate(show: Boolean) {
+    fun toggleCreate(
+        show: Boolean,
+        customerId: Long? = null,
+        propertyId: Long? = null,
+        lockCustomer: Boolean = false,
+    ) {
         _uiState.update {
             it.copy(
                 showCreateDialog = show,
@@ -332,8 +349,11 @@ class DealsViewModel @Inject constructor(
                 createNextActionType = if (show) it.createNextActionType else "",
                 createNextActionAt = if (show) it.createNextActionAt else "",
                 createNextActionNote = if (show) it.createNextActionNote else "",
-                createCustomerId = if (show) it.createCustomerId else null,
-                createPropertyId = if (show) it.createPropertyId else null,
+                createExpectedCloseDate = if (show) it.createExpectedCloseDate else "",
+                createNotes = if (show) it.createNotes else "",
+                createCustomerId = if (show) (customerId ?: it.createCustomerId) else null,
+                createPropertyId = if (show) (propertyId ?: it.createPropertyId) else null,
+                createCustomerLocked = show && lockCustomer,
                 createStage = if (show) it.createStage else (it.stages.firstOrNull() ?: "سرنخ"),
             )
         }
@@ -351,18 +371,42 @@ class DealsViewModel @Inject constructor(
     fun onCreateNextActionTypeChange(v: String) = _uiState.update { it.copy(createNextActionType = v) }
     fun onCreateNextActionAtChange(v: String) = _uiState.update { it.copy(createNextActionAt = v) }
     fun onCreateNextActionNoteChange(v: String) = _uiState.update { it.copy(createNextActionNote = v) }
+    fun onCreateExpectedCloseDateChange(v: String) = _uiState.update { it.copy(createExpectedCloseDate = v) }
+    fun onCreateNotesChange(v: String) = _uiState.update { it.copy(createNotes = v) }
+    fun consumeCreatedDeal() = _uiState.update { it.copy(createdDealId = null) }
+
+    fun onCreateContactSearch(query: String) {
+        viewModelScope.launch {
+            when (val result = crmRepository.getContacts(query = query, page = 1, pageSize = 50)) {
+                is ApiResult.Success -> _uiState.update { state ->
+                    val merged = (result.data.items + state.contactPicker)
+                        .distinctBy { it.id }
+                    state.copy(contactPicker = merged)
+                }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    fun onCreatePropertySearch(query: String) {
+        viewModelScope.launch {
+            when (val result = repository.getProperties(query = query, page = 1, pageSize = 50)) {
+                is ApiResult.Success -> _uiState.update { state ->
+                    val merged = (result.data.items + state.propertyPicker)
+                        .distinctBy { it.id }
+                    state.copy(propertyPicker = merged)
+                }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
 
     private fun loadContactsForPicker() {
         viewModelScope.launch {
             when (val result = crmRepository.getContacts(page = 1, pageSize = 100)) {
                 is ApiResult.Success -> {
                     val items = result.data.items
-                    _uiState.update {
-                        it.copy(
-                            contactPicker = items,
-                            createCustomerId = it.createCustomerId ?: items.firstOrNull()?.id,
-                        )
-                    }
+                    _uiState.update { it.copy(contactPicker = items) }
                 }
                 is ApiResult.Error -> Unit
             }
@@ -400,8 +444,10 @@ class DealsViewModel @Inject constructor(
                         stage = state.createStage.ifBlank { "سرنخ" },
                         amount = state.createAmount.trim().toLongOrNull(),
                         propertyId = state.createPropertyId,
+                        notes = state.createNotes.trim(),
+                        expectedCloseDate = DateUtils.jalaliDateToIso(state.createExpectedCloseDate),
                         nextActionType = state.createNextActionType.takeIf { it.isNotBlank() },
-                        nextActionAt = state.createNextActionAt.takeIf { it.isNotBlank() },
+                        nextActionAt = state.createNextActionAt.takeIf { it.isNotBlank() }?.let { DateUtils.fromPersianDigits(it) },
                         nextActionNote = state.createNextActionNote.takeIf { it.isNotBlank() },
                     ),
                 )
@@ -417,8 +463,12 @@ class DealsViewModel @Inject constructor(
                             createNextActionType = "",
                             createNextActionAt = "",
                             createNextActionNote = "",
+                            createExpectedCloseDate = "",
+                            createNotes = "",
+                            createCustomerLocked = false,
                             createStage = "سرنخ",
                             isSubmittingCreate = false,
+                            createdDealId = result.data.id,
                         )
                     }
                     load()
@@ -577,6 +627,9 @@ data class DealDetailUiState(
     val editStage: String = "",
     val editCommissionRate: String = "",
     val editPropertyId: Long? = null,
+    val editExpectedCloseDate: String = "",
+    val editListingToken: String = "",
+    val editProbability: String = "",
     val propertyPicker: List<PropertyDto> = emptyList(),
     val showFinanceSheet: Boolean = false,
     val financeDealKind: String = "sale",
@@ -644,6 +697,9 @@ class DealDetailViewModel @Inject constructor(
                             editStage = result.data.stage.orEmpty(),
                             editCommissionRate = result.data.commissionRate?.toString().orEmpty(),
                             editPropertyId = result.data.propertyId,
+                            editExpectedCloseDate = result.data.expectedCloseDate.orEmpty(),
+                            editListingToken = result.data.listingToken.orEmpty(),
+                            editProbability = result.data.probability?.toString().orEmpty(),
                             timeline = result.data.timelinePreview,
                             timelineHasMore = result.data.timelinePreview.size >= 8,
                         )
@@ -702,12 +758,12 @@ class DealDetailViewModel @Inject constructor(
     private fun applyStageChange(stage: String, lostReason: String? = null) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (repository.updateDealStage(dealId, stage, lostReason)) {
+            when (val result = repository.updateDealStage(dealId, stage, lostReason)) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, successMessage = "مرحله به‌روز شد") }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = it.error) }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = result.message) }
             }
         }
     }
@@ -739,10 +795,15 @@ class DealDetailViewModel @Inject constructor(
                 state.copy(showNextActionSheet = false)
             } else {
                 val current = state.deal?.nextAction
+                val atPrefill = current?.atInput?.takeIf { it.isNotBlank() }
+                    ?: current?.at?.let { iso ->
+                        DateUtils.parseInstantMillis(iso)?.let { DateUtils.formatJalaliDateTimeLatinFromMillis(it) }
+                    }
+                    .orEmpty()
                 state.copy(
                     showNextActionSheet = true,
                     nextActionType = current?.type.orEmpty(),
-                    nextActionAt = "",
+                    nextActionAt = atPrefill,
                     nextActionNote = current?.note.orEmpty(),
                 )
             }
@@ -758,7 +819,7 @@ class DealDetailViewModel @Inject constructor(
             val state = _uiState.value
             val request = DealNextActionRequest(
                 type = state.nextActionType.takeIf { it.isNotBlank() },
-                at = state.nextActionAt.takeIf { it.isNotBlank() },
+                at = state.nextActionAt.takeIf { it.isNotBlank() }?.let { DateUtils.fromPersianDigits(it) },
                 note = state.nextActionNote.takeIf { it.isNotBlank() },
                 clearNextAction = state.nextActionType.isBlank(),
             )
@@ -798,7 +859,7 @@ class DealDetailViewModel @Inject constructor(
                         type = state.followUpType,
                         note = state.followUpNote.trim(),
                         nextActionType = state.followUpNextType.takeIf { it.isNotBlank() },
-                        nextActionAt = state.followUpNextAt.takeIf { it.isNotBlank() },
+                        nextActionAt = state.followUpNextAt.takeIf { it.isNotBlank() }?.let { DateUtils.fromPersianDigits(it) },
                         nextActionNote = state.followUpNextNote.takeIf { it.isNotBlank() },
                     ),
                 )
@@ -868,7 +929,7 @@ class DealDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
             val state = _uiState.value
-            when (repository.updateDeal(
+            when (val result = repository.updateDeal(
                 dealId,
                 DealUpdateRequest(
                     title = state.editTitle.trim(),
@@ -877,13 +938,17 @@ class DealDetailViewModel @Inject constructor(
                     stage = state.editStage.takeIf { it.isNotBlank() },
                     commissionRate = state.editCommissionRate.trim().toDoubleOrNull(),
                     propertyId = state.editPropertyId,
+                    expectedCloseDate = DateUtils.jalaliDateToIso(state.editExpectedCloseDate)
+                        ?: state.editExpectedCloseDate.trim().ifBlank { null },
+                    listingToken = state.editListingToken.trim().ifBlank { null },
+                    probability = state.editProbability.trim().toIntOrNull(),
                 ),
             )) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, showEditSheet = false, successMessage = "ذخیره شد") }
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = it.error) }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = result.message) }
             }
         }
     }
@@ -908,6 +973,19 @@ class DealDetailViewModel @Inject constructor(
     fun onEditStageChange(v: String) = _uiState.update { it.copy(editStage = v) }
     fun onEditCommissionRateChange(v: String) = _uiState.update { it.copy(editCommissionRate = v) }
     fun onEditPropertySelect(id: Long?) = _uiState.update { it.copy(editPropertyId = id) }
+    fun onEditExpectedCloseDateChange(v: String) = _uiState.update { it.copy(editExpectedCloseDate = v) }
+    fun onEditListingTokenChange(v: String) = _uiState.update { it.copy(editListingToken = v) }
+    fun onEditProbabilityChange(v: String) = _uiState.update { it.copy(editProbability = v) }
+    fun onEditPropertySearch(query: String) {
+        viewModelScope.launch {
+            when (val result = repository.getProperties(query = query, page = 1, pageSize = 50)) {
+                is ApiResult.Success -> _uiState.update { state ->
+                    state.copy(propertyPicker = (result.data.items + state.propertyPicker).distinctBy { it.id })
+                }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 
     private fun hydrateFinance(deal: DealDto) {

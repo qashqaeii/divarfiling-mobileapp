@@ -52,11 +52,14 @@ object DealUiUtils {
     fun stageIconVector(faIcon: String): ImageVector = when (faIcon) {
         "fa-seedling", "fa-lightbulb" -> DfIcons.Lightbulb
         "fa-phone" -> DfIcons.Phone
-        "fa-comments" -> DfIcons.MessageCircle
+        "fa-comments", "fa-comment-dots" -> DfIcons.MessageCircle
         "fa-handshake" -> DfIcons.Handshake
         "fa-door-open", "fa-building" -> DfIcons.Building
         "fa-calendar-check" -> DfIcons.Calendar
         "fa-file-signature", "fa-file-contract" -> DfIcons.File
+        "fa-paper-plane" -> DfIcons.Send
+        "fa-folder-open" -> DfIcons.Folder
+        "fa-ellipsis" -> DfIcons.MoreVertical
         "fa-key" -> DfIcons.KeyRound
         "fa-coins" -> DfIcons.Coins
         "fa-star" -> DfIcons.Star
@@ -82,4 +85,41 @@ object DealUiUtils {
 
     fun defFor(stage: String?, defs: List<DealStageDefDto>): DealStageDefDto? =
         defs.firstOrNull { it.name == stage }
+
+    fun nextActionIcon(type: String?, faIcon: String? = null): ImageVector {
+        if (!faIcon.isNullOrBlank()) return stageIconVector(faIcon)
+        return when (type) {
+            "call" -> DfIcons.Phone
+            "message", "note" -> DfIcons.MessageCircle
+            "send_file" -> DfIcons.Send
+            "visit" -> DfIcons.Building
+            "negotiation" -> DfIcons.Handshake
+            "contract_followup" -> DfIcons.File
+            "documents" -> DfIcons.Folder
+            "commission" -> DfIcons.Coins
+            else -> DfIcons.Clock
+        }
+    }
+
+    fun timelineIcon(kind: String?, faIcon: String? = null, typeHint: String? = null): ImageVector {
+        if (!faIcon.isNullOrBlank()) return stageIconVector(faIcon)
+        return when (kind) {
+            "deal_created" -> DfIcons.Handshake
+            "deal_won" -> DfIcons.Trophy
+            "deal_lost" -> DfIcons.TrendingDown
+            "stage_change" -> DfIcons.RefreshCw
+            "contract" -> DfIcons.File
+            "follow_up" -> nextActionIcon(typeHint)
+            else -> DfIcons.Clock
+        }
+    }
+
+    fun timelineAccent(kind: String?): Color = when (kind) {
+        "deal_won" -> DfColors.Green
+        "deal_lost" -> DfColors.OverdueAccent
+        "stage_change" -> DfColors.Purple
+        "contract" -> DfColors.Pink
+        "follow_up" -> DfColors.Blue
+        else -> DfColors.TextMuted
+    }
 }

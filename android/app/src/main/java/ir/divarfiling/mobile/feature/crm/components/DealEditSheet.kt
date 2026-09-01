@@ -1,17 +1,30 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
+import ir.divarfiling.mobile.core.design.components.DfMoneyField
+import ir.divarfiling.mobile.core.design.components.DfSearchField
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
+import ir.divarfiling.mobile.core.design.components.DfSheetExpandableSection
+import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.core.design.components.DfTextField
+import ir.divarfiling.mobile.core.network.DealStageDefDto
 import ir.divarfiling.mobile.core.network.PropertyDto
 
 private const val NO_PROPERTY = "بدون ملک"
@@ -27,6 +40,9 @@ fun DealEditSheet(
     selectedStage: String,
     properties: List<PropertyDto>,
     selectedPropertyId: Long?,
+    expectedCloseDate: String,
+    listingToken: String,
+    probability: String,
     isSubmitting: Boolean,
     onTitleChange: (String) -> Unit,
     onAmountChange: (String) -> Unit,
@@ -34,20 +50,27 @@ fun DealEditSheet(
     onNotesChange: (String) -> Unit,
     onStageChange: (String) -> Unit,
     onPropertySelect: (Long?) -> Unit,
+    onExpectedCloseDateChange: (String) -> Unit,
+    onListingTokenChange: (String) -> Unit,
+    onProbabilityChange: (String) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
-    stageDefs: List<ir.divarfiling.mobile.core.network.DealStageDefDto> = emptyList(),
+    stageDefs: List<DealStageDefDto> = emptyList(),
+    onPropertySearch: (String) -> Unit = {},
 ) {
-    val propertyOptions = listOf(NO_PROPERTY) + properties.map { it.title }
+    var moreExpanded by remember {
+        mutableStateOf(expectedCloseDate.isNotBlank() || listingToken.isNotBlank() || probability.isNotBlank())
+    }
     val selectedPropertyLabel = properties.firstOrNull { it.id == selectedPropertyId }?.title ?: NO_PROPERTY
 
     DfSheetScaffold(
         title = "ویرایش معامله",
-        subtitle = "عنوان، مبلغ، ملک، کمیسیون و مرحله فروش را به‌روز کنید",
+        subtitle = "عنوان، مبلغ، ملک، مرحله و جزئیات پرونده را به‌روز کنید",
         icon = DfIcons.Handshake,
         iconContainerColor = DfColors.PurpleContainer,
         iconTint = DfColors.Purple,
         onClose = onDismiss,
+        bodyHeightFraction = 0.92f,
         footer = {
             DfSheetActions(
                 primaryText = if (isSubmitting) "در حال ذخیره…" else "ذخیره تغییرات",
@@ -59,28 +82,22 @@ fun DealEditSheet(
         },
     ) {
         DfSheetSection(title = "جزئیات") {
-            OutlinedTextField(
+            DfTextField(
                 value = title,
                 onValueChange = onTitleChange,
-                label = { Text("عنوان") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "عنوان معامله",
                 enabled = !isSubmitting,
             )
-            OutlinedTextField(
+            DfMoneyField(
                 value = amount,
                 onValueChange = onAmountChange,
-                label = { Text("مبلغ (تومان)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "ارزش معامله",
                 enabled = !isSubmitting,
             )
-            OutlinedTextField(
+            DfTextField(
                 value = commissionRate,
                 onValueChange = onCommissionRateChange,
-                label = { Text("نرخ کمیسیون (٪)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                label = "نرخ کمیسیون (٪)",
                 enabled = !isSubmitting,
             )
         }
@@ -89,22 +106,16 @@ fun DealEditSheet(
             if (properties.isEmpty()) {
                 Text(
                     text = "فایل شخصی برای اتصال موجود نیست",
-                    style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
+                    style = AppTypography.labelSmall,
                     color = DfColors.TextMuted,
                 )
             } else {
-                DfDropdown(
-                    label = "ملک",
-                    value = selectedPropertyLabel,
-                    options = propertyOptions,
+                DealSearchablePropertyField(
+                    selectedLabel = selectedPropertyLabel,
+                    properties = properties,
                     enabled = !isSubmitting,
-                    onSelect = { label ->
-                        if (label == NO_PROPERTY) {
-                            onPropertySelect(null)
-                        } else {
-                            properties.firstOrNull { it.title == label }?.id?.let(onPropertySelect)
-                        }
-                    },
+                    onSearch = onPropertySearch,
+                    onSelect = onPropertySelect,
                 )
             }
         }
@@ -120,14 +131,96 @@ fun DealEditSheet(
         }
 
         DfSheetSection(title = "یادداشت") {
-            OutlinedTextField(
+            DfTextField(
                 value = notes,
                 onValueChange = onNotesChange,
-                label = { Text("یادداشت") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "یادداشت",
+                singleLine = false,
                 minLines = 3,
                 enabled = !isSubmitting,
             )
+        }
+
+        DfSheetExpandableSection(
+            title = "اطلاعات بیشتر",
+            subtitle = "تاریخ بستن، شناسه آگهی و احتمال",
+            expanded = moreExpanded,
+            onToggle = { moreExpanded = !moreExpanded },
+        ) {
+            DfJalaliDateField(
+                value = expectedCloseDate,
+                onValueChange = onExpectedCloseDateChange,
+                label = "تاریخ تخمینی بستن",
+                enabled = !isSubmitting,
+            )
+            DfTextField(
+                value = listingToken,
+                onValueChange = onListingTokenChange,
+                label = "شناسه آگهی",
+                enabled = !isSubmitting,
+            )
+            DfTextField(
+                value = probability,
+                onValueChange = onProbabilityChange,
+                label = "احتمال بستن (٪)",
+                enabled = !isSubmitting,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DealSearchablePropertyField(
+    selectedLabel: String,
+    properties: List<PropertyDto>,
+    enabled: Boolean,
+    onSearch: (String) -> Unit,
+    onSelect: (Long?) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    var browsing by remember { mutableStateOf(false) }
+    val items = remember(query, properties) {
+        val needle = query.trim()
+        val mapped = properties.map { it.id to it.title }
+        if (needle.isBlank()) mapped.take(12) else mapped.filter { it.second.contains(needle, ignoreCase = true) }.take(20)
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        DfSheetOptionRow(
+            label = selectedLabel,
+            selected = selectedLabel != NO_PROPERTY,
+            onClick = { if (enabled) browsing = !browsing },
+            trailing = if (browsing) "بستن" else "انتخاب",
+        )
+        if (browsing && enabled) {
+            DfSearchField(
+                value = query,
+                onValueChange = {
+                    query = it
+                    onSearch(it)
+                },
+                placeholder = "جستجوی فایل شخصی",
+            )
+            DfSheetOptionRow(
+                label = NO_PROPERTY,
+                selected = selectedLabel == NO_PROPERTY,
+                onClick = {
+                    onSelect(null)
+                    browsing = false
+                },
+            )
+            items.forEach { (id, label) ->
+                DfSheetOptionRow(
+                    label = label,
+                    selected = label == selectedLabel,
+                    onClick = {
+                        onSelect(id)
+                        browsing = false
+                    },
+                )
+            }
         }
     }
 }
