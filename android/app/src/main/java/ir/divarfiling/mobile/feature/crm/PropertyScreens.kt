@@ -76,10 +76,9 @@ import ir.divarfiling.mobile.feature.crm.components.PropertyLinkContactSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFilters
 import ir.divarfiling.mobile.feature.crm.components.PropertyCabinetFormSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyCabinetsManageSheet
-import ir.divarfiling.mobile.feature.crm.components.PropertyCabinetsRail
+import ir.divarfiling.mobile.feature.crm.components.PropertyFilingNav
 import ir.divarfiling.mobile.feature.crm.components.PropertyFolderFormSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFoldersManageSheet
-import ir.divarfiling.mobile.feature.crm.components.PropertyFoldersRail
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
 import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 
@@ -205,30 +204,23 @@ fun PropertiesScreen(
                     )
                 }
                 item {
-                    PropertyCabinetsRail(
+                    PropertyFilingNav(
                         cabinets = state.propertyCabinets,
+                        folders = state.propertyFolders,
                         selectedCabinetId = state.selectedCabinetId,
+                        selectedFolderId = state.selectedFolderId,
                         unassignedFolderCount = state.unassignedFolderCount,
-                        onSelectAll = viewModel::clearPropertyCabinetFilter,
+                        totalCount = state.propertiesTotal.takeIf { it > 0 }
+                            ?: state.propertyFolders.sumOf { it.propertyCount },
+                        onSelectAllCabinets = viewModel::clearPropertyCabinetFilter,
                         onSelectCabinet = viewModel::selectPropertyCabinet,
                         onSelectUnassigned = viewModel::selectUnassignedCabinet,
                         onCreateCabinet = viewModel::openCreateCabinetDialog,
                         onManageCabinets = viewModel::openManageCabinetsSheet,
-                    )
-                }
-                item {
-                    PropertyFoldersRail(
-                        folders = state.propertyFolders,
-                        selectedFolderId = state.selectedFolderId,
-                        totalCount = state.propertiesTotal.takeIf { it > 0 }
-                            ?: state.propertyFolders.sumOf { it.propertyCount },
-                        onSelectAll = viewModel::clearPropertyFolderFilter,
+                        onSelectAllFolders = viewModel::clearPropertyFolderFilter,
                         onSelectFolder = viewModel::selectPropertyFolder,
                         onCreateFolder = viewModel::openCreateFolderDialog,
                         onManageFolders = viewModel::openManageFoldersSheet,
-                        folderMetaFor = { folder ->
-                            folder.cabinet?.name?.let { "· $it" }.orEmpty()
-                        },
                     )
                 }
                 if (state.properties.isNotEmpty()) {

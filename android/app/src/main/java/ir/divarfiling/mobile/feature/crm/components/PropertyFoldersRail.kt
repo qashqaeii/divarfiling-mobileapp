@@ -42,14 +42,46 @@ fun PropertyFoldersRail(
     onCreateFolder: () -> Unit,
     onManageFolders: () -> Unit = {},
     folderMetaFor: (PropertyFolderDto) -> String = { "" },
+    compact: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            .padding(horizontal = if (compact) 0.dp else AppSpacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(if (compact) AppSpacing.xxs else AppSpacing.sm),
     ) {
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "زونکن",
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = DfColors.TextSecondary,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
+                    if (folders.isNotEmpty()) {
+                        ZonkanActionChip(
+                            icon = DfIcons.SlidersHorizontal,
+                            label = "",
+                            tint = DfColors.TextSecondary,
+                            onClick = onManageFolders,
+                        )
+                    }
+                    ZonkanActionChip(
+                        icon = DfIcons.Plus,
+                        label = "",
+                        tint = DfColors.Purple,
+                        containerColor = DfColors.PurpleContainer.copy(alpha = 0.55f),
+                        onClick = onCreateFolder,
+                    )
+                }
+            }
+        } else {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -95,6 +127,7 @@ fun PropertyFoldersRail(
                 )
             }
         }
+        }
 
         Row(
             modifier = Modifier
@@ -103,7 +136,7 @@ fun PropertyFoldersRail(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             ZonkanFolderCard(
-                name = "همه فایل‌ها",
+                name = if (compact) "همه" else "همه فایل‌ها",
                 count = totalCount,
                 color = Color(0xFF64748B),
                 icon = "fa-layer-group",
@@ -132,7 +165,7 @@ fun PropertyFoldersRail(
             }
         }
 
-        if (folders.isEmpty()) {
+        if (folders.isEmpty() && !compact) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 verticalAlignment = Alignment.Top,

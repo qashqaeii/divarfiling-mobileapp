@@ -37,14 +37,46 @@ fun PropertyCabinetsRail(
     onSelectUnassigned: () -> Unit,
     onCreateCabinet: () -> Unit,
     onManageCabinets: () -> Unit = {},
+    compact: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            .padding(horizontal = if (compact) 0.dp else AppSpacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(if (compact) AppSpacing.xxs else AppSpacing.sm),
     ) {
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "کمد",
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = DfColors.TextSecondary,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
+                    if (cabinets.isNotEmpty()) {
+                        ZonkanActionChip(
+                            icon = DfIcons.SlidersHorizontal,
+                            label = "",
+                            tint = DfColors.TextSecondary,
+                            onClick = onManageCabinets,
+                        )
+                    }
+                    ZonkanActionChip(
+                        icon = DfIcons.Plus,
+                        label = "",
+                        tint = DfColors.Purple,
+                        containerColor = DfColors.PurpleContainer.copy(alpha = 0.55f),
+                        onClick = onCreateCabinet,
+                    )
+                }
+            }
+        } else {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -89,6 +121,7 @@ fun PropertyCabinetsRail(
                     onClick = onCreateCabinet,
                 )
             }
+        }
         }
 
         Row(
