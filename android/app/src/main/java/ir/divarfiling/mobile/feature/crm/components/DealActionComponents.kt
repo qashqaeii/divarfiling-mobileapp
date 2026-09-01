@@ -16,6 +16,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -362,8 +366,8 @@ fun DealFollowUpSheet(
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var nextExpanded by androidx.compose.runtime.remember {
-        androidx.compose.runtime.mutableStateOf(nextActionType.isNotBlank() || nextActionAt.isNotBlank())
+    var nextExpanded by remember {
+        mutableStateOf(nextActionType.isNotBlank() || nextActionAt.isNotBlank())
     }
     DfSheetScaffold(
         title = "ثبت پیگیری",

@@ -571,8 +571,9 @@ fun PropertyDetailScreen(
                         onShare = { viewModel.toggleShareSheet(true) },
                         onWhatsApp = { viewModel.toggleShareSheet(true) },
                         onCreateDeal = {
-                            val primary = detail.contacts.firstOrNull { it.isPrimary } ?: detail.contacts.firstOrNull()
-                            onCreateDeal(primary?.customerId ?: property.contactId, property.id)
+                            val primary = detail.contacts.firstOrNull { it.isPrimary }
+                                ?: detail.contacts.firstOrNull()
+                            onCreateDeal(primary?.customerId, property.id)
                         },
                         onCopyLink = {
                             val publicUrl = detail.publicShare?.shareUrl?.takeIf { it.isNotBlank() }
