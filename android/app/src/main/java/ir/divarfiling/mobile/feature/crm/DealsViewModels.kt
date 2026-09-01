@@ -1258,6 +1258,7 @@ class PropertiesViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PropertiesUiState())
     val uiState: StateFlow<PropertiesUiState> = _uiState.asStateFlow()
     private var currentPage = 1
+    private val pageSize = 50
 
     init {
         viewModelScope.launch {
@@ -1339,6 +1340,7 @@ class PropertiesViewModel @Inject constructor(
                 folderId = folderIdParam(),
                 cabinetId = cabinetIdParam(),
                 page = if (refreshing) 1 else currentPage,
+                pageSize = pageSize,
             )) {
                 is ApiResult.Success -> {
                     val page = result.data.page
@@ -1380,10 +1382,12 @@ class PropertiesViewModel @Inject constructor(
                 folderId = folderIdParam(),
                 cabinetId = cabinetIdParam(),
                 page = currentPage,
+                pageSize = pageSize,
             )) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(
-                        properties = it.properties + result.data.items,
+                        properties = (it.properties + result.data.items).distinctBy { property -> property.id },
+                        propertiesTotal = result.data.total,
                         hasMore = result.data.hasMore,
                         isLoadingMore = false,
                     )

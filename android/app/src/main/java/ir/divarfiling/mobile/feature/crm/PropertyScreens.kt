@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -170,12 +171,14 @@ fun PropertiesScreen(
     }
 
     LaunchedEffect(listState, state.hasMore, state.isLoadingMore, state.isLoading) {
-        val layoutInfo = listState.layoutInfo
-        val total = layoutInfo.totalItemsCount
-        val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-        val nearEnd = total > 0 && lastVisible >= total - 3
-        if (nearEnd && state.hasMore && !state.isLoadingMore && !state.isLoading) {
-            viewModel.loadMore()
+        snapshotFlow {
+            val info = listState.layoutInfo
+            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible >= info.totalItemsCount - 4 && info.totalItemsCount > 0
+        }.collect { nearEnd ->
+            if (nearEnd && state.hasMore && !state.isLoadingMore && !state.isLoading) {
+                viewModel.loadMore()
+            }
         }
     }
 
@@ -340,7 +343,10 @@ fun PropertiesScreen(
                 } else {
                     item {
                         Box(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                            DfSectionHeader(title = "فایل‌ها", count = state.properties.size)
+                            DfSectionHeader(
+                                title = "فایل‌ها",
+                                count = state.propertiesTotal.takeIf { it > 0 } ?: state.properties.size,
+                            )
                         }
                     }
                     items(state.properties, key = { it.id }) { prop ->
@@ -355,6 +361,14 @@ fun PropertiesScreen(
                         item {
                             DfCardListSkeleton(
                                 count = 2,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                    } else if (state.hasMore) {
+                        item {
+                            DfSecondaryButton(
+                                text = "نمایش فایل‌های بیشتر",
+                                onClick = viewModel::loadMore,
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }

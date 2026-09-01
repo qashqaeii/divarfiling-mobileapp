@@ -399,7 +399,9 @@ class DealsRepository @Inject constructor(
             }.orEmpty()
             val page = response.meta?.page ?: 1
             val total = response.meta?.total ?: list.size
-            ApiResult.Success(PaginatedResult(list, page, total, page * list.size < total))
+            val pageSize = response.meta?.pageSize ?: list.size
+            val hasMore = list.isNotEmpty() && pageSize > 0 && page * pageSize < total
+            ApiResult.Success(PaginatedResult(list, page, total, hasMore))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
@@ -416,7 +418,9 @@ class DealsRepository @Inject constructor(
             }.orEmpty()
             val page = response.meta?.page ?: 1
             val total = response.meta?.total ?: list.size
-            ApiResult.Success(PaginatedResult(list, page, total, page * list.size < total))
+            val pageSize = response.meta?.pageSize ?: list.size
+            val hasMore = list.isNotEmpty() && pageSize > 0 && page * pageSize < total
+            ApiResult.Success(PaginatedResult(list, page, total, hasMore))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
