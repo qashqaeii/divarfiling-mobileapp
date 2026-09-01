@@ -52,35 +52,13 @@ fun PropertyFoldersRail(
         verticalArrangement = Arrangement.spacedBy(if (compact) AppSpacing.xxs else AppSpacing.sm),
     ) {
         if (compact) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "زونکن",
-                    style = AppTypography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.TextSecondary,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                    if (folders.isNotEmpty()) {
-                        ZonkanActionChip(
-                            icon = DfIcons.SlidersHorizontal,
-                            label = "",
-                            tint = DfColors.TextSecondary,
-                            onClick = onManageFolders,
-                        )
-                    }
-                    ZonkanActionChip(
-                        icon = DfIcons.Plus,
-                        label = "",
-                        tint = DfColors.Purple,
-                        containerColor = DfColors.PurpleContainer.copy(alpha = 0.55f),
-                        onClick = onCreateFolder,
-                    )
-                }
-            }
+            FilingTierHeader(
+                label = "زونکن",
+                icon = DfIcons.Folder,
+                showManage = folders.isNotEmpty(),
+                onManage = onManageFolders,
+                onAdd = onCreateFolder,
+            )
         } else {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -133,10 +111,43 @@ fun PropertyFoldersRail(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(if (compact) AppSpacing.xs else AppSpacing.sm),
         ) {
+            if (compact) {
+                ZonkanCompactFolderCard(
+                    name = "همه",
+                    meta = "$totalCount فایل",
+                    color = Color(0xFF64748B),
+                    icon = "fa-layer-group",
+                    selected = selectedFolderId == null,
+                    pinned = false,
+                    onClick = onSelectAll,
+                )
+                folders.forEach { folder ->
+                    val suffix = folderMetaFor(folder)
+                    ZonkanCompactFolderCard(
+                        name = folder.name,
+                        meta = buildString {
+                            append("${folder.propertyCount} فایل")
+                            if (suffix.isNotBlank()) append(' ').append(suffix.trim())
+                        },
+                        color = parseFolderColor(folder.color),
+                        icon = folder.icon,
+                        selected = selectedFolderId == folder.id,
+                        pinned = folder.isPinned,
+                        onClick = { onSelectFolder(folder) },
+                    )
+                }
+                if (folders.isEmpty()) {
+                    ZonkanCompactCreateCard(
+                        title = "زونکن جدید",
+                        subtitle = "مجتمع، پروژه…",
+                        onClick = onCreateFolder,
+                    )
+                }
+            } else {
             ZonkanFolderCard(
-                name = if (compact) "همه" else "همه فایل‌ها",
+                name = "همه فایل‌ها",
                 count = totalCount,
                 color = Color(0xFF64748B),
                 icon = "fa-layer-group",
@@ -162,6 +173,7 @@ fun PropertyFoldersRail(
             }
             if (folders.isEmpty()) {
                 ZonkanEmptyCreateCard(onClick = onCreateFolder)
+            }
             }
         }
 

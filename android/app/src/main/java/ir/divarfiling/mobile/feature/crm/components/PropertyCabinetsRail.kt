@@ -47,35 +47,13 @@ fun PropertyCabinetsRail(
         verticalArrangement = Arrangement.spacedBy(if (compact) AppSpacing.xxs else AppSpacing.sm),
     ) {
         if (compact) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "کمد",
-                    style = AppTypography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.TextSecondary,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                    if (cabinets.isNotEmpty()) {
-                        ZonkanActionChip(
-                            icon = DfIcons.SlidersHorizontal,
-                            label = "",
-                            tint = DfColors.TextSecondary,
-                            onClick = onManageCabinets,
-                        )
-                    }
-                    ZonkanActionChip(
-                        icon = DfIcons.Plus,
-                        label = "",
-                        tint = DfColors.Purple,
-                        containerColor = DfColors.PurpleContainer.copy(alpha = 0.55f),
-                        onClick = onCreateCabinet,
-                    )
-                }
-            }
+            FilingTierHeader(
+                label = "کمد",
+                icon = DfIcons.Briefcase,
+                showManage = cabinets.isNotEmpty(),
+                onManage = onManageCabinets,
+                onAdd = onCreateCabinet,
+            )
         } else {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -128,8 +106,48 @@ fun PropertyCabinetsRail(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(if (compact) AppSpacing.xs else AppSpacing.sm),
         ) {
+            if (compact) {
+                ZonkanCompactFolderCard(
+                    name = "همه",
+                    meta = "همه فایل‌ها",
+                    color = Color(0xFF475569),
+                    icon = "fa-layer-group",
+                    selected = selectedCabinetId == null,
+                    pinned = false,
+                    onClick = onSelectAll,
+                )
+                cabinets.forEach { cabinet ->
+                    ZonkanCompactFolderCard(
+                        name = cabinet.name,
+                        meta = "${cabinet.folderCount} زونکن · ${cabinet.propertyCount} فایل",
+                        color = parseFolderColor(cabinet.color),
+                        icon = cabinet.icon,
+                        selected = selectedCabinetId == cabinet.id.toString(),
+                        pinned = cabinet.isPinned,
+                        onClick = { onSelectCabinet(cabinet) },
+                    )
+                }
+                if (unassignedFolderCount > 0) {
+                    ZonkanCompactFolderCard(
+                        name = "بدون کمد",
+                        meta = "$unassignedFolderCount زونکن",
+                        color = Color(0xFF94A3B8),
+                        icon = "fa-folder-open",
+                        selected = selectedCabinetId == "none",
+                        pinned = false,
+                        onClick = onSelectUnassigned,
+                    )
+                }
+                if (cabinets.isEmpty()) {
+                    ZonkanCompactCreateCard(
+                        title = "کمد جدید",
+                        subtitle = "فروش، اجاره…",
+                        onClick = onCreateCabinet,
+                    )
+                }
+            } else {
             ZonkanFolderCard(
                 name = "همه کمدها",
                 count = 0,
@@ -166,6 +184,7 @@ fun PropertyCabinetsRail(
             }
             if (cabinets.isEmpty()) {
                 CabinetEmptyCreateCard(onClick = onCreateCabinet)
+            }
             }
         }
     }
