@@ -74,6 +74,9 @@ import ir.divarfiling.mobile.feature.crm.components.PropertyFormMode
 import ir.divarfiling.mobile.feature.crm.components.PropertyFormSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyLinkContactSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFilters
+import ir.divarfiling.mobile.feature.crm.components.PropertyCabinetFormSheet
+import ir.divarfiling.mobile.feature.crm.components.PropertyCabinetsManageSheet
+import ir.divarfiling.mobile.feature.crm.components.PropertyCabinetsRail
 import ir.divarfiling.mobile.feature.crm.components.PropertyFolderFormSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFoldersManageSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFoldersRail
@@ -109,6 +112,18 @@ fun PropertiesScreen(
             isSubmitting = state.isSubmittingFolder,
             onConfirm = viewModel::confirmDeleteFolder,
             onDismiss = viewModel::dismissDeleteFolderDialog,
+        )
+    }
+
+    if (state.showDeleteCabinetDialog) {
+        DfConfirmBottomSheet(
+            title = "حذف کمد",
+            message = "کمد حذف می‌شود اما زونکن‌ها و فایل‌های داخل آن حذف نمی‌شوند.",
+            confirmText = "حذف",
+            destructive = true,
+            isSubmitting = state.isSubmittingCabinet,
+            onConfirm = viewModel::confirmDeleteCabinet,
+            onDismiss = viewModel::dismissDeleteCabinetDialog,
         )
     }
 
@@ -190,6 +205,18 @@ fun PropertiesScreen(
                     )
                 }
                 item {
+                    PropertyCabinetsRail(
+                        cabinets = state.propertyCabinets,
+                        selectedCabinetId = state.selectedCabinetId,
+                        unassignedFolderCount = state.unassignedFolderCount,
+                        onSelectAll = viewModel::clearPropertyCabinetFilter,
+                        onSelectCabinet = viewModel::selectPropertyCabinet,
+                        onSelectUnassigned = viewModel::selectUnassignedCabinet,
+                        onCreateCabinet = viewModel::openCreateCabinetDialog,
+                        onManageCabinets = viewModel::openManageCabinetsSheet,
+                    )
+                }
+                item {
                     PropertyFoldersRail(
                         folders = state.propertyFolders,
                         selectedFolderId = state.selectedFolderId,
@@ -199,6 +226,9 @@ fun PropertiesScreen(
                         onSelectFolder = viewModel::selectPropertyFolder,
                         onCreateFolder = viewModel::openCreateFolderDialog,
                         onManageFolders = viewModel::openManageFoldersSheet,
+                        folderMetaFor = { folder ->
+                            folder.cabinet?.name?.let { "· $it" }.orEmpty()
+                        },
                     )
                 }
                 if (state.properties.isNotEmpty()) {
@@ -320,6 +350,49 @@ fun PropertiesScreen(
         }
     }
 
+    if (state.showManageCabinetsSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissManageCabinetsSheet) {
+            PropertyCabinetsManageSheet(
+                cabinets = state.manageCabinetsOrder,
+                isSavingOrder = state.isSavingCabinetOrder,
+                onMoveUp = viewModel::moveManageCabinetUp,
+                onMoveDown = viewModel::moveManageCabinetDown,
+                onPin = viewModel::toggleCabinetPin,
+                onEdit = viewModel::openEditCabinet,
+                onDelete = viewModel::requestDeleteCabinet,
+                onSaveOrder = viewModel::saveManageCabinetOrder,
+                onCreateNew = {
+                    viewModel.dismissManageCabinetsSheet()
+                    viewModel.openCreateCabinetDialog()
+                },
+            )
+        }
+    }
+
+    if (state.showCabinetFormSheet) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissCabinetFormSheet) {
+            PropertyCabinetFormSheet(
+                title = if (state.editingCabinet == null) "کمد جدید" else "ویرایش کمد",
+                name = state.cabinetFormName,
+                description = state.cabinetFormDescription,
+                selectedColor = state.cabinetFormColor,
+                selectedIcon = state.cabinetFormIcon,
+                isPinned = state.cabinetFormPinned,
+                isSubmitting = state.isSubmittingCabinet,
+                showDelete = state.editingCabinet != null,
+                onNameChange = viewModel::onCabinetFormNameChange,
+                onDescriptionChange = viewModel::onCabinetFormDescriptionChange,
+                onColorChange = viewModel::onCabinetFormColorChange,
+                onIconChange = viewModel::onCabinetFormIconChange,
+                onPinnedChange = viewModel::onCabinetFormPinnedChange,
+                onSubmit = viewModel::saveCabinetForm,
+                onDelete = {
+                    state.editingCabinet?.let(viewModel::requestDeleteCabinet)
+                },
+            )
+        }
+    }
+
     if (state.showManageFoldersSheet) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissManageFoldersSheet) {
             PropertyFoldersManageSheet(
@@ -355,6 +428,9 @@ fun PropertiesScreen(
                 onColorChange = viewModel::onFolderFormColorChange,
                 onIconChange = viewModel::onFolderFormIconChange,
                 onPinnedChange = viewModel::onFolderFormPinnedChange,
+                availableCabinets = state.propertyCabinets,
+                selectedCabinetId = state.folderFormCabinetId,
+                onCabinetChange = viewModel::onFolderFormCabinetChange,
                 onSubmit = viewModel::saveFolderForm,
                 onDelete = {
                     state.editingFolder?.let(viewModel::requestDeleteFolder)

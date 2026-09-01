@@ -292,12 +292,13 @@ interface MobileApi {
         @Query("city") city: String? = null,
         @Query("transaction_status") transactionStatus: String? = null,
         @Query("folder_id") folderId: Long? = null,
+        @Query("cabinet_id") cabinetId: String? = null,
         @Query("page") page: Int = 1,
         @Query("page_size") pageSize: Int = 20,
     ): ApiEnvelope
 
     @GET("crm/property-folders")
-    suspend fun getPropertyFolders(): ApiEnvelope
+    suspend fun getPropertyFolders(@Query("cabinet_id") cabinetId: String? = null): ApiEnvelope
 
     @POST("crm/property-folders")
     suspend fun createPropertyFolder(@Body body: PropertyFolderCreateRequest): ApiEnvelope
@@ -324,6 +325,36 @@ interface MobileApi {
     suspend fun removePropertyFromFolder(
         @Path("folderId") folderId: Long,
         @Path("propertyId") propertyId: Long,
+    ): ApiEnvelope
+
+    @GET("crm/property-cabinets")
+    suspend fun getPropertyCabinets(): ApiEnvelope
+
+    @POST("crm/property-cabinets")
+    suspend fun createPropertyCabinet(@Body body: PropertyCabinetCreateRequest): ApiEnvelope
+
+    @PATCH("crm/property-cabinets/{cabinetId}")
+    suspend fun updatePropertyCabinet(
+        @Path("cabinetId") cabinetId: Long,
+        @Body body: PropertyCabinetUpdateRequest,
+    ): ApiEnvelope
+
+    @DELETE("crm/property-cabinets/{cabinetId}")
+    suspend fun deletePropertyCabinet(@Path("cabinetId") cabinetId: Long): ApiEnvelope
+
+    @POST("crm/property-cabinets/reorder")
+    suspend fun reorderPropertyCabinets(@Body body: PropertyCabinetReorderRequest): ApiEnvelope
+
+    @POST("crm/property-cabinets/{cabinetId}/folders/{folderId}")
+    suspend fun assignFolderToCabinet(
+        @Path("cabinetId") cabinetId: Long,
+        @Path("folderId") folderId: Long,
+    ): ApiEnvelope
+
+    @DELETE("crm/property-cabinets/{cabinetId}/folders/{folderId}")
+    suspend fun removeFolderFromCabinet(
+        @Path("cabinetId") cabinetId: Long,
+        @Path("folderId") folderId: Long,
     ): ApiEnvelope
 
     @GET("crm/properties/{id}")

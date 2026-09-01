@@ -41,6 +41,7 @@ fun PropertyFoldersRail(
     onSelectFolder: (PropertyFolderDto) -> Unit,
     onCreateFolder: () -> Unit,
     onManageFolders: () -> Unit = {},
+    folderMetaFor: (PropertyFolderDto) -> String = { "" },
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -111,6 +112,7 @@ fun PropertyFoldersRail(
                 onClick = onSelectAll,
             )
             folders.forEach { folder ->
+                val suffix = folderMetaFor(folder)
                 ZonkanFolderCard(
                     name = folder.name,
                     count = folder.propertyCount,
@@ -119,6 +121,10 @@ fun PropertyFoldersRail(
                     selected = selectedFolderId == folder.id,
                     pinned = folder.isPinned,
                     onClick = { onSelectFolder(folder) },
+                    metaLabel = buildString {
+                        append("${folder.propertyCount} فایل")
+                        if (suffix.isNotBlank()) append(' ').append(suffix.trim())
+                    },
                 )
             }
             if (folders.isEmpty()) {
@@ -148,7 +154,7 @@ fun PropertyFoldersRail(
 }
 
 @Composable
-private fun ZonkanActionChip(
+internal fun ZonkanActionChip(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     tint: Color,
@@ -181,6 +187,7 @@ fun ZonkanFolderCard(
     pinned: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    metaLabel: String? = null,
 ) {
     val shape = AppShapes.CardSmall
     Box(
@@ -239,7 +246,7 @@ fun ZonkanFolderCard(
                 color = if (selected) color.copy(alpha = 0.92f) else DfColors.TextPrimary,
             )
             Text(
-                text = "$count فایل",
+                text = metaLabel ?: "$count فایل",
                 style = AppTypography.labelSmall,
                 color = if (selected) color.copy(alpha = 0.72f) else DfColors.TextMuted,
                 fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,

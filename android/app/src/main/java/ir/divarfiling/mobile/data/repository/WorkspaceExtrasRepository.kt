@@ -10,6 +10,10 @@ import ir.divarfiling.mobile.core.network.CloudExtractionCreateRequest
 import ir.divarfiling.mobile.core.network.CloudExtractionJobDto
 import ir.divarfiling.mobile.core.network.MessageTemplateDto
 import ir.divarfiling.mobile.core.network.MobileApi
+import ir.divarfiling.mobile.core.network.PropertyCabinetCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyCabinetDto
+import ir.divarfiling.mobile.core.network.PropertyCabinetReorderRequest
+import ir.divarfiling.mobile.core.network.PropertyCabinetUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyFolderCreateRequest
 import ir.divarfiling.mobile.core.network.PropertyFolderDto
 import ir.divarfiling.mobile.core.network.PropertyFolderReorderRequest
@@ -81,12 +85,12 @@ class WorkspaceExtrasRepository @Inject constructor(
     suspend fun pinSavedFilter(filterId: Long): ApiResult<SavedFilterDto> =
         single { api.pinSavedFilter(filterId) }
 
-    suspend fun getPropertyFolders(): ApiResult<List<PropertyFolderDto>> {
+    suspend fun getPropertyFolders(cabinetId: String? = null): ApiResult<List<PropertyFolderDto>> {
         return decodeList(
             decode = { el ->
                 json.decodeFromJsonElement(ListSerializer(PropertyFolderDto.serializer()), el)
             },
-            call = { api.getPropertyFolders() },
+            call = { api.getPropertyFolders(cabinetId?.ifBlank { null }) },
         )
     }
 
@@ -134,6 +138,48 @@ class WorkspaceExtrasRepository @Inject constructor(
             ApiResult.Error(e.toUserMessage("خطای شبکه"))
         }
     }
+
+    suspend fun getPropertyCabinets(): ApiResult<List<PropertyCabinetDto>> {
+        return decodeList(
+            decode = { el ->
+                json.decodeFromJsonElement(ListSerializer(PropertyCabinetDto.serializer()), el)
+            },
+            call = { api.getPropertyCabinets() },
+        )
+    }
+
+    suspend fun createPropertyCabinet(request: PropertyCabinetCreateRequest): ApiResult<PropertyCabinetDto> =
+        single { api.createPropertyCabinet(request) }
+
+    suspend fun updatePropertyCabinet(
+        cabinetId: Long,
+        request: PropertyCabinetUpdateRequest,
+    ): ApiResult<PropertyCabinetDto> = single { api.updatePropertyCabinet(cabinetId, request) }
+
+    suspend fun deletePropertyCabinet(cabinetId: Long): ApiResult<Unit> {
+        return try {
+            val response = api.deletePropertyCabinet(cabinetId)
+            if (!response.ok) ApiResult.Error(response.error ?: "حذف کمد ناموفق")
+            else ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Error(e.toUserMessage("خطای شبکه"))
+        }
+    }
+
+    suspend fun reorderPropertyCabinets(cabinetIds: List<Long>): ApiResult<List<PropertyCabinetDto>> {
+        return decodeList(
+            decode = { el ->
+                json.decodeFromJsonElement(ListSerializer(PropertyCabinetDto.serializer()), el)
+            },
+            call = { api.reorderPropertyCabinets(PropertyCabinetReorderRequest(cabinetIds)) },
+        )
+    }
+
+    suspend fun assignFolderToCabinet(cabinetId: Long, folderId: Long): ApiResult<PropertyFolderDto> =
+        single { api.assignFolderToCabinet(cabinetId, folderId) }
+
+    suspend fun removeFolderFromCabinet(cabinetId: Long, folderId: Long): ApiResult<PropertyFolderDto> =
+        single { api.removeFolderFromCabinet(cabinetId, folderId) }
 
     suspend fun getSupportTickets(
         status: String? = null,

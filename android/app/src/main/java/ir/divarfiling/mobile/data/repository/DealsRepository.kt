@@ -156,6 +156,7 @@ class DealsRepository @Inject constructor(
         city: String? = null,
         transactionStatus: String? = null,
         folderId: Long? = null,
+        cabinetId: String? = null,
         page: Int = 1,
         pageSize: Int = 20,
     ): ApiResult<PaginatedResult<PropertyDto>> = paginatedProperties {
@@ -166,6 +167,7 @@ class DealsRepository @Inject constructor(
             city = city?.ifBlank { null },
             transactionStatus = transactionStatus?.ifBlank { null },
             folderId = folderId,
+            cabinetId = cabinetId?.ifBlank { null },
             page = page,
             pageSize = pageSize,
         )

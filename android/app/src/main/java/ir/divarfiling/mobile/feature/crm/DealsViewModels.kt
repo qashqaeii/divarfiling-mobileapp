@@ -26,6 +26,9 @@ import ir.divarfiling.mobile.feature.crm.components.suggestionMessage
 import ir.divarfiling.mobile.core.network.PropertyContactMatchItemDto
 import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyCabinetCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyCabinetDto
+import ir.divarfiling.mobile.core.network.PropertyCabinetUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyFolderCreateRequest
 import ir.divarfiling.mobile.core.network.PropertyFolderDto
 import ir.divarfiling.mobile.core.network.PropertyFolderUpdateRequest
@@ -913,8 +916,11 @@ class DealFinanceViewModel @Inject constructor(
 
 data class PropertiesUiState(
     val properties: List<PropertyDto> = emptyList(),
+    val propertyCabinets: List<PropertyCabinetDto> = emptyList(),
     val propertyFolders: List<PropertyFolderDto> = emptyList(),
+    val selectedCabinetId: String? = null,
     val selectedFolderId: Long? = null,
+    val unassignedFolderCount: Int = 0,
     val savedFilters: List<SavedFilterDto> = emptyList(),
     val activeSavedFilterId: Long? = null,
     val query: String = "",
@@ -942,17 +948,31 @@ data class PropertiesUiState(
     val showManageFoldersSheet: Boolean = false,
     val showFolderFormSheet: Boolean = false,
     val showDeleteFolderDialog: Boolean = false,
+    val showCabinetFormSheet: Boolean = false,
+    val showManageCabinetsSheet: Boolean = false,
+    val showDeleteCabinetDialog: Boolean = false,
     val editingFolder: PropertyFolderDto? = null,
+    val editingCabinet: PropertyCabinetDto? = null,
     val folderPendingDelete: PropertyFolderDto? = null,
+    val cabinetPendingDelete: PropertyCabinetDto? = null,
     val manageFoldersOrder: List<PropertyFolderDto> = emptyList(),
+    val manageCabinetsOrder: List<PropertyCabinetDto> = emptyList(),
     val createFolderName: String = "",
     val folderFormName: String = "",
     val folderFormDescription: String = "",
     val folderFormColor: String = PropertyFolderConstants.DEFAULT_COLOR,
     val folderFormIcon: String = PropertyFolderConstants.DEFAULT_ICON,
     val folderFormPinned: Boolean = false,
+    val cabinetFormName: String = "",
+    val cabinetFormDescription: String = "",
+    val cabinetFormColor: String = PropertyCabinetConstants.DEFAULT_COLOR,
+    val cabinetFormIcon: String = PropertyCabinetConstants.DEFAULT_ICON,
+    val cabinetFormPinned: Boolean = false,
+    val folderFormCabinetId: Long? = null,
     val isSubmittingFolder: Boolean = false,
+    val isSubmittingCabinet: Boolean = false,
     val isSavingFolderOrder: Boolean = false,
+    val isSavingCabinetOrder: Boolean = false,
     val propertiesTotal: Int = 0,
     val exportMessage: String? = null,
     val userName: String = "",
@@ -969,13 +989,12 @@ object PropertyConstants {
 
 object PropertyFolderConstants {
     const val DEFAULT_COLOR = "#6366f1"
-    const val DEFAULT_ICON = "fa-book"
+    const val DEFAULT_ICON = "fa-folder"
     val COLORS = listOf(
         "#6366f1", "#0ea5e9", "#10b981", "#f59e0b",
         "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6",
     )
     val ICONS = listOf(
-        "fa-book",
         "fa-folder",
         "fa-folder-open",
         "fa-building",
@@ -988,6 +1007,13 @@ object PropertyFolderConstants {
         "fa-landmark",
         "fa-map-pin",
     )
+}
+
+object PropertyCabinetConstants {
+    const val DEFAULT_COLOR = "#6366f1"
+    const val DEFAULT_ICON = "fa-folder"
+    val COLORS = PropertyFolderConstants.COLORS
+    val ICONS = PropertyFolderConstants.ICONS
 }
 
 @HiltViewModel
@@ -1019,13 +1045,33 @@ class PropertiesViewModel @Inject constructor(
             }
         }
         loadSavedFilters()
+        loadCabinets()
         loadFolders()
         load()
     }
 
+    fun loadCabinets() {
+        viewModelScope.launch {
+            when (val result = extrasRepository.getPropertyCabinets()) {
+                is ApiResult.Success -> {
+                    val unassigned = extrasRepository.getPropertyFolders("none")
+                    val unassignedCount = if (unassigned is ApiResult.Success) unassigned.data.size else 0
+                    _uiState.update {
+                        it.copy(
+                            propertyCabinets = result.data,
+                            unassignedFolderCount = unassignedCount,
+                        )
+                    }
+                }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
     fun loadFolders() {
         viewModelScope.launch {
-            when (val result = extrasRepository.getPropertyFolders()) {
+            val cabinetFilter = _uiState.value.selectedCabinetId
+            when (val result = extrasRepository.getPropertyFolders(cabinetFilter)) {
                 is ApiResult.Success -> _uiState.update { it.copy(propertyFolders = result.data) }
                 is ApiResult.Error -> Unit
             }
@@ -1033,6 +1079,11 @@ class PropertiesViewModel @Inject constructor(
     }
 
     private fun folderIdParam(): Long? = _uiState.value.selectedFolderId
+
+    private fun cabinetIdParam(): String? {
+        if (_uiState.value.selectedFolderId != null) return null
+        return _uiState.value.selectedCabinetId
+    }
 
     fun loadSavedFilters() {
         viewModelScope.launch {
@@ -1056,6 +1107,7 @@ class PropertiesViewModel @Inject constructor(
                 city = _uiState.value.city,
                 transactionStatus = _uiState.value.transactionStatus,
                 folderId = folderIdParam(),
+                cabinetId = cabinetIdParam(),
                 page = if (refreshing) 1 else currentPage,
             )) {
                 is ApiResult.Success -> {
@@ -1096,6 +1148,7 @@ class PropertiesViewModel @Inject constructor(
                 city = _uiState.value.city,
                 transactionStatus = _uiState.value.transactionStatus,
                 folderId = folderIdParam(),
+                cabinetId = cabinetIdParam(),
                 page = currentPage,
             )) {
                 is ApiResult.Success -> _uiState.update {
@@ -1148,12 +1201,44 @@ class PropertiesViewModel @Inject constructor(
     }
 
     fun selectPropertyFolder(folder: PropertyFolderDto) {
-        _uiState.update { it.copy(selectedFolderId = folder.id, activeSavedFilterId = null) }
+        _uiState.update {
+            it.copy(
+                selectedFolderId = folder.id,
+                selectedCabinetId = folder.cabinet?.id?.toString() ?: folder.cabinetId?.toString(),
+                activeSavedFilterId = null,
+            )
+        }
         load()
     }
 
     fun clearPropertyFolderFilter() {
         _uiState.update { it.copy(selectedFolderId = null) }
+        load()
+    }
+
+    fun selectPropertyCabinet(cabinet: PropertyCabinetDto) {
+        _uiState.update {
+            it.copy(
+                selectedCabinetId = cabinet.id.toString(),
+                selectedFolderId = null,
+                activeSavedFilterId = null,
+            )
+        }
+        loadFolders()
+        load()
+    }
+
+    fun clearPropertyCabinetFilter() {
+        _uiState.update { it.copy(selectedCabinetId = null, selectedFolderId = null) }
+        loadFolders()
+        load()
+    }
+
+    fun selectUnassignedCabinet() {
+        _uiState.update {
+            it.copy(selectedCabinetId = "none", selectedFolderId = null, activeSavedFilterId = null)
+        }
+        loadFolders()
         load()
     }
 
@@ -1167,6 +1252,7 @@ class PropertiesViewModel @Inject constructor(
                 folderFormColor = PropertyFolderConstants.DEFAULT_COLOR,
                 folderFormIcon = PropertyFolderConstants.DEFAULT_ICON,
                 folderFormPinned = false,
+                folderFormCabinetId = _uiState.value.selectedCabinetId?.toLongOrNull(),
             )
         }
     }
@@ -1195,6 +1281,7 @@ class PropertiesViewModel @Inject constructor(
                 folderFormColor = folder.color,
                 folderFormIcon = folder.icon.ifBlank { PropertyFolderConstants.DEFAULT_ICON },
                 folderFormPinned = folder.isPinned,
+                folderFormCabinetId = folder.cabinet?.id ?: folder.cabinetId,
             )
         }
     }
@@ -1212,6 +1299,8 @@ class PropertiesViewModel @Inject constructor(
     fun onFolderFormIconChange(value: String) = _uiState.update { it.copy(folderFormIcon = value) }
 
     fun onFolderFormPinnedChange(value: Boolean) = _uiState.update { it.copy(folderFormPinned = value) }
+
+    fun onFolderFormCabinetChange(value: Long?) = _uiState.update { it.copy(folderFormCabinetId = value) }
 
     fun saveFolderForm() {
         val state = _uiState.value
@@ -1231,6 +1320,7 @@ class PropertiesViewModel @Inject constructor(
                         color = state.folderFormColor,
                         icon = state.folderFormIcon,
                         isPinned = state.folderFormPinned,
+                        cabinetId = state.folderFormCabinetId,
                     ),
                 )
             } else {
@@ -1242,6 +1332,7 @@ class PropertiesViewModel @Inject constructor(
                         color = state.folderFormColor,
                         icon = state.folderFormIcon,
                         isPinned = state.folderFormPinned,
+                        cabinetId = state.folderFormCabinetId,
                     ),
                 )
             }
@@ -1257,6 +1348,7 @@ class PropertiesViewModel @Inject constructor(
                         )
                     }
                     loadFolders()
+                    loadCabinets()
                     if (editing == null) load()
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -1369,6 +1461,224 @@ class PropertiesViewModel @Inject constructor(
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSavingFolderOrder = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun openCreateCabinetDialog() {
+        _uiState.update {
+            it.copy(
+                showCabinetFormSheet = true,
+                editingCabinet = null,
+                cabinetFormName = "",
+                cabinetFormDescription = "",
+                cabinetFormColor = PropertyCabinetConstants.DEFAULT_COLOR,
+                cabinetFormIcon = PropertyCabinetConstants.DEFAULT_ICON,
+                cabinetFormPinned = false,
+            )
+        }
+    }
+
+    fun openManageCabinetsSheet() {
+        _uiState.update {
+            it.copy(
+                showManageCabinetsSheet = true,
+                manageCabinetsOrder = it.propertyCabinets,
+            )
+        }
+    }
+
+    fun dismissManageCabinetsSheet() = _uiState.update { it.copy(showManageCabinetsSheet = false) }
+
+    fun openEditCabinet(cabinet: PropertyCabinetDto) {
+        _uiState.update {
+            it.copy(
+                showManageCabinetsSheet = false,
+                showCabinetFormSheet = true,
+                editingCabinet = cabinet,
+                cabinetFormName = cabinet.name,
+                cabinetFormDescription = cabinet.description,
+                cabinetFormColor = cabinet.color,
+                cabinetFormIcon = cabinet.icon.ifBlank { PropertyCabinetConstants.DEFAULT_ICON },
+                cabinetFormPinned = cabinet.isPinned,
+            )
+        }
+    }
+
+    fun dismissCabinetFormSheet() = _uiState.update {
+        it.copy(showCabinetFormSheet = false, editingCabinet = null)
+    }
+
+    fun onCabinetFormNameChange(value: String) = _uiState.update { it.copy(cabinetFormName = value) }
+
+    fun onCabinetFormDescriptionChange(value: String) = _uiState.update { it.copy(cabinetFormDescription = value) }
+
+    fun onCabinetFormColorChange(value: String) = _uiState.update { it.copy(cabinetFormColor = value) }
+
+    fun onCabinetFormIconChange(value: String) = _uiState.update { it.copy(cabinetFormIcon = value) }
+
+    fun onCabinetFormPinnedChange(value: Boolean) = _uiState.update { it.copy(cabinetFormPinned = value) }
+
+    fun saveCabinetForm() {
+        val state = _uiState.value
+        val name = state.cabinetFormName.trim()
+        if (name.isBlank()) {
+            _uiState.update { it.copy(error = "نام کمد الزامی است") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingCabinet = true) }
+            val editing = state.editingCabinet
+            val result = if (editing == null) {
+                extrasRepository.createPropertyCabinet(
+                    PropertyCabinetCreateRequest(
+                        name = name,
+                        description = state.cabinetFormDescription.trim(),
+                        color = state.cabinetFormColor,
+                        icon = state.cabinetFormIcon,
+                        isPinned = state.cabinetFormPinned,
+                    ),
+                )
+            } else {
+                extrasRepository.updatePropertyCabinet(
+                    editing.id,
+                    PropertyCabinetUpdateRequest(
+                        name = name,
+                        description = state.cabinetFormDescription.trim(),
+                        color = state.cabinetFormColor,
+                        icon = state.cabinetFormIcon,
+                        isPinned = state.cabinetFormPinned,
+                    ),
+                )
+            }
+            when (result) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingCabinet = false,
+                            showCabinetFormSheet = false,
+                            editingCabinet = null,
+                            selectedCabinetId = if (editing == null) result.data.id.toString() else it.selectedCabinetId,
+                            selectedFolderId = if (editing == null) null else it.selectedFolderId,
+                            exportMessage = if (editing == null) "کمد ساخته شد" else "کمد به‌روز شد",
+                        )
+                    }
+                    loadCabinets()
+                    loadFolders()
+                    if (editing == null) load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmittingCabinet = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun requestDeleteCabinet(cabinet: PropertyCabinetDto) {
+        _uiState.update {
+            it.copy(
+                cabinetPendingDelete = cabinet,
+                showDeleteCabinetDialog = true,
+                showManageCabinetsSheet = false,
+                showCabinetFormSheet = false,
+            )
+        }
+    }
+
+    fun dismissDeleteCabinetDialog() = _uiState.update {
+        it.copy(showDeleteCabinetDialog = false, cabinetPendingDelete = null)
+    }
+
+    fun confirmDeleteCabinet() {
+        val cabinet = _uiState.value.cabinetPendingDelete ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingCabinet = true) }
+            when (val deleteResult = extrasRepository.deletePropertyCabinet(cabinet.id)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingCabinet = false,
+                            showDeleteCabinetDialog = false,
+                            cabinetPendingDelete = null,
+                            selectedCabinetId = it.selectedCabinetId.takeUnless { active -> active == cabinet.id.toString() },
+                            exportMessage = "کمد حذف شد",
+                        )
+                    }
+                    loadCabinets()
+                    loadFolders()
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmittingCabinet = false, error = deleteResult.message)
+                }
+            }
+        }
+    }
+
+    fun toggleCabinetPin(cabinet: PropertyCabinetDto) {
+        viewModelScope.launch {
+            when (
+                val pinResult = extrasRepository.updatePropertyCabinet(
+                    cabinet.id,
+                    PropertyCabinetUpdateRequest(isPinned = !cabinet.isPinned),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    loadCabinets()
+                    _uiState.update {
+                        it.copy(
+                            manageCabinetsOrder = it.manageCabinetsOrder.map { row ->
+                                if (row.id == cabinet.id) row.copy(isPinned = !cabinet.isPinned) else row
+                            },
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(error = pinResult.message) }
+            }
+        }
+    }
+
+    fun moveManageCabinetUp(cabinetId: Long) {
+        _uiState.update { state ->
+            val list = state.manageCabinetsOrder.toMutableList()
+            val idx = list.indexOfFirst { it.id == cabinetId }
+            if (idx <= 0) return@update state
+            val item = list.removeAt(idx)
+            list.add(idx - 1, item)
+            state.copy(manageCabinetsOrder = list)
+        }
+    }
+
+    fun moveManageCabinetDown(cabinetId: Long) {
+        _uiState.update { state ->
+            val list = state.manageCabinetsOrder.toMutableList()
+            val idx = list.indexOfFirst { it.id == cabinetId }
+            if (idx < 0 || idx >= list.lastIndex) return@update state
+            val item = list.removeAt(idx)
+            list.add(idx + 1, item)
+            state.copy(manageCabinetsOrder = list)
+        }
+    }
+
+    fun saveManageCabinetOrder() {
+        val ids = _uiState.value.manageCabinetsOrder.map { it.id }
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingCabinetOrder = true) }
+            when (val result = extrasRepository.reorderPropertyCabinets(ids)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSavingCabinetOrder = false,
+                            showManageCabinetsSheet = false,
+                            propertyCabinets = result.data,
+                            exportMessage = "ترتیب کمدها ذخیره شد",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSavingCabinetOrder = false, error = result.message)
                 }
             }
         }

@@ -1172,6 +1172,50 @@ data class PropertyDetailData(
 )
 
 @Serializable
+data class PropertyCabinetBriefDto(
+    val id: Long,
+    val name: String = "",
+    val color: String = "#6366f1",
+    val icon: String = "fa-folder",
+)
+
+@Serializable
+data class PropertyCabinetDto(
+    val id: Long,
+    val name: String = "",
+    val description: String = "",
+    val color: String = "#6366f1",
+    val icon: String = "fa-folder",
+    @SerialName("sort_order") val sortOrder: Int = 0,
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+    @SerialName("folder_count") val folderCount: Int = 0,
+    @SerialName("property_count") val propertyCount: Int = 0,
+)
+
+@Serializable
+data class PropertyCabinetCreateRequest(
+    val name: String,
+    val description: String = "",
+    val color: String = "#6366f1",
+    val icon: String = "fa-folder",
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+)
+
+@Serializable
+data class PropertyCabinetUpdateRequest(
+    val name: String? = null,
+    val description: String? = null,
+    val color: String? = null,
+    val icon: String? = null,
+    @SerialName("is_pinned") val isPinned: Boolean? = null,
+)
+
+@Serializable
+data class PropertyCabinetReorderRequest(
+    @SerialName("cabinet_ids") val cabinetIds: List<Long>,
+)
+
+@Serializable
 data class PropertyFolderBriefDto(
     val id: Long,
     val name: String = "",
@@ -1189,6 +1233,8 @@ data class PropertyFolderDto(
     @SerialName("sort_order") val sortOrder: Int = 0,
     @SerialName("is_pinned") val isPinned: Boolean = false,
     @SerialName("property_count") val propertyCount: Int = 0,
+    val cabinet: PropertyCabinetBriefDto? = null,
+    @SerialName("cabinet_id") val cabinetId: Long? = null,
 )
 
 @Serializable
@@ -1198,6 +1244,7 @@ data class PropertyFolderCreateRequest(
     val color: String = "#6366f1",
     val icon: String = "fa-folder",
     @SerialName("is_pinned") val isPinned: Boolean = false,
+    @SerialName("cabinet_id") val cabinetId: Long? = null,
 )
 
 @Serializable
@@ -1207,6 +1254,7 @@ data class PropertyFolderUpdateRequest(
     val color: String? = null,
     val icon: String? = null,
     @SerialName("is_pinned") val isPinned: Boolean? = null,
+    @SerialName("cabinet_id") val cabinetId: Long? = null,
 )
 
 @Serializable

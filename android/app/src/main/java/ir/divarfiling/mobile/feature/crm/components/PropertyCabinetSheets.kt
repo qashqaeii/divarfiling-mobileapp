@@ -1,21 +1,18 @@
 package ir.divarfiling.mobile.feature.crm.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -25,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,32 +34,17 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.network.PropertyCabinetDto
-import ir.divarfiling.mobile.core.network.PropertyFolderDto
-import ir.divarfiling.mobile.feature.crm.PropertyFolderConstants
-
-internal fun parseFolderColor(hex: String): Color {
-    val cleaned = hex.trim().removePrefix("#")
-    if (cleaned.length != 6) return DfColors.Purple
-    return try {
-        Color(
-            red = cleaned.substring(0, 2).toInt(16) / 255f,
-            green = cleaned.substring(2, 4).toInt(16) / 255f,
-            blue = cleaned.substring(4, 6).toInt(16) / 255f,
-        )
-    } catch (_: Exception) {
-        DfColors.Purple
-    }
-}
+import ir.divarfiling.mobile.feature.crm.PropertyCabinetConstants
 
 @Composable
-fun PropertyFoldersManageSheet(
-    folders: List<PropertyFolderDto>,
+fun PropertyCabinetsManageSheet(
+    cabinets: List<PropertyCabinetDto>,
     isSavingOrder: Boolean,
     onMoveUp: (Long) -> Unit,
     onMoveDown: (Long) -> Unit,
-    onPin: (PropertyFolderDto) -> Unit,
-    onEdit: (PropertyFolderDto) -> Unit,
-    onDelete: (PropertyFolderDto) -> Unit,
+    onPin: (PropertyCabinetDto) -> Unit,
+    onEdit: (PropertyCabinetDto) -> Unit,
+    onDelete: (PropertyCabinetDto) -> Unit,
     onSaveOrder: () -> Unit,
     onCreateNew: () -> Unit,
     modifier: Modifier = Modifier,
@@ -81,7 +62,7 @@ fun PropertyFoldersManageSheet(
             ZonkanBrandIcon(size = 36.dp)
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "مدیریت زونکن‌ها",
+                    text = "مدیریت کمدها",
                     style = AppTypography.cardTitle,
                     fontWeight = FontWeight.Bold,
                     color = DfColors.TextPrimary,
@@ -100,37 +81,33 @@ fun PropertyFoldersManageSheet(
                 .weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            itemsIndexed(folders, key = { _, item -> item.id }) { index, folder ->
-                ManageFolderRow(
-                    folder = folder,
+            itemsIndexed(cabinets, key = { _, item -> item.id }) { index, cabinet ->
+                ManageCabinetRow(
+                    cabinet = cabinet,
                     canMoveUp = index > 0,
-                    canMoveDown = index < folders.lastIndex,
-                    onMoveUp = { onMoveUp(folder.id) },
-                    onMoveDown = { onMoveDown(folder.id) },
-                    onPin = { onPin(folder) },
-                    onEdit = { onEdit(folder) },
-                    onDelete = { onDelete(folder) },
+                    canMoveDown = index < cabinets.lastIndex,
+                    onMoveUp = { onMoveUp(cabinet.id) },
+                    onMoveDown = { onMoveDown(cabinet.id) },
+                    onPin = { onPin(cabinet) },
+                    onEdit = { onEdit(cabinet) },
+                    onDelete = { onDelete(cabinet) },
                 )
             }
         }
 
-        DfSecondaryButton(
-            text = "زونکن جدید",
-            onClick = onCreateNew,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        DfSecondaryButton(text = "کمد جدید", onClick = onCreateNew, modifier = Modifier.fillMaxWidth())
         DfPrimaryButton(
             text = if (isSavingOrder) "در حال ذخیره…" else "ذخیره ترتیب",
             onClick = onSaveOrder,
-            enabled = !isSavingOrder && folders.isNotEmpty(),
+            enabled = !isSavingOrder && cabinets.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         )
     }
 }
 
 @Composable
-private fun ManageFolderRow(
-    folder: PropertyFolderDto,
+private fun ManageCabinetRow(
+    cabinet: PropertyCabinetDto,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     onMoveUp: () -> Unit,
@@ -139,13 +116,13 @@ private fun ManageFolderRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val color = parseFolderColor(folder.color)
+    val color = parseFolderColor(cabinet.color)
     Surface(
         shape = AppShapes.CardSmall,
-        color = if (folder.isPinned) color.copy(alpha = 0.08f) else DfColors.SurfaceVariant.copy(alpha = 0.55f),
+        color = if (cabinet.isPinned) color.copy(alpha = 0.08f) else DfColors.SurfaceVariant.copy(alpha = 0.55f),
         border = BorderStroke(
             1.dp,
-            if (folder.isPinned) color.copy(alpha = 0.35f) else DfColors.OutlineSubtle,
+            if (cabinet.isPinned) color.copy(alpha = 0.35f) else DfColors.OutlineSubtle,
         ),
     ) {
         Row(
@@ -155,12 +132,7 @@ private fun ManageFolderRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            Icon(
-                DfIcons.GripVertical,
-                contentDescription = null,
-                tint = DfColors.TextMuted,
-                modifier = Modifier.size(16.dp),
-            )
+            Icon(DfIcons.GripVertical, contentDescription = null, tint = DfColors.TextMuted, modifier = Modifier.size(16.dp))
             Column {
                 IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(28.dp)) {
                     Icon(DfIcons.ChevronUp, contentDescription = "بالا", modifier = Modifier.size(16.dp))
@@ -169,23 +141,17 @@ private fun ManageFolderRow(
                     Icon(DfIcons.ChevronDown, contentDescription = "پایین", modifier = Modifier.size(16.dp))
                 }
             }
-            PropertyFolderIconBadge(faIcon = folder.icon, color = color, size = 36.dp, iconSize = 16.dp)
+            PropertyFolderIconBadge(faIcon = cabinet.icon, color = color, size = 36.dp, iconSize = 16.dp)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = folder.name,
+                    text = cabinet.name,
                     style = AppTypography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = buildString {
-                        append("${folder.propertyCount} فایل")
-                        if (folder.description.isNotBlank()) {
-                            append(" · ")
-                            append(folder.description)
-                        }
-                    },
+                    text = "${cabinet.folderCount} زونکن · ${cabinet.propertyCount} فایل",
                     style = AppTypography.labelSmall,
                     color = DfColors.TextMuted,
                     maxLines = 1,
@@ -196,7 +162,7 @@ private fun ManageFolderRow(
                 Icon(
                     DfIcons.Pin,
                     contentDescription = "سنجاق",
-                    tint = if (folder.isPinned) color else DfColors.TextMuted,
+                    tint = if (cabinet.isPinned) color else DfColors.TextMuted,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -212,7 +178,7 @@ private fun ManageFolderRow(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PropertyFolderFormSheet(
+fun PropertyCabinetFormSheet(
     title: String,
     name: String,
     description: String,
@@ -226,17 +192,11 @@ fun PropertyFolderFormSheet(
     onColorChange: (String) -> Unit,
     onIconChange: (String) -> Unit,
     onPinnedChange: (Boolean) -> Unit,
-    availableCabinets: List<PropertyCabinetDto> = emptyList(),
-    selectedCabinetId: Long? = null,
-    onCabinetChange: (Long?) -> Unit = {},
     onSubmit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val previewColor = parseFolderColor(selectedColor)
-    val previewName = name.trim().ifBlank { "نام زونکن" }
-    val previewCount = 0
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -249,31 +209,24 @@ fun PropertyFolderFormSheet(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ZonkanBrandIcon(size = 36.dp)
-            Text(
-                text = title,
-                style = AppTypography.cardTitle,
-                fontWeight = FontWeight.Bold,
-                color = DfColors.TextPrimary,
-            )
+            Text(title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold, color = DfColors.TextPrimary)
         }
-
-        Text("پیش‌نمایش", style = AppTypography.labelLarge, color = DfColors.TextSecondary)
         ZonkanFolderCard(
-            name = previewName,
-            count = previewCount,
+            name = name.trim().ifBlank { "نام کمد" },
+            count = 0,
             color = previewColor,
             icon = selectedIcon,
             selected = true,
             pinned = isPinned,
             onClick = {},
             modifier = Modifier.fillMaxWidth(),
+            metaLabel = "پیش‌نمایش",
         )
-
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
-            label = { Text("نام زونکن") },
-            placeholder = { Text("مثلاً برج سپهر، اجاره شمال تهران…") },
+            label = { Text("نام کمد") },
+            placeholder = { Text("مثلاً فروش، اجاره، پروژه‌ها…") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -281,93 +234,42 @@ fun PropertyFolderFormSheet(
             value = description,
             onValueChange = onDescriptionChange,
             label = { Text("توضیح (اختیاری)") },
-            placeholder = { Text("توضیح کوتاه برای یادآوری") },
             minLines = 2,
             maxLines = 3,
             modifier = Modifier.fillMaxWidth(),
         )
-
-        if (availableCabinets.isNotEmpty()) {
-            Text("کمد", style = AppTypography.labelLarge, color = DfColors.TextSecondary)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            ) {
-                CabinetChip(
-                    label = "بدون کمد",
-                    selected = selectedCabinetId == null,
-                    color = DfColors.TextMuted,
-                    onClick = { onCabinetChange(null) },
-                )
-                availableCabinets.forEach { cabinet ->
-                    val color = parseFolderColor(cabinet.color)
-                    CabinetChip(
-                        label = cabinet.name,
-                        selected = selectedCabinetId == cabinet.id,
-                        color = color,
-                        onClick = { onCabinetChange(cabinet.id) },
-                    )
-                }
-            }
-        }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(DfIcons.Pin, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(18.dp))
-                Text("سنجاق در ابتدای لیست", style = AppTypography.labelLarge)
-            }
+            Text("سنجاق در ابتدای لیست", style = AppTypography.labelLarge)
             Switch(checked = isPinned, onCheckedChange = onPinnedChange)
         }
-
         Text("رنگ", style = AppTypography.labelLarge, color = DfColors.TextSecondary)
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            PropertyFolderConstants.COLORS.forEach { hex ->
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+            PropertyCabinetConstants.COLORS.forEach { hex ->
                 val c = parseFolderColor(hex)
                 Surface(
                     onClick = { onColorChange(hex) },
-                    shape = CircleShape,
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     color = c,
-                    border = BorderStroke(
-                        2.dp,
-                        if (hex == selectedColor) DfColors.TextPrimary else Color.Transparent,
-                    ),
+                    border = BorderStroke(2.dp, if (hex == selectedColor) DfColors.TextPrimary else Color.Transparent),
                     modifier = Modifier.size(36.dp),
                 ) {}
             }
         }
-
         Text("آیکن", style = AppTypography.labelLarge, color = DfColors.TextSecondary)
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            PropertyFolderConstants.ICONS.forEach { faIcon ->
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+            PropertyCabinetConstants.ICONS.forEach { faIcon ->
                 val isSelected = faIcon == selectedIcon
                 Surface(
                     onClick = { onIconChange(faIcon) },
                     shape = AppShapes.Chip,
                     color = if (isSelected) previewColor.copy(alpha = 0.14f) else DfColors.SurfaceVariant,
-                    border = BorderStroke(
-                        1.5.dp,
-                        if (isSelected) previewColor.copy(alpha = 0.6f) else DfColors.OutlineSubtle,
-                    ),
+                    border = BorderStroke(1.5.dp, if (isSelected) previewColor.copy(alpha = 0.6f) else DfColors.OutlineSubtle),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .padding(10.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                    Row(modifier = Modifier.padding(10.dp)) {
                         Icon(
                             imageVector = folderIconVector(faIcon),
                             contentDescription = faIcon,
@@ -378,42 +280,14 @@ fun PropertyFolderFormSheet(
                 }
             }
         }
-
         if (showDelete) {
-            HorizontalDivider(color = DfColors.OutlineSubtle)
-            DfSecondaryButton(
-                text = "حذف زونکن",
-                onClick = onDelete,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            DfSecondaryButton(text = "حذف کمد", onClick = onDelete, modifier = Modifier.fillMaxWidth())
         }
         DfPrimaryButton(
-            text = if (isSubmitting) "در حال ذخیره…" else "ذخیره زونکن",
+            text = if (isSubmitting) "در حال ذخیره…" else "ذخیره کمد",
             onClick = onSubmit,
             enabled = !isSubmitting && name.trim().isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun CabinetChip(
-    label: String,
-    selected: Boolean,
-    color: Color,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        shape = AppShapes.Chip,
-        color = if (selected) color.copy(alpha = 0.14f) else DfColors.SurfaceVariant,
-        border = BorderStroke(1.dp, if (selected) color.copy(alpha = 0.55f) else DfColors.OutlineSubtle),
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = 8.dp),
-            style = AppTypography.labelSmall,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
         )
     }
 }
