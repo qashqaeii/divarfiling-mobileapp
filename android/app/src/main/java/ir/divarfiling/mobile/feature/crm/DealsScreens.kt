@@ -47,7 +47,12 @@ import ir.divarfiling.mobile.feature.crm.components.DealCreateSheet
 import ir.divarfiling.mobile.feature.crm.components.DealEditSheet
 import ir.divarfiling.mobile.feature.crm.components.DealFinanceCard
 import ir.divarfiling.mobile.feature.crm.components.DealFinanceSheet
+import ir.divarfiling.mobile.feature.crm.components.DealFollowUpSheet
+import ir.divarfiling.mobile.feature.crm.components.DealNextActionSheet
 import ir.divarfiling.mobile.feature.crm.components.DealListCard
+import ir.divarfiling.mobile.feature.crm.components.DealNextActionCard
+import ir.divarfiling.mobile.feature.crm.components.DealQuickActionBar
+import ir.divarfiling.mobile.feature.crm.components.DealTimelineSection
 import ir.divarfiling.mobile.feature.crm.components.DealUiUtils
 import ir.divarfiling.mobile.feature.crm.components.DealsSearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.DealsFilters
@@ -350,16 +355,18 @@ fun DealsScreen(
                 selectedStage = state.createStage,
                 title = state.createTitle,
                 amount = state.createAmount,
-                commissionRate = state.createCommissionRate,
-                notes = state.createNotes,
+                nextActionType = state.createNextActionType,
+                nextActionAt = state.createNextActionAt,
+                nextActionNote = state.createNextActionNote,
                 isSubmitting = state.isSubmittingCreate,
                 onContactSelect = viewModel::onCreateCustomerSelect,
                 onPropertySelect = viewModel::onCreatePropertySelect,
                 onStageChange = viewModel::onCreateStageChange,
                 onTitleChange = viewModel::onCreateTitleChange,
                 onAmountChange = viewModel::onCreateAmountChange,
-                onCommissionRateChange = viewModel::onCreateCommissionRateChange,
-                onNotesChange = viewModel::onCreateNotesChange,
+                onNextActionTypeChange = viewModel::onCreateNextActionTypeChange,
+                onNextActionAtChange = viewModel::onCreateNextActionAtChange,
+                onNextActionNoteChange = viewModel::onCreateNextActionNoteChange,
                 onSubmit = viewModel::submitCreate,
                 onDismiss = { viewModel.toggleCreate(false) },
             )
@@ -456,6 +463,29 @@ fun DealDetailScreen(
                             )
                         }
                         item {
+                            DealNextActionCard(
+                                nextAction = deal.nextAction,
+                                onComplete = viewModel::completeNextAction,
+                                onEdit = { viewModel.toggleNextActionSheet(true) },
+                                onSet = { viewModel.toggleNextActionSheet(true) },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                        item {
+                            DealQuickActionBar(
+                                onFollowUp = { viewModel.toggleFollowUpSheet(true) },
+                                onEditStage = { viewModel.toggleEditSheet(true) },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                        item {
+                            DealTimelineSection(
+                                items = state.timeline.ifEmpty { deal.timelinePreview },
+                                onLoadMore = if (state.timelineHasMore) viewModel::loadMoreTimeline else null,
+                                modifier = Modifier.padding(top = AppSpacing.sm),
+                            )
+                        }
+                        item {
                             DealFinanceCard(
                                 deal = deal,
                                 onEdit = { viewModel.toggleFinanceSheet(true) },
@@ -492,6 +522,42 @@ fun DealDetailScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (state.showNextActionSheet) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleNextActionSheet(false) }) {
+            DealNextActionSheet(
+                actionType = state.nextActionType,
+                actionAt = state.nextActionAt,
+                note = state.nextActionNote,
+                isSubmitting = state.isSubmitting,
+                onTypeChange = viewModel::onNextActionTypeChange,
+                onAtChange = viewModel::onNextActionAtChange,
+                onNoteChange = viewModel::onNextActionNoteChange,
+                onSubmit = viewModel::submitNextAction,
+                onDismiss = { viewModel.toggleNextActionSheet(false) },
+            )
+        }
+    }
+
+    if (state.showFollowUpSheet) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleFollowUpSheet(false) }) {
+            DealFollowUpSheet(
+                followUpType = state.followUpType,
+                note = state.followUpNote,
+                nextActionType = state.followUpNextType,
+                nextActionAt = state.followUpNextAt,
+                nextActionNote = state.followUpNextNote,
+                isSubmitting = state.isSubmitting,
+                onTypeChange = viewModel::onFollowUpTypeChange,
+                onNoteChange = viewModel::onFollowUpNoteChange,
+                onNextTypeChange = viewModel::onFollowUpNextTypeChange,
+                onNextAtChange = viewModel::onFollowUpNextAtChange,
+                onNextNoteChange = viewModel::onFollowUpNextNoteChange,
+                onSubmit = viewModel::submitFollowUp,
+                onDismiss = { viewModel.toggleFollowUpSheet(false) },
+            )
         }
     }
 

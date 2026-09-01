@@ -18,7 +18,10 @@ import ir.divarfiling.mobile.core.network.DealFinanceDefaultsDto
 import ir.divarfiling.mobile.core.network.DealFinanceSaveRequest
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
+import ir.divarfiling.mobile.core.network.DealFollowUpRequest
+import ir.divarfiling.mobile.core.network.DealNextActionRequest
 import ir.divarfiling.mobile.core.network.DealStageDefDto
+import ir.divarfiling.mobile.core.network.DealTimelineItemDto
 import ir.divarfiling.mobile.core.network.DealStagePresetDto
 import ir.divarfiling.mobile.core.network.DealStagesSaveRequest
 import ir.divarfiling.mobile.core.network.DealUpdateRequest
@@ -85,9 +88,10 @@ data class DealsUiState(
     val createCustomerId: Long? = null,
     val createStage: String = "سرنخ",
     val createAmount: String = "",
-    val createNotes: String = "",
+    val createNextActionType: String = "",
+    val createNextActionAt: String = "",
+    val createNextActionNote: String = "",
     val createPropertyId: Long? = null,
-    val createCommissionRate: String = "",
     val contactPicker: List<ContactDto> = emptyList(),
     val propertyPicker: List<PropertyDto> = emptyList(),
     val isSubmittingCreate: Boolean = false,
@@ -325,10 +329,11 @@ class DealsViewModel @Inject constructor(
                 showCreateDialog = show,
                 createTitle = if (show) it.createTitle else "",
                 createAmount = if (show) it.createAmount else "",
-                createNotes = if (show) it.createNotes else "",
+                createNextActionType = if (show) it.createNextActionType else "",
+                createNextActionAt = if (show) it.createNextActionAt else "",
+                createNextActionNote = if (show) it.createNextActionNote else "",
                 createCustomerId = if (show) it.createCustomerId else null,
                 createPropertyId = if (show) it.createPropertyId else null,
-                createCommissionRate = if (show) it.createCommissionRate else "",
                 createStage = if (show) it.createStage else (it.stages.firstOrNull() ?: "سرنخ"),
             )
         }
@@ -343,8 +348,9 @@ class DealsViewModel @Inject constructor(
     fun onCreatePropertySelect(id: Long?) = _uiState.update { it.copy(createPropertyId = id) }
     fun onCreateStageChange(v: String) = _uiState.update { it.copy(createStage = v) }
     fun onCreateAmountChange(v: String) = _uiState.update { it.copy(createAmount = v) }
-    fun onCreateCommissionRateChange(v: String) = _uiState.update { it.copy(createCommissionRate = v) }
-    fun onCreateNotesChange(v: String) = _uiState.update { it.copy(createNotes = v) }
+    fun onCreateNextActionTypeChange(v: String) = _uiState.update { it.copy(createNextActionType = v) }
+    fun onCreateNextActionAtChange(v: String) = _uiState.update { it.copy(createNextActionAt = v) }
+    fun onCreateNextActionNoteChange(v: String) = _uiState.update { it.copy(createNextActionNote = v) }
 
     private fun loadContactsForPicker() {
         viewModelScope.launch {
@@ -394,8 +400,9 @@ class DealsViewModel @Inject constructor(
                         stage = state.createStage.ifBlank { "سرنخ" },
                         amount = state.createAmount.trim().toLongOrNull(),
                         propertyId = state.createPropertyId,
-                        notes = state.createNotes.trim(),
-                        commissionRate = state.createCommissionRate.trim().toDoubleOrNull(),
+                        nextActionType = state.createNextActionType.takeIf { it.isNotBlank() },
+                        nextActionAt = state.createNextActionAt.takeIf { it.isNotBlank() },
+                        nextActionNote = state.createNextActionNote.takeIf { it.isNotBlank() },
                     ),
                 )
             ) {
@@ -406,9 +413,10 @@ class DealsViewModel @Inject constructor(
                             createTitle = "",
                             createCustomerId = null,
                             createAmount = "",
-                            createNotes = "",
                             createPropertyId = null,
-                            createCommissionRate = "",
+                            createNextActionType = "",
+                            createNextActionAt = "",
+                            createNextActionNote = "",
                             createStage = "سرنخ",
                             isSubmittingCreate = false,
                         )
@@ -583,6 +591,18 @@ data class DealDetailUiState(
     val financeReceived: String = "0",
     val financePayoutStatus: String = "unpaid",
     val financeNotes: String = "",
+    val showFollowUpSheet: Boolean = false,
+    val showNextActionSheet: Boolean = false,
+    val followUpType: String = "call",
+    val followUpNote: String = "",
+    val followUpNextType: String = "",
+    val followUpNextAt: String = "",
+    val followUpNextNote: String = "",
+    val nextActionType: String = "",
+    val nextActionAt: String = "",
+    val nextActionNote: String = "",
+    val timeline: List<DealTimelineItemDto> = emptyList(),
+    val timelineHasMore: Boolean = false,
 )
 
 @HiltViewModel
@@ -624,7 +644,20 @@ class DealDetailViewModel @Inject constructor(
                             editStage = result.data.stage.orEmpty(),
                             editCommissionRate = result.data.commissionRate?.toString().orEmpty(),
                             editPropertyId = result.data.propertyId,
+                            timeline = result.data.timelinePreview,
+                            timelineHasMore = result.data.timelinePreview.size >= 8,
                         )
+                    }
+                    if (result.data.timelinePreview.isEmpty()) {
+                        when (val timelineResult = repository.getTimeline(dealId, limit = 20, offset = 0)) {
+                            is ApiResult.Success -> _uiState.update {
+                                it.copy(
+                                    timeline = timelineResult.data,
+                                    timelineHasMore = timelineResult.data.size >= 20,
+                                )
+                            }
+                            is ApiResult.Error -> Unit
+                        }
                     }
                     hydrateFinance(result.data)
                 }
@@ -695,6 +728,121 @@ class DealDetailViewModel @Inject constructor(
                     )
                 }
                 is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    fun toggleFollowUpSheet(show: Boolean) = _uiState.update { it.copy(showFollowUpSheet = show) }
+    fun toggleNextActionSheet(show: Boolean) {
+        _uiState.update { state ->
+            if (!show) {
+                state.copy(showNextActionSheet = false)
+            } else {
+                val current = state.deal?.nextAction
+                state.copy(
+                    showNextActionSheet = true,
+                    nextActionType = current?.type.orEmpty(),
+                    nextActionAt = "",
+                    nextActionNote = current?.note.orEmpty(),
+                )
+            }
+        }
+    }
+    fun onNextActionTypeChange(v: String) = _uiState.update { it.copy(nextActionType = v) }
+    fun onNextActionAtChange(v: String) = _uiState.update { it.copy(nextActionAt = v) }
+    fun onNextActionNoteChange(v: String) = _uiState.update { it.copy(nextActionNote = v) }
+
+    fun submitNextAction() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            val state = _uiState.value
+            val request = DealNextActionRequest(
+                type = state.nextActionType.takeIf { it.isNotBlank() },
+                at = state.nextActionAt.takeIf { it.isNotBlank() },
+                note = state.nextActionNote.takeIf { it.isNotBlank() },
+                clearNextAction = state.nextActionType.isBlank(),
+            )
+            when (repository.updateNextAction(dealId, request)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showNextActionSheet = false,
+                            successMessage = "اقدام بعدی ذخیره شد",
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = it.error) }
+            }
+        }
+    }
+    fun onFollowUpTypeChange(v: String) = _uiState.update { it.copy(followUpType = v) }
+    fun onFollowUpNoteChange(v: String) = _uiState.update { it.copy(followUpNote = v) }
+    fun onFollowUpNextTypeChange(v: String) = _uiState.update { it.copy(followUpNextType = v) }
+    fun onFollowUpNextAtChange(v: String) = _uiState.update { it.copy(followUpNextAt = v) }
+    fun onFollowUpNextNoteChange(v: String) = _uiState.update { it.copy(followUpNextNote = v) }
+
+    fun submitFollowUp() {
+        val state = _uiState.value
+        if (state.followUpNote.isBlank()) {
+            _uiState.update { it.copy(error = "نتیجه پیگیری را بنویسید") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            when (
+                repository.createFollowUp(
+                    dealId,
+                    DealFollowUpRequest(
+                        type = state.followUpType,
+                        note = state.followUpNote.trim(),
+                        nextActionType = state.followUpNextType.takeIf { it.isNotBlank() },
+                        nextActionAt = state.followUpNextAt.takeIf { it.isNotBlank() },
+                        nextActionNote = state.followUpNextNote.takeIf { it.isNotBlank() },
+                    ),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showFollowUpSheet = false,
+                            followUpNote = "",
+                            successMessage = "پیگیری ثبت شد",
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = it.error) }
+            }
+        }
+    }
+
+    fun completeNextAction() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            when (repository.completeNextAction(dealId)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isSubmitting = false, successMessage = "اقدام انجام شد") }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = it.error) }
+            }
+        }
+    }
+
+    fun loadMoreTimeline() {
+        viewModelScope.launch {
+            val offset = _uiState.value.timeline.size
+            when (val result = repository.getTimeline(dealId, limit = 20, offset = offset)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        timeline = it.timeline + result.data,
+                        timelineHasMore = result.data.size >= 20,
+                    )
+                }
+                is ApiResult.Error -> Unit
             }
         }
     }

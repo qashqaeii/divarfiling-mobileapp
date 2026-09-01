@@ -284,6 +284,22 @@ interface MobileApi {
     @POST("crm/deals/{id}/stage")
     suspend fun updateDealStage(@Path("id") dealId: Long, @Body body: DealStageRequest): ApiEnvelope
 
+    @POST("crm/deals/{id}/follow-ups")
+    suspend fun createDealFollowUp(@Path("id") dealId: Long, @Body body: DealFollowUpRequest): ApiEnvelope
+
+    @PATCH("crm/deals/{id}/next-action")
+    suspend fun updateDealNextAction(@Path("id") dealId: Long, @Body body: DealNextActionRequest): ApiEnvelope
+
+    @POST("crm/deals/{id}/next-action/complete")
+    suspend fun completeDealNextAction(@Path("id") dealId: Long, @Body body: Map<String, String> = emptyMap()): ApiEnvelope
+
+    @GET("crm/deals/{id}/timeline")
+    suspend fun getDealTimeline(
+        @Path("id") dealId: Long,
+        @Query("limit") limit: Int = 30,
+        @Query("offset") offset: Int = 0,
+    ): ApiEnvelope
+
     @GET("crm/properties")
     suspend fun getProperties(
         @Query("q") query: String? = null,

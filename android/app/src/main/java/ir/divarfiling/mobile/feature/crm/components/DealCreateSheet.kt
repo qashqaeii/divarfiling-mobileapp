@@ -5,6 +5,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
@@ -31,16 +32,18 @@ fun DealCreateSheet(
     selectedStage: String,
     title: String,
     amount: String,
-    commissionRate: String,
-    notes: String,
+    nextActionType: String,
+    nextActionAt: String,
+    nextActionNote: String,
     isSubmitting: Boolean,
     onContactSelect: (Long) -> Unit,
     onPropertySelect: (Long?) -> Unit,
     onStageChange: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     onAmountChange: (String) -> Unit,
-    onCommissionRateChange: (String) -> Unit,
-    onNotesChange: (String) -> Unit,
+    onNextActionTypeChange: (String) -> Unit,
+    onNextActionAtChange: (String) -> Unit,
+    onNextActionNoteChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -50,10 +53,24 @@ fun DealCreateSheet(
     val selectedPropertyLabel = properties.firstOrNull { it.id == selectedPropertyId }?.title ?: NO_PROPERTY
     val stageOptions = stages.ifEmpty { CrmConstants.DEAL_STAGES }
     val resolvedStage = selectedStage.ifBlank { stageOptions.first() }
+    val selectedContact = contacts.firstOrNull { it.id == selectedContactId }
+    val selectedProperty = properties.firstOrNull { it.id == selectedPropertyId }
+
+    LaunchedEffect(selectedContactId, selectedPropertyId) {
+        if (title.isBlank() && selectedContact != null) {
+            val base = selectedProperty?.title?.let { "$it — ${selectedContact.fullName}" }
+                ?: "معامله — ${selectedContact.fullName}"
+            onTitleChange(base)
+        }
+        if (amount.isBlank() && selectedProperty != null) {
+            val suggested = selectedProperty.salePrice ?: selectedProperty.rent
+            if (suggested != null && suggested > 0) onAmountChange(suggested.toString())
+        }
+    }
 
     DfSheetScaffold(
         title = "معامله جدید",
-        subtitle = "فرصت فروش جدید را با مخاطب، ملک و مرحله فروش ثبت کنید",
+        subtitle = "مخاطب، فایل و اقدام بعدی — بدون جزئیات مالی",
         icon = DfIcons.Handshake,
         onClose = onDismiss,
         footer = {
@@ -87,64 +104,36 @@ fun DealCreateSheet(
         }
 
         DfSheetSection(title = "ملک مرتبط") {
-            if (properties.isEmpty()) {
-                Text(
-                    text = "فایل شخصی ثبت‌شده‌ای ندارید — می‌توانید بعداً ملک را متصل کنید",
-                    style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
-                )
-            } else {
-                DfDropdown(
-                    label = "انتخاب ملک (اختیاری)",
-                    value = selectedPropertyLabel,
-                    options = propertyOptions,
-                    enabled = !isSubmitting,
-                    onSelect = { label ->
-                        if (label == NO_PROPERTY) {
-                            onPropertySelect(null)
-                        } else {
-                            properties.firstOrNull { it.title == label }?.id?.let(onPropertySelect)
-                        }
-                    },
-                )
-            }
+            DfDropdown(
+                label = "انتخاب فایل شخصی",
+                value = selectedPropertyLabel,
+                options = propertyOptions,
+                enabled = !isSubmitting,
+                onSelect = { label ->
+                    if (label == NO_PROPERTY) onPropertySelect(null)
+                    else properties.firstOrNull { it.title == label }?.id?.let(onPropertySelect)
+                },
+            )
         }
 
-        DfSheetSection(title = "جزئیات معامله") {
+        DfSheetSection(title = "جزئیات") {
             OutlinedTextField(
                 value = title,
                 onValueChange = onTitleChange,
                 label = { Text("عنوان معامله") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("مثلاً فروش آپارتمان ۱۲۰ متری") },
+                placeholder = { Text("مثلاً: خرید آپارتمان برای آقای رضایی") },
                 enabled = !isSubmitting,
             )
             OutlinedTextField(
                 value = amount,
                 onValueChange = onAmountChange,
-                label = { Text("مبلغ تقریبی (تومان)") },
+                label = { Text("ارزش تقریبی (تومان)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("اختیاری — برای پیش‌بینی درآمد") },
+                placeholder = { Text("اختیاری") },
                 enabled = !isSubmitting,
-            )
-            OutlinedTextField(
-                value = commissionRate,
-                onValueChange = onCommissionRateChange,
-                label = { Text("نرخ کمیسیون (٪)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("مثلاً ۲") },
-                enabled = !isSubmitting,
-            )
-        }
-
-        DfSheetSection(title = "مرحله فروش") {
-            Text(
-                text = "احتمال بسته‌شدن بر اساس مرحله انتخاب‌شده محاسبه می‌شود",
-                style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
             )
             DealStageOptionList(
                 stages = stageOptions,
@@ -155,16 +144,46 @@ fun DealCreateSheet(
             )
         }
 
-        DfSheetSection(title = "یادداشت") {
+        DfSheetSection(title = "اقدام بعدی") {
+            DfDropdown(
+                label = "نوع",
+                value = NEXT_ACTION_TYPES.firstOrNull { it.first == nextActionType }?.second ?: "— بدون اقدام —",
+                options = listOf("— بدون اقدام —") + NEXT_ACTION_TYPES.map { it.second },
+                enabled = !isSubmitting,
+                onSelect = { label ->
+                    if (label == "— بدون اقدام —") onNextActionTypeChange("")
+                    else NEXT_ACTION_TYPES.firstOrNull { it.second == label }?.first?.let(onNextActionTypeChange)
+                },
+            )
             OutlinedTextField(
-                value = notes,
-                onValueChange = onNotesChange,
-                label = { Text("یادداشت داخلی") },
+                value = nextActionAt,
+                onValueChange = onNextActionAtChange,
+                label = { Text("تاریخ و ساعت") },
+                placeholder = { Text("۱۴۰۴/۰۶/۱۵ ۱۸:۰۰") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                placeholder = { Text("جزئیات مذاکره، یادآوری تماس یا شرایط خاص…") },
+                singleLine = true,
+                enabled = !isSubmitting,
+            )
+            OutlinedTextField(
+                value = nextActionNote,
+                onValueChange = onNextActionNoteChange,
+                label = { Text("یادداشت") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
                 enabled = !isSubmitting,
             )
         }
     }
 }
+
+private val NEXT_ACTION_TYPES = listOf(
+    "call" to "تماس",
+    "message" to "پیام",
+    "send_file" to "ارسال فایل",
+    "visit" to "بازدید",
+    "negotiation" to "مذاکره",
+    "contract_followup" to "پیگیری قرارداد",
+    "documents" to "دریافت مدارک",
+    "commission" to "پیگیری کمیسیون",
+    "other" to "سایر",
+)

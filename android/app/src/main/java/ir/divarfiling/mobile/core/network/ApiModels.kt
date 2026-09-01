@@ -823,6 +823,65 @@ data class DealDto(
     @SerialName("payout_status") val payoutStatus: String? = null,
     @SerialName("payout_status_label") val payoutStatusLabel: String? = null,
     @SerialName("payout_notes") val payoutNotes: String? = null,
+    @SerialName("next_action") val nextAction: DealNextActionDto? = null,
+    @SerialName("last_follow_up") val lastFollowUp: DealLastFollowUpDto? = null,
+    @SerialName("timeline_preview") val timelinePreview: List<DealTimelineItemDto> = emptyList(),
+)
+
+@Serializable
+data class DealNextActionDto(
+    val type: String? = null,
+    val label: String? = null,
+    val at: String? = null,
+    val note: String? = null,
+    @SerialName("is_overdue") val isOverdue: Boolean = false,
+    @SerialName("schedule_label") val scheduleLabel: String? = null,
+    @SerialName("compact_label") val compactLabel: String? = null,
+    val icon: String? = null,
+)
+
+@Serializable
+data class DealLastFollowUpDto(
+    val type: String? = null,
+    val label: String? = null,
+    val note: String? = null,
+    val at: String? = null,
+)
+
+@Serializable
+data class DealTimelineItemDto(
+    val kind: String? = null,
+    val at: String? = null,
+    @SerialName("day_label") val dayLabel: String? = null,
+    @SerialName("time_label") val timeLabel: String? = null,
+    @SerialName("datetime_label") val datetimeLabel: String? = null,
+    val title: String? = null,
+    val body: String? = null,
+    val icon: String? = null,
+    @SerialName("type_label") val typeLabel: String? = null,
+)
+
+@Serializable
+data class DealFollowUpRequest(
+    val type: String,
+    val note: String,
+    @SerialName("next_action_type") val nextActionType: String? = null,
+    @SerialName("next_action_at") val nextActionAt: String? = null,
+    @SerialName("next_action_note") val nextActionNote: String? = null,
+)
+
+@Serializable
+data class DealNextActionRequest(
+    val type: String? = null,
+    val at: String? = null,
+    val note: String? = null,
+    @SerialName("clear_next_action") val clearNextAction: Boolean? = null,
+)
+
+@Serializable
+data class DealFollowUpResponse(
+    @SerialName("next_action") val nextAction: DealNextActionDto? = null,
+    @SerialName("timeline_preview") val timelinePreview: List<DealTimelineItemDto> = emptyList(),
 )
 
 @Serializable
@@ -891,6 +950,9 @@ data class DealCreateRequest(
     @SerialName("commission_rate") val commissionRate: Double? = null,
     @SerialName("expected_close_date") val expectedCloseDate: String? = null,
     val probability: Int? = null,
+    @SerialName("next_action_type") val nextActionType: String? = null,
+    @SerialName("next_action_at") val nextActionAt: String? = null,
+    @SerialName("next_action_note") val nextActionNote: String? = null,
 )
 
 @Serializable

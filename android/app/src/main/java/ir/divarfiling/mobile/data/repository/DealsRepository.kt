@@ -9,7 +9,11 @@ import ir.divarfiling.mobile.core.network.DealFinanceDashboardData
 import ir.divarfiling.mobile.core.network.DealFinanceDefaultsDto
 import ir.divarfiling.mobile.core.network.DealFinanceSaveRequest
 import ir.divarfiling.mobile.core.network.DealFinanceSettingsData
-import ir.divarfiling.mobile.core.network.DealCreateRequest
+import ir.divarfiling.mobile.core.network.DealFollowUpRequest
+import ir.divarfiling.mobile.core.network.DealFollowUpResponse
+import ir.divarfiling.mobile.core.network.DealNextActionDto
+import ir.divarfiling.mobile.core.network.DealNextActionRequest
+import ir.divarfiling.mobile.core.network.DealTimelineItemDto
 import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealPipelineData
 import ir.divarfiling.mobile.core.network.DealStageRequest
@@ -147,6 +151,50 @@ class DealsRepository @Inject constructor(
         done: Boolean? = null,
     ): ApiResult<DealChecklistToggleResponse> = single {
         api.toggleDealChecklist(dealId, DealChecklistToggleRequest(itemId, done))
+    }
+
+    suspend fun createFollowUp(dealId: Long, request: DealFollowUpRequest): ApiResult<DealFollowUpResponse> = try {
+        val response = api.createDealFollowUp(dealId, request)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun completeNextAction(dealId: Long, note: String = ""): ApiResult<DealFollowUpResponse> = try {
+        val response = api.completeDealNextAction(dealId, mapOf("note" to note))
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun updateNextAction(dealId: Long, request: DealNextActionRequest): ApiResult<DealNextActionDto> = try {
+        val response = api.updateDealNextAction(dealId, request)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else {
+            val envelope = response.requireData(json) as kotlinx.serialization.json.JsonObject
+            val action = envelope["next_action"]?.let {
+                json.decodeFromJsonElement(DealNextActionDto.serializer(), it)
+            } ?: return ApiResult.Error("پاسخ نامعتبر")
+            ApiResult.Success(action)
+        }
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun getTimeline(dealId: Long, limit: Int = 30, offset: Int = 0): ApiResult<List<DealTimelineItemDto>> = try {
+        val response = api.getDealTimeline(dealId, limit, offset)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else {
+            val payload = response.requireData(json) as kotlinx.serialization.json.JsonObject
+            val items = payload["items"]?.let {
+                json.decodeFromJsonElement(kotlinx.serialization.builtins.ListSerializer(DealTimelineItemDto.serializer()), it)
+            } ?: emptyList()
+            ApiResult.Success(items)
+        }
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
     }
 
     suspend fun getProperties(

@@ -126,7 +126,7 @@ fun DealListCard(
                 if (deal.isStale) {
                     Surface(shape = AppShapes.Chip, color = DfColors.AmberLight) {
                         Text(
-                            text = "کهنه در این مرحله — ${deal.daysInStage} روز",
+                            text = "نیاز به پیگیری — ${deal.daysInStage} روز",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = AppTypography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
@@ -155,6 +155,21 @@ fun DealListCard(
                         )
                     }
                 }
+
+                nextActionCompactLabel(deal)?.let { nextLabel ->
+                    Text(
+                        text = nextLabel,
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (deal.nextAction?.isOverdue == true) DfColors.Amber else DfColors.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                } ?: Text(
+                    text = "اقدام بعدی تعیین نشده",
+                    style = AppTypography.labelSmall,
+                    color = DfColors.TextMuted,
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
