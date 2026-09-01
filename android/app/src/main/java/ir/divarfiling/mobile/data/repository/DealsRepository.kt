@@ -19,6 +19,7 @@ import ir.divarfiling.mobile.core.network.DealPipelineData
 import ir.divarfiling.mobile.core.network.DealStageRequest
 import ir.divarfiling.mobile.core.network.DealStagesData
 import ir.divarfiling.mobile.core.network.DealStagesSaveRequest
+import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealUpdateRequest
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult

@@ -174,7 +174,7 @@ private fun DealTimelineRow(item: DealTimelineItemDto) {
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                Text(item.title.orEmpty(), style = AppTypography.labelMedium, fontWeight = FontWeight.Bold)
+                Text(item.title.orEmpty(), style = AppTypography.labelLarge, fontWeight = FontWeight.Bold)
                 Text(
                     listOfNotNull(item.dayLabel, item.timeLabel).joinToString(" · "),
                     style = AppTypography.labelSmall,
@@ -224,6 +224,7 @@ fun DealFollowUpSheet(
                 label = "نوع",
                 value = FOLLOWUP_TYPES.firstOrNull { it.first == followUpType }?.second ?: "تماس",
                 options = FOLLOWUP_TYPES.map { it.second },
+                enabled = !isSubmitting,
                 onSelect = { label ->
                     FOLLOWUP_TYPES.firstOrNull { it.second == label }?.first?.let(onTypeChange)
                 },
@@ -243,6 +244,7 @@ fun DealFollowUpSheet(
                 label = "نوع",
                 value = NEXT_ACTION_TYPES.firstOrNull { it.first == nextActionType }?.second ?: "— بدون اقدام —",
                 options = listOf("— بدون اقدام —") + NEXT_ACTION_TYPES.map { it.second },
+                enabled = !isSubmitting,
                 onSelect = { label ->
                     if (label == "— بدون اقدام —") onNextTypeChange("")
                     else NEXT_ACTION_TYPES.firstOrNull { it.second == label }?.first?.let(onNextTypeChange)
@@ -303,6 +305,7 @@ fun DealNextActionSheet(
                 label = "نوع",
                 value = NEXT_ACTION_TYPES.firstOrNull { it.first == actionType }?.second ?: "— بدون اقدام —",
                 options = listOf("— بدون اقدام —") + NEXT_ACTION_TYPES.map { it.second },
+                enabled = !isSubmitting,
                 onSelect = { label ->
                     if (label == "— بدون اقدام —") onTypeChange("")
                     else NEXT_ACTION_TYPES.firstOrNull { it.second == label }?.first?.let(onTypeChange)
