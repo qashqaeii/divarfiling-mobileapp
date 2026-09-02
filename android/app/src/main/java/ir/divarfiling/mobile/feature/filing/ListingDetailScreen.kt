@@ -40,6 +40,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
+import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.filing.ListingRetentionUtils
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
