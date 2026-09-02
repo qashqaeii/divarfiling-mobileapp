@@ -418,7 +418,7 @@ fun ListingDetailScreen(
     if (state.showDeleteDialog) {
         DfConfirmBottomSheet(
             title = "حذف آگهی",
-            message = "این آگهی از فایلینگ حذف می‌شود و قابل بازگشت نیست. ادامه می‌دهید؟",
+            message = "این آگهی از فایلینگ شما حذف می‌شود و در استخراج‌های بعدی نیز دوباره نمایش داده نخواهد شد. فایل شخصی/CRM مرتبط حذف نمی‌شود.",
             confirmText = "حذف آگهی",
             cancelText = "انصراف",
             destructive = true,

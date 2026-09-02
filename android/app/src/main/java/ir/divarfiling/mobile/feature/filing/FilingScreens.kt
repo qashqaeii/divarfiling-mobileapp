@@ -258,7 +258,7 @@ fun DatasetsScreen(
         if (target != null) {
             DfConfirmBottomSheet(
                 title = "حذف فایل",
-                message = "فایل «${target.name}» و ${target.itemCount} آگهی وابسته حذف می‌شود. این عمل قابل بازگشت نیست.",
+                message = "فایل «${target.name}» و آگهی‌های فایلینگ آن حذف می‌شوند. استخراج بعدی یک دیتاست جدید از آگهی‌های فعلی ایجاد می‌کند. فایل‌های شخصی/CRM شما حذف نمی‌شوند.",
                 confirmText = "حذف فایل",
                 cancelText = "انصراف",
                 destructive = true,
