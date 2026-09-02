@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 fun NavHostController.navigateDeepLink(target: DeepLinkTarget) {
     when (target) {
         DeepLinkTarget.Filing -> navigate(Routes.FILING)
+        DeepLinkTarget.FilingRetentionWarnings -> navigate(Routes.filingRetentionWarnings())
         is DeepLinkTarget.FilingDataset -> navigate(Routes.listings(target.datasetId))
         is DeepLinkTarget.DatasetInsights -> navigate(Routes.datasetInsights(target.datasetId))
         is DeepLinkTarget.DatasetMap -> navigate(Routes.datasetMap(target.datasetId))

@@ -46,6 +46,7 @@ import ir.divarfiling.mobile.core.filing.ListingMarketTier
 import ir.divarfiling.mobile.core.filing.ListingPriceUtils
 import ir.divarfiling.mobile.core.filing.ListingValuePresentation
 import ir.divarfiling.mobile.core.filing.ListingValueUtils
+import ir.divarfiling.mobile.core.filing.ListingRetentionUtils
 import ir.divarfiling.mobile.core.network.ListingDto
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -135,6 +136,12 @@ fun FilingListingCard(
                         ListingGlassTag(
                             text = "به فایل‌های شخصی اضافه شده",
                             accent = DfColors.Green,
+                        )
+                    }
+                    if (ListingRetentionUtils.isWarning(listing.retention)) {
+                        ListingGlassTag(
+                            text = ListingRetentionUtils.badgeText(listing.retention?.daysRemaining),
+                            accent = DfColors.Amber,
                         )
                     }
                 }

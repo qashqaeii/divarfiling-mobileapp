@@ -76,6 +76,7 @@ object Routes {
     const val CRM_TODAY = "crm/today"
     const val FILING = "filing"
     const val FILING_SEARCH = "filing/search?query={query}"
+    const val FILING_RETENTION_WARNINGS = "filing/retention-warnings"
     const val FILING_LISTINGS = "filing/{datasetId}"
     const val FILING_LISTING_DETAIL = "filing/listing/{token}"
     const val EXTRACT = "extract"
@@ -112,6 +113,7 @@ object Routes {
         "crm/contacts?customerType=${Uri.encode(customerType.orEmpty())}"
     fun toolCalculator(toolId: String) = "tools/$toolId"
     fun filingSearch(query: String = "") = "filing/search?query=${Uri.encode(query)}"
+    fun filingRetentionWarnings() = FILING_RETENTION_WARNINGS
     fun contactDetail(contactId: Long, openMatches: Boolean = false) =
         "crm/contacts/$contactId?openMatches=$openMatches"
     fun dealDetail(dealId: Long) = "crm/deals/$dealId"
@@ -420,6 +422,13 @@ fun DivarFilingNavHost(
                         val query = entry.arguments?.getString("query").orEmpty()
                         FilingSearchScreen(
                             initialQuery = query,
+                            onBack = { navController.popBackStack() },
+                            onListingClick = { token -> navController.navigate(Routes.listingDetail(token)) },
+                        )
+                    }
+                    composable(Routes.FILING_RETENTION_WARNINGS) {
+                        FilingSearchScreen(
+                            initialRetentionWarning = true,
                             onBack = { navController.popBackStack() },
                             onListingClick = { token -> navController.navigate(Routes.listingDetail(token)) },
                         )

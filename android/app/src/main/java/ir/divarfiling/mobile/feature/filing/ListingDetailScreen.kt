@@ -38,7 +38,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DfIcons
-import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfStatusBanner
+import ir.divarfiling.mobile.core.design.components.DfStatusTone
+import ir.divarfiling.mobile.core.filing.ListingRetentionUtils
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
@@ -515,6 +517,19 @@ private fun ListingDetailContent(
                     listing = listing,
                     onCopyAdCode = onCopyAdCode,
                 )
+            }
+
+            if (ListingRetentionUtils.isWarning(listing.retention)) {
+                item {
+                    DfStatusBanner(
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        title = "این فایل در آستانه پاک‌سازی است",
+                        message = ListingRetentionUtils.warningMessage(listing.retention?.daysRemaining),
+                        tone = DfStatusTone.Warning,
+                        actionLabel = if (!listing.isAddedToPersonal) "انتقال به فایل شخصی" else null,
+                        onAction = if (!listing.isAddedToPersonal) onSaveAsPersonal else null,
+                    )
+                }
             }
 
             if (listing.market != null) {

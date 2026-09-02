@@ -19,6 +19,7 @@ data class ListingFilterState(
     val value: String = "", // "" | below | fair | above
     val unique: Boolean = false,
     val newOnly: Boolean = false,
+    val retentionWarning: Boolean = false,
     val sort: String = "",
 ) {
     fun activeCount(includeSort: Boolean = false): Int {
@@ -38,6 +39,7 @@ data class ListingFilterState(
         if (value.isNotBlank()) n++
         if (unique) n++
         if (newOnly) n++
+        if (retentionWarning) n++
         if (includeSort && sort.isNotBlank()) n++
         return n
     }
@@ -59,6 +61,7 @@ data class ListingFilterState(
         if (value.isNotBlank()) out["value"] = value
         if (unique) out["unique"] = "1"
         if (newOnly) out["new_only"] = "1"
+        if (retentionWarning) out["retention_warning"] = "1"
         if (sort.isNotBlank()) out["sort"] = sort
         if (!datasetId.isNullOrBlank()) out["dataset_id"] = datasetId
         return out
@@ -84,6 +87,7 @@ data class ListingFilterState(
             value = params["value"].orEmpty(),
             unique = params["unique"] == "1",
             newOnly = params["new_only"] == "1",
+            retentionWarning = params["retention_warning"] == "1",
             sort = params["sort"].orEmpty(),
         )
     }

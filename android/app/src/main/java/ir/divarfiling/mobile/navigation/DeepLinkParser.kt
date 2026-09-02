@@ -12,7 +12,13 @@ object DeepLinkParser {
         val segments = uri.pathSegments
         return when (host) {
             "filing" -> when {
-                segments.isEmpty() -> DeepLinkTarget.Filing
+                segments.isEmpty() -> {
+                    if (uri.getQueryParameter("retention_warning") == "1") {
+                        DeepLinkTarget.FilingRetentionWarnings
+                    } else {
+                        DeepLinkTarget.Filing
+                    }
+                }
                 segments.size >= 2 && segments[1] == "insights" ->
                     DeepLinkTarget.DatasetInsights(segments[0])
                 segments.size >= 2 && segments[1] == "map" ->
@@ -59,6 +65,7 @@ object DeepLinkParser {
 
 sealed class DeepLinkTarget {
     data object Filing : DeepLinkTarget()
+    data object FilingRetentionWarnings : DeepLinkTarget()
     data class FilingDataset(val datasetId: String) : DeepLinkTarget()
     data class DatasetInsights(val datasetId: String) : DeepLinkTarget()
     data class DatasetMap(val datasetId: String) : DeepLinkTarget()

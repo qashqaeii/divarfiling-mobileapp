@@ -606,6 +606,7 @@ fun ListingsScreen(
 @Composable
 fun FilingSearchScreen(
     initialQuery: String = "",
+    initialRetentionWarning: Boolean = false,
     onBack: () -> Unit = {},
     onListingClick: (String) -> Unit = {},
     viewModel: FilingSearchViewModel = hiltViewModel(),
@@ -617,6 +618,10 @@ fun FilingSearchScreen(
 
     LaunchedEffect(initialQuery) {
         if (initialQuery.isNotBlank()) viewModel.setInitialQuery(initialQuery)
+    }
+
+    LaunchedEffect(initialRetentionWarning) {
+        if (initialRetentionWarning) viewModel.setInitialRetentionWarningFilter()
     }
 
     if (state.showSaveFilterDialog) {
@@ -671,8 +676,12 @@ fun FilingSearchScreen(
             ) {
                 item {
                     DfHubPageHeader(
-                        title = "جستجوی فایلینگ",
-                        subtitle = "جستجو در همه فایل‌های استخراج‌شده",
+                        title = if (initialRetentionWarning) "در آستانه پاک‌سازی" else "جستجوی فایلینگ",
+                        subtitle = if (initialRetentionWarning) {
+                            "فایل‌های بدون فعالیت که به‌زودی حذف می‌شوند"
+                        } else {
+                            "جستجو در همه فایل‌های استخراج‌شده"
+                        },
                         sectionLabel = DfHeaderSections.FILING,
                         titleIconRes = DfDecorIcons.Search,
                         onBack = onBack,

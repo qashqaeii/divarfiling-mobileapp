@@ -138,6 +138,11 @@ fun ListingFiltersSheet(
                         selected = draft.newOnly,
                         onClick = { draft = draft.copy(newOnly = !draft.newOnly) },
                     )
+                    DfSoftChip(
+                        text = "در آستانه پاک‌سازی",
+                        selected = draft.retentionWarning,
+                        onClick = { draft = draft.copy(retentionWarning = !draft.retentionWarning) },
+                    )
                 }
             }
             DfSheetSection(title = "محله") {

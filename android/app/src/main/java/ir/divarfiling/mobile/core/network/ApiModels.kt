@@ -518,6 +518,17 @@ data class DatasetMutationResponse(
 )
 
 @Serializable
+data class ListingRetentionDto(
+    val status: String = "normal",
+    @SerialName("last_activity_at") val lastActivityAt: String? = null,
+    @SerialName("scheduled_deletion_at") val scheduledDeletionAt: String? = null,
+    @SerialName("days_remaining") val daysRemaining: Int? = null,
+    @SerialName("retention_days") val retentionDays: Int? = null,
+    @SerialName("is_protected") val isProtected: Boolean = false,
+    @SerialName("protection_reason") val protectionReason: String? = null,
+)
+
+@Serializable
 data class ListingDto(
     val token: String,
     val title: String? = null,
@@ -553,6 +564,7 @@ data class ListingDto(
     val verdict: String? = null,
     @SerialName("is_added_to_personal") val isAddedToPersonal: Boolean = false,
     @SerialName("personal_property_id") val personalPropertyId: Long? = null,
+    val retention: ListingRetentionDto? = null,
 )
 
 @Serializable
@@ -1625,6 +1637,7 @@ data class ListingDetailDto(
     val verdict: String? = null,
     @SerialName("is_added_to_personal") val isAddedToPersonal: Boolean = false,
     @SerialName("personal_property_id") val personalPropertyId: Long? = null,
+    val retention: ListingRetentionDto? = null,
 )
 
 @Serializable

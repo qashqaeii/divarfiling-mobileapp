@@ -641,7 +641,8 @@ class FilingSearchViewModel @Inject constructor(
     fun search(reset: Boolean = true) {
         viewModelScope.launch {
             val state = _uiState.value
-            if (state.query.isBlank()) {
+            val hasRetentionFilter = state.filters.retentionWarning
+            if (state.query.isBlank() && !hasRetentionFilter) {
                 _uiState.update { it.copy(listings = emptyList(), hasMore = false, error = null) }
                 return@launch
             }
@@ -685,7 +686,9 @@ class FilingSearchViewModel @Inject constructor(
     }
 
     fun loadMore() {
-        if (!_uiState.value.hasMore || _uiState.value.isLoadingMore || _uiState.value.query.isBlank()) return
+        val state = _uiState.value
+        if (!state.hasMore || state.isLoadingMore) return
+        if (state.query.isBlank() && !state.filters.retentionWarning) return
         _uiState.update { it.copy(page = it.page + 1) }
         search(reset = false)
     }
@@ -708,6 +711,18 @@ class FilingSearchViewModel @Inject constructor(
     fun setInitialQuery(query: String) {
         if (query.isNotBlank() && _uiState.value.query.isBlank()) {
             _uiState.update { it.copy(query = query) }
+            search(reset = true)
+        }
+    }
+
+    fun setInitialRetentionWarningFilter() {
+        if (!_uiState.value.filters.retentionWarning) {
+            _uiState.update {
+                it.copy(
+                    filters = it.filters.copy(retentionWarning = true),
+                    page = 1,
+                )
+            }
             search(reset = true)
         }
     }
