@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.DossierShareFormatter
 import ir.divarfiling.mobile.core.design.DossierShareOptions
+import ir.divarfiling.mobile.core.network.AdvertiserAnalysisFeedbackDto
+import ir.divarfiling.mobile.core.network.AdvertiserFeedbackRequest
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareUpdateRequest
 import ir.divarfiling.mobile.core.network.ReminderCreateRequest
@@ -129,6 +131,8 @@ data class ListingDetailUiState(
     val aiNegotiationTip: String = "",
     val showDeleteDialog: Boolean = false,
     val isDeleting: Boolean = false,
+    val showAdvertiserAnalysisSheet: Boolean = false,
+    val isSubmittingAdvertiserFeedback: Boolean = false,
 )
 
 @HiltViewModel
@@ -760,6 +764,43 @@ class ListingDetailViewModel @Inject constructor(
                         showDeleteDialog = false,
                         error = result.message,
                     )
+                }
+            }
+        }
+    }
+
+    fun toggleAdvertiserAnalysisSheet(open: Boolean) {
+        _uiState.update { it.copy(showAdvertiserAnalysisSheet = open) }
+    }
+
+    fun submitAdvertiserFeedback(feedback: String, userCorrection: String = "") {
+        if (_uiState.value.isSubmittingAdvertiserFeedback) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingAdvertiserFeedback = true, error = null) }
+            when (
+                val result = filingRepository.submitAdvertiserFeedback(
+                    token,
+                    AdvertiserFeedbackRequest(feedback = feedback, userCorrection = userCorrection),
+                )
+            ) {
+                is ApiResult.Success -> _uiState.update { state ->
+                    val listing = state.listing ?: return@update state.copy(isSubmittingAdvertiserFeedback = false)
+                    val analysis = listing.advertiserAnalysis ?: return@update state.copy(isSubmittingAdvertiserFeedback = false)
+                    state.copy(
+                        listing = listing.copy(
+                            advertiserAnalysis = analysis.copy(
+                                feedback = AdvertiserAnalysisFeedbackDto(
+                                    submitted = result.data.feedback,
+                                    userCorrection = result.data.userCorrection,
+                                ),
+                            ),
+                        ),
+                        isSubmittingAdvertiserFeedback = false,
+                        successMessage = "نظر شما ثبت شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmittingAdvertiserFeedback = false, error = result.message)
                 }
             }
         }

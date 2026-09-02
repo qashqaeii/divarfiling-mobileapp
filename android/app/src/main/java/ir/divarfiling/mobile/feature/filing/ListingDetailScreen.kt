@@ -50,6 +50,7 @@ import ir.divarfiling.mobile.feature.crm.ContactPickerSheet
 import ir.divarfiling.mobile.feature.crm.components.ContactReminderSheet
 import ir.divarfiling.mobile.core.filing.ListingImageUtils
 import ir.divarfiling.mobile.feature.share.PublicShareSettingsSheet
+import ir.divarfiling.mobile.feature.filing.components.AdvertiserAnalysisSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailGallerySection
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailHeader
 import ir.divarfiling.mobile.feature.filing.components.ListingEditSheet
@@ -194,6 +195,9 @@ fun ListingDetailScreen(
                         onCopyAdCode = {
                             copyToClipboard(context, listing.token)
                             viewModel.showMessage("کد آگهی کپی شد")
+                        },
+                        onAdvertiserAnalysisClick = {
+                            viewModel.toggleAdvertiserAnalysisSheet(true)
                         },
                         onNavigate = {
                             if (listing.latitude != null && listing.longitude != null) {
@@ -418,6 +422,15 @@ fun ListingDetailScreen(
         }
     }
 
+    if (state.showAdvertiserAnalysisSheet && listing?.advertiserAnalysis != null) {
+        AdvertiserAnalysisSheet(
+            analysis = listing.advertiserAnalysis!!,
+            isSubmitting = state.isSubmittingAdvertiserFeedback,
+            onDismiss = { viewModel.toggleAdvertiserAnalysisSheet(false) },
+            onSubmitFeedback = viewModel::submitAdvertiserFeedback,
+        )
+    }
+
     if (state.showDeleteDialog) {
         DfConfirmBottomSheet(
             title = "حذف آگهی",
@@ -464,6 +477,7 @@ private fun ListingDetailContent(
     onCallContact: (String) -> Unit,
     onCopyLink: () -> Unit,
     onCopyAdCode: () -> Unit,
+    onAdvertiserAnalysisClick: () -> Unit = {},
     onNavigate: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -517,6 +531,7 @@ private fun ListingDetailContent(
                 ListingDetailHeader(
                     listing = listing,
                     onCopyAdCode = onCopyAdCode,
+                    onAdvertiserAnalysisClick = onAdvertiserAnalysisClick,
                 )
             }
 

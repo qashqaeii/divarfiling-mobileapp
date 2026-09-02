@@ -116,13 +116,28 @@ object ListingAdvertiserUtils {
     }
 
     fun badgeStyle(listing: ListingDetailDto): AdvertiserBadge {
-        val label = displayLabel(listing)
-        val (color, background) = when {
-            isGenuinePersonal(listing) -> DfColors.PurpleDark to DfColors.PurpleContainer
-            isDisguisedConsultant(listing) -> DfColors.Rose to DfColors.RoseLight
-            isConsultant(listing) -> DfColors.Amber to DfColors.AmberLight
-            else -> DfColors.Green to DfColors.GreenLight
-        }
+        val analysis = listing.advertiserAnalysis
+        val label = analysis?.badgeLabel?.takeIf { it.isNotBlank() } ?: displayLabel(listing)
+        val signal = analysis?.classification?.takeIf { it.isNotBlank() } ?: listing.advertiserSignal
+        val (color, background) = badgeColors(
+            signal = signal,
+            advertiserType = listing.advertiserType,
+            businessType = listing.businessType,
+        )
         return AdvertiserBadge(label = label, color = color, background = background)
+    }
+
+    fun hasInteractiveAnalysis(listing: ListingDetailDto): Boolean =
+        listing.advertiserAnalysis != null
+
+    private fun badgeColors(
+        signal: String?,
+        advertiserType: String?,
+        businessType: String?,
+    ): Pair<Color, Color> = when {
+        signal?.trim() == SIGNAL_GENUINE_PERSONAL -> DfColors.PurpleDark to DfColors.PurpleContainer
+        signal?.trim() == SIGNAL_DISGUISED -> DfColors.Rose to DfColors.RoseLight
+        isConsultant(advertiserType, businessType) -> DfColors.Amber to DfColors.AmberLight
+        else -> DfColors.Green to DfColors.GreenLight
     }
 }

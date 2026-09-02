@@ -7,6 +7,8 @@ import ir.divarfiling.mobile.core.network.DatasetMutationResponse
 import ir.divarfiling.mobile.core.network.DatasetRenameRequest
 import ir.divarfiling.mobile.core.network.DatasetInsightsData
 import ir.divarfiling.mobile.core.network.DatasetMapData
+import ir.divarfiling.mobile.core.network.AdvertiserFeedbackRequest
+import ir.divarfiling.mobile.core.network.AdvertiserFeedbackResponseDto
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.core.network.ListingDto
 import ir.divarfiling.mobile.core.network.ListingPublicShareDto
@@ -203,6 +205,19 @@ class FilingRepository @Inject constructor(
         return try {
             val response = api.toggleListingFavorite(token)
             if (!response.ok) return ApiResult.Error(response.error ?: "خطا در علاقه‌مندی")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun submitAdvertiserFeedback(
+        token: String,
+        request: AdvertiserFeedbackRequest,
+    ): ApiResult<AdvertiserFeedbackResponseDto> {
+        return try {
+            val response = api.submitListingAdvertiserFeedback(token, request)
+            if (!response.ok) return ApiResult.Error(response.error ?: "ثبت بازخورد ناموفق بود")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")

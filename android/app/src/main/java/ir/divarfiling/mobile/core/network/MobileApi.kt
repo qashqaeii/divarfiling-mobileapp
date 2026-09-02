@@ -510,6 +510,12 @@ interface MobileApi {
     @POST("filing/listings/{token}/favorite")
     suspend fun toggleListingFavorite(@Path("token") token: String): ApiEnvelope
 
+    @POST("filing/listings/{token}/advertiser-feedback")
+    suspend fun submitListingAdvertiserFeedback(
+        @Path("token") token: String,
+        @Body body: AdvertiserFeedbackRequest,
+    ): ApiEnvelope
+
     @DELETE("filing/listings/{token}/contacts/{linkId}")
     suspend fun unlinkListingContact(
         @Path("token") token: String,

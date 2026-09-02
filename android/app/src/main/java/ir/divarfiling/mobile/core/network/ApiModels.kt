@@ -1575,6 +1575,44 @@ data class ListingFeatureFieldDto(
 )
 
 @Serializable
+data class AdvertiserAnalysisFeedbackDto(
+    val submitted: String? = null,
+    @SerialName("user_correction") val userCorrection: String = "",
+)
+
+@Serializable
+data class AdvertiserAnalysisDto(
+    val classification: String = "",
+    @SerialName("classification_label") val classificationLabel: String = "",
+    @SerialName("classification_label_qualified") val classificationLabelQualified: String = "",
+    val confidence: String = "",
+    @SerialName("confidence_label") val confidenceLabel: String = "",
+    @SerialName("badge_label") val badgeLabel: String = "",
+    val critical: Boolean = false,
+    @SerialName("primary_reason_label") val primaryReasonLabel: String = "",
+    val summary: String = "",
+    @SerialName("primary_signals") val primarySignals: List<String> = emptyList(),
+    @SerialName("secondary_signals") val secondarySignals: List<String> = emptyList(),
+    @SerialName("owner_signals") val ownerSignals: List<String> = emptyList(),
+    val reasons: List<String> = emptyList(),
+    val disclaimer: String = "",
+    @SerialName("detector_version") val detectorVersion: Int = 2,
+    val feedback: AdvertiserAnalysisFeedbackDto? = null,
+)
+
+@Serializable
+data class AdvertiserFeedbackRequest(
+    val feedback: String,
+    @SerialName("user_correction") val userCorrection: String = "",
+)
+
+@Serializable
+data class AdvertiserFeedbackResponseDto(
+    val feedback: String = "",
+    @SerialName("user_correction") val userCorrection: String = "",
+)
+
+@Serializable
 data class ListingDetailDto(
     val token: String,
     val title: String? = null,
@@ -1598,6 +1636,7 @@ data class ListingDetailDto(
     @SerialName("advertiser_type") val advertiserType: String? = null,
     @SerialName("advertiser_signal") val advertiserSignal: String? = null,
     @SerialName("advertiser_signal_label") val advertiserSignalLabel: String? = null,
+    @SerialName("advertiser_analysis") val advertiserAnalysis: AdvertiserAnalysisDto? = null,
     @SerialName("business_type") val businessType: String? = null,
     @SerialName("year_built") val yearBuilt: String? = null,
     val floor: String? = null,

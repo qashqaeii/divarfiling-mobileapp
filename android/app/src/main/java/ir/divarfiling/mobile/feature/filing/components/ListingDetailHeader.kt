@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.filing.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -39,9 +40,11 @@ import ir.divarfiling.mobile.core.network.ListingDetailDto
 fun ListingDetailHeader(
     listing: ListingDetailDto,
     onCopyAdCode: () -> Unit,
+    onAdvertiserAnalysisClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val advertiserBadge = ListingAdvertiserUtils.badgeStyle(listing)
+    val hasAnalysis = ListingAdvertiserUtils.hasInteractiveAnalysis(listing)
     val location = listOfNotNull(
         listing.address?.takeIf { it.isNotBlank() },
         listing.region?.takeIf { it.isNotBlank() },
@@ -77,6 +80,8 @@ fun ListingDetailHeader(
                     label = advertiserBadge.label,
                     color = advertiserBadge.color,
                     background = advertiserBadge.background,
+                    icon = if (hasAnalysis) DfIcons.WandSparkles else null,
+                    onClick = if (hasAnalysis) onAdvertiserAnalysisClick else null,
                 )
                 StatusChip(
                     label = if (listing.isExpired) "منقضی" else "فعال",
@@ -198,15 +203,35 @@ private fun StatusChip(
     label: String,
     color: Color,
     background: Color,
+    icon: ImageVector? = null,
+    onClick: (() -> Unit)? = null,
 ) {
-    Surface(shape = AppShapes.Chip, color = background) {
-        Text(
-            text = label,
+    val chipModifier = if (onClick != null) {
+        Modifier.clickable(onClick = onClick)
+    } else {
+        Modifier
+    }
+    Surface(shape = AppShapes.Chip, color = background, modifier = chipModifier) {
+        Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            style = AppTypography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = color,
-        )
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+            Text(
+                text = label,
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = color,
+            )
+        }
     }
 }
 
