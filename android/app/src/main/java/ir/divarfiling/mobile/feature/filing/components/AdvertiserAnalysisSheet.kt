@@ -53,6 +53,7 @@ fun AdvertiserAnalysisSheet(
     DfModalBottomSheet(onDismissRequest = onDismiss) {
         DfSheetScaffold(
             title = "تحلیل آگهی‌دهنده",
+            subtitle = analysis.aiModelLabel.takeIf { it.isNotBlank() },
             icon = DfIcons.WandSparkles,
             onClose = onDismiss,
             scrollable = false,
@@ -72,8 +73,9 @@ fun AdvertiserAnalysisSheet(
                     text = analysis.summary,
                     style = AppTypography.labelSmall,
                     color = DfColors.TextSecondary,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = AppTypography.labelSmall.fontSize * 1.5,
+                    maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
