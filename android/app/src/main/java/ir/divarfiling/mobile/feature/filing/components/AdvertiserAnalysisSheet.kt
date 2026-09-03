@@ -3,8 +3,6 @@ package ir.divarfiling.mobile.feature.filing.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,7 +31,7 @@ import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.core.network.AdvertiserAnalysisDto
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvertiserAnalysisSheet(
     analysis: AdvertiserAnalysisDto,
@@ -50,34 +47,32 @@ fun AdvertiserAnalysisSheet(
         mutableStateOf(analysis.feedback?.userCorrection.orEmpty())
     }
 
+    val verdictLabel = analysis.classificationLabelQualified.ifBlank { analysis.classificationLabel }
+    val confidence = analysis.confidenceShort.ifBlank { analysis.confidenceLabel }
+
     DfModalBottomSheet(onDismissRequest = onDismiss) {
         DfSheetScaffold(
-            title = "تحلیل هوشمند آگهی‌دهنده",
-            subtitle = analysis.badgeLabel.takeIf { it.isNotBlank() },
+            title = "تحلیل آگهی‌دهنده",
             icon = DfIcons.WandSparkles,
             onClose = onDismiss,
             scrollable = false,
         ) {
-            ResultCard(analysis = analysis)
+            Text(
+                text = buildString {
+                    append(verdictLabel)
+                    if (confidence.isNotBlank()) append(" ($confidence)")
+                },
+                style = AppTypography.bodyDescription,
+                fontWeight = FontWeight.Bold,
+                color = DfColors.TextPrimary,
+            )
 
-            if (analysis.primaryReasonLabel.isNotBlank()) {
-                ReasonPill(label = analysis.primaryReasonLabel)
-            }
-
-            val signals = buildList {
-                addAll(analysis.primarySignals)
-                addAll(analysis.secondarySignals)
-                addAll(analysis.ownerSignals)
-            }
-            if (signals.isNotEmpty()) {
-                SignalChips(signals = signals)
-            }
-
-            if (analysis.disclaimer.isNotBlank()) {
+            if (analysis.summary.isNotBlank()) {
                 Text(
-                    text = analysis.disclaimer,
+                    text = analysis.summary,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfColors.TextSecondary,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -101,117 +96,6 @@ fun AdvertiserAnalysisSheet(
 }
 
 @Composable
-private fun ResultCard(analysis: AdvertiserAnalysisDto) {
-    val accent = when (analysis.classification) {
-        ListingAdvertiserUtils.SIGNAL_GENUINE_PERSONAL -> DfColors.Green to DfColors.GreenLight
-        ListingAdvertiserUtils.SIGNAL_DISGUISED -> DfColors.Amber to DfColors.AmberLight
-        ListingAdvertiserUtils.SIGNAL_CONSULTANT -> DfColors.Purple to DfColors.PurpleContainer
-        else -> DfColors.TextSecondary to DfColors.SurfaceVariant
-    }
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.Card,
-        color = accent.second,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = analysis.classificationLabelQualified.ifBlank { analysis.classificationLabel },
-                    style = AppTypography.bodyDescription,
-                    fontWeight = FontWeight.Bold,
-                    color = accent.first,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (analysis.confidenceLabel.isNotBlank()) {
-                    Text(
-                        text = analysis.confidenceLabel,
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                    )
-                }
-            }
-            if (analysis.summary.isNotBlank()) {
-                Text(
-                    text = analysis.summary,
-                    style = AppTypography.labelSmall,
-                    color = DfColors.TextSecondary,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReasonPill(label: String) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.Chip,
-        color = DfColors.AmberLight.copy(alpha = 0.65f),
-        border = BorderStroke(1.dp, DfColors.Amber.copy(alpha = 0.25f)),
-    ) {
-        Column(modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = 6.dp)) {
-            Text(
-                text = "دلیل اصلی",
-                style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = label,
-                style = AppTypography.labelSmall,
-                color = DfColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SignalChips(signals: List<String>) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = "نشانه‌ها",
-            style = AppTypography.labelSmall,
-            color = DfColors.TextMuted,
-            fontWeight = FontWeight.SemiBold,
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            signals.take(6).forEach { signal ->
-                Surface(shape = AppShapes.Chip, color = DfColors.SurfaceVariant) {
-                    Text(
-                        text = signal,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun FeedbackSection(
     submitted: String?,
     showCorrection: Boolean,
@@ -225,14 +109,14 @@ private fun FeedbackSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = AppSpacing.xs),
+            .padding(top = AppSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
         HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.35f))
         Text(
-            text = "آیا این تشخیص درست بود؟",
+            text = "درست بود؟",
             style = AppTypography.labelSmall,
-            color = DfColors.TextSecondary,
+            color = DfColors.TextMuted,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
@@ -242,13 +126,13 @@ private fun FeedbackSection(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
             FeedbackActionButton(
-                text = "درست بود",
+                text = "بله",
                 selected = submitted == "correct",
                 onClick = onCorrect,
                 modifier = Modifier.weight(1f),
             )
             FeedbackActionButton(
-                text = "اشتباه بود",
+                text = "خیر",
                 selected = submitted == "incorrect" || showCorrection,
                 onClick = onIncorrect,
                 modifier = Modifier.weight(1f),
@@ -256,14 +140,6 @@ private fun FeedbackSection(
         }
 
         if (showCorrection || submitted == "incorrect") {
-            Text(
-                text = "نوع صحیح آگهی‌دهنده",
-                style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -291,7 +167,7 @@ private fun FeedbackSection(
                 )
             }
             DfPrimaryButton(
-                text = "ثبت نظر",
+                text = "ثبت",
                 onClick = onSubmitCorrection,
                 enabled = correctionDraft.isNotBlank(),
                 loading = isSubmitting,
@@ -323,7 +199,7 @@ private fun FeedbackActionButton(
             text = text,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp, horizontal = 4.dp),
+                .padding(vertical = 12.dp),
             style = AppTypography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = if (selected) DfColors.PurpleDark else DfColors.TextPrimary,

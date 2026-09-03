@@ -117,7 +117,7 @@ object ListingAdvertiserUtils {
 
     fun badgeStyle(listing: ListingDetailDto): AdvertiserBadge {
         val analysis = listing.advertiserAnalysis
-        val label = analysis?.badgeLabel?.takeIf { it.isNotBlank() } ?: displayLabel(listing)
+        val label = if (analysis != null) compactBadgeLabel(listing) else displayLabel(listing)
         val signal = analysis?.classification?.takeIf { it.isNotBlank() } ?: listing.advertiserSignal
         val (color, background) = badgeColors(
             signal = signal,
@@ -129,6 +129,14 @@ object ListingAdvertiserUtils {
 
     fun hasInteractiveAnalysis(listing: ListingDetailDto): Boolean =
         listing.advertiserAnalysis != null
+
+    fun compactBadgeLabel(listing: ListingDetailDto): String {
+        val analysis = listing.advertiserAnalysis ?: return badgeStyle(listing).label
+        analysis.badgeLabel.takeIf { it.isNotBlank() }?.let { return it }
+        val label = analysis.classificationLabelQualified.ifBlank { analysis.classificationLabel }
+        val conf = analysis.confidenceShort.ifBlank { analysis.confidenceLabel }
+        return if (conf.isBlank()) label else "$label · $conf"
+    }
 
     private fun badgeColors(
         signal: String?,

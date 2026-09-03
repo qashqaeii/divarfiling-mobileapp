@@ -1587,6 +1587,7 @@ data class AdvertiserAnalysisDto(
     @SerialName("classification_label_qualified") val classificationLabelQualified: String = "",
     val confidence: String = "",
     @SerialName("confidence_label") val confidenceLabel: String = "",
+    @SerialName("confidence_short") val confidenceShort: String = "",
     @SerialName("badge_label") val badgeLabel: String = "",
     val critical: Boolean = false,
     @SerialName("primary_reason_label") val primaryReasonLabel: String = "",

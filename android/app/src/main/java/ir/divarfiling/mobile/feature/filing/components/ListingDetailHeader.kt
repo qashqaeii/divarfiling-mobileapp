@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.filing.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -35,7 +37,7 @@ import ir.divarfiling.mobile.core.filing.ListingSpecUtils
 import ir.divarfiling.mobile.core.filing.ListingValueUtils
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ListingDetailHeader(
     listing: ListingDetailDto,
@@ -76,13 +78,20 @@ fun ListingDetailHeader(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                StatusChip(
-                    label = advertiserBadge.label,
-                    color = advertiserBadge.color,
-                    background = advertiserBadge.background,
-                    icon = if (hasAnalysis) DfIcons.WandSparkles else null,
-                    onClick = if (hasAnalysis) onAdvertiserAnalysisClick else null,
-                )
+                if (hasAnalysis && onAdvertiserAnalysisClick != null) {
+                    AdvertiserAnalysisChip(
+                        label = ListingAdvertiserUtils.compactBadgeLabel(listing),
+                        color = advertiserBadge.color,
+                        background = advertiserBadge.background,
+                        onClick = onAdvertiserAnalysisClick,
+                    )
+                } else {
+                    StatusChip(
+                        label = advertiserBadge.label,
+                        color = advertiserBadge.color,
+                        background = advertiserBadge.background,
+                    )
+                }
                 StatusChip(
                     label = if (listing.isExpired) "منقضی" else "فعال",
                     color = if (listing.isExpired) DfColors.Rose else DfColors.Green,
@@ -195,6 +204,50 @@ fun ListingDetailHeader(
         )
 
         ListingCoreAmenityRow(listing = listing)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AdvertiserAnalysisChip(
+    label: String,
+    color: Color,
+    background: Color,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = AppShapes.Chip,
+        color = background,
+        border = BorderStroke(1.dp, color.copy(alpha = 0.35f)),
+        shadowElevation = AppElevations.subtle,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = DfIcons.WandSparkles,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(12.dp),
+            )
+            Text(
+                text = label,
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = color,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Icon(
+                imageVector = DfIcons.ChevronDown,
+                contentDescription = "مشاهده تحلیل",
+                tint = color.copy(alpha = 0.75f),
+                modifier = Modifier.size(11.dp),
+            )
+        }
     }
 }
 
