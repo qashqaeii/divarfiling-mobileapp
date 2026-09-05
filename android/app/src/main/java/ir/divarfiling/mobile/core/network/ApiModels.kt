@@ -205,6 +205,14 @@ data class ShopPlanDto(
     @SerialName("max_quantity") val maxQuantity: Int = 1,
     @SerialName("unit_original_price") val unitOriginalPrice: Long? = null,
     @SerialName("unit_final_price") val unitFinalPrice: Long? = null,
+    @SerialName("base_unit_price") val baseUnitPrice: Long? = null,
+    @SerialName("effective_unit_price") val effectiveUnitPrice: Long? = null,
+    @SerialName("bulk_discount_percent") val bulkDiscountPercent: Int = 0,
+    @SerialName("repeat_discount_percent") val repeatDiscountPercent: Int = 0,
+    @SerialName("applied_discount_percent") val appliedDiscountPercent: Int = 0,
+    @SerialName("applied_discount_reason") val appliedDiscountReason: String? = null,
+    @SerialName("licenses_count") val licensesCount: Int? = null,
+    @SerialName("total_activation_slots") val totalActivationSlots: Int? = null,
     @SerialName("purchase_blocked") val purchaseBlocked: Boolean = false,
     @SerialName("purchase_block_message") val purchaseBlockMessage: String? = null,
     @SerialName("purchase_block_reason") val purchaseBlockReason: String? = null,
@@ -238,7 +246,7 @@ data class ShopCheckoutRequest(
 @Serializable
 data class ShopDiscountPreviewRequest(
     @SerialName("plan_id") val planId: Long,
-    @SerialName("discount_code") val discountCode: String,
+    @SerialName("discount_code") val discountCode: String = "",
     val quantity: Int = 1,
 )
 
@@ -249,11 +257,20 @@ data class ShopDiscountPreviewData(
     val code: String? = null,
     @SerialName("unit_original_price") val unitOriginalPrice: Long? = null,
     @SerialName("unit_final_price") val unitFinalPrice: Long? = null,
+    @SerialName("base_unit_price") val baseUnitPrice: Long? = null,
+    @SerialName("effective_unit_price") val effectiveUnitPrice: Long? = null,
     @SerialName("original_price") val originalPrice: Long? = null,
     @SerialName("base_final_price") val baseFinalPrice: Long? = null,
     @SerialName("discount_amount") val discountAmount: Long? = null,
     @SerialName("code_discount_amount") val codeDiscountAmount: Long? = null,
     @SerialName("final_price") val finalPrice: Long? = null,
+    @SerialName("total_price") val totalPrice: Long? = null,
+    @SerialName("bulk_discount_percent") val bulkDiscountPercent: Int = 0,
+    @SerialName("repeat_discount_percent") val repeatDiscountPercent: Int = 0,
+    @SerialName("applied_discount_percent") val appliedDiscountPercent: Int = 0,
+    @SerialName("applied_discount_reason") val appliedDiscountReason: String? = null,
+    @SerialName("licenses_count") val licensesCount: Int? = null,
+    @SerialName("total_activation_slots") val totalActivationSlots: Int? = null,
     @SerialName("has_discount") val hasDiscount: Boolean = false,
 )
 

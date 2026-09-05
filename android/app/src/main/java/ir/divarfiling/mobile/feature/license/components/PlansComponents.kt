@@ -280,13 +280,13 @@ fun LicenseQuantityStepper(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        "تعداد لایسنس آژانس",
+                        "تعداد مشاور",
                         style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
                         color = DfThemeColors.textPrimary(),
                     )
                     Text(
-                        "هر لایسنس برای یک مشاور · بازه ${DateUtils.toPersianDigits(minQuantity.toString())} تا ${DateUtils.toPersianDigits(maxQuantity.toString())}",
+                        "هر مشاور یک کلید مستقل · بازه ${DateUtils.toPersianDigits(minQuantity.toString())} تا ${DateUtils.toPersianDigits(maxQuantity.toString())}",
                         style = AppTypography.labelSmall,
                         color = DfThemeColors.textSecondary(),
                     )
@@ -325,7 +325,7 @@ fun LicenseQuantityStepper(
                         color = DfThemeColors.primary(),
                     )
                     Text(
-                        "لایسنس",
+                        "مشاور",
                         style = AppTypography.labelSmall,
                         color = DfThemeColors.textMuted(),
                     )
@@ -352,7 +352,7 @@ fun LicenseQuantityStepper(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("قیمت هر لایسنس", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
+                        Text("قیمت هر مشاور", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
                         Text(
                             FormatUtils.formatPriceToman(unitPrice),
                             style = AppTypography.labelSmall,
@@ -409,7 +409,7 @@ fun LicenseQuantityStepperCompact(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "تعداد لایسنس",
+                    "تعداد مشاور",
                     style = AppTypography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = DfThemeColors.textPrimary(),
@@ -594,17 +594,17 @@ fun LicenseCheckoutSummary(
                 fontWeight = FontWeight.Bold,
                 color = DfThemeColors.textPrimary(),
             )
-            if (isAgency && quantity > 1) {
+            if (isAgency && quantity >= 1) {
+                val slots = quantity * 2
                 Text(
-                    "$persianQty لایسنس × ${FormatUtils.formatPriceToman(unitPrice)}",
+                    "$persianQty مشاور · $persianQty کلید · ${DateUtils.toPersianDigits(slots.toString())} دستگاه",
                     style = AppTypography.bodyDescription,
                     color = DfThemeColors.textSecondary(),
                 )
-            } else if (isAgency) {
                 Text(
-                    "${DateUtils.toPersianDigits(quantity.toString())} لایسنس · ${FormatUtils.formatPriceToman(unitPrice)}",
-                    style = AppTypography.bodyDescription,
-                    color = DfThemeColors.textSecondary(),
+                    "${FormatUtils.formatPriceToman(unitPrice)} برای هر مشاور",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
                 )
             }
             Row(

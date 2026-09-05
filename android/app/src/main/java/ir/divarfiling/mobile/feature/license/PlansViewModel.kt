@@ -185,6 +185,16 @@ class PlansViewModel @Inject constructor(
                 error = null,
             )
         }
+        refreshPricingPreview(planId, clamped)
+    }
+
+    private fun refreshPricingPreview(planId: Long, quantity: Int) {
+        viewModelScope.launch {
+            when (val result = shopRepository.previewPricing(planId, quantity)) {
+                is ApiResult.Success -> _uiState.update { it.copy(discountPreview = result.data) }
+                is ApiResult.Error -> { /* fallback to local estimate */ }
+            }
+        }
     }
 
     fun startCheckout(onPayUrl: (String) -> Unit) {

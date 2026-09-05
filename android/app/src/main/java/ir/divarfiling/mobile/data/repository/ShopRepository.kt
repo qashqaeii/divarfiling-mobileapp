@@ -57,6 +57,18 @@ class ShopRepository @Inject constructor(
         ApiResult.Error(failure.message, failure.code)
     }
 
+    suspend fun previewPricing(planId: Long, quantity: Int = 1): ApiResult<ShopDiscountPreviewData> = try {
+        val response = api.shopDiscountPreview(ShopDiscountPreviewRequest(planId, "", quantity))
+        if (!response.ok) ApiResult.Error(
+            ir.divarfiling.mobile.core.network.mapApiError(response.code, response.error, null, "محاسبه قیمت ناموفق بود"),
+            response.code,
+        )
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        val failure = e.toApiFailure("محاسبه قیمت ناموفق بود")
+        ApiResult.Error(failure.message, failure.code)
+    }
+
     suspend fun previewDiscount(planId: Long, code: String, quantity: Int = 1): ApiResult<ShopDiscountPreviewData> = try {
         val response = api.shopDiscountPreview(ShopDiscountPreviewRequest(planId, code.trim().uppercase(), quantity))
         if (!response.ok) ApiResult.Error(
