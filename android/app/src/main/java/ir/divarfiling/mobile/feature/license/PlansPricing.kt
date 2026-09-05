@@ -3,6 +3,8 @@ package ir.divarfiling.mobile.feature.license
 import ir.divarfiling.mobile.core.network.ShopDiscountPreviewData
 import ir.divarfiling.mobile.core.network.ShopPlanDto
 
+enum class PlanMode { Personal, Agency }
+
 fun ShopPlanDto.isAgencyPlan(): Boolean = allowBulkPurchase
 
 fun ShopPlanDto.defaultQuantity(): Int = if (isAgencyPlan()) {
@@ -31,3 +33,30 @@ fun resolveCheckoutTotal(
     quantity: Int,
     discountPreview: ShopDiscountPreviewData?,
 ): Long = discountPreview?.finalPrice ?: plan.totalFinalPrice(quantity)
+
+fun ShopDiscountPreviewData?.effectiveUnitPrice(plan: ShopPlanDto): Long =
+    this?.effectiveUnitPrice ?: this?.unitFinalPrice ?: plan.unitFinalPrice()
+
+fun ShopDiscountPreviewData?.baseUnitPrice(plan: ShopPlanDto): Long =
+    this?.baseUnitPrice ?: this?.unitOriginalPrice ?: plan.unitOriginalPrice()
+
+fun planTypeSortKey(planType: String?): Int = when (planType) {
+    "monthly" -> 0
+    "quarterly" -> 1
+    "yearly" -> 2
+    else -> 3
+}
+
+fun durationMetaFa(planType: String?): String = when (planType) {
+    "monthly" -> "۳۰ روز"
+    "quarterly" -> "۹۰ روز"
+    "yearly" -> "۳۶۵ روز"
+    else -> ""
+}
+
+fun durationLabelFa(planType: String?): String = when (planType) {
+    "monthly" -> "ماهانه"
+    "quarterly" -> "سه‌ماهه"
+    "yearly" -> "سالانه"
+    else -> ""
+}

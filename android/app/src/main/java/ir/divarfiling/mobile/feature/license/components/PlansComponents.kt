@@ -8,11 +8,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -40,8 +44,18 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
+import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.ShopPlanDto
+import ir.divarfiling.mobile.core.network.ShopDiscountPreviewData
+import ir.divarfiling.mobile.feature.license.PlanMode
+import ir.divarfiling.mobile.feature.license.baseUnitPrice
+import ir.divarfiling.mobile.feature.license.durationLabelFa
+import ir.divarfiling.mobile.feature.license.durationMetaFa
+import ir.divarfiling.mobile.feature.license.effectiveUnitPrice
 import ir.divarfiling.mobile.feature.license.isAgencyPlan
 import ir.divarfiling.mobile.feature.license.totalFinalPrice
 import ir.divarfiling.mobile.feature.license.unitFinalPrice
@@ -161,6 +175,714 @@ fun LicenseStatusHero(
                         color = Color.White,
                         trackColor = Color.White.copy(alpha = 0.22f),
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlanModeTabs(
+    mode: PlanMode,
+    onModeChange: (PlanMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = DfThemeColors.surfaceVariant().copy(alpha = 0.65f),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            PlanModeTab(
+                label = "پلن شخصی",
+                icon = DfIcons.User,
+                selected = mode == PlanMode.Personal,
+                onClick = { onModeChange(PlanMode.Personal) },
+                modifier = Modifier.weight(1f),
+            )
+            PlanModeTab(
+                label = "پلن آژانس",
+                icon = DfIcons.Users,
+                selected = mode == PlanMode.Agency,
+                onClick = { onModeChange(PlanMode.Agency) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlanModeTab(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        color = if (selected) DfThemeColors.surface() else Color.Transparent,
+        shadowElevation = if (selected) AppElevations.subtle else AppElevations.none,
+        border = if (selected) BorderStroke(1.dp, DfColors.Purple.copy(alpha = 0.18f)) else null,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (selected) DfColors.Purple else DfThemeColors.textMuted(),
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (selected) DfColors.Purple else DfThemeColors.textSecondary(),
+            )
+        }
+    }
+}
+
+@Composable
+fun PersonalPlanCard(
+    plan: ShopPlanDto,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val format = remember { NumberFormat.getInstance(Locale("fa", "IR")) }
+    val blocked = plan.purchaseBlocked
+    val unitPrice = plan.unitFinalPrice()
+    val accent = when (plan.planType) {
+        "monthly" -> DfColors.Blue
+        "quarterly" -> DfColors.Purple
+        "yearly" -> DfColors.Green
+        else -> DfThemeColors.primary()
+    }
+
+    Surface(
+        onClick = { if (!blocked) onSelect() },
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = when {
+            blocked -> DfThemeColors.surfaceVariant().copy(alpha = 0.55f)
+            selected -> accent.copy(alpha = 0.06f)
+            else -> DfThemeColors.surface()
+        },
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = when {
+                blocked -> DfThemeColors.outlineSubtle()
+                selected -> accent
+                else -> DfThemeColors.outlineSubtle()
+            },
+        ),
+        shadowElevation = if (selected) AppElevations.raised else AppElevations.subtle,
+    ) {
+        Column(modifier = Modifier.padding(AppSpacing.md), verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(accent.copy(alpha = if (selected) 0.18f else 0.1f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = when (plan.planType) {
+                            "monthly" -> DfIcons.Zap
+                            "quarterly" -> DfIcons.Calendar
+                            "yearly" -> DfIcons.Star
+                            else -> DfIcons.Sparkles
+                        },
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            plan.name,
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = DfThemeColors.textPrimary(),
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        when {
+                            !plan.offerBadge.isNullOrBlank() ->
+                                PlanBadge(text = plan.offerBadge, color = DfColors.Amber, bg = DfColors.AmberLight)
+                            plan.isFeatured ->
+                                PlanBadge(text = "پیشنهادی", color = accent, bg = accent.copy(alpha = 0.12f))
+                        }
+                    }
+                    plan.durationLabel?.let {
+                        Text(it, style = AppTypography.meta, color = DfThemeColors.textSecondary())
+                    }
+                    plan.tagline?.takeIf { it.isNotBlank() }?.let {
+                        Text(it, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
+                    }
+                }
+                if (selected) {
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(accent),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(DfIcons.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+
+            Surface(
+                shape = AppShapes.GlassSmall,
+                color = DfThemeColors.surfaceVariant().copy(alpha = 0.55f),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        if (plan.hasDiscount && plan.unitOriginalPrice() > unitPrice) {
+                            Text(
+                                format.format(plan.unitOriginalPrice()),
+                                style = AppTypography.meta,
+                                color = DfThemeColors.textMuted(),
+                                textDecoration = TextDecoration.LineThrough,
+                            )
+                        }
+                        Text(
+                            "${format.format(unitPrice)} تومان",
+                            style = AppTypography.sectionTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selected) accent else DfThemeColors.textPrimary(),
+                        )
+                        Text(
+                            "قیمت پایه — تخفیف‌ها در خلاصه",
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                        )
+                    }
+                }
+            }
+
+            if (plan.features.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    plan.features.take(4).forEach { feature ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                DfIcons.Check,
+                                contentDescription = null,
+                                tint = accent.copy(alpha = 0.85f),
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(
+                                feature.text,
+                                style = AppTypography.bodyDescription,
+                                color = DfThemeColors.textSecondary(),
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (blocked) {
+                Text(plan.purchaseBlockMessage.orEmpty(), style = AppTypography.meta, color = DfThemeColors.error())
+            }
+        }
+    }
+}
+
+@Composable
+fun AgencyPlanPanel(
+    plans: List<ShopPlanDto>,
+    selectedPlanId: Long?,
+    quantity: Int,
+    pricingPreview: ShopDiscountPreviewData?,
+    isPricingLoading: Boolean,
+    onSelectPlan: (Long) -> Unit,
+    onQuantityChange: (Int) -> Unit,
+    showQuantity: Boolean,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val selectedPlan = plans.firstOrNull { it.id == selectedPlanId } ?: plans.firstOrNull() ?: return
+    val total = pricingPreview?.finalPrice ?: selectedPlan.totalFinalPrice(quantity)
+    val baseUnit = pricingPreview.baseUnitPrice(selectedPlan)
+    val effectiveUnit = pricingPreview.effectiveUnitPrice(selectedPlan)
+    val slots = pricingPreview?.totalActivationSlots ?: (quantity * 2)
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = Color.Transparent,
+        shadowElevation = AppElevations.raised,
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            DfColors.PurpleLight.copy(alpha = 0.95f),
+                            DfThemeColors.surface(),
+                            DfColors.BlueLight.copy(alpha = 0.35f),
+                        ),
+                    ),
+                    RoundedCornerShape(20.dp),
+                )
+                .padding(AppSpacing.md),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                Brush.linearGradient(listOf(DfColors.PurpleLight, DfColors.PurpleContainer)),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(DfIcons.Building, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(22.dp))
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "پلن آژانس",
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = DfThemeColors.textPrimary(),
+                        )
+                        Text(
+                            "مناسب تیم‌های ۲ تا ۲۵ مشاور — هر مشاور یک کلید مستقل",
+                            style = AppTypography.bodyDescription,
+                            color = DfThemeColors.textSecondary(),
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "مدت لایسنس",
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = DfColors.Purple,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        plans.forEach { plan ->
+                            AgencyDurationCard(
+                                plan = plan,
+                                selected = plan.id == selectedPlanId,
+                                onSelect = { onSelectPlan(plan.id) },
+                                enabled = enabled && !plan.purchaseBlocked,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+
+                if (showQuantity) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "تعداد مشاور",
+                            style = AppTypography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = DfColors.Purple,
+                        )
+                        LicenseQuantityStepper(
+                            quantity = quantity,
+                            minQuantity = selectedPlan.minQuantity,
+                            maxQuantity = selectedPlan.maxQuantity,
+                            unitPrice = effectiveUnit,
+                            onQuantityChange = onQuantityChange,
+                            enabled = enabled,
+                        )
+                    }
+                }
+
+                AgencyLiveTotalBar(
+                    total = total,
+                    isLoading = isPricingLoading,
+                )
+
+                AgencyFeatureGrid()
+
+                if (showQuantity) {
+                    AgencyPricingBreakdown(
+                        quantity = quantity,
+                        slots = slots,
+                        baseUnit = baseUnit,
+                        effectiveUnit = effectiveUnit,
+                        appliedReason = pricingPreview?.appliedDiscountReason,
+                        appliedPercent = pricingPreview?.appliedDiscountPercent ?: 0,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgencyDurationCard(
+    plan: ShopPlanDto,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val format = remember { NumberFormat.getInstance(Locale("fa", "IR")) }
+    Surface(
+        onClick = onSelect,
+        enabled = enabled,
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = if (selected) DfThemeColors.surface() else DfThemeColors.surface().copy(alpha = 0.72f),
+        border = BorderStroke(
+            if (selected) 1.5.dp else 1.dp,
+            if (selected) DfColors.Purple else DfThemeColors.outlineSubtle(),
+        ),
+        shadowElevation = if (selected) AppElevations.subtle else AppElevations.none,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                durationLabelFa(plan.planType),
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
+            Text(
+                durationMetaFa(plan.planType),
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textMuted(),
+            )
+            Text(
+                format.format(plan.unitFinalPrice()),
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = DfColors.Purple,
+            )
+            Text("هر مشاور", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+        }
+    }
+}
+
+@Composable
+private fun AgencyLiveTotalBar(
+    total: Long,
+    isLoading: Boolean,
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = DfColors.Purple.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, DfColors.Purple.copy(alpha = 0.12f)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.sm, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("مبلغ کل تیم", style = AppTypography.labelSmall, fontWeight = FontWeight.SemiBold, color = DfThemeColors.textSecondary())
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = DfColors.Purple,
+                )
+            } else {
+                Text(
+                    FormatUtils.formatPriceToman(total),
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfColors.Green,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgencyFeatureGrid() {
+    val items = listOf(
+        DfIcons.KeyRound to "کلید مستقل هر مشاور",
+        DfIcons.Smartphone to "ویندوز + اندروید",
+        DfIcons.Users to "CRM و مدیریت تیم",
+        DfIcons.BarChart to "استخراج و فایلینگ",
+        DfIcons.Tag to "تخفیف حجمی تا ۲۵٪",
+        DfIcons.MessageCircle to "پشتیبانی راه‌اندازی",
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.chunked(2).forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                rowItems.forEach { (icon, label) ->
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        color = DfThemeColors.surface().copy(alpha = 0.72f),
+                        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(icon, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(14.dp))
+                            Text(
+                                label,
+                                style = AppTypography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DfThemeColors.textSecondary(),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+                if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgencyPricingBreakdown(
+    quantity: Int,
+    slots: Int,
+    baseUnit: Long,
+    effectiveUnit: Long,
+    appliedReason: String?,
+    appliedPercent: Int,
+) {
+    val persianQty = DateUtils.toPersianDigits(quantity.toString())
+    val persianSlots = DateUtils.toPersianDigits(slots.toString())
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = DfThemeColors.surface().copy(alpha = 0.82f),
+        border = BorderStroke(1.dp, DfColors.Purple.copy(alpha = 0.14f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                AgencyBreakdownItem("تعداد مشاور", persianQty, Modifier.weight(1f))
+                AgencyBreakdownItem("کلید مستقل", persianQty, Modifier.weight(1f))
+            }
+            Row(modifier = Modifier.fillMaxWidth()) {
+                AgencyBreakdownItem("ظرفیت دستگاه", persianSlots, Modifier.weight(1f))
+                AgencyBreakdownItem("قیمت پایه هر نفر", FormatUtils.formatPriceToman(baseUnit), Modifier.weight(1f))
+            }
+            if (!appliedReason.isNullOrBlank() && appliedPercent > 0) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = DfColors.GreenLight.copy(alpha = 0.65f),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(appliedReason, style = AppTypography.labelSmall, color = DfColors.Green, fontWeight = FontWeight.SemiBold)
+                        Text("${DateUtils.toPersianDigits(appliedPercent.toString())}٪", style = AppTypography.labelSmall, fontWeight = FontWeight.Bold, color = DfColors.Green)
+                    }
+                }
+            }
+            AgencyBreakdownItem(
+                label = "قیمت هر نفر",
+                value = FormatUtils.formatPriceToman(effectiveUnit),
+                modifier = Modifier.fillMaxWidth(),
+                highlight = true,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AgencyBreakdownItem(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    highlight: Boolean = false,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+        Text(
+            value,
+            style = AppTypography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = if (highlight) DfColors.Green else DfThemeColors.textPrimary(),
+        )
+    }
+}
+
+@Composable
+fun PlansCheckoutBottomBar(
+    selectedPlan: ShopPlanDto?,
+    quantity: Int,
+    total: Long?,
+    discountPreview: ShopDiscountPreviewData?,
+    isCheckingOut: Boolean,
+    isVerifying: Boolean,
+    canCheckout: Boolean,
+    showStartUsing: Boolean,
+    checkoutLabel: String,
+    onCheckout: () -> Unit,
+    onVerify: () -> Unit,
+    onStartUsing: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        color = DfThemeColors.surface(),
+        shadowElevation = AppElevations.raised,
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.screenHorizontal)
+                .padding(top = AppSpacing.sm, bottom = AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            if (selectedPlan != null && total != null) {
+                LicenseCheckoutSummary(
+                    planName = selectedPlan.name,
+                    quantity = quantity,
+                    unitPrice = discountPreview.effectiveUnitPrice(selectedPlan),
+                    totalPrice = total,
+                    isAgency = selectedPlan.isAgencyPlan(),
+                )
+            }
+            if (showStartUsing) {
+                DfPrimaryButton(text = "شروع استفاده", onClick = onStartUsing)
+            }
+            DfPrimaryButton(
+                text = checkoutLabel,
+                onClick = onCheckout,
+                loading = isCheckingOut,
+                enabled = canCheckout && !isCheckingOut,
+            )
+            DfSecondaryButton(
+                text = "بررسی وضعیت",
+                onClick = onVerify,
+                loading = isVerifying,
+                enabled = !isVerifying,
+            )
+        }
+    }
+}
+
+@Composable
+fun PlansDiscountSection(
+    discountCode: String,
+    onDiscountCodeChange: (String) -> Unit,
+    onApply: () -> Unit,
+    onClear: () -> Unit,
+    isApplying: Boolean,
+    canApply: Boolean,
+    preview: ShopDiscountPreviewData?,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            Text(
+                "کد تخفیف",
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
+            Text(
+                "اختیاری — در صورت داشتن کد، قبل از پرداخت اعمال کنید",
+                style = AppTypography.bodyDescription,
+                color = DfThemeColors.textSecondary(),
+            )
+            DfTextField(
+                value = discountCode,
+                onValueChange = onDiscountCodeChange,
+                label = "کد تخفیف",
+                enabled = !isApplying,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DiscountApplyButton(
+                    text = if (isApplying) "…" else "اعمال",
+                    onClick = onApply,
+                    enabled = canApply,
+                    loading = isApplying,
+                )
+                if (preview != null) {
+                    DfGlassTextButton(text = "حذف", onClick = onClear)
+                }
+            }
+            preview?.let { data ->
+                val before = data.baseFinalPrice ?: data.originalPrice
+                val after = data.finalPrice
+                if (before != null && after != null && before != after) {
+                    Surface(
+                        shape = AppShapes.GlassSmall,
+                        color = DfColors.GreenLight.copy(alpha = 0.55f),
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+                            text = "قبل: ${FormatUtils.formatPriceToman(before)}  ←  بعد: ${FormatUtils.formatPriceToman(after)}",
+                            style = AppTypography.bodyDescription,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DfColors.Green,
+                        )
+                    }
                 }
             }
         }

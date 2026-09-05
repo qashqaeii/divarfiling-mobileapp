@@ -24,10 +24,12 @@ data class PlansUiState(
     val renewableLicenseId: Long? = null,
     val phoneVerified: Boolean = true,
     val selectedPlanId: Long? = null,
+    val planMode: PlanMode = PlanMode.Personal,
     val planQuantities: Map<Long, Int> = emptyMap(),
     val checkout: ShopCheckoutData? = null,
     val license: LicenseState = LicenseState(),
     val isLoading: Boolean = false,
+    val isPricingLoading: Boolean = false,
     val isCheckingOut: Boolean = false,
     val isVerifying: Boolean = false,
     val isApplyingDiscount: Boolean = false,
@@ -67,7 +69,7 @@ data class PlansUiState(
         get() = plans.filter { !it.isAgencyPlan() }
 
     val agencyPlans: List<ShopPlanDto>
-        get() = plans.filter { it.isAgencyPlan() }
+        get() = plans.filter { it.isAgencyPlan() }.sortedBy { planTypeSortKey(it.planType) }
 }
 
 @HiltViewModel
@@ -102,6 +104,11 @@ class PlansViewModel @Inject constructor(
                         ?: visiblePlans.firstOrNull { !it.purchaseBlocked }
                     val selectedStillVisible = visiblePlans.any { it.id == _uiState.value.selectedPlanId }
                     val defaultQuantities = visiblePlans.associate { it.id to it.defaultQuantity() }
+                    val nextSelectedId = when {
+                        selectedStillVisible -> _uiState.value.selectedPlanId
+                        else -> recommended?.id
+                    }
+                    val nextSelectedPlan = visiblePlans.firstOrNull { it.id == nextSelectedId }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -111,11 +118,16 @@ class PlansViewModel @Inject constructor(
                             planQuantities = defaultQuantities + it.planQuantities.filterKeys { id ->
                                 visiblePlans.any { plan -> plan.id == id }
                             },
-                            selectedPlanId = when {
-                                selectedStillVisible -> it.selectedPlanId
-                                else -> recommended?.id
+                            selectedPlanId = nextSelectedId,
+                            planMode = when {
+                                nextSelectedPlan?.isAgencyPlan() == true -> PlanMode.Agency
+                                else -> PlanMode.Personal
                             },
                         )
+                    }
+                    nextSelectedPlan?.takeIf { it.isAgencyPlan() && !it.purchaseBlocked }?.let { plan ->
+                        val qty = _uiState.value.planQuantities[plan.id] ?: plan.defaultQuantity()
+                        refreshPricingPreview(plan.id, qty)
                     }
                 }
                 is ApiResult.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
@@ -160,6 +172,29 @@ class PlansViewModel @Inject constructor(
         }
     }
 
+    fun setPlanMode(mode: PlanMode) {
+        val state = _uiState.value
+        if (state.planMode == mode) return
+        _uiState.update { it.copy(planMode = mode, discountPreview = null, error = null) }
+        val current = state.selectedPlan
+        val alreadyInMode = current != null && when (mode) {
+            PlanMode.Personal -> !current.isAgencyPlan()
+            PlanMode.Agency -> current.isAgencyPlan()
+        }
+        if (alreadyInMode) {
+            if (mode == PlanMode.Agency && current != null && !state.isRenewalCheckout) {
+                refreshPricingPreview(current.id, state.selectedQuantity)
+            }
+            return
+        }
+        val targetPlans = when (mode) {
+            PlanMode.Personal -> state.personalPlans
+            PlanMode.Agency -> state.agencyPlans
+        }
+        val plan = targetPlans.firstOrNull { !it.purchaseBlocked } ?: targetPlans.firstOrNull() ?: return
+        selectPlan(plan.id)
+    }
+
     fun selectPlan(id: Long) {
         val plan = _uiState.value.plans.firstOrNull { it.id == id } ?: return
         if (plan.purchaseBlocked) return
@@ -167,10 +202,14 @@ class PlansViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 selectedPlanId = id,
+                planMode = if (plan.isAgencyPlan()) PlanMode.Agency else PlanMode.Personal,
                 planQuantities = it.planQuantities + (id to qty),
                 error = null,
                 discountPreview = null,
             )
+        }
+        if (plan.isAgencyPlan() && !_uiState.value.isRenewalCheckout) {
+            refreshPricingPreview(id, qty)
         }
     }
 
@@ -190,9 +229,12 @@ class PlansViewModel @Inject constructor(
 
     private fun refreshPricingPreview(planId: Long, quantity: Int) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isPricingLoading = true) }
             when (val result = shopRepository.previewPricing(planId, quantity)) {
-                is ApiResult.Success -> _uiState.update { it.copy(discountPreview = result.data) }
-                is ApiResult.Error -> { /* fallback to local estimate */ }
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(isPricingLoading = false, discountPreview = result.data)
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(isPricingLoading = false) }
             }
         }
     }
