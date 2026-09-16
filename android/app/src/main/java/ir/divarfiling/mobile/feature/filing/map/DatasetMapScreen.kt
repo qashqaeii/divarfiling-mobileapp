@@ -35,6 +35,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +76,9 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 
 private enum class MapSellerFilter { ALL, PERSONAL, CONSULTANT, DISGUISED }
 
@@ -164,7 +168,7 @@ fun DatasetMapScreen(
                 }
                 else -> {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        DatasetOsmdroidMap(
+                        FilingOsmdroidMap(
                             markers = visibleMarkers,
                             selectedToken = selectedToken,
                             onMarkerClick = { token -> selectedToken = token },
@@ -312,7 +316,7 @@ private fun LegendDot(color: Color, label: String) {
 }
 
 @Composable
-private fun MapListingPreviewCard(
+internal fun MapListingPreviewCard(
     marker: DatasetMapMarkerDto,
     onOpen: () -> Unit,
     onNavigate: () -> Unit,
@@ -382,6 +386,15 @@ private fun MapListingPreviewCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    marker.datasetName?.takeIf { it.isNotBlank() }?.let { source ->
+                        Text(
+                            text = source,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 Surface(
                     onClick = onDismiss,
@@ -435,14 +448,19 @@ private fun MapListingPreviewCard(
 }
 
 @Composable
-private fun DatasetOsmdroidMap(
+internal fun FilingOsmdroidMap(
     markers: List<DatasetMapMarkerDto>,
     selectedToken: String?,
     onMarkerClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    autoFitMarkers: Boolean = true,
+    restoreViewport: MapViewportState? = null,
+    onViewportChanged: ((MapViewportState) -> Unit)? = null,
 ) {
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var fittedKey by remember { mutableStateOf("") }
+    var viewportRestored by remember { mutableStateOf(false) }
+    val viewportCallback by rememberUpdatedState(onViewportChanged)
     AndroidView(
         modifier = modifier,
         factory = { ctx ->
@@ -454,10 +472,31 @@ private fun DatasetOsmdroidMap(
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
                 controller.setZoom(13.0)
+                if (viewportCallback != null) {
+                    addMapListener(object : MapListener {
+                        override fun onScroll(event: ScrollEvent?): Boolean {
+                            viewportCallback?.invoke(readMapViewport(this@apply))
+                            return false
+                        }
+
+                        override fun onZoom(event: ZoomEvent?): Boolean {
+                            viewportCallback?.invoke(readMapViewport(this@apply))
+                            return false
+                        }
+                    })
+                }
                 mapView = this
+                post { viewportCallback?.invoke(readMapViewport(this)) }
             }
         },
         update = { view ->
+            restoreViewport?.let { viewport ->
+                if (!viewportRestored) {
+                    viewportRestored = true
+                    view.controller.setCenter(GeoPoint(viewport.centerLat, viewport.centerLon))
+                    view.controller.setZoom(viewport.zoom)
+                }
+            }
             view.overlays.removeAll { it is Marker }
             val points = markers.mapNotNull { marker ->
                 val lat = marker.lat ?: return@mapNotNull null
@@ -486,7 +525,7 @@ private fun DatasetOsmdroidMap(
                 view.overlays.add(overlay)
             }
             val key = markers.joinToString { it.token.orEmpty() }
-            if (points.isNotEmpty() && key != fittedKey) {
+            if (autoFitMarkers && points.isNotEmpty() && key != fittedKey && restoreViewport == null) {
                 fittedKey = key
                 val bounds = org.osmdroid.util.BoundingBox.fromGeoPoints(points)
                 view.post { view.zoomToBoundingBox(bounds, true, 120) }
@@ -498,6 +537,20 @@ private fun DatasetOsmdroidMap(
         mapView?.onResume()
         onDispose { mapView?.onPause() }
     }
+}
+
+internal fun readMapViewport(view: MapView): MapViewportState {
+    val box = view.boundingBox
+    val center = view.mapCenter
+    return MapViewportState(
+        north = box.latNorth,
+        south = box.latSouth,
+        east = box.lonEast,
+        west = box.lonWest,
+        zoom = view.zoomLevelDouble,
+        centerLat = center.latitude,
+        centerLon = center.longitude,
+    )
 }
 
 private fun pinColorInt(marker: DatasetMapMarkerDto): Int {

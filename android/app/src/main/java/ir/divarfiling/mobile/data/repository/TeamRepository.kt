@@ -115,7 +115,8 @@ class TeamRepository @Inject constructor(
         ApiResult.Error(e.toUserMessage("خطای شبکه"))
     }
 
-    suspend fun getLeadInbox(): ApiResult<TeamLeadsPayload> = single { api.getTeamLeadInbox() }
+    suspend fun getLeadInbox(filter: String? = null): ApiResult<TeamLeadsPayload> =
+        single { api.getTeamLeadInbox(filter = filter) }
 
     suspend fun assignLeads(memberId: Long, customerIds: List<Long>): ApiResult<Unit> = try {
         val response = api.assignTeamLeads(TeamAssignLeadsRequest(memberId, customerIds))
@@ -140,6 +141,102 @@ class TeamRepository @Inject constructor(
     } catch (e: Exception) {
         ApiResult.Error(e.toUserMessage("خطای شبکه"))
     }
+
+    suspend fun getAgencyHome(): ApiResult<ir.divarfiling.mobile.core.network.AgencyHomeDto> =
+        single { api.getAgencyHome() }
+
+    suspend fun getAgencyAdvisors(
+        query: String = "",
+        status: String = "",
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencyAdvisorsPayload> = single {
+        api.getAgencyAdvisors(
+            query = query.takeIf { it.isNotBlank() },
+            status = status.takeIf { it.isNotBlank() },
+        )
+    }
+
+    suspend fun getAgencyAdvisorDetail(
+        memberId: Long,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencyAdvisorDetailPayload> =
+        single { api.getAgencyAdvisorDetail(memberId) }
+
+    suspend fun createInvitation(phone: String, role: String = "advisor"): ApiResult<Unit> = try {
+        val response = api.createAgencyInvitation(
+            ir.divarfiling.mobile.core.network.AgencyInviteRequest(phone = phone, role = role),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "دعوت ناموفق")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
+    suspend fun invitationAction(invitationId: Long, action: String): ApiResult<Unit> = try {
+        val response = api.agencyInvitationAction(
+            invitationId,
+            ir.divarfiling.mobile.core.network.AgencyInvitationActionRequest(action = action),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
+    suspend fun getAgencySeats(): ApiResult<ir.divarfiling.mobile.core.network.AgencySeatsPayload> =
+        single { api.getAgencySeats() }
+
+    suspend fun mutateAgencySeat(
+        licenseId: Long,
+        action: String,
+        memberUserId: Long? = null,
+    ): ApiResult<Unit> = try {
+        val response = api.mutateAgencySeat(
+            ir.divarfiling.mobile.core.network.AgencySeatMutationRequest(
+                action = action,
+                licenseId = licenseId,
+                memberUserId = memberUserId,
+            ),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "عملیات ناموفق")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
+    suspend fun getAgencyPerformance(days: Int): ApiResult<ir.divarfiling.mobile.core.network.AgencyPerformancePayload> =
+        single { api.getAgencyPerformance(days = days) }
+
+    suspend fun assignLead(customerId: Long, memberId: Long): ApiResult<Unit> = try {
+        val response = api.assignTeamLead(customerId, ir.divarfiling.mobile.core.network.TeamLeadAssignRequest(memberId))
+        if (!response.ok) ApiResult.Error(response.error ?: "تخصیص ناموفق")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
+    suspend fun transferLead(customerId: Long, memberId: Long, note: String?): ApiResult<Unit> = try {
+        val response = api.transferTeamLead(
+            customerId,
+            ir.divarfiling.mobile.core.network.TeamLeadTransferRequest(memberId, note),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "انتقال ناموفق")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
+    suspend fun advisorAction(memberId: Long, action: String, role: String? = null): ApiResult<Unit> = try {
+        val response = api.agencyAdvisorAction(
+            memberId,
+            ir.divarfiling.mobile.core.network.AgencyAdvisorActionRequest(action = action, role = role),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
+    suspend fun createWorkspaceBridge(path: String): ApiResult<ir.divarfiling.mobile.core.network.WorkspaceBridgeData> =
+        single { api.createWorkspaceBridge(ir.divarfiling.mobile.core.network.WorkspaceBridgeRequest(path)) }
 
     private suspend inline fun <reified T> single(
         crossinline call: suspend () -> ir.divarfiling.mobile.core.network.ApiEnvelope,

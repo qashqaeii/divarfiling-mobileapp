@@ -104,6 +104,12 @@ interface MobileApi {
     @GET("dashboard")
     suspend fun getDashboard(): ApiEnvelope
 
+    @GET("search/global")
+    suspend fun globalSearch(
+        @Query("q") query: String,
+        @Query("limit") limit: Int? = null,
+    ): ApiEnvelope
+
     @GET("notifications")
     suspend fun getNotifications(
         @Query("page") page: Int = 1,
@@ -300,6 +306,70 @@ interface MobileApi {
         @Query("offset") offset: Int = 0,
     ): ApiEnvelope
 
+    @GET("crm/deals/duplicate-check")
+    suspend fun checkDuplicateDeal(
+        @Query("property_id") propertyId: Long,
+        @Query("customer_id") customerId: Long,
+    ): ApiEnvelope
+
+    @GET("crm/deals/{id}/journey")
+    suspend fun getDealJourney(@Path("id") dealId: Long): ApiEnvelope
+
+    @GET("crm/deals/{id}/contracts")
+    suspend fun getDealContracts(@Path("id") dealId: Long): ApiEnvelope
+
+    @POST("crm/deals/{id}/contracts")
+    suspend fun createDealContract(
+        @Path("id") dealId: Long,
+        @Body body: DealContractCreateRequest,
+    ): ApiEnvelope
+
+    @GET("crm/deals/{id}/commission-splits")
+    suspend fun getDealCommissionSplits(@Path("id") dealId: Long): ApiEnvelope
+
+    @POST("crm/deals/{id}/commission-splits")
+    suspend fun saveDealCommissionSplits(
+        @Path("id") dealId: Long,
+        @Body body: DealCommissionSplitSaveRequest,
+    ): ApiEnvelope
+
+    @POST("workspace/bridge")
+    suspend fun createWorkspaceBridge(@Body body: WorkspaceBridgeRequest): ApiEnvelope
+
+    @GET("contracts")
+    suspend fun getContracts(
+        @Query("q") query: String? = null,
+        @Query("status") status: String? = null,
+        @Query("type") type: String? = null,
+        @Query("deal_linked") dealLinked: String? = null,
+        @Query("date_from") dateFrom: String? = null,
+        @Query("date_to") dateTo: String? = null,
+        @Query("sort") sort: String? = null,
+        @Query("needs_action") needsAction: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("page_size") pageSize: Int = 20,
+    ): ApiEnvelope
+
+    @POST("contracts")
+    suspend fun createContract(@Body body: ContractCreateRequest): ApiEnvelope
+
+    @GET("contracts/{id}")
+    suspend fun getContractDetail(@Path("id") contractId: Long): ApiEnvelope
+
+    @GET("contracts/{id}/timeline")
+    suspend fun getContractTimeline(@Path("id") contractId: Long): ApiEnvelope
+
+    @GET("contracts/{id}/attachments")
+    suspend fun getContractAttachments(@Path("id") contractId: Long): ApiEnvelope
+
+    @Multipart
+    @POST("contracts/{id}/attachments")
+    suspend fun uploadContractAttachment(
+        @Path("id") contractId: Long,
+        @Part file: MultipartBody.Part,
+        @Part("title") title: okhttp3.RequestBody? = null,
+    ): ApiEnvelope
+
     @GET("crm/properties")
     suspend fun getProperties(
         @Query("q") query: String? = null,
@@ -418,6 +488,28 @@ interface MobileApi {
         @Body body: ListingPublicShareUpdateRequest,
     ): ApiEnvelope
 
+    @GET("crm/properties/map")
+    suspend fun getCrmPropertyMap(@QueryMap params: Map<String, String>): ApiEnvelope
+
+    @GET("crm/properties/{id}/team-shares")
+    suspend fun getPropertyTeamShares(
+        @Path("id") propertyId: Long,
+        @Query("members") members: Int? = null,
+        @Query("q") query: String? = null,
+    ): ApiEnvelope
+
+    @POST("crm/properties/{id}/team-shares")
+    suspend fun grantPropertyTeamShare(
+        @Path("id") propertyId: Long,
+        @Body body: PropertyTeamShareGrantRequest,
+    ): ApiEnvelope
+
+    @DELETE("crm/properties/{id}/team-shares")
+    suspend fun revokePropertyTeamShare(
+        @Path("id") propertyId: Long,
+        @Query("share_id") shareId: Long,
+    ): ApiEnvelope
+
     @POST("crm/properties/{id}/contacts")
     suspend fun linkPropertyContact(
         @Path("id") propertyId: Long,
@@ -483,6 +575,9 @@ interface MobileApi {
     @GET("filing/listings/{token}")
     suspend fun getListingDetail(@Path("token") token: String): ApiEnvelope
 
+    @GET("filing/listings/{token}/benchmark")
+    suspend fun getListingBenchmark(@Path("token") token: String): ApiEnvelope
+
     @PATCH("filing/listings/{token}")
     suspend fun updateListing(
         @Path("token") token: String,
@@ -526,10 +621,14 @@ interface MobileApi {
     suspend fun searchListings(
         @Query("q") query: String? = null,
         @Query("dataset_id") datasetId: String? = null,
+        @Query("dataset_ids") datasetIds: String? = null,
         @Query("page") page: Int = 1,
         @Query("page_size") pageSize: Int = 30,
         @QueryMap filters: Map<String, String> = emptyMap(),
     ): ApiEnvelope
+
+    @GET("filing/listings/map")
+    suspend fun getFilingListingsMap(@QueryMap params: Map<String, String>): ApiEnvelope
 
     @GET("extractions/limits")
     suspend fun extractionLimits(): ApiEnvelope
@@ -704,10 +803,58 @@ interface MobileApi {
     suspend fun markTeamPanelNotifications(@Body body: TeamActionRequest): ApiEnvelope
 
     @GET("crm/team/inbox")
-    suspend fun getTeamLeadInbox(): ApiEnvelope
+    suspend fun getTeamLeadInbox(@Query("filter") filter: String? = null): ApiEnvelope
 
     @POST("crm/team/inbox")
     suspend fun assignTeamLeads(@Body body: TeamAssignLeadsRequest): ApiEnvelope
+
+    @POST("crm/team/leads/{id}/assign")
+    suspend fun assignTeamLead(
+        @Path("id") customerId: Long,
+        @Body body: TeamLeadAssignRequest,
+    ): ApiEnvelope
+
+    @POST("crm/team/leads/{id}/transfer")
+    suspend fun transferTeamLead(
+        @Path("id") customerId: Long,
+        @Body body: TeamLeadTransferRequest,
+    ): ApiEnvelope
+
+    @GET("agency/home")
+    suspend fun getAgencyHome(): ApiEnvelope
+
+    @GET("agency/advisors")
+    suspend fun getAgencyAdvisors(
+        @Query("q") query: String? = null,
+        @Query("status") status: String? = null,
+    ): ApiEnvelope
+
+    @GET("agency/advisors/{id}")
+    suspend fun getAgencyAdvisorDetail(@Path("id") memberId: Long): ApiEnvelope
+
+    @POST("agency/advisors/{id}/actions")
+    suspend fun agencyAdvisorAction(
+        @Path("id") memberId: Long,
+        @Body body: AgencyAdvisorActionRequest,
+    ): ApiEnvelope
+
+    @POST("agency/invitations")
+    suspend fun createAgencyInvitation(@Body body: AgencyInviteRequest): ApiEnvelope
+
+    @POST("agency/invitations/{id}")
+    suspend fun agencyInvitationAction(
+        @Path("id") invitationId: Long,
+        @Body body: AgencyInvitationActionRequest,
+    ): ApiEnvelope
+
+    @GET("agency/seats")
+    suspend fun getAgencySeats(): ApiEnvelope
+
+    @POST("agency/seats")
+    suspend fun mutateAgencySeat(@Body body: AgencySeatMutationRequest): ApiEnvelope
+
+    @GET("agency/performance")
+    suspend fun getAgencyPerformance(@Query("days") days: Int? = null): ApiEnvelope
 
     @POST("crm/contacts/{id}/assign")
     suspend fun assignContact(

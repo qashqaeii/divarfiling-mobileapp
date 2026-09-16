@@ -18,10 +18,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.FormatUtils
-import androidx.compose.foundation.layout.statusBarsPadding
 import android.content.Intent
 import android.net.Uri
-import ir.divarfiling.mobile.core.AppLinks
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -114,6 +113,7 @@ fun ContactsScreen(
     onContactSuggest: (Long) -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
+    onNavigateWebBridge: (String) -> Unit = {},
     viewModel: ContactsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -141,6 +141,13 @@ fun ContactsScreen(
             viewModel.clearExportMessage()
         }
         state.error?.let { snackbar.showSnackbar(it) }
+    }
+
+    LaunchedEffect(state.webBridgeUrl) {
+        state.webBridgeUrl?.let {
+            onNavigateWebBridge(it)
+            viewModel.consumeWebBridge()
+        }
     }
 
     LaunchedEffect(state.customerTypeFilter, state.statusFilter) {
@@ -332,22 +339,8 @@ fun ContactsScreen(
                 }
                 item {
                     ContactsToolsPanel(
-                        onDownloadTemplate = {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT_TEMPLATE),
-                                ),
-                            )
-                        },
-                        onBulkImport = {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT),
-                                ),
-                            )
-                        },
+                        onDownloadTemplate = { viewModel.openContactImportTemplateBridge() },
+                        onBulkImport = { viewModel.openContactImportBridge() },
                         onExportClick = viewModel::openExportSheet,
                         exportPreviewCount = filteredContacts.size,
                         hasActiveFilters = hasActiveListFilters,
@@ -541,11 +534,7 @@ fun ContactsScreen(
             add(
                 DfMoreAction(
                     label = "ورود گروهی از فایل",
-                    onClick = {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_CONTACT_IMPORT)),
-                        )
-                    },
+                    onClick = { viewModel.openContactImportBridge() },
                     icon = DfIcons.Upload,
                 ),
             )

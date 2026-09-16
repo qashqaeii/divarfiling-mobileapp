@@ -65,6 +65,9 @@ object DealsFilters {
         return ((closed.toDouble() / decided) * 100).toInt()
     }
 
+    fun isTerminalStage(stage: String?, defs: List<DealStageDefDto> = emptyList()): Boolean =
+        isClosed(stage, defs) || isLost(stage, defs)
+
     fun progressPercent(deal: DealDto, defs: List<DealStageDefDto> = emptyList()): Int =
         deal.probability ?: stageProbability(deal.stage, defs)
 

@@ -36,6 +36,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.ui.Alignment
+import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSoftChip
+import ir.divarfiling.mobile.feature.filing.components.FilingDatasetSelectorSheet
+import ir.divarfiling.mobile.feature.filing.map.FilingDatasetSelectionLabels
+import ir.divarfiling.mobile.feature.filing.map.FilingOsmdroidMap
+import ir.divarfiling.mobile.feature.filing.map.MapListingPreviewCard
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DossierShareFormatter
 import ir.divarfiling.mobile.core.design.DfIcons
@@ -613,8 +624,17 @@ fun FilingSearchScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbar = remember { SnackbarHostState() }
     var showFilters by remember { mutableStateOf(false) }
     val filterCount = activeListingFilterCount(state.filters)
+    val datasetLabel = FilingDatasetSelectionLabels.toolbarLabel(
+        state.selectedDatasetIds.size,
+        DateUtils::toPersianDigits,
+    )
+    val mapMarkers = state.mapData?.markers.orEmpty().filter {
+        !it.token.isNullOrBlank() && it.lat != null && it.lng != null
+    }
+    val selectedMapMarker = mapMarkers.firstOrNull { it.token == state.selectedMapToken }
 
     LaunchedEffect(initialQuery) {
         if (initialQuery.isNotBlank()) viewModel.setInitialQuery(initialQuery)
@@ -622,6 +642,15 @@ fun FilingSearchScreen(
 
     LaunchedEffect(initialRetentionWarning) {
         if (initialRetentionWarning) viewModel.setInitialRetentionWarningFilter()
+    }
+
+    LaunchedEffect(state.snackbarMessage) {
+        val message = state.snackbarMessage ?: return@LaunchedEffect
+        val result = snackbar.showSnackbar(message = message, actionLabel = "تلاش مجدد")
+        viewModel.clearSnackbar()
+        if (result == SnackbarResult.ActionPerformed) {
+            viewModel.retryMapLoad()
+        }
     }
 
     if (state.showSaveFilterDialog) {
@@ -658,110 +687,254 @@ fun FilingSearchScreen(
         },
     )
 
+    FilingDatasetSelectorSheet(
+        visible = state.showDatasetSelector,
+        datasets = state.datasets,
+        searchQuery = state.datasetSearchQuery,
+        draftSelectedIds = state.draftDatasetIds,
+        onSearchChange = viewModel::onDatasetSearchChange,
+        onToggleAll = viewModel::toggleDraftAllDatasets,
+        onToggleDataset = viewModel::toggleDraftDataset,
+        onClear = viewModel::clearDraftDatasets,
+        onApply = viewModel::applyDatasetSelection,
+        onDismiss = viewModel::dismissDatasetSelector,
+    )
+
     Scaffold(
         containerColor = DfScreenContainerColor,
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        DfPullRefresh(
-            isRefreshing = state.isRefreshing,
-            onRefresh = viewModel::refresh,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .statusBarsPadding(),
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = AppSpacing.xl),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+        if (!initialRetentionWarning && state.browseMode == FilingBrowseMode.MAP) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .statusBarsPadding(),
             ) {
-                item {
+                FilingOsmdroidMap(
+                    markers = mapMarkers,
+                    selectedToken = state.selectedMapToken,
+                    onMarkerClick = viewModel::selectMapMarker,
+                    modifier = Modifier.fillMaxSize(),
+                    autoFitMarkers = state.mapViewport == null && mapMarkers.isNotEmpty(),
+                    restoreViewport = state.mapViewport,
+                    onViewportChanged = viewModel::onMapViewportChanged,
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter),
+                ) {
                     DfHubPageHeader(
-                        title = if (initialRetentionWarning) "در آستانه پاک‌سازی" else "جستجوی فایلینگ",
-                        subtitle = if (initialRetentionWarning) {
-                            "فایل‌های بدون فعالیت که به‌زودی حذف می‌شوند"
-                        } else {
-                            "جستجو در همه فایل‌های استخراج‌شده"
-                        },
+                        title = "همه آگهی‌ها",
+                        subtitle = datasetLabel,
                         sectionLabel = DfHeaderSections.FILING,
                         titleIconRes = DfDecorIcons.Search,
                         onBack = onBack,
                     )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    ) {
+                        DfSoftChip(
+                            text = "لیست",
+                            selected = false,
+                            onClick = { viewModel.setBrowseMode(FilingBrowseMode.LIST) },
+                        )
+                        DfSoftChip(
+                            text = "نقشه",
+                            selected = true,
+                            onClick = { },
+                        )
+                        DfSoftChip(
+                            text = datasetLabel,
+                            selected = state.selectedDatasetIds.isNotEmpty(),
+                            onClick = viewModel::openDatasetSelector,
+                        )
+                        DfSoftChip(
+                            text = if (filterCount > 0) "فیلتر ($filterCount)" else "فیلتر",
+                            selected = filterCount > 0,
+                            onClick = { showFilters = true },
+                        )
+                    }
                 }
-                item {
-                    ListingsSearchFilterPanel(
-                        query = state.query,
-                        onQueryChange = viewModel::onQueryChange,
-                        onSearch = { viewModel.search(reset = true) },
-                        activeFilterCount = filterCount,
-                        onOpenFilters = { showFilters = true },
-                        savedFiltersSlot = {
-                            SavedFiltersChipRow(
-                                filters = state.savedFilters,
-                                activeId = state.activeSavedFilterId,
-                                onSelect = viewModel::applySavedFilter,
-                                onPin = viewModel::pinSavedFilter,
-                                onDelete = viewModel::deleteSavedFilter,
-                            )
-                        },
-                        activeFilterChips = {
-                            ListingsActiveFilterChips(
-                                filters = state.filters,
-                                formatPrice = ::formatFilterNumber,
-                                onClear = viewModel::clearFilters,
-                            )
-                        },
+                if (state.mapLoading && mapMarkers.isEmpty()) {
+                    DfCardListSkeleton(
+                        count = 1,
+                        itemHeight = 120.dp,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
-                state.error?.let { error ->
-                    item {
-                        DfErrorBanner(
-                            error,
-                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                if (!state.mapLoading && mapMarkers.isEmpty()) {
+                    DfEmptyState(
+                        title = "هیچ آگهی مطابق فیلترها نیست",
+                        subtitle = "فیلترها یا فایل‌های انتخاب‌شده را تغییر دهید",
+                        variant = DfEmptyVariant.NoResults,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+                selectedMapMarker?.let { marker ->
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(AppSpacing.sm),
+                    ) {
+                        MapListingPreviewCard(
+                            marker = marker,
+                            onOpen = { marker.token?.let(onListingClick) },
+                            onNavigate = {
+                                val lat = marker.lat ?: return@MapListingPreviewCard
+                                val lng = marker.lng ?: return@MapListingPreviewCard
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse("geo:$lat,$lng?q=$lat,$lng")),
+                                )
+                            },
+                            onDismiss = { viewModel.selectMapMarker(null) },
+                        )
+                        DfPrimaryButton(
+                            text = "مشاهده آگهی",
+                            onClick = { marker.token?.let(onListingClick) },
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
-                if (state.query.isBlank()) {
+            }
+        } else {
+            DfPullRefresh(
+                isRefreshing = state.isRefreshing,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .statusBarsPadding(),
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = AppSpacing.xl),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                ) {
                     item {
-                        DfEmptyState(
-                            title = "جستجو در همه فایل‌ها",
-                            subtitle = "عبارت مورد نظر را وارد کنید تا در تمام فایل‌ها جستجو شود",
-                            variant = DfEmptyVariant.Empty,
-                            icon = DfIcons.Search,
-                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        DfHubPageHeader(
+                            title = if (initialRetentionWarning) "در آستانه پاک‌سازی" else "همه آگهی‌ها",
+                            subtitle = if (initialRetentionWarning) {
+                                "فایل‌های بدون فعالیت که به‌زودی حذف می‌شوند"
+                            } else {
+                                datasetLabel
+                            },
+                            sectionLabel = DfHeaderSections.FILING,
+                            titleIconRes = DfDecorIcons.Search,
+                            onBack = onBack,
                         )
                     }
-                } else if (state.isLoading && state.listings.isEmpty()) {
-                    item {
-                        DfCardListSkeleton(
-                            count = 5,
-                            itemHeight = 280.dp,
-                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                        )
-                    }
-                } else if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
-                    item {
-                        DfEmptyState(
-                            title = "نتیجه‌ای یافت نشد",
-                            subtitle = "عبارت یا فیلترها را تغییر دهید",
-                            variant = DfEmptyVariant.NoResults,
-                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                        )
-                    }
-                } else {
-                    items(state.listings, key = { it.token }) { listing ->
-                        SearchListingItem(
-                            listing = listing,
-                            onClick = { onListingClick(listing.token) },
-                            context = context,
-                        )
-                    }
-                    if (state.hasMore) {
+                    if (!initialRetentionWarning) {
                         item {
-                            TextButton(
-                                onClick = viewModel::loadMore,
-                                modifier = Modifier.fillMaxWidth(),
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = AppSpacing.screenHorizontal),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                             ) {
-                                Text(if (state.isLoadingMore) "در حال بارگذاری…" else "بارگذاری بیشتر")
+                                DfSoftChip(
+                                    text = "لیست",
+                                    selected = state.browseMode == FilingBrowseMode.LIST,
+                                    onClick = { viewModel.setBrowseMode(FilingBrowseMode.LIST) },
+                                )
+                                DfSoftChip(
+                                    text = "نقشه",
+                                    selected = state.browseMode == FilingBrowseMode.MAP,
+                                    onClick = { viewModel.setBrowseMode(FilingBrowseMode.MAP) },
+                                )
+                                DfSoftChip(
+                                    text = datasetLabel,
+                                    selected = state.selectedDatasetIds.isNotEmpty(),
+                                    onClick = viewModel::openDatasetSelector,
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        ListingsSearchFilterPanel(
+                            query = state.query,
+                            onQueryChange = viewModel::onQueryChange,
+                            onSearch = { viewModel.search(reset = true) },
+                            activeFilterCount = filterCount,
+                            onOpenFilters = { showFilters = true },
+                            savedFiltersSlot = {
+                                SavedFiltersChipRow(
+                                    filters = state.savedFilters,
+                                    activeId = state.activeSavedFilterId,
+                                    onSelect = viewModel::applySavedFilter,
+                                    onPin = viewModel::pinSavedFilter,
+                                    onDelete = viewModel::deleteSavedFilter,
+                                )
+                            },
+                            activeFilterChips = {
+                                ListingsActiveFilterChips(
+                                    filters = state.filters,
+                                    formatPrice = ::formatFilterNumber,
+                                    onClear = viewModel::clearFilters,
+                                )
+                            },
+                        )
+                    }
+                    state.error?.let { error ->
+                        item {
+                            DfErrorBanner(
+                                error,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                    }
+                    if (state.query.isBlank() && !state.filters.retentionWarning) {
+                        item {
+                            DfEmptyState(
+                                title = "جستجو در همه فایل‌ها",
+                                subtitle = "عبارت مورد نظر را وارد کنید یا به حالت نقشه بروید",
+                                variant = DfEmptyVariant.Empty,
+                                icon = DfIcons.Search,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                    } else if (state.isLoading && state.listings.isEmpty()) {
+                        item {
+                            DfCardListSkeleton(
+                                count = 5,
+                                itemHeight = 280.dp,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                    } else if (!state.isLoading && state.listings.isEmpty() && state.error == null) {
+                        item {
+                            DfEmptyState(
+                                title = "نتیجه‌ای یافت نشد",
+                                subtitle = "عبارت یا فیلترها را تغییر دهید",
+                                variant = DfEmptyVariant.NoResults,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                    } else {
+                        items(state.listings, key = { it.token }) { listing ->
+                            SearchListingItem(
+                                listing = listing,
+                                onClick = { onListingClick(listing.token) },
+                                context = context,
+                            )
+                        }
+                        if (state.hasMore) {
+                            item {
+                                TextButton(
+                                    onClick = viewModel::loadMore,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(if (state.isLoadingMore) "در حال بارگذاری…" else "بارگذاری بیشتر")
+                                }
                             }
                         }
                     }

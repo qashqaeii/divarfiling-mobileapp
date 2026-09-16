@@ -826,6 +826,7 @@ data class DealDto(
     @SerialName("lost_reason") val lostReason: String? = null,
     @SerialName("contract_number") val contractNumber: String? = null,
     @SerialName("contract_amount") val contractAmount: Long? = null,
+    @SerialName("contract_date") val contractDate: String? = null,
     @SerialName("expected_close_date") val expectedCloseDate: String? = null,
     @SerialName("is_stale") val isStale: Boolean = false,
     @SerialName("days_in_stage") val daysInStage: Int = 0,
@@ -889,6 +890,129 @@ data class DealTimelineItemDto(
     val body: String? = null,
     val icon: String? = null,
     @SerialName("type_label") val typeLabel: String? = null,
+)
+
+@Serializable
+data class DealJourneyCtaDto(
+    val label: String = "",
+    val description: String = "",
+    val kind: String = "primary",
+    val action: String = "",
+    @SerialName("web_path") val webPath: String = "",
+)
+
+@Serializable
+data class DealJourneySecondaryDto(
+    val label: String = "",
+    val action: String = "",
+    @SerialName("web_path") val webPath: String = "",
+    val warn: Boolean = false,
+)
+
+@Serializable
+data class DealJourneyData(
+    val headline: String = "",
+    val subline: String = "",
+    @SerialName("stage_kind") val stageKind: String = "",
+    @SerialName("is_stale") val isStale: Boolean = false,
+    val primary: DealJourneyCtaDto = DealJourneyCtaDto(),
+    val secondary: List<DealJourneySecondaryDto> = emptyList(),
+    @SerialName("create_contract_path") val createContractPath: String = "",
+)
+
+@Serializable
+data class DealContractWorkspacePathsDto(
+    val wizard: String = "",
+    val manage: String = "",
+)
+
+@Serializable
+data class DealContractItemDto(
+    val id: Long,
+    @SerialName("contract_type") val contractType: String = "",
+    @SerialName("contract_type_label") val contractTypeLabel: String = "",
+    @SerialName("internal_number") val internalNumber: String = "",
+    val status: String = "",
+    @SerialName("status_label") val statusLabel: String = "",
+    val parties: List<String> = emptyList(),
+    @SerialName("signature_status") val signatureStatus: String = "",
+    @SerialName("handover_status") val handoverStatus: String = "",
+    @SerialName("updated_at") val updatedAt: String? = null,
+    val cta: String = "",
+    @SerialName("workspace_paths") val workspacePaths: DealContractWorkspacePathsDto = DealContractWorkspacePathsDto(),
+    @SerialName("next_action") val nextAction: ContractNextActionDto = ContractNextActionDto(),
+)
+
+@Serializable
+data class DealContractsData(
+    @SerialName("deal_id") val dealId: Long = 0,
+    val locked: Boolean = false,
+    @SerialName("recommended_type") val recommendedType: String = "sale",
+    val count: Int = 0,
+    @SerialName("has_finalized_digital") val hasFinalizedDigital: Boolean = false,
+    @SerialName("contract_metadata_locked") val contractMetadataLocked: Boolean = false,
+    val items: List<DealContractItemDto> = emptyList(),
+)
+
+@Serializable
+data class DealContractCreateRequest(
+    @SerialName("contract_type") val contractType: String? = null,
+)
+
+@Serializable
+data class DuplicateDealCheckData(
+    val duplicate: Boolean = false,
+    val deal: DealDto? = null,
+)
+
+@Serializable
+data class DealCommissionMemberDto(
+    @SerialName("member_id") val memberId: Long,
+    val name: String = "",
+    val role: String = "",
+)
+
+@Serializable
+data class DealCommissionSplitRowDto(
+    @SerialName("member_id") val memberId: Long,
+    val name: String = "",
+    val role: String = "",
+    val percent: Double = 0.0,
+    val amount: Long? = null,
+)
+
+@Serializable
+data class DealCommissionSplitsData(
+    @SerialName("deal_id") val dealId: Long = 0,
+    @SerialName("total_commission") val totalCommission: Long = 0,
+    @SerialName("allocated_percent") val allocatedPercent: Double = 0.0,
+    @SerialName("is_complete") val isComplete: Boolean = true,
+    @SerialName("can_edit") val canEdit: Boolean = false,
+    val splits: List<DealCommissionSplitRowDto> = emptyList(),
+    @SerialName("available_members") val availableMembers: List<DealCommissionMemberDto> = emptyList(),
+)
+
+@Serializable
+data class DealCommissionSplitSaveRequest(
+    val splits: List<DealCommissionSplitSaveRow> = emptyList(),
+)
+
+@Serializable
+data class DealCommissionSplitSaveRow(
+    @SerialName("member_id") val memberId: Long,
+    val percent: Double,
+)
+
+@Serializable
+data class WorkspaceBridgeRequest(
+    val path: String,
+)
+
+@Serializable
+data class WorkspaceBridgeData(
+    @SerialName("bridge_url") val bridgeUrl: String,
+    val path: String = "",
+    @SerialName("expires_in") val expiresIn: Int = 300,
 )
 
 @Serializable
@@ -996,6 +1120,9 @@ data class DealUpdateRequest(
     @SerialName("property_id") val propertyId: Long? = null,
     @SerialName("expected_close_date") val expectedCloseDate: String? = null,
     @SerialName("listing_token") val listingToken: String? = null,
+    @SerialName("contract_number") val contractNumber: String? = null,
+    @SerialName("contract_amount") val contractAmount: Long? = null,
+    @SerialName("contract_date") val contractDate: String? = null,
 )
 
 @Serializable
@@ -2009,6 +2136,10 @@ data class DatasetMapMarkerDto(
     @SerialName("value_score") val valueScore: Double? = null,
     @SerialName("filter_value") val filterValue: Long? = null,
     @SerialName("location_label") val locationLabel: String? = null,
+    @SerialName("property_id") val propertyId: Long? = null,
+    @SerialName("transaction_status") val transactionStatus: String? = null,
+    @SerialName("dataset_id") val datasetId: String? = null,
+    @SerialName("dataset_name") val datasetName: String? = null,
     val color: String? = null,
     val quartile: Int? = null,
 )
@@ -2290,6 +2421,9 @@ data class TeamPermissionsDto(
     @SerialName("can_broadcast") val canBroadcast: Boolean = false,
     @SerialName("messages_enabled") val messagesEnabled: Boolean = false,
     @SerialName("announcements_enabled") val announcementsEnabled: Boolean = false,
+    @SerialName("can_manage_agency") val canManageAgency: Boolean = false,
+    @SerialName("can_invite") val canInvite: Boolean = false,
+    @SerialName("can_manage_seats") val canManageSeats: Boolean = false,
 )
 
 @Serializable
@@ -2440,6 +2574,217 @@ data class TeamLeadDto(
     val phone: String = "",
     val source: String = "",
     @SerialName("created_at") val createdAt: String = "",
+    @SerialName("need_summary") val needSummary: String = "",
+    @SerialName("assigned_to") val assignedTo: Long? = null,
+    val status: String = "",
+)
+
+@Serializable
+data class AgencyKpisDto(
+    @SerialName("active_members") val activeMembers: Int = 0,
+    @SerialName("unassigned_leads") val unassignedLeads: Int = 0,
+    @SerialName("team_followups_today") val teamFollowupsToday: Int = 0,
+    @SerialName("active_deals") val activeDeals: Int = 0,
+)
+
+@Serializable
+data class AgencySeatsSummaryDto(
+    val total: Int = 0,
+    val assigned: Int = 0,
+    val available: Int = 0,
+    val purchased: Int = 0,
+    @SerialName("expires_at") val expiresAt: String = "",
+    val status: String = "",
+)
+
+@Serializable
+data class AgencyAttentionDto(
+    val kind: String = "",
+    val title: String = "",
+    val subtitle: String = "",
+    val count: Int = 0,
+    val level: String = "",
+)
+
+@Serializable
+data class AgencyHomeDto(
+    @SerialName("has_agency") val hasAgency: Boolean = false,
+    val agency: TeamAgencyDto? = null,
+    val membership: TeamMembershipDto? = null,
+    val permissions: TeamPermissionsDto = TeamPermissionsDto(),
+    val unread: TeamUnreadDto = TeamUnreadDto(),
+    @SerialName("members_count") val membersCount: Int = 0,
+    @SerialName("inbox_leads_count") val inboxLeadsCount: Int = 0,
+    val kpis: AgencyKpisDto = AgencyKpisDto(),
+    val attention: List<AgencyAttentionDto> = emptyList(),
+    val seats: AgencySeatsSummaryDto? = null,
+)
+
+@Serializable
+data class AgencyAdvisorDto(
+    val id: Long,
+    @SerialName("user_id") val userId: Long = 0,
+    val name: String = "",
+    val phone: String = "",
+    val role: String = "",
+    @SerialName("role_label") val roleLabel: String = "",
+    val title: String = "",
+    @SerialName("is_active") val isActive: Boolean = true,
+    @SerialName("has_seat") val hasSeat: Boolean = false,
+    @SerialName("license_id") val licenseId: Long? = null,
+    val sequence: Int? = null,
+    val plan: String = "",
+    @SerialName("active_leads") val activeLeads: Int = 0,
+    @SerialName("active_deals") val activeDeals: Int = 0,
+    @SerialName("membership_status") val membershipStatus: String = "",
+)
+
+@Serializable
+data class AgencyInvitationDto(
+    val id: Long,
+    val phone: String = "",
+    val role: String = "",
+    @SerialName("role_label") val roleLabel: String = "",
+    val status: String = "",
+    @SerialName("expires_at") val expiresAt: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+)
+
+@Serializable
+data class AgencyAdvisorsPayload(
+    val advisors: List<AgencyAdvisorDto> = emptyList(),
+    val invitations: List<AgencyInvitationDto> = emptyList(),
+    val count: Int = 0,
+)
+
+@Serializable
+data class AgencyMemberPerformanceDto(
+    val contacts: Int = 0,
+    val calls: Int = 0,
+    val visits: Int = 0,
+    @SerialName("active_deals") val activeDeals: Int = 0,
+    @SerialName("deals_closed") val dealsClosed: Int = 0,
+    @SerialName("score_pct") val scorePct: Int = 0,
+    val rank: Int? = null,
+)
+
+@Serializable
+data class AgencyAdvisorDetailPayload(
+    val member: TeamMemberDto,
+    @SerialName("membership_status") val membershipStatus: String = "",
+    val email: String = "",
+    val seat: AgencyAdvisorSeatDto = AgencyAdvisorSeatDto(),
+    val performance: AgencyMemberPerformanceDto = AgencyMemberPerformanceDto(),
+    @SerialName("recent_activity") val recentActivity: List<AgencyActivityDto> = emptyList(),
+    val permissions: AgencyAdvisorPermissionsDto = AgencyAdvisorPermissionsDto(),
+)
+
+@Serializable
+data class AgencyAdvisorSeatDto(
+    @SerialName("has_seat") val hasSeat: Boolean = false,
+    @SerialName("license_id") val licenseId: Long? = null,
+    val sequence: Int? = null,
+    val plan: String = "",
+    val status: String = "",
+    @SerialName("expires_at") val expiresAt: String = "",
+)
+
+@Serializable
+data class AgencyAdvisorPermissionsDto(
+    @SerialName("can_manage_member") val canManageMember: Boolean = false,
+    @SerialName("can_manage_seat") val canManageSeat: Boolean = false,
+    @SerialName("can_transfer_leads") val canTransferLeads: Boolean = false,
+)
+
+@Serializable
+data class AgencyActivityDto(
+    val id: Long,
+    @SerialName("event_type") val eventType: String = "",
+    val title: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+    @SerialName("actor_name") val actorName: String = "",
+)
+
+@Serializable
+data class AgencySeatsPayload(
+    val seats: AgencySeatsSummaryDto? = null,
+    val members: List<AgencyAdvisorDto> = emptyList(),
+    @SerialName("available_licenses") val availableLicenses: List<AgencyAvailableLicenseDto> = emptyList(),
+)
+
+@Serializable
+data class AgencyAvailableLicenseDto(
+    val id: Long,
+    val sequence: Int = 0,
+    val plan: String = "",
+)
+
+@Serializable
+data class AgencyPerformanceMemberDto(
+    @SerialName("member_id") val memberId: Long? = null,
+    @SerialName("user_id") val userId: Long? = null,
+    val name: String = "",
+    val role: String = "",
+    val contacts: Int = 0,
+    val calls: Int = 0,
+    val visits: Int = 0,
+    @SerialName("active_deals") val activeDeals: Int = 0,
+    @SerialName("deals_closed") val dealsClosed: Int = 0,
+    @SerialName("score_pct") val scorePct: Int = 0,
+    val rank: Int? = null,
+)
+
+@Serializable
+data class AgencyPerformancePayload(
+    val days: Int = 7,
+    val totals: Map<String, Int> = emptyMap(),
+    val members: List<AgencyPerformanceMemberDto> = emptyList(),
+    val goals: List<AgencyTeamGoalDto> = emptyList(),
+)
+
+@Serializable
+data class AgencyTeamGoalDto(
+    @SerialName("member_name") val memberName: String = "",
+    val metric: String = "",
+    val target: Int = 0,
+    val actual: Int = 0,
+    val pct: Int = 0,
+    @SerialName("period_label") val periodLabel: String = "",
+)
+
+@Serializable
+data class AgencyAdvisorActionRequest(
+    val action: String,
+    val role: String? = null,
+)
+
+@Serializable
+data class AgencyInviteRequest(
+    val phone: String,
+    val role: String = "advisor",
+)
+
+@Serializable
+data class AgencyInvitationActionRequest(
+    val action: String,
+)
+
+@Serializable
+data class AgencySeatMutationRequest(
+    val action: String = "assign",
+    @SerialName("license_id") val licenseId: Long,
+    @SerialName("member_user_id") val memberUserId: Long? = null,
+)
+
+@Serializable
+data class TeamLeadAssignRequest(
+    @SerialName("member_id") val memberId: Long,
+)
+
+@Serializable
+data class TeamLeadTransferRequest(
+    @SerialName("member_id") val memberId: Long,
+    val note: String? = null,
 )
 
 @Serializable
@@ -2469,4 +2814,241 @@ data class ContactTeamTransferRequest(
 data class TeamActionRequest(
     val action: String = "read",
     @SerialName("notification_id") val notificationId: Long? = null,
+)
+
+@Serializable
+data class ContractNextActionDto(
+    val label: String = "",
+    val action: String = "",
+    @SerialName("web_path") val webPath: String = "",
+    @SerialName("native_target") val nativeTarget: String = "",
+)
+
+@Serializable
+data class ContractListItemDto(
+    val id: Long,
+    val title: String = "",
+    @SerialName("contract_type") val contractType: String = "",
+    @SerialName("contract_type_label") val contractTypeLabel: String = "",
+    @SerialName("internal_number") val internalNumber: String = "",
+    val status: String = "",
+    @SerialName("status_label") val statusLabel: String = "",
+    val parties: List<String> = emptyList(),
+    @SerialName("primary_party") val primaryParty: String = "",
+    @SerialName("signature_status") val signatureStatus: String = "",
+    @SerialName("handover_status") val handoverStatus: String = "",
+    @SerialName("deal_id") val dealId: Long? = null,
+    @SerialName("deal_title") val dealTitle: String = "",
+    @SerialName("property_title") val propertyTitle: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    val cta: String = "",
+    @SerialName("workspace_paths") val workspacePaths: DealContractWorkspacePathsDto = DealContractWorkspacePathsDto(),
+    @SerialName("next_action") val nextAction: ContractNextActionDto = ContractNextActionDto(),
+)
+
+@Serializable
+data class ContractListStatsDto(
+    val all: Int = 0,
+    val draft: Int = 0,
+    @SerialName("needs_action") val needsAction: Int = 0,
+    @SerialName("awaiting_acceptance") val awaitingAcceptance: Int = 0,
+    val finalized: Int = 0,
+)
+
+@Serializable
+data class ContractsListData(
+    val items: List<ContractListItemDto> = emptyList(),
+    val stats: ContractListStatsDto = ContractListStatsDto(),
+)
+
+@Serializable
+data class ContractCreateRequest(
+    @SerialName("contract_type") val contractType: String,
+    @SerialName("deal_id") val dealId: Long? = null,
+)
+
+@Serializable
+data class ContractSignatureRowDto(
+    val kind: String = "",
+    val role: String = "",
+    @SerialName("role_label") val roleLabel: String = "",
+    val name: String = "",
+    val status: String = "",
+    @SerialName("status_label") val statusLabel: String = "",
+    val accepted: Boolean = false,
+)
+
+@Serializable
+data class ContractClauseSummaryDto(
+    val title: String = "",
+)
+
+@Serializable
+data class ContractHandoverSummaryDto(
+    val exists: Boolean = false,
+    val id: Long? = null,
+    val status: String = "",
+    @SerialName("status_label") val statusLabel: String = "",
+    @SerialName("handover_type_label") val handoverTypeLabel: String = "",
+    @SerialName("handover_date") val handoverDate: String? = null,
+    val summary: String = "",
+    @SerialName("next_action") val nextAction: ContractNextActionDto? = null,
+)
+
+@Serializable
+data class ContractAttachmentsMetaDto(
+    @SerialName("max_size_bytes") val maxSizeBytes: Long = 0,
+    @SerialName("allowed_extensions") val allowedExtensions: List<String> = emptyList(),
+)
+
+@Serializable
+data class ContractDetailDto(
+    val id: Long = 0,
+    val title: String = "",
+    @SerialName("contract_type") val contractType: String = "",
+    @SerialName("contract_type_label") val contractTypeLabel: String = "",
+    @SerialName("internal_number") val internalNumber: String = "",
+    val status: String = "",
+    @SerialName("status_label") val statusLabel: String = "",
+    @SerialName("deal_id") val dealId: Long? = null,
+    @SerialName("deal_title") val dealTitle: String = "",
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("next_action") val nextAction: ContractNextActionDto = ContractNextActionDto(),
+    @SerialName("workspace_paths") val workspacePaths: DealContractWorkspacePathsDto = DealContractWorkspacePathsDto(),
+    val summary: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    @SerialName("parties_detail") val partiesDetail: kotlinx.serialization.json.JsonElement? = null,
+    val property: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    val financial: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    val clauses: List<ContractClauseSummaryDto> = emptyList(),
+    @SerialName("clauses_edit_path") val clausesEditPath: String = "",
+    val signatures: List<ContractSignatureRowDto> = emptyList(),
+    val handover: ContractHandoverSummaryDto = ContractHandoverSummaryDto(),
+    @SerialName("attachments_meta") val attachmentsMeta: ContractAttachmentsMetaDto = ContractAttachmentsMetaDto(),
+    @SerialName("can_edit_clauses") val canEditClauses: Boolean = false,
+)
+
+@Serializable
+data class ContractTimelineItemDto(
+    val id: Long,
+    @SerialName("event_type") val eventType: String = "",
+    val label: String = "",
+    val detail: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class ContractAttachmentDto(
+    val id: Long,
+    val title: String = "",
+    @SerialName("attachment_type") val attachmentType: String = "",
+    @SerialName("mime_type") val mimeType: String = "",
+    @SerialName("file_size") val fileSize: Long = 0,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("can_delete") val canDelete: Boolean = false,
+)
+
+@Serializable
+data class ContractAttachmentsData(
+    val items: List<ContractAttachmentDto> = emptyList(),
+)
+
+@Serializable
+data class ContractTimelineData(
+    val items: List<ContractTimelineItemDto> = emptyList(),
+)
+
+@Serializable
+data class GlobalSearchDestinationDto(
+    val kind: String = "",
+    @SerialName("contact_id") val contactId: Long? = null,
+    @SerialName("property_id") val propertyId: Long? = null,
+    @SerialName("deal_id") val dealId: Long? = null,
+    val token: String? = null,
+    @SerialName("dataset_id") val datasetId: String? = null,
+    val id: String? = null,
+)
+
+@Serializable
+data class GlobalSearchItemDto(
+    val type: String = "",
+    val id: String = "",
+    val title: String = "",
+    val subtitle: String = "",
+    val meta: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    val destination: GlobalSearchDestinationDto = GlobalSearchDestinationDto(),
+)
+
+@Serializable
+data class GlobalSearchGroupDto(
+    val key: String = "",
+    val label: String = "",
+    val items: List<GlobalSearchItemDto> = emptyList(),
+)
+
+@Serializable
+data class GlobalSearchData(
+    val query: String = "",
+    val groups: List<GlobalSearchGroupDto> = emptyList(),
+    @SerialName("min_query_length") val minQueryLength: Int = 2,
+)
+
+@Serializable
+data class CrmPropertyMapData(
+    val markers: List<DatasetMapMarkerDto> = emptyList(),
+    @SerialName("geo_count") val geoCount: Int = 0,
+    @SerialName("markers_shown") val markersShown: Int = 0,
+    @SerialName("markers_truncated") val markersTruncated: Boolean = false,
+    val config: DatasetMapConfigDto? = null,
+)
+
+@Serializable
+data class PropertyTeamShareRowDto(
+    val id: Long,
+    @SerialName("user_id") val userId: Long? = null,
+    val name: String = "",
+    @SerialName("share_mode") val shareMode: String = "",
+    @SerialName("share_mode_label") val shareModeLabel: String = "",
+    val note: String = "",
+)
+
+@Serializable
+data class PropertyTeamShareModeDto(
+    val value: String = "",
+    val label: String = "",
+)
+
+@Serializable
+data class PropertyTeamSharesData(
+    @SerialName("property_id") val propertyId: Long = 0,
+    @SerialName("is_owner") val isOwner: Boolean = false,
+    @SerialName("can_share") val canShare: Boolean = false,
+    val shares: List<PropertyTeamShareRowDto> = emptyList(),
+    @SerialName("share_modes") val shareModes: List<PropertyTeamShareModeDto> = emptyList(),
+    val members: List<TeamMemberDto> = emptyList(),
+)
+
+@Serializable
+data class PropertyTeamShareGrantRequest(
+    @SerialName("member_id") val memberId: Long,
+    @SerialName("share_mode") val shareMode: String = "confidential",
+)
+
+@Serializable
+data class ListingBenchmarkData(
+    val status: String = "",
+    val message: String = "",
+    @SerialName("listing_token") val listingToken: String = "",
+    val summary: ListingMarketBenchmarkDto? = null,
+    val benchmark: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    @SerialName("sample_count") val sampleCount: Int = 0,
+)
+
+@Serializable
+data class FilingListingsMapData(
+    val markers: List<DatasetMapMarkerDto> = emptyList(),
+    @SerialName("geo_count") val geoCount: Int = 0,
+    @SerialName("markers_shown") val markersShown: Int = 0,
+    @SerialName("markers_truncated") val markersTruncated: Boolean = false,
+    val config: DatasetMapConfigDto? = null,
 )

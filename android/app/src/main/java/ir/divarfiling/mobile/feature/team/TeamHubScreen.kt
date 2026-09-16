@@ -1,7 +1,5 @@
 package ir.divarfiling.mobile.feature.team
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,13 +27,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
@@ -43,7 +41,6 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
-import ir.divarfiling.mobile.core.design.components.DfContinueOnWebRow
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
@@ -63,17 +60,27 @@ fun TeamHubScreen(
     onOpenMembers: () -> Unit,
     onOpenAnnouncements: () -> Unit,
     onOpenInbox: () -> Unit,
+    onOpenPerformance: () -> Unit = {},
+    onOpenSeats: () -> Unit = {},
+    onOpenAdvanced: () -> Unit = {},
+    onNavigateWebBridge: (String) -> Unit = {},
     viewModel: TeamHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val context = LocalContext.current
-    val overview = state.overview
+    val home = state.home
     val pad = teamHorizontalPadding()
 
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+    }
+
+    LaunchedEffect(state.webBridgeUrl) {
+        state.webBridgeUrl?.let {
+            onNavigateWebBridge(it)
+            viewModel.consumeWebBridge()
+        }
     }
 
     Scaffold(
@@ -106,7 +113,7 @@ fun TeamHubScreen(
                             DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
                         }
                     }
-                    overview?.hasAgency != true -> {
+                    home?.hasAgency != true -> {
                         LazyColumn(
                             contentPadding = teamListContentPadding(),
                             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
@@ -127,29 +134,38 @@ fun TeamHubScreen(
                                     subtitle = "برای پیام داخلی، اعضا و اعلامیه‌ها باید عضو یک آژانس باشید.",
                                     variant = DfEmptyVariant.Empty,
                                     actionLabel = "باز کردن میزکار تیم",
-                                    onAction = {
-                                        context.startActivity(
-                                            Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.WORKSPACE_TEAM)),
-                                        )
-                                    },
+                                    onAction = { viewModel.openTeamWorkspaceBridge() },
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
                             }
                         }
                     }
                     else -> {
-                        val agency = overview.agency
-                        val membership = overview.membership
-                        val perms = overview.permissions
-                        val unread = overview.unread
+                        val agency = home.agency
+                        val membership = home.membership
+                        val perms = home.permissions
+                        val unread = home.unread
+                        val kpis = home.kpis
+                        val seats = home.seats
                         LazyColumn(
                             contentPadding = teamListContentPadding(),
                             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                         ) {
                             item {
                                 DfHubPageHeader(
-                                    title = "میزکار آژانس",
-                                    subtitle = "نبض روزانه آژانس",
+                                    title = agency?.name ?: "میزکار آژانس",
+                                    subtitle = buildString {
+                                        append(membership?.roleLabel.orEmpty())
+                                        seats?.let { s ->
+                                            if (s.total > 0) {
+                                                append(" · ")
+                                                append(DateUtils.toPersianDigits(s.assigned.toString()))
+                                                append("/")
+                                                append(DateUtils.toPersianDigits(s.total.toString()))
+                                                append(" صندلی")
+                                            }
+                                        }
+                                    },
                                     sectionLabel = DfHeaderSections.TEAM,
                                 titleIconRes = DfDecorIcons.Users,
                                     userName = state.userName,
@@ -157,24 +173,63 @@ fun TeamHubScreen(
                                 )
                             }
                             item {
-                                TeamIdentityHero(
-                                    agencyName = agency?.name ?: "آژانس",
-                                    roleLabel = membership?.roleLabel.orEmpty(),
-                                    title = membership?.title.orEmpty(),
-                                    unreadTotal = unread.total,
+                                TeamMetricsRow(
+                                    metrics = listOf(
+                                        TeamMetric("اعضا", DateUtils.toPersianDigits(kpis.activeMembers.toString()), DfColors.Purple, DfIcons.Users),
+                                        TeamMetric("سرنخ", DateUtils.toPersianDigits(kpis.unassignedLeads.toString()), DfColors.Green, DfIcons.UserPlus),
+                                        TeamMetric("پیگیری", DateUtils.toPersianDigits(kpis.teamFollowupsToday.toString()), DfColors.Amber, DfIcons.Clock),
+                                        TeamMetric("معامله", DateUtils.toPersianDigits(kpis.activeDeals.toString()), DfColors.Blue, DfIcons.Handshake),
+                                    ),
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                            if (home.attention.isNotEmpty()) {
+                                item {
+                                    TeamSectionLabel(
+                                        title = "نیازمند توجه",
+                                        subtitle = "موارد مهم برای امروز",
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                                items(home.attention.take(4), key = { it.kind + it.title }) { item ->
+                                    DfCard(modifier = Modifier.padding(horizontal = pad)) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(item.title, fontWeight = FontWeight.SemiBold)
+                                            if (item.subtitle.isNotBlank()) {
+                                                Text(item.subtitle, style = AppTypography.bodyDescription)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            item {
+                                TeamSectionLabel(
+                                    title = "اقدام سریع",
+                                    subtitle = "عملیات روزانه مدیر آژانس",
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
                             }
                             item {
-                                TeamMetricsRow(
-                                    metrics = listOf(
-                                        TeamMetric("پیام", unread.messages.toString(), DfColors.Blue, DfIcons.MessageCircle),
-                                        TeamMetric("اعلامیه", unread.announcements.toString(), DfColors.Amber, DfIcons.Sparkles),
-                                        TeamMetric("اعلان", unread.notifications.toString(), DfColors.Rose, DfIcons.Bell),
-                                        TeamMetric("اعضا", overview.membersCount.toString(), DfColors.Purple, DfIcons.Users),
-                                    ),
-                                    modifier = Modifier.padding(horizontal = pad),
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = pad),
+                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                ) {
+                                    if (perms.canInvite) {
+                                        DfSoftChip(text = "دعوت مشاور", selected = false, onClick = onOpenMembers)
+                                    }
+                                    DfSoftChip(text = "اعضا", selected = false, onClick = onOpenMembers)
+                                    if (perms.canOperateInbox) {
+                                        DfSoftChip(text = "Inbox سرنخ", selected = false, onClick = onOpenInbox)
+                                    }
+                                    if (perms.canManage) {
+                                        DfSoftChip(text = "عملکرد تیم", selected = false, onClick = onOpenPerformance)
+                                    }
+                                    if (perms.canManageSeats) {
+                                        DfSoftChip(text = "صندلی‌ها", selected = false, onClick = onOpenSeats)
+                                    }
+                                }
                             }
                             item {
                                 TeamSectionLabel(
@@ -223,7 +278,7 @@ fun TeamHubScreen(
                                         title = "اعضا",
                                         subtitle = "نقش‌ها، عنوان‌ها و دسترسی‌های تیم",
                                         metricLabel = "نفر",
-                                        metricValue = overview.membersCount.toString(),
+                                        metricValue = home.membersCount.toString(),
                                         tint = DfColors.Purple,
                                         wash = DfColors.PurpleLight,
                                         icon = DfIcons.Users,
@@ -239,7 +294,7 @@ fun TeamHubScreen(
                                             title = "صندوق سرنخ",
                                             subtitle = "تخصیص سریع لیدهای در صف",
                                             metricLabel = "در صف",
-                                            metricValue = overview.inboxLeadsCount.toString(),
+                                            metricValue = home.inboxLeadsCount.toString(),
                                             tint = DfColors.Green,
                                             wash = DfColors.GreenLight,
                                             icon = DfIcons.UserPlus,
@@ -283,19 +338,20 @@ fun TeamHubScreen(
                                 }
                             }
                             item {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = pad),
-                                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                                ) {
-                                    DfContinueOnWebRow(
-                                        title = "Agency TV",
-                                        subtitle = "نمایش زنده فایل‌ها روی تلویزیون آژانس",
-                                        url = AppLinks.WORKSPACE_TEAM_TV,
+                                if (perms.canManageAgency) {
+                                    DfSecondaryButton(
+                                        text = "تنظیمات پیشرفته",
+                                        onClick = onOpenAdvanced,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = pad),
                                     )
-                                    DfContinueOnWebRow(
-                                        title = "گزارش مدیریتی آژانس",
-                                        subtitle = "خروجی CSV عملکرد تیم در میزکار وب",
-                                        url = AppLinks.WORKSPACE_TEAM_REPORT,
+                                } else {
+                                    Text(
+                                        text = "وب‌هوک، ممیزی و TV فقط برای مدیر آژانس در میزکار در دسترس است.",
+                                        style = AppTypography.bodyDescription,
+                                        color = DfThemeColors.textMuted(),
+                                        modifier = Modifier.padding(horizontal = pad),
                                     )
                                 }
                             }

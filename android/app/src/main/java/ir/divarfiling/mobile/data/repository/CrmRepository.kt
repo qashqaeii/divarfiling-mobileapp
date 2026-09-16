@@ -34,8 +34,10 @@ import ir.divarfiling.mobile.core.network.SyncOperation
 import ir.divarfiling.mobile.core.network.SyncPushRequest
 import ir.divarfiling.mobile.core.network.TodayActionRequest
 import ir.divarfiling.mobile.core.network.TodayData
-import ir.divarfiling.mobile.core.network.parseData
+import ir.divarfiling.mobile.core.network.WorkspaceBridgeData
+import ir.divarfiling.mobile.core.network.WorkspaceBridgeRequest
 import ir.divarfiling.mobile.core.network.requireData
+import ir.divarfiling.mobile.core.WorkspaceBridgePaths
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -518,4 +520,14 @@ class CrmRepository @Inject constructor(
         status = status,
         updatedAt = updatedAt,
     )
+
+    suspend fun createWorkspaceBridge(destination: WorkspaceBridgePaths.Destination): ApiResult<WorkspaceBridgeData> {
+        return try {
+            val response = api.createWorkspaceBridge(WorkspaceBridgeRequest(path = destination.path))
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در باز کردن میزکار")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
 }

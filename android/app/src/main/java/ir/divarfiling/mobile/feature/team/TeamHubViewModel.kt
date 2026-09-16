@@ -3,8 +3,9 @@ package ir.divarfiling.mobile.feature.team
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.divarfiling.mobile.core.WorkspaceBridgePaths
 import ir.divarfiling.mobile.core.datastore.SessionStore
-import ir.divarfiling.mobile.core.network.TeamOverviewDto
+import ir.divarfiling.mobile.core.network.AgencyHomeDto
 import ir.divarfiling.mobile.core.network.TeamPanelNotificationDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.TeamRepository
@@ -17,12 +18,13 @@ import javax.inject.Inject
 
 data class TeamHubUiState(
     val userName: String = "",
-    val overview: TeamOverviewDto? = null,
+    val home: AgencyHomeDto? = null,
     val notifications: List<TeamPanelNotificationDto> = emptyList(),
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+    val webBridgeUrl: String? = null,
 )
 
 @HiltViewModel
@@ -48,14 +50,14 @@ class TeamHubViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
-                    isLoading = initial && it.overview == null,
-                    isRefreshing = !initial || it.overview != null,
+                    isLoading = initial && it.home == null,
+                    isRefreshing = !initial || it.home != null,
                     error = null,
                 )
             }
-            when (val overview = repository.getOverview()) {
+            when (val home = repository.getAgencyHome()) {
                 is ApiResult.Success -> {
-                    val notifications = if (overview.data.hasAgency) {
+                    val notifications = if (home.data.hasAgency) {
                         when (val notes = repository.getPanelNotifications()) {
                             is ApiResult.Success -> notes.data.notifications.take(5)
                             is ApiResult.Error -> emptyList()
@@ -63,7 +65,7 @@ class TeamHubViewModel @Inject constructor(
                     } else emptyList()
                     _uiState.update {
                         it.copy(
-                            overview = overview.data,
+                            home = home.data,
                             notifications = notifications,
                             isLoading = false,
                             isRefreshing = false,
@@ -71,7 +73,7 @@ class TeamHubViewModel @Inject constructor(
                     }
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, isRefreshing = false, error = overview.message)
+                    it.copy(isLoading = false, isRefreshing = false, error = home.message)
                 }
             }
         }
@@ -97,4 +99,16 @@ class TeamHubViewModel @Inject constructor(
     }
 
     fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
+
+    fun openTeamWorkspaceBridge() {
+        viewModelScope.launch {
+            when (val result = repository.createWorkspaceBridge(WorkspaceBridgePaths.CRM_TEAM)) {
+                is ApiResult.Success ->
+                    _uiState.update { it.copy(webBridgeUrl = result.data.bridgeUrl) }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    fun consumeWebBridge() = _uiState.update { it.copy(webBridgeUrl = null) }
 }

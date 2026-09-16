@@ -43,6 +43,10 @@ fun DealEditSheet(
     expectedCloseDate: String,
     listingToken: String,
     probability: String,
+    contractNumber: String = "",
+    contractAmount: String = "",
+    contractDate: String = "",
+    contractMetadataLocked: Boolean = false,
     isSubmitting: Boolean,
     onTitleChange: (String) -> Unit,
     onAmountChange: (String) -> Unit,
@@ -53,6 +57,9 @@ fun DealEditSheet(
     onExpectedCloseDateChange: (String) -> Unit,
     onListingTokenChange: (String) -> Unit,
     onProbabilityChange: (String) -> Unit,
+    onContractNumberChange: (String) -> Unit = {},
+    onContractAmountChange: (String) -> Unit = {},
+    onContractDateChange: (String) -> Unit = {},
     onSave: () -> Unit,
     onDismiss: () -> Unit,
     stageDefs: List<DealStageDefDto> = emptyList(),
@@ -128,6 +135,29 @@ fun DealEditSheet(
                 onStageSelect = onStageChange,
                 enabled = !isSubmitting,
             )
+        }
+
+        if (!contractMetadataLocked) {
+            DfSheetSection(title = "اطلاعات قرارداد") {
+                DfTextField(
+                    value = contractNumber,
+                    onValueChange = onContractNumberChange,
+                    label = "شماره قرارداد",
+                    enabled = !isSubmitting,
+                )
+                DfMoneyField(
+                    value = contractAmount,
+                    onValueChange = onContractAmountChange,
+                    label = "مبلغ قرارداد",
+                    enabled = !isSubmitting,
+                )
+                DfJalaliDateField(
+                    value = contractDate,
+                    onValueChange = onContractDateChange,
+                    label = "تاریخ قرارداد",
+                    enabled = !isSubmitting,
+                )
+            }
         }
 
         DfSheetSection(title = "یادداشت") {

@@ -587,11 +587,13 @@ fun PropertyDetailQuickActions(
     onDelete: (() -> Unit)? = null,
     onDuplicate: (() -> Unit)? = null,
     onCreateDeal: (() -> Unit)? = null,
+    onTeamShare: (() -> Unit)? = null,
 ) {
     var showMore by remember { mutableStateOf(false) }
     val moreActions = buildList {
         add(DfMoreAction("ویرایش", onEdit, DfIcons.Pencil))
         onCreateDeal?.let { add(DfMoreAction("معامله جدید", it, DfIcons.Handshake)) }
+        onTeamShare?.let { add(DfMoreAction("اشتراک با تیم", it, DfIcons.Users)) }
         onDuplicate?.let { add(DfMoreAction("کپی فایل", it, DfIcons.ClipboardList)) }
         add(DfMoreAction("کپی لینک", onCopyLink, DfIcons.Copy))
         if (onOpenLink != null) add(DfMoreAction("مشاهده در دیوار", onOpenLink, DfIcons.ExternalLink))

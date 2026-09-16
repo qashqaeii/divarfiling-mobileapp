@@ -3,7 +3,15 @@ package ir.divarfiling.mobile.data.repository
 import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
-import ir.divarfiling.mobile.core.network.DealChecklistToggleRequest
+import ir.divarfiling.mobile.core.network.DealCommissionSplitSaveRequest
+import ir.divarfiling.mobile.core.network.DealCommissionSplitsData
+import ir.divarfiling.mobile.core.network.DealContractCreateRequest
+import ir.divarfiling.mobile.core.network.DealContractItemDto
+import ir.divarfiling.mobile.core.network.DealContractsData
+import ir.divarfiling.mobile.core.network.DealJourneyData
+import ir.divarfiling.mobile.core.network.DuplicateDealCheckData
+import ir.divarfiling.mobile.core.network.WorkspaceBridgeData
+import ir.divarfiling.mobile.core.network.WorkspaceBridgeRequest
 import ir.divarfiling.mobile.core.network.DealChecklistToggleResponse
 import ir.divarfiling.mobile.core.network.DealFinanceDashboardData
 import ir.divarfiling.mobile.core.network.DealFinanceDefaultsDto
@@ -196,6 +204,37 @@ class DealsRepository @Inject constructor(
         }
     } catch (e: Exception) {
         ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun checkDuplicateDeal(propertyId: Long, customerId: Long): ApiResult<DuplicateDealCheckData> = single {
+        api.checkDuplicateDeal(propertyId, customerId)
+    }
+
+    suspend fun getDealJourney(dealId: Long): ApiResult<DealJourneyData> = single {
+        api.getDealJourney(dealId)
+    }
+
+    suspend fun getDealContracts(dealId: Long): ApiResult<DealContractsData> = single {
+        api.getDealContracts(dealId)
+    }
+
+    suspend fun createDealContract(dealId: Long, contractType: String? = null): ApiResult<DealContractItemDto> = single {
+        api.createDealContract(dealId, DealContractCreateRequest(contractType))
+    }
+
+    suspend fun getCommissionSplits(dealId: Long): ApiResult<DealCommissionSplitsData> = single {
+        api.getDealCommissionSplits(dealId)
+    }
+
+    suspend fun saveCommissionSplits(
+        dealId: Long,
+        request: DealCommissionSplitSaveRequest,
+    ): ApiResult<DealCommissionSplitsData> = single {
+        api.saveDealCommissionSplits(dealId, request)
+    }
+
+    suspend fun createWorkspaceBridge(path: String): ApiResult<WorkspaceBridgeData> = single {
+        api.createWorkspaceBridge(WorkspaceBridgeRequest(path))
     }
 
     suspend fun getProperties(
@@ -424,5 +463,53 @@ class DealsRepository @Inject constructor(
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }
+    }
+
+    suspend fun getCrmPropertyMap(params: Map<String, String>): ApiResult<ir.divarfiling.mobile.core.network.CrmPropertyMapData> =
+        try {
+            val response = api.getCrmPropertyMap(params)
+            if (!response.ok) ApiResult.Error(response.error ?: "خطا در دریافت نقشه")
+            else ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+
+    suspend fun getPropertyTeamShares(
+        propertyId: Long,
+        includeMembers: Boolean = false,
+        memberQuery: String = "",
+    ): ApiResult<ir.divarfiling.mobile.core.network.PropertyTeamSharesData> = try {
+        val response = api.getPropertyTeamShares(
+            propertyId,
+            members = if (includeMembers) 1 else null,
+            query = memberQuery.ifBlank { null },
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا در اشتراک تیم")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun grantPropertyTeamShare(
+        propertyId: Long,
+        memberId: Long,
+        shareMode: String,
+    ): ApiResult<ir.divarfiling.mobile.core.network.PropertyTeamShareRowDto> = try {
+        val response = api.grantPropertyTeamShare(
+            propertyId,
+            ir.divarfiling.mobile.core.network.PropertyTeamShareGrantRequest(memberId, shareMode),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "اشتراک‌گذاری ناموفق")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun revokePropertyTeamShare(propertyId: Long, shareId: Long): ApiResult<Unit> = try {
+        val response = api.revokePropertyTeamShare(propertyId, shareId)
+        if (!response.ok) ApiResult.Error(response.error ?: "حذف دسترسی ناموفق")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
     }
 }

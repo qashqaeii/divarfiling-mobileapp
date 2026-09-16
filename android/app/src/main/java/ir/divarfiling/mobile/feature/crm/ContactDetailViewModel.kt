@@ -1027,7 +1027,11 @@ class ContactDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             val result = if (state.teamAssignMode == "transfer") {
-                teamRepository.transferContact(contactId, memberId, state.teamTransferNote.ifBlank { null })
+                teamRepository.transferLead(
+                    contactId,
+                    memberId,
+                    state.teamTransferNote.ifBlank { null },
+                )
             } else {
                 teamRepository.assignContact(contactId, memberId)
             }

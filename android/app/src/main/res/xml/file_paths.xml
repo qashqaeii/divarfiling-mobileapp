@@ -2,4 +2,6 @@
 <paths>
     <cache-path name="exports" path="exports/" />
     <cache-path name="updates" path="updates/" />
+    <cache-path name="contract_pdf" path="contract_pdf/" />
+    <cache-path name="contract_attachments" path="contract_attachments/" />
 </paths>

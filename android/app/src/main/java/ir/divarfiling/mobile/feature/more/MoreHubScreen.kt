@@ -95,6 +95,7 @@ fun MoreHubScreen(
     onNavigateSettings: () -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateDeals: () -> Unit = {},
+    onNavigateContracts: () -> Unit = {},
     onNavigateProperties: () -> Unit = {},
     onNavigateCrm: () -> Unit = {},
     onNavigatePlans: () -> Unit = {},
@@ -114,6 +115,7 @@ fun MoreHubScreen(
             "پیگیری و پرونده",
             listOf(
                 MoreHubItem("معاملات", "پایپ‌لاین فروش و اجاره", DfIcons.Handshake, MoreHubAction.Navigate("deals"), featured = true),
+                MoreHubItem("قراردادها", "قرارداد دیجیتال و پیگیری امضا", DfIcons.File, MoreHubAction.Navigate("contracts"), featured = true),
                 MoreHubItem("فایل‌های شخصی", "ملک‌های ثبت‌شده در پرونده شما", DfIcons.Building, MoreHubAction.Navigate("properties"), featured = true),
                 MoreHubItem("تقویم", "یادآورها و برنامه روز", DfIcons.Calendar, MoreHubAction.Navigate("calendar")),
                 MoreHubItem("مدیریت مشتری", "نمای کلی مخاطب، معامله و ملک", DfIcons.Users, MoreHubAction.Navigate("crm")),
@@ -183,6 +185,7 @@ fun MoreHubScreen(
                 "settings" -> onNavigateSettings()
                 "notifications" -> onNavigateNotifications()
                 "deals" -> onNavigateDeals()
+                "contracts" -> onNavigateContracts()
                 "properties" -> onNavigateProperties()
                 "crm" -> onNavigateCrm()
                 "plans" -> onNavigatePlans()

@@ -12,7 +12,12 @@ import ir.divarfiling.mobile.core.export.ExportShareHelper
 import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.ContactSuggestionItemDto
 import ir.divarfiling.mobile.core.network.ContactSuggestResponse
-import ir.divarfiling.mobile.core.network.DealCreateRequest
+import ir.divarfiling.mobile.core.network.DealCommissionSplitSaveRequest
+import ir.divarfiling.mobile.core.network.DealCommissionSplitSaveRow
+import ir.divarfiling.mobile.core.network.DealCommissionSplitsData
+import ir.divarfiling.mobile.core.network.DealContractsData
+import ir.divarfiling.mobile.core.network.DealJourneyData
+import ir.divarfiling.mobile.feature.crm.components.DealJourneyTab
 import ir.divarfiling.mobile.core.network.DealFinanceDashboardData
 import ir.divarfiling.mobile.core.network.DealFinanceDefaultsDto
 import ir.divarfiling.mobile.core.network.DealFinanceSaveRequest
@@ -100,6 +105,8 @@ data class DealsUiState(
     val contactPicker: List<ContactDto> = emptyList(),
     val propertyPicker: List<PropertyDto> = emptyList(),
     val isSubmittingCreate: Boolean = false,
+    val showDuplicateSheet: Boolean = false,
+    val duplicateDeal: DealDto? = null,
     val showSaveFilterDialog: Boolean = false,
     val saveFilterName: String = "",
     val userName: String = "",
@@ -422,7 +429,7 @@ class DealsViewModel @Inject constructor(
         }
     }
 
-    fun submitCreate() {
+    fun submitCreate(forceDuplicate: Boolean = false) {
         val state = _uiState.value
         val customerId = state.createCustomerId
         val title = state.createTitle.trim()
@@ -435,47 +442,77 @@ class DealsViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmittingCreate = true, error = null) }
-            when (
-                val result = repository.createDeal(
-                    DealCreateRequest(
-                        customerId = customerId,
-                        title = title,
-                        stage = state.createStage.ifBlank { "سرنخ" },
-                        amount = state.createAmount.trim().toLongOrNull(),
-                        propertyId = state.createPropertyId,
-                        notes = state.createNotes.trim(),
-                        expectedCloseDate = DateUtils.jalaliDateToIso(state.createExpectedCloseDate),
-                        nextActionType = state.createNextActionType.takeIf { it.isNotBlank() },
-                        nextActionAt = state.createNextActionAt.takeIf { it.isNotBlank() }?.let { DateUtils.fromPersianDigits(it) },
-                        nextActionNote = state.createNextActionNote.takeIf { it.isNotBlank() },
-                    ),
-                )
-            ) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            showCreateDialog = false,
-                            createTitle = "",
-                            createCustomerId = null,
-                            createAmount = "",
-                            createPropertyId = null,
-                            createNextActionType = "",
-                            createNextActionAt = "",
-                            createNextActionNote = "",
-                            createExpectedCloseDate = "",
-                            createNotes = "",
-                            createCustomerLocked = false,
-                            createStage = "سرنخ",
-                            isSubmittingCreate = false,
-                            createdDealId = result.data.id,
-                        )
+            val propertyId = state.createPropertyId
+            if (!forceDuplicate && propertyId != null) {
+                when (val dup = repository.checkDuplicateDeal(propertyId, customerId)) {
+                    is ApiResult.Success -> {
+                        if (dup.data.duplicate && dup.data.deal != null) {
+                            _uiState.update {
+                                it.copy(
+                                    showDuplicateSheet = true,
+                                    duplicateDeal = dup.data.deal,
+                                )
+                            }
+                            return@launch
+                        }
                     }
-                    load()
+                    is ApiResult.Error -> Unit
                 }
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(isSubmittingCreate = false, error = result.message)
+            }
+            performCreateDeal(state, customerId, title)
+        }
+    }
+
+    fun dismissDuplicateSheet() = _uiState.update {
+        it.copy(showDuplicateSheet = false, duplicateDeal = null)
+    }
+
+    fun forceCreateAfterDuplicate() {
+        dismissDuplicateSheet()
+        submitCreate(forceDuplicate = true)
+    }
+
+    private suspend fun performCreateDeal(state: DealsUiState, customerId: Long, title: String) {
+        _uiState.update { it.copy(isSubmittingCreate = true, error = null) }
+        when (
+            val result = repository.createDeal(
+                DealCreateRequest(
+                    customerId = customerId,
+                    title = title,
+                    stage = state.createStage.ifBlank { "سرنخ" },
+                    amount = state.createAmount.trim().toLongOrNull(),
+                    propertyId = state.createPropertyId,
+                    notes = state.createNotes.trim(),
+                    expectedCloseDate = DateUtils.jalaliDateToIso(state.createExpectedCloseDate),
+                    nextActionType = state.createNextActionType.takeIf { it.isNotBlank() },
+                    nextActionAt = state.createNextActionAt.takeIf { it.isNotBlank() }?.let { DateUtils.fromPersianDigits(it) },
+                    nextActionNote = state.createNextActionNote.takeIf { it.isNotBlank() },
+                ),
+            )
+        ) {
+            is ApiResult.Success -> {
+                _uiState.update {
+                    it.copy(
+                        showCreateDialog = false,
+                        createTitle = "",
+                        createCustomerId = null,
+                        createAmount = "",
+                        createPropertyId = null,
+                        createNextActionType = "",
+                        createNextActionAt = "",
+                        createNextActionNote = "",
+                        createExpectedCloseDate = "",
+                        createNotes = "",
+                        createCustomerLocked = false,
+                        createStage = "سرنخ",
+                        isSubmittingCreate = false,
+                        createdDealId = result.data.id,
+                    )
                 }
+                load()
+            }
+            is ApiResult.Error -> _uiState.update {
+                it.copy(isSubmittingCreate = false, error = result.message)
             }
         }
     }
@@ -656,6 +693,18 @@ data class DealDetailUiState(
     val nextActionNote: String = "",
     val timeline: List<DealTimelineItemDto> = emptyList(),
     val timelineHasMore: Boolean = false,
+    val selectedTab: DealJourneyTab = DealJourneyTab.OVERVIEW,
+    val journey: DealJourneyData? = null,
+    val contractsData: DealContractsData? = null,
+    val commissionData: DealCommissionSplitsData? = null,
+    val webBridgeUrl: String? = null,
+    val showMoreSheet: Boolean = false,
+    val showCommissionSheet: Boolean = false,
+    val pendingContractDetailId: Long? = null,
+    val editContractNumber: String = "",
+    val editContractAmount: String = "",
+    val editContractDate: String = "",
+    val contractMetadataLocked: Boolean = false,
 )
 
 @HiltViewModel
@@ -700,6 +749,9 @@ class DealDetailViewModel @Inject constructor(
                             editExpectedCloseDate = result.data.expectedCloseDate.orEmpty(),
                             editListingToken = result.data.listingToken.orEmpty(),
                             editProbability = result.data.probability?.toString().orEmpty(),
+                            editContractNumber = result.data.contractNumber.orEmpty(),
+                            editContractAmount = result.data.contractAmount?.toString().orEmpty(),
+                            editContractDate = result.data.contractDate.orEmpty(),
                             timeline = result.data.timelinePreview,
                             timelineHasMore = result.data.timelinePreview.size >= 8,
                         )
@@ -716,6 +768,7 @@ class DealDetailViewModel @Inject constructor(
                         }
                     }
                     hydrateFinance(result.data)
+                    loadJourneyAndContracts()
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoading = false, isRefreshing = false, error = result.message)
@@ -929,21 +982,29 @@ class DealDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
             val state = _uiState.value
-            when (val result = repository.updateDeal(
-                dealId,
-                DealUpdateRequest(
-                    title = state.editTitle.trim(),
-                    amount = state.editAmount.trim().toLongOrNull(),
-                    notes = state.editNotes,
-                    stage = state.editStage.takeIf { it.isNotBlank() },
-                    commissionRate = state.editCommissionRate.trim().toDoubleOrNull(),
-                    propertyId = state.editPropertyId,
-                    expectedCloseDate = DateUtils.jalaliDateToIso(state.editExpectedCloseDate)
-                        ?: state.editExpectedCloseDate.trim().ifBlank { null },
-                    listingToken = state.editListingToken.trim().ifBlank { null },
-                    probability = state.editProbability.trim().toIntOrNull(),
-                ),
-            )) {
+            val request = DealUpdateRequest(
+                title = state.editTitle.trim(),
+                amount = state.editAmount.trim().toLongOrNull(),
+                notes = state.editNotes,
+                stage = state.editStage.takeIf { it.isNotBlank() },
+                commissionRate = state.editCommissionRate.trim().toDoubleOrNull(),
+                propertyId = state.editPropertyId,
+                expectedCloseDate = DateUtils.jalaliDateToIso(state.editExpectedCloseDate)
+                    ?: state.editExpectedCloseDate.trim().ifBlank { null },
+                listingToken = state.editListingToken.trim().ifBlank { null },
+                probability = state.editProbability.trim().toIntOrNull(),
+                contractNumber = if (!state.contractMetadataLocked) {
+                    state.editContractNumber.trim().ifBlank { null }
+                } else null,
+                contractAmount = if (!state.contractMetadataLocked) {
+                    state.editContractAmount.trim().toLongOrNull()
+                } else null,
+                contractDate = if (!state.contractMetadataLocked) {
+                    DateUtils.jalaliDateToIso(state.editContractDate)
+                        ?: state.editContractDate.trim().ifBlank { null }
+                } else null,
+            )
+            when (val result = repository.updateDeal(dealId, request)) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, showEditSheet = false, successMessage = "ذخیره شد") }
                     load()
@@ -987,6 +1048,129 @@ class DealDetailViewModel @Inject constructor(
         }
     }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
+
+    fun onTabSelected(tab: DealJourneyTab) {
+        _uiState.update { it.copy(selectedTab = tab) }
+        if (tab == DealJourneyTab.FINANCE && _uiState.value.commissionData == null) {
+            loadCommissionSplits()
+        }
+    }
+
+    fun toggleMoreSheet(show: Boolean) = _uiState.update { it.copy(showMoreSheet = show) }
+
+    fun consumeWebBridge() = _uiState.update { it.copy(webBridgeUrl = null) }
+
+    private fun loadJourneyAndContracts() {
+        viewModelScope.launch {
+            when (val j = repository.getDealJourney(dealId)) {
+                is ApiResult.Success -> _uiState.update { it.copy(journey = j.data) }
+                is ApiResult.Error -> Unit
+            }
+            when (val c = repository.getDealContracts(dealId)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        contractsData = c.data,
+                        contractMetadataLocked = c.data.contractMetadataLocked,
+                    )
+                }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    fun openWorkspacePath(path: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            when (val result = repository.createWorkspaceBridge(path)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(isSubmitting = false, webBridgeUrl = result.data.bridgeUrl)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun handleHeroPrimaryAction() {
+        val action = _uiState.value.journey?.primary?.action.orEmpty()
+        when (action) {
+            "COMPLETE_NEXT_ACTION" -> completeNextAction()
+            "OPEN_NEXT_ACTION" -> toggleNextActionSheet(true)
+            "OPEN_FOLLOW_UP" -> toggleFollowUpSheet(true)
+            "TAB_FINANCE" -> onTabSelected(DealJourneyTab.FINANCE)
+            "TAB_CONTRACTS", "CREATE_CONTRACT" -> onTabSelected(DealJourneyTab.CONTRACT)
+            "CONTINUE_CONTRACT", "VIEW_CONTRACT", "VIEW_SIGNATURE" -> {
+                val path = _uiState.value.journey?.primary?.webPath
+                    ?: _uiState.value.contractsData?.items?.firstOrNull()?.workspacePaths?.manage
+                if (!path.isNullOrBlank()) openWorkspacePath(path)
+                else createContractAndOpen()
+            }
+            "CALL_CUSTOMER" -> toggleFollowUpSheet(true)
+            else -> toggleNextActionSheet(true)
+        }
+    }
+
+    fun createContractAndOpen() {
+        val recommended = _uiState.value.contractsData?.recommendedType ?: "sale"
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            when (val result = repository.createDealContract(dealId, recommended)) {
+                is ApiResult.Success -> {
+                    val path = result.data.workspacePaths.wizard.ifBlank { result.data.workspacePaths.manage }
+                    loadJourneyAndContracts()
+                    when (val bridge = repository.createWorkspaceBridge(path)) {
+                        is ApiResult.Success -> _uiState.update {
+                            it.copy(isSubmitting = false, webBridgeUrl = bridge.data.bridgeUrl)
+                        }
+                        is ApiResult.Error -> _uiState.update {
+                            it.copy(isSubmitting = false, error = bridge.message)
+                        }
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun openContractItem(item: ir.divarfiling.mobile.core.network.DealContractItemDto) {
+        _uiState.update { it.copy(pendingContractDetailId = item.id) }
+    }
+
+    fun consumeContractDetailNavigation() {
+        _uiState.update { it.copy(pendingContractDetailId = null) }
+    }
+
+    fun loadCommissionSplits() {
+        viewModelScope.launch {
+            when (val result = repository.getCommissionSplits(dealId)) {
+                is ApiResult.Success -> _uiState.update { it.copy(commissionData = result.data) }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    fun toggleCommissionSheet(show: Boolean) = _uiState.update { it.copy(showCommissionSheet = show) }
+
+    fun saveCommissionSplits(rows: List<DealCommissionSplitSaveRow>) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            when (val result = repository.saveCommissionSplits(dealId, DealCommissionSplitSaveRequest(rows))) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(isSubmitting = false, commissionData = result.data, successMessage = "تقسیم کمیسیون ذخیره شد", showCommissionSheet = false)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun onEditContractNumberChange(v: String) = _uiState.update { it.copy(editContractNumber = v) }
+    fun onEditContractAmountChange(v: String) = _uiState.update { it.copy(editContractAmount = v) }
+    fun onEditContractDateChange(v: String) = _uiState.update { it.copy(editContractDate = v) }
 
     private fun hydrateFinance(deal: DealDto) {
         _uiState.update {
@@ -2266,6 +2450,10 @@ data class PropertyDetailUiState(
     val showDuplicateDialog: Boolean = false,
     val isDuplicating: Boolean = false,
     val duplicateNavigateId: Long? = null,
+    val showTeamShareSheet: Boolean = false,
+    val teamShareLoading: Boolean = false,
+    val teamShares: ir.divarfiling.mobile.core.network.PropertyTeamSharesData? = null,
+    val teamMemberQuery: String = "",
 )
 
 enum class PropertyDetailTab(val label: String) {
@@ -2835,4 +3023,58 @@ class PropertyDetailViewModel @Inject constructor(
 
     fun dismissContactSuggestionResult() = _uiState.update { it.copy(contactSuggestionResult = null) }
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
+
+    fun openTeamShareSheet() {
+        _uiState.update { it.copy(showTeamShareSheet = true) }
+        refreshTeamShares(includeMembers = true)
+    }
+
+    fun dismissTeamShareSheet() = _uiState.update { it.copy(showTeamShareSheet = false) }
+
+    fun onTeamMemberQueryChange(value: String) {
+        _uiState.update { it.copy(teamMemberQuery = value) }
+        refreshTeamShares(includeMembers = true)
+    }
+
+    fun refreshTeamShares(includeMembers: Boolean = false) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(teamShareLoading = true) }
+            when (val result = repository.getPropertyTeamShares(
+                propertyId,
+                includeMembers = includeMembers,
+                memberQuery = _uiState.value.teamMemberQuery,
+            )) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(teamShares = result.data, teamShareLoading = false)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(teamShareLoading = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun grantTeamShare(memberId: Long, shareMode: String) {
+        viewModelScope.launch {
+            when (val result = repository.grantPropertyTeamShare(propertyId, memberId, shareMode)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(successMessage = "فایل با هم‌تیمی به اشتراک گذاشته شد") }
+                    refreshTeamShares(includeMembers = true)
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
+
+    fun revokeTeamShare(shareId: Long) {
+        viewModelScope.launch {
+            when (val result = repository.revokePropertyTeamShare(propertyId, shareId)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(successMessage = "دسترسی حذف شد") }
+                    refreshTeamShares(includeMembers = false)
+                }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            }
+        }
+    }
 }

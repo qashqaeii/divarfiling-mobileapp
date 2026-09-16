@@ -257,6 +257,7 @@ class FilingRepository @Inject constructor(
     suspend fun searchListings(
         query: String? = null,
         datasetId: String? = null,
+        datasetIds: String? = null,
         page: Int = 1,
         pageSize: Int = 30,
         filters: Map<String, String> = emptyMap(),
@@ -265,9 +266,10 @@ class FilingRepository @Inject constructor(
             val response = api.searchListings(
                 query = query?.ifBlank { null },
                 datasetId = datasetId,
+                datasetIds = datasetIds,
                 page = page,
                 pageSize = pageSize,
-                filters = filters.filterKeys { it != "dataset_id" },
+                filters = filters.filterKeys { it != "dataset_id" && it != "dataset_ids" },
             )
             if (!response.ok) {
                 return ApiResult.Error(response.error ?: "خطا در جستجو")
@@ -286,6 +288,26 @@ class FilingRepository @Inject constructor(
                     sort = response.meta?.sort,
                 ),
             )
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun getFilingListingsMap(params: Map<String, String>): ApiResult<ir.divarfiling.mobile.core.network.FilingListingsMapData> {
+        return try {
+            val response = api.getFilingListingsMap(params)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در دریافت نقشه")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun getListingBenchmark(token: String): ApiResult<ir.divarfiling.mobile.core.network.ListingBenchmarkData> {
+        return try {
+            val response = api.getListingBenchmark(token)
+            if (!response.ok) return ApiResult.Error(response.error ?: "خطا در ارزیابی")
+            ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }

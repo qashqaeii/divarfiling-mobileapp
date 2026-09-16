@@ -26,6 +26,7 @@ import java.time.Instant
 import ir.divarfiling.mobile.feature.crm.components.ContactEditBuilderState
 import ir.divarfiling.mobile.feature.crm.components.ContactEditMoneyState
 import ir.divarfiling.mobile.feature.crm.components.ContactEditPrefsState
+import ir.divarfiling.mobile.core.WorkspaceBridgePaths
 import javax.inject.Inject
 
 data class ContactsUiState(
@@ -70,6 +71,7 @@ data class ContactsUiState(
     val notificationBadgeCount: Int = 0,
     val savedFilters: List<ir.divarfiling.mobile.core.network.SavedFilterDto> = emptyList(),
     val activeSavedFilterId: Long? = null,
+    val webBridgeUrl: String? = null,
 )
 
 @HiltViewModel
@@ -544,6 +546,23 @@ class ContactsViewModel @Inject constructor(
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isExporting = false, error = result.message)
                 }
+            }
+        }
+    }
+
+    fun openContactImportBridge() = openWorkspaceBridge(WorkspaceBridgePaths.Destination.CONTACT_IMPORT)
+
+    fun openContactImportTemplateBridge() =
+        openWorkspaceBridge(WorkspaceBridgePaths.Destination.CONTACT_IMPORT_TEMPLATE)
+
+    fun consumeWebBridge() = _uiState.update { it.copy(webBridgeUrl = null) }
+
+    private fun openWorkspaceBridge(destination: WorkspaceBridgePaths.Destination) {
+        viewModelScope.launch {
+            when (val result = crmRepository.createWorkspaceBridge(destination)) {
+                is ApiResult.Success ->
+                    _uiState.update { it.copy(webBridgeUrl = result.data.bridgeUrl) }
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
             }
         }
     }

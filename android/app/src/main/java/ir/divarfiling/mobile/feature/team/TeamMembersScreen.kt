@@ -2,93 +2,95 @@ package ir.divarfiling.mobile.feature.team
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
+import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
-import ir.divarfiling.mobile.core.network.TeamMemberDto
-import ir.divarfiling.mobile.data.repository.ApiResult
-import ir.divarfiling.mobile.data.repository.TeamRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import javax.inject.Inject
-
-data class TeamMembersUiState(
-    val members: List<TeamMemberDto> = emptyList(),
-    val isLoading: Boolean = true,
-    val isRefreshing: Boolean = false,
-    val error: String? = null,
-)
-
-@HiltViewModel
-class TeamMembersViewModel @Inject constructor(
-    private val repository: TeamRepository,
-) : ViewModel() {
-    private val _uiState = MutableStateFlow(TeamMembersUiState())
-    val uiState: StateFlow<TeamMembersUiState> = _uiState.asStateFlow()
-
-    init { refresh(true) }
-
-    fun refresh(initial: Boolean = false) {
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isLoading = initial && it.members.isEmpty(),
-                    isRefreshing = !initial || it.members.isNotEmpty(),
-                    error = null,
-                )
-            }
-            when (val result = repository.getMembers()) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(members = result.data.members, isLoading = false, isRefreshing = false)
-                }
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
-                }
-            }
-        }
-    }
-}
+import ir.divarfiling.mobile.core.design.components.DfSheetActions
+import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
+import ir.divarfiling.mobile.core.design.components.DfSoftChip
+import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.network.AgencyAdvisorDto
+import ir.divarfiling.mobile.core.network.AgencyInvitationDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamMembersScreen(
     onBack: () -> Unit,
-    viewModel: TeamMembersViewModel = hiltViewModel(),
+    onAdvisorClick: (Long) -> Unit = {},
+    openInviteOnStart: Boolean = false,
+    viewModel: AgencyAdvisorsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val pad = teamHorizontalPadding()
 
-    LaunchedEffect(state.error) {
-        state.error?.let { snackbar.showSnackbar(it) }
+    LaunchedEffect(openInviteOnStart) {
+        if (openInviteOnStart) viewModel.openInvite()
+    }
+
+    LaunchedEffect(state.successMessage, state.error) {
+        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+    }
+
+    if (state.showInvite) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissInvite) {
+            DfSheetScaffold(
+                title = "دعوت مشاور",
+                subtitle = "پیامک دعوت برای عضو جدید",
+                onClose = viewModel::dismissInvite,
+                footer = {
+                    DfSheetActions(
+                        primaryText = if (state.inviteSubmitting) "در حال ارسال…" else "ارسال دعوت",
+                        onPrimary = viewModel::submitInvite,
+                        primaryEnabled = !state.inviteSubmitting,
+                        isSubmitting = state.inviteSubmitting,
+                        onSecondary = viewModel::dismissInvite,
+                    )
+                },
+            ) {
+                OutlinedTextField(
+                    value = state.invitePhone,
+                    onValueChange = viewModel::onInvitePhoneChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("موبایل") },
+                    singleLine = true,
+                )
+            }
+        }
     }
 
     Scaffold(
@@ -99,7 +101,7 @@ fun TeamMembersScreen(
             TeamAmbientBackground()
             DfPullRefresh(
                 isRefreshing = state.isRefreshing,
-                onRefresh = { viewModel.refresh() },
+                onRefresh = { viewModel.load() },
                 modifier = Modifier.fillMaxSize().statusBarsPadding(),
             ) {
                 LazyColumn(
@@ -108,32 +110,131 @@ fun TeamMembersScreen(
                 ) {
                     item {
                         DfHubPageHeader(
-                            title = "اعضای تیم",
-                            subtitle = "${state.members.size} نفر فعال در آژانس",
+                            title = "مشاوران",
+                            subtitle = "${DateUtils.toPersianDigits(state.advisors.size.toString())} عضو",
                             sectionLabel = DfHeaderSections.TEAM,
                             titleIconRes = DfDecorIcons.Users,
                             onBack = onBack,
+                        )
+                    }
+                    item {
+                        OutlinedTextField(
+                            value = state.query,
+                            onValueChange = viewModel::onQueryChange,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = pad),
+                            label = { Text("جستجو") },
+                            singleLine = true,
+                        )
+                    }
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = pad),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            listOf(
+                                AgencyAdvisorFilter.ALL to "همه",
+                                AgencyAdvisorFilter.ACTIVE to "فعال",
+                                AgencyAdvisorFilter.NO_SEAT to "بدون صندلی",
+                                AgencyAdvisorFilter.INVITED to "دعوت‌شده",
+                            ).forEach { (key, label) ->
+                                DfSoftChip(
+                                    text = label,
+                                    selected = state.statusFilter == key,
+                                    onClick = { viewModel.setStatusFilter(key) },
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        DfPrimaryButton(
+                            text = "دعوت مشاور",
+                            onClick = viewModel::openInvite,
+                            modifier = Modifier.padding(horizontal = pad),
                         )
                     }
                     when {
                         state.isLoading -> item {
                             DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
                         }
-                        state.members.isEmpty() -> item {
+                        state.advisors.isEmpty() && state.invitations.isEmpty() -> item {
                             DfEmptyState(
-                                title = "عضوی نیست",
-                                subtitle = "هنوز عضوی در آژانس ثبت نشده است.",
+                                title = "هنوز عضوی به تیم اضافه نشده",
+                                subtitle = "با دعوت مشاور، تیم خود را بسازید.",
                                 variant = DfEmptyVariant.Empty,
                                 modifier = Modifier.padding(horizontal = pad),
                             )
                         }
-                        else -> items(state.members, key = { it.id }) { member ->
-                            TeamMemberListCard(
-                                member = member,
-                                modifier = Modifier.padding(horizontal = pad),
-                            )
+                        else -> {
+                            if (state.statusFilter == AgencyAdvisorFilter.INVITED || state.invitations.isNotEmpty()) {
+                                items(state.invitations, key = { "inv-${it.id}" }) { inv ->
+                                    AgencyInvitationCard(
+                                        invitation = inv,
+                                        onResend = { viewModel.resendInvitation(inv.id) },
+                                        onCancel = { viewModel.cancelInvitation(inv.id) },
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
+                            items(state.advisors, key = { it.id }) { advisor ->
+                                AgencyAdvisorCard(
+                                    advisor = advisor,
+                                    onClick = { onAdvisorClick(advisor.id) },
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgencyAdvisorCard(
+    advisor: AgencyAdvisorDto,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DfCard(modifier = modifier, onClick = onClick) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(advisor.name, fontWeight = FontWeight.SemiBold)
+                Text("${advisor.roleLabel} · ${if (advisor.hasSeat) "دارای صندلی" else "بدون صندلی"}")
+                Text(
+                    "سرنخ ${DateUtils.toPersianDigits(advisor.activeLeads.toString())} · معامله ${DateUtils.toPersianDigits(advisor.activeDeals.toString())}",
+                    style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
+                )
+            }
+            if (!advisor.isActive) {
+                DfBadge(text = "غیرفعال", color = DfColors.RoseLight, textColor = DfColors.Rose)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgencyInvitationCard(
+    invitation: AgencyInvitationDto,
+    onResend: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DfCard(modifier = modifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            Text(invitation.phone, fontWeight = FontWeight.SemiBold)
+            Text("دعوت · ${invitation.status}")
+            if (invitation.status == "pending") {
+                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    DfSecondaryButton(text = "ارسال مجدد", onClick = onResend)
+                    DfSecondaryButton(text = "لغو", onClick = onCancel)
                 }
             }
         }

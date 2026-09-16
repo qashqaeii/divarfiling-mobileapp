@@ -1,6 +1,8 @@
 package ir.divarfiling.mobile.feature.team
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -49,7 +51,8 @@ import javax.inject.Inject
 data class TeamInboxUiState(
     val leads: List<TeamLeadDto> = emptyList(),
     val members: List<TeamMemberDto> = emptyList(),
-    val selectedIds: Set<Long> = emptySet(),
+    val filter: String = AgencyInboxFilter.ALL,
+    val assignLeadId: Long? = null,
     val assigneeId: Long? = null,
     val showAssign: Boolean = false,
     val isLoading: Boolean = true,
@@ -77,11 +80,10 @@ class TeamInboxViewModel @Inject constructor(
                     error = null,
                 )
             }
-            when (val result = repository.getLeadInbox()) {
+            when (val result = repository.getLeadInbox(_uiState.value.filter)) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(
                         leads = result.data.leads,
-                        selectedIds = emptySet(),
                         isLoading = false,
                         isRefreshing = false,
                     )
@@ -93,20 +95,18 @@ class TeamInboxViewModel @Inject constructor(
         }
     }
 
-    fun toggleLead(id: Long) {
-        _uiState.update {
-            val next = it.selectedIds.toMutableSet()
-            if (!next.add(id)) next.remove(id)
-            it.copy(selectedIds = next)
-        }
+    fun setFilter(filter: String) {
+        _uiState.update { it.copy(filter = filter) }
+        refresh(true)
     }
 
-    fun openAssign() {
+    fun openAssignLead(leadId: Long) {
         viewModelScope.launch {
             when (val members = repository.getMembers(excludeSelf = false)) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(
                         showAssign = true,
+                        assignLeadId = leadId,
                         members = members.data.members,
                         assigneeId = members.data.members.firstOrNull()?.id,
                     )
@@ -116,25 +116,28 @@ class TeamInboxViewModel @Inject constructor(
         }
     }
 
-    fun dismissAssign() = _uiState.update { it.copy(showAssign = false) }
+    fun dismissAssign() = _uiState.update { it.copy(showAssign = false, assignLeadId = null) }
     fun onAssigneeSelect(id: Long) = _uiState.update { it.copy(assigneeId = id) }
 
-    fun assignSelected() {
+    fun confirmAssign() {
         val state = _uiState.value
+        val leadId = state.assignLeadId
         val memberId = state.assigneeId
-        if (memberId == null || state.selectedIds.isEmpty()) {
-            _uiState.update { it.copy(error = "سرنخ و مشاور را انتخاب کنید") }
+        if (leadId == null || memberId == null) {
+            _uiState.update { it.copy(error = "مشاور را انتخاب کنید") }
             return
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (val result = repository.assignLeads(memberId, state.selectedIds.toList())) {
+            when (val result = repository.assignLead(leadId, memberId)) {
                 is ApiResult.Success -> {
+                    val memberName = state.members.firstOrNull { it.id == memberId }?.name ?: "مشاور"
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             showAssign = false,
-                            successMessage = "سرنخ‌ها تخصیص داده شدند",
+                            assignLeadId = null,
+                            successMessage = "سرنخ به $memberName واگذار شد",
                         )
                     }
                     refresh()
@@ -153,6 +156,7 @@ class TeamInboxViewModel @Inject constructor(
 @Composable
 fun TeamInboxScreen(
     onBack: () -> Unit,
+    onOpenContact: (Long) -> Unit = {},
     viewModel: TeamInboxViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -168,12 +172,12 @@ fun TeamInboxScreen(
         DfModalBottomSheet(onDismissRequest = viewModel::dismissAssign) {
             DfSheetScaffold(
                 title = "تخصیص سرنخ",
-                subtitle = "${state.selectedIds.size} مورد انتخاب شده",
+                subtitle = "${state.leads.size} سرنخ",
                 onClose = viewModel::dismissAssign,
                 footer = {
                     DfSheetActions(
-                        primaryText = if (state.isSubmitting) "در حال تخصیص…" else "تخصیص",
-                        onPrimary = viewModel::assignSelected,
+                        primaryText = if (state.isSubmitting) "در حال تخصیص…" else "واگذاری",
+                        onPrimary = viewModel::confirmAssign,
                         primaryEnabled = !state.isSubmitting && state.assigneeId != null,
                         isSubmitting = state.isSubmitting,
                         onSecondary = viewModel::dismissAssign,
@@ -216,13 +220,24 @@ fun TeamInboxScreen(
                             onBack = onBack,
                         )
                     }
-                    if (state.selectedIds.isNotEmpty()) {
-                        item {
-                            DfPrimaryButton(
-                                text = "تخصیص ${state.selectedIds.size} سرنخ",
-                                onClick = viewModel::openAssign,
-                                modifier = Modifier.padding(horizontal = pad),
-                            )
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = pad),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            listOf(
+                                AgencyInboxFilter.ALL to "همه",
+                                AgencyInboxFilter.FRESH to "تازه",
+                                AgencyInboxFilter.STALE to "نیازمند پیگیری",
+                            ).forEach { (key, label) ->
+                                ir.divarfiling.mobile.core.design.components.DfSoftChip(
+                                    text = label,
+                                    selected = state.filter == key,
+                                    onClick = { viewModel.setFilter(key) },
+                                )
+                            }
                         }
                     }
                     when {
@@ -231,8 +246,8 @@ fun TeamInboxScreen(
                         }
                         state.leads.isEmpty() -> item {
                             DfEmptyState(
-                                title = "صف خالی است",
-                                subtitle = "سرنخ تخصیص‌نیافته‌ای در صندوق تیم نیست.",
+                                title = "سرنخ جدیدی وجود ندارد",
+                                subtitle = "صف تخصیص تیم خالی است.",
                                 variant = DfEmptyVariant.Empty,
                                 modifier = Modifier.padding(horizontal = pad),
                             )
@@ -240,9 +255,11 @@ fun TeamInboxScreen(
                         else -> items(state.leads, key = { it.id }) { lead ->
                             TeamLeadListCard(
                                 lead = lead,
-                                selected = lead.id in state.selectedIds,
-                                onToggle = { viewModel.toggleLead(lead.id) },
+                                selected = false,
+                                onToggle = { },
                                 modifier = Modifier.padding(horizontal = pad),
+                                onAssign = { viewModel.openAssignLead(lead.id) },
+                                onOpenContact = { onOpenContact(lead.id) },
                             )
                         }
                     }

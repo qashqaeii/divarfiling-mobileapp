@@ -70,6 +70,7 @@ import ir.divarfiling.mobile.feature.crm.components.PropertyContactMatchesSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertySuggestionResultSheet
 import ir.divarfiling.mobile.feature.crm.components.suggestionMessage
 import ir.divarfiling.mobile.feature.crm.components.PropertyDetailTabbedContent
+import ir.divarfiling.mobile.feature.crm.components.PropertyTeamShareSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyLocationMapPickerSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFormMode
 import ir.divarfiling.mobile.feature.crm.components.PropertyFormSheet
@@ -89,6 +90,7 @@ fun PropertiesScreen(
     onBack: () -> Unit = {},
     onPropertyClick: (Long) -> Unit = {},
     onPropertyDuplicated: (Long) -> Unit = {},
+    onNavigateMap: () -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
     viewModel: PropertiesViewModel = hiltViewModel(),
@@ -225,6 +227,15 @@ fun PropertiesScreen(
                         onNotificationsClick = onNavigateNotifications,
                         onMenuClick = onNavigateSettings,
                         onBack = onBack,
+                    )
+                }
+                item {
+                    DfSecondaryButton(
+                        text = "نقشه فایل‌های شخصی",
+                        onClick = onNavigateMap,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
                 item {
@@ -583,6 +594,7 @@ fun PropertyDetailScreen(
                         onTabSelect = viewModel::selectTab,
                         onEdit = { viewModel.toggleEditSheet(true) },
                         onShare = { viewModel.toggleShareSheet(true) },
+                        onTeamShare = { viewModel.openTeamShareSheet() },
                         onWhatsApp = { viewModel.toggleShareSheet(true) },
                         onCreateDeal = {
                             val primary = detail.contacts.firstOrNull { it.isPrimary }
@@ -638,6 +650,19 @@ fun PropertyDetailScreen(
                 }
             }
         }
+    }
+
+    if (state.showTeamShareSheet) {
+        PropertyTeamShareSheet(
+            visible = true,
+            data = state.teamShares,
+            loading = state.teamShareLoading,
+            memberQuery = state.teamMemberQuery,
+            onMemberQueryChange = viewModel::onTeamMemberQueryChange,
+            onGrant = viewModel::grantTeamShare,
+            onRevoke = viewModel::revokeTeamShare,
+            onDismiss = viewModel::dismissTeamShareSheet,
+        )
     }
 
     if (state.showShareSheet && property != null) {

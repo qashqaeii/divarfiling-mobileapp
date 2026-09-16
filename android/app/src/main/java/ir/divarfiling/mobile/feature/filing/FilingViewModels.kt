@@ -19,6 +19,10 @@ import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.ExportRepository
 import ir.divarfiling.mobile.data.repository.ExportSecurityRepository
 import ir.divarfiling.mobile.data.repository.FilingRepository
+import ir.divarfiling.mobile.feature.filing.map.MapViewportState
+import ir.divarfiling.mobile.feature.filing.map.ViewportLoadGate
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -613,7 +617,20 @@ data class FilingSearchUiState(
     val activeSavedFilterId: Long? = null,
     val showSaveFilterDialog: Boolean = false,
     val saveFilterName: String = "",
+    val datasets: List<DatasetDto> = emptyList(),
+    val selectedDatasetIds: Set<String> = emptySet(),
+    val draftDatasetIds: Set<String> = emptySet(),
+    val showDatasetSelector: Boolean = false,
+    val datasetSearchQuery: String = "",
+    val browseMode: FilingBrowseMode = FilingBrowseMode.LIST,
+    val mapData: ir.divarfiling.mobile.core.network.FilingListingsMapData? = null,
+    val mapLoading: Boolean = false,
+    val mapViewport: MapViewportState? = null,
+    val selectedMapToken: String? = null,
+    val snackbarMessage: String? = null,
 )
+
+enum class FilingBrowseMode { LIST, MAP }
 
 @HiltViewModel
 class FilingSearchViewModel @Inject constructor(
@@ -623,9 +640,27 @@ class FilingSearchViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FilingSearchUiState())
     val uiState: StateFlow<FilingSearchUiState> = _uiState.asStateFlow()
 
+    private var mapLoadJob: Job? = null
+    private var mapLoadGeneration = 0
+    private var mapDebounceJob: Job? = null
+    private var lastMapFetchViewport: MapViewportState? = null
+
     init {
         loadSavedFilters()
+        loadDatasetChoices()
     }
+
+    private fun loadDatasetChoices() {
+        viewModelScope.launch {
+            when (val result = filingRepository.getDatasets(page = 1, pageSize = 100)) {
+                is ApiResult.Success -> _uiState.update { it.copy(datasets = result.data.items) }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
+
+    private fun datasetIdsParam(state: FilingSearchUiState): String? =
+        state.selectedDatasetIds.takeIf { it.isNotEmpty() }?.joinToString(",")
 
     fun loadSavedFilters() {
         viewModelScope.launch {
@@ -657,6 +692,7 @@ class FilingSearchViewModel @Inject constructor(
             }
             when (val result = filingRepository.searchListings(
                 query = state.query,
+                datasetIds = datasetIdsParam(state),
                 page = page,
                 filters = state.filters.toQueryMap(),
             )) {
@@ -695,13 +731,26 @@ class FilingSearchViewModel @Inject constructor(
 
     fun refresh() {
         _uiState.update { it.copy(page = 1) }
-        search(reset = true)
+        if (_uiState.value.browseMode == FilingBrowseMode.MAP) {
+            loadMap(force = true)
+        } else {
+            search(reset = true)
+        }
         loadSavedFilters()
     }
 
     fun applyFilters(filters: ListingFilterState) {
         _uiState.update { it.copy(filters = filters, page = 1, activeSavedFilterId = null) }
-        search(reset = true)
+        reloadResults()
+    }
+
+    private fun reloadResults() {
+        if (_uiState.value.browseMode == FilingBrowseMode.MAP) {
+            lastMapFetchViewport = null
+            loadMap(force = true)
+        } else {
+            search(reset = true)
+        }
     }
 
     fun clearFilters() {
@@ -738,7 +787,7 @@ class FilingSearchViewModel @Inject constructor(
                 page = 1,
             )
         }
-        search(reset = true)
+        reloadResults()
     }
 
     fun openSaveFilterDialog() = _uiState.update { it.copy(showSaveFilterDialog = true, saveFilterName = "") }
@@ -754,6 +803,9 @@ class FilingSearchViewModel @Inject constructor(
         }
         val params = state.filters.toQueryMap().toMutableMap()
         if (state.query.isNotBlank()) params["q"] = state.query.trim()
+        if (state.selectedDatasetIds.isNotEmpty()) {
+            params["dataset_ids"] = state.selectedDatasetIds.joinToString(",")
+        }
         viewModelScope.launch {
             when (
                 val result = extrasRepository.createSavedFilter(
@@ -799,5 +851,110 @@ class FilingSearchViewModel @Inject constructor(
                 is ApiResult.Error -> Unit
             }
         }
+    }
+
+    fun setBrowseMode(mode: FilingBrowseMode) {
+        _uiState.update { it.copy(browseMode = mode, selectedMapToken = null) }
+        if (mode == FilingBrowseMode.MAP) {
+            loadMap(force = true)
+        } else {
+            search(reset = true)
+        }
+    }
+
+    fun openDatasetSelector() {
+        _uiState.update {
+            it.copy(
+                showDatasetSelector = true,
+                draftDatasetIds = it.selectedDatasetIds,
+                datasetSearchQuery = "",
+            )
+        }
+    }
+
+    fun dismissDatasetSelector() = _uiState.update { it.copy(showDatasetSelector = false) }
+
+    fun onDatasetSearchChange(query: String) = _uiState.update { it.copy(datasetSearchQuery = query) }
+
+    fun toggleDraftAllDatasets() = _uiState.update { it.copy(draftDatasetIds = emptySet()) }
+
+    fun toggleDraftDataset(datasetId: String) {
+        _uiState.update {
+            val next = it.draftDatasetIds.toMutableSet()
+            if (next.contains(datasetId)) next.remove(datasetId) else next.add(datasetId)
+            it.copy(draftDatasetIds = next)
+        }
+    }
+
+    fun clearDraftDatasets() = _uiState.update { it.copy(draftDatasetIds = emptySet()) }
+
+    fun applyDatasetSelection() {
+        _uiState.update {
+            it.copy(
+                selectedDatasetIds = it.draftDatasetIds,
+                showDatasetSelector = false,
+                page = 1,
+            )
+        }
+        reloadResults()
+    }
+
+    fun selectMapMarker(token: String?) = _uiState.update { it.copy(selectedMapToken = token) }
+
+    fun onMapViewportChanged(viewport: MapViewportState) {
+        _uiState.update { it.copy(mapViewport = viewport) }
+        if (_uiState.value.browseMode != FilingBrowseMode.MAP) return
+        if (!ViewportLoadGate.shouldFetch(lastMapFetchViewport, viewport)) return
+        mapDebounceJob?.cancel()
+        mapDebounceJob = viewModelScope.launch {
+            delay(450)
+            val latest = _uiState.value.mapViewport ?: return@launch
+            if (!ViewportLoadGate.shouldFetch(lastMapFetchViewport, latest)) return@launch
+            loadMap(force = false, viewport = latest)
+        }
+    }
+
+    fun loadMap(force: Boolean = false, viewport: MapViewportState? = _uiState.value.mapViewport) {
+        mapLoadJob?.cancel()
+        val generation = ++mapLoadGeneration
+        mapLoadJob = viewModelScope.launch {
+            val state = _uiState.value
+            val params = state.filters.toQueryMap().toMutableMap()
+            if (state.query.isNotBlank()) params["q"] = state.query
+            datasetIdsParam(state)?.let { params["dataset_ids"] = it }
+            viewport?.toQueryParams()?.let { params.putAll(it) }
+            _uiState.update { it.copy(mapLoading = it.mapData == null || force, error = null) }
+            when (val result = filingRepository.getFilingListingsMap(params)) {
+                is ApiResult.Success -> {
+                    if (generation != mapLoadGeneration) return@launch
+                    lastMapFetchViewport = viewport
+                    _uiState.update {
+                        it.copy(
+                            mapData = result.data,
+                            mapLoading = false,
+                            isRefreshing = false,
+                        )
+                    }
+                }
+                is ApiResult.Error -> {
+                    if (generation != mapLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            mapLoading = false,
+                            isRefreshing = false,
+                            snackbarMessage = result.message,
+                            error = if (it.mapData == null) result.message else it.error,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun clearSnackbar() = _uiState.update { it.copy(snackbarMessage = null) }
+
+    fun retryMapLoad() {
+        clearSnackbar()
+        loadMap(force = true)
     }
 }

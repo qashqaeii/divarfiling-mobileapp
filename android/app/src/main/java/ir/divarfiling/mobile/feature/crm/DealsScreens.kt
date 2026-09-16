@@ -64,8 +64,15 @@ import ir.divarfiling.mobile.feature.crm.components.DealsPipelineBar
 import ir.divarfiling.mobile.feature.crm.components.DealsSortOrder
 import ir.divarfiling.mobile.feature.crm.components.DealsActionBar
 import ir.divarfiling.mobile.feature.crm.components.DealStagesEditorSheet
+import ir.divarfiling.mobile.feature.crm.components.DealCommissionSplitsSummary
+import ir.divarfiling.mobile.feature.crm.components.DealContractsTabContent
 import ir.divarfiling.mobile.feature.crm.components.DealDetailHeroCard
 import ir.divarfiling.mobile.feature.crm.components.DealDetailQuickActions
+import ir.divarfiling.mobile.feature.crm.components.DealJourneyHeroCard
+import ir.divarfiling.mobile.feature.crm.components.DealJourneyStickyBar
+import ir.divarfiling.mobile.feature.crm.components.DealJourneyTab
+import ir.divarfiling.mobile.feature.crm.components.DealJourneyTabRow
+import ir.divarfiling.mobile.feature.crm.components.DuplicateDealBottomSheetContent
 import ir.divarfiling.mobile.feature.crm.components.DealStageSection
 import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 
@@ -350,6 +357,24 @@ fun DealsScreen(
         }
     }
 
+    if (state.showDuplicateSheet && state.duplicateDeal != null) {
+        val dup = state.duplicateDeal!!
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissDuplicateSheet) {
+            DuplicateDealBottomSheetContent(
+                customerName = dup.customerName.orEmpty(),
+                propertyTitle = dup.propertyTitle.orEmpty(),
+                stage = dup.stage.orEmpty(),
+                lastActivity = dup.lastFollowUp?.label.orEmpty(),
+                onViewExisting = {
+                    viewModel.dismissDuplicateSheet()
+                    onDealClick(dup.id)
+                },
+                onForceCreate = viewModel::forceCreateAfterDuplicate,
+                isSubmitting = state.isSubmittingCreate,
+            )
+        }
+    }
+
     if (state.showCreateDialog) {
         DfModalBottomSheet(
             onDismissRequest = { viewModel.toggleCreate(false) },
@@ -429,6 +454,8 @@ fun DealDetailScreen(
     onBack: () -> Unit,
     onContactClick: (Long) -> Unit = {},
     onPropertyClick: (Long) -> Unit = {},
+    onNavigateWebBridge: (String) -> Unit = {},
+    onOpenContractDetail: (Long) -> Unit = {},
     viewModel: DealDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -440,9 +467,36 @@ fun DealDetailScreen(
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
     }
 
+    LaunchedEffect(state.webBridgeUrl) {
+        state.webBridgeUrl?.let { url ->
+            onNavigateWebBridge(url)
+            viewModel.consumeWebBridge()
+        }
+    }
+
+    LaunchedEffect(state.pendingContractDetailId) {
+        state.pendingContractDetailId?.let { id ->
+            onOpenContractDetail(id)
+            viewModel.consumeContractDetailNavigation()
+        }
+    }
+
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            if (
+                deal != null &&
+                !state.isLoading &&
+                !DealsFilters.isTerminalStage(deal.stage, state.stageDefs)
+            ) {
+                DealJourneyStickyBar(
+                    onNextAction = { viewModel.toggleNextActionSheet(true) },
+                    onFollowUp = { viewModel.toggleFollowUpSheet(true) },
+                    onMore = { viewModel.toggleMoreSheet(true) },
+                )
+            }
+        },
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
@@ -455,15 +509,18 @@ fun DealDetailScreen(
             when {
                 state.isLoading -> DfDetailSkeleton()
                 deal != null -> {
+                    val tab = state.selectedTab
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+                        contentPadding = PaddingValues(bottom = AppSpacing.stickyBarClearance + AppSpacing.lg),
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                     ) {
                         item {
                             DfDetailPageHeader(
                                 title = deal.title,
-                                subtitle = deal.stage,
+                                subtitle = listOfNotNull(deal.stage, deal.customerName, deal.propertyTitle)
+                                    .filter { it.isNotBlank() }
+                                    .joinToString(" · "),
                                 sectionLabel = DfHeaderSections.CRM,
                                 titleIconRes = DfDecorIcons.Handshake,
                                 onBack = onBack,
@@ -471,71 +528,124 @@ fun DealDetailScreen(
                             )
                         }
                         item {
-                            DealDetailHeroCard(
-                                deal = deal,
-                                stageDef = DealUiUtils.defFor(deal.stage, state.stageDefs),
-                                onContactClick = { deal.customerId?.let(onContactClick) },
-                                onPropertyClick = deal.propertyId?.let { { onPropertyClick(it) } },
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            )
-                        }
-                        item {
-                            DealNextActionCard(
-                                nextAction = deal.nextAction,
-                                onComplete = viewModel::completeNextAction,
-                                onEdit = { viewModel.toggleNextActionSheet(true) },
-                                onSet = { viewModel.toggleNextActionSheet(true) },
+                            DealJourneyHeroCard(
+                                journey = state.journey,
                                 isSubmitting = state.isSubmitting,
+                                onPrimaryClick = viewModel::handleHeroPrimaryAction,
                                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
                         item {
-                            DealQuickActionBar(
-                                onFollowUp = { viewModel.toggleFollowUpSheet(true) },
-                                onEditStage = { viewModel.toggleEditSheet(true) },
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            DealJourneyTabRow(
+                                selected = tab,
+                                onSelect = viewModel::onTabSelected,
                             )
                         }
-                        item {
-                            DealTimelineSection(
-                                items = state.timeline.ifEmpty { deal.timelinePreview },
-                                onLoadMore = if (state.timelineHasMore) viewModel::loadMoreTimeline else null,
-                                modifier = Modifier.padding(top = AppSpacing.sm),
-                            )
-                        }
-                        item {
-                            DealFinanceCard(
-                                deal = deal,
-                                onEdit = { viewModel.toggleFinanceSheet(true) },
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            )
-                        }
-                        if (deal.checklist.isNotEmpty()) {
-                            item {
-                                DealChecklistSection(
-                                    items = deal.checklist,
-                                    onToggle = viewModel::toggleChecklistItem,
-                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                                )
+                        when (tab) {
+                            DealJourneyTab.OVERVIEW -> {
+                                item {
+                                    DealDetailHeroCard(
+                                        deal = deal,
+                                        stageDef = DealUiUtils.defFor(deal.stage, state.stageDefs),
+                                        onContactClick = { deal.customerId?.let(onContactClick) },
+                                        onPropertyClick = deal.propertyId?.let { { onPropertyClick(it) } },
+                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    )
+                                }
+                                item {
+                                    DealNextActionCard(
+                                        nextAction = deal.nextAction,
+                                        onComplete = viewModel::completeNextAction,
+                                        onEdit = { viewModel.toggleNextActionSheet(true) },
+                                        onSet = { viewModel.toggleNextActionSheet(true) },
+                                        isSubmitting = state.isSubmitting,
+                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    )
+                                }
+                                item {
+                                    DealStageSection(
+                                        stages = state.stages,
+                                        stageDefs = state.stageDefs,
+                                        currentStage = deal.stage,
+                                        isSubmitting = state.isSubmitting,
+                                        onStageSelect = viewModel::requestStageChange,
+                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    )
+                                }
                             }
-                        }
-                        item {
-                            DealStageSection(
-                                stages = state.stages,
-                                stageDefs = state.stageDefs,
-                                currentStage = deal.stage,
-                                isSubmitting = state.isSubmitting,
-                                onStageSelect = viewModel::changeStage,
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            )
-                        }
-                        item {
-                            DealDetailQuickActions(
-                                onEdit = { viewModel.toggleEditSheet(true) },
-                                onFinance = { viewModel.toggleFinanceSheet(true) },
-                                onDelete = { viewModel.toggleDeleteDialog(true) },
-                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                            )
+                            DealJourneyTab.ACTIVITY -> {
+                                item {
+                                    DealTimelineSection(
+                                        items = state.timeline.ifEmpty { deal.timelinePreview },
+                                        onLoadMore = if (state.timelineHasMore) viewModel::loadMoreTimeline else null,
+                                        modifier = Modifier.padding(top = AppSpacing.sm),
+                                    )
+                                }
+                            }
+                            DealJourneyTab.FINANCE -> {
+                                item {
+                                    DealFinanceCard(
+                                        deal = deal,
+                                        onEdit = { viewModel.toggleFinanceSheet(true) },
+                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    )
+                                }
+                                state.commissionData?.let { commission ->
+                                    item {
+                                        DealCommissionSplitsSummary(
+                                            data = commission,
+                                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                        )
+                                    }
+                                    if (commission.canEdit && commission.availableMembers.isNotEmpty()) {
+                                        item {
+                                            ir.divarfiling.mobile.core.design.components.DfSecondaryButton(
+                                                text = "ویرایش تقسیم کمیسیون",
+                                                onClick = { viewModel.toggleCommissionSheet(true) },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = AppSpacing.screenHorizontal),
+                                            )
+                                        }
+                                    }
+                                }
+                                item {
+                                    DealDetailQuickActions(
+                                        onEdit = { viewModel.toggleEditSheet(true) },
+                                        onFinance = { viewModel.toggleFinanceSheet(true) },
+                                        onDelete = { viewModel.toggleDeleteDialog(true) },
+                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    )
+                                }
+                            }
+                            DealJourneyTab.CONTRACT -> {
+                                item {
+                                    DealContractsTabContent(
+                                        data = state.contractsData,
+                                        isSubmitting = state.isSubmitting,
+                                        onCreateContract = viewModel::createContractAndOpen,
+                                        onOpenContract = viewModel::openContractItem,
+                                    )
+                                }
+                            }
+                            DealJourneyTab.CHECKLIST -> {
+                                if (deal.checklist.isNotEmpty()) {
+                                    item {
+                                        DealChecklistSection(
+                                            items = deal.checklist,
+                                            onToggle = viewModel::toggleChecklistItem,
+                                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                        )
+                                    }
+                                } else {
+                                    item {
+                                        DfEmptyState(
+                                            title = "چک‌لیست خالی است",
+                                            subtitle = "با تغییر مرحله، آیتم‌ها اضافه می‌شوند.",
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -603,6 +713,10 @@ fun DealDetailScreen(
                 expectedCloseDate = state.editExpectedCloseDate,
                 listingToken = state.editListingToken,
                 probability = state.editProbability,
+                contractNumber = state.editContractNumber,
+                contractAmount = state.editContractAmount,
+                contractDate = state.editContractDate,
+                contractMetadataLocked = state.contractMetadataLocked,
                 isSubmitting = state.isSubmitting,
                 onTitleChange = viewModel::onEditTitleChange,
                 onAmountChange = viewModel::onEditAmountChange,
@@ -613,6 +727,9 @@ fun DealDetailScreen(
                 onExpectedCloseDateChange = viewModel::onEditExpectedCloseDateChange,
                 onListingTokenChange = viewModel::onEditListingTokenChange,
                 onProbabilityChange = viewModel::onEditProbabilityChange,
+                onContractNumberChange = viewModel::onEditContractNumberChange,
+                onContractAmountChange = viewModel::onEditContractAmountChange,
+                onContractDateChange = viewModel::onEditContractDateChange,
                 onPropertySearch = viewModel::onEditPropertySearch,
                 onSave = viewModel::saveEdit,
                 onDismiss = { viewModel.toggleEditSheet(false) },
@@ -681,6 +798,37 @@ fun DealDetailScreen(
                 onConfirm = viewModel::confirmLostReason,
                 onDismiss = viewModel::dismissLostReasonDialog,
                 isSubmitting = state.isSubmitting,
+            )
+        }
+    }
+
+    if (state.showCommissionSheet && state.commissionData != null) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleCommissionSheet(false) }) {
+            ir.divarfiling.mobile.feature.crm.components.DealCommissionSplitSheet(
+                data = state.commissionData!!,
+                isSubmitting = state.isSubmitting,
+                onSave = viewModel::saveCommissionSplits,
+                onDismiss = { viewModel.toggleCommissionSheet(false) },
+            )
+        }
+    }
+
+    if (state.showMoreSheet) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleMoreSheet(false) }) {
+            DealDetailQuickActions(
+                onEdit = {
+                    viewModel.toggleMoreSheet(false)
+                    viewModel.toggleEditSheet(true)
+                },
+                onFinance = {
+                    viewModel.toggleMoreSheet(false)
+                    viewModel.toggleFinanceSheet(true)
+                },
+                onDelete = {
+                    viewModel.toggleMoreSheet(false)
+                    viewModel.toggleDeleteDialog(true)
+                },
+                modifier = Modifier.padding(AppSpacing.screenHorizontal),
             )
         }
     }

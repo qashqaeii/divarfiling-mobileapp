@@ -30,6 +30,11 @@ import ir.divarfiling.mobile.feature.crm.ContactDetailScreen
 import ir.divarfiling.mobile.feature.crm.ContactsScreen
 import ir.divarfiling.mobile.feature.crm.CrmHubScreen
 import ir.divarfiling.mobile.feature.crm.DealDetailScreen
+import ir.divarfiling.mobile.feature.contracts.ContractCreateScreen
+import ir.divarfiling.mobile.feature.contracts.ContractDetailScreen
+import ir.divarfiling.mobile.feature.contracts.ContractPdfScreen
+import ir.divarfiling.mobile.feature.contracts.ContractsHomeScreen
+import ir.divarfiling.mobile.feature.crm.WorkspaceWebScreen
 import ir.divarfiling.mobile.feature.crm.DealFinanceDashboardScreen
 import ir.divarfiling.mobile.feature.crm.DealsScreen
 import ir.divarfiling.mobile.feature.crm.PropertiesScreen
@@ -50,7 +55,9 @@ import ir.divarfiling.mobile.feature.crm.calendar.CrmCalendarScreen
 import ir.divarfiling.mobile.feature.crm.templates.MessageTemplatesScreen
 import ir.divarfiling.mobile.feature.extract.cloud.CloudExtractScreen
 import ir.divarfiling.mobile.feature.filing.insights.DatasetInsightsScreen
+import ir.divarfiling.mobile.feature.filing.map.CrmPropertyMapScreen
 import ir.divarfiling.mobile.feature.filing.map.DatasetMapScreen
+import ir.divarfiling.mobile.feature.search.GlobalSearchScreen
 import ir.divarfiling.mobile.feature.license.PlansScreen
 import ir.divarfiling.mobile.feature.more.MoreHubScreen
 import ir.divarfiling.mobile.feature.support.SupportTicketDetailScreen
@@ -58,6 +65,10 @@ import ir.divarfiling.mobile.feature.support.SupportTicketsScreen
 import ir.divarfiling.mobile.feature.tools.SmartToolCalculatorScreen
 import ir.divarfiling.mobile.feature.tools.ToolsScreen
 import ir.divarfiling.mobile.feature.tools.smartToolIdFromKey
+import ir.divarfiling.mobile.feature.team.AgencyAdvancedSettingsScreen
+import ir.divarfiling.mobile.feature.team.AgencyAdvisorDetailScreen
+import ir.divarfiling.mobile.feature.team.AgencyPerformanceScreen
+import ir.divarfiling.mobile.feature.team.AgencySeatsScreen
 import ir.divarfiling.mobile.feature.team.TeamAnnouncementsScreen
 import ir.divarfiling.mobile.feature.team.TeamHubScreen
 import ir.divarfiling.mobile.feature.team.TeamInboxScreen
@@ -96,6 +107,16 @@ object Routes {
     const val CRM_DEALS = "crm/deals?customerId={customerId}&propertyId={propertyId}&openCreate={openCreate}"
     const val CRM_DEALS_FINANCE = "crm/deals/finance"
     const val CRM_DEAL_DETAIL = "crm/deals/{dealId}"
+    const val CRM_CONTRACTS = "crm/contracts"
+    const val CRM_CONTRACT_DETAIL = "crm/contracts/{contractId}"
+    const val CRM_CONTRACT_CREATE = "crm/contracts/create?dealId={dealId}"
+    const val CRM_CONTRACT_PDF = "crm/contracts/{contractId}/pdf?title={title}"
+    const val WORKSPACE_WEB = "workspace/web?bridgeUrl={bridgeUrl}&webTitle={webTitle}"
+
+    fun workspaceWeb(bridgeUrl: String, webTitle: String = "میزکار") =
+        "workspace/web?bridgeUrl=${Uri.encode(bridgeUrl)}&webTitle=${Uri.encode(webTitle)}"
+    const val GLOBAL_SEARCH = "search/global"
+    const val CRM_PROPERTY_MAP = "crm/properties/map"
     const val CRM_PROPERTIES = "crm/properties"
     const val CRM_PROPERTY_DETAIL = "crm/properties/{propertyId}?openEdit={openEdit}"
     const val NOTIFICATIONS = "notifications"
@@ -107,7 +128,15 @@ object Routes {
     const val TEAM_MEMBERS = "team/members"
     const val TEAM_ANNOUNCEMENTS = "team/announcements"
     const val TEAM_INBOX = "team/inbox"
+    const val TEAM_ADVISOR = "team/advisors/{memberId}"
+    const val TEAM_PERFORMANCE = "team/performance"
+    const val TEAM_SEATS = "team/seats"
+    const val TEAM_ADVANCED = "team/advanced"
 
+    fun teamAdvisor(memberId: Long) = "team/advisors/$memberId"
+
+    fun globalSearch() = GLOBAL_SEARCH
+    fun crmPropertyMap() = CRM_PROPERTY_MAP
     fun listings(datasetId: String) = "filing/$datasetId"
     fun contacts(customerType: String? = null) =
         "crm/contacts?customerType=${Uri.encode(customerType.orEmpty())}"
@@ -117,6 +146,10 @@ object Routes {
     fun contactDetail(contactId: Long, openMatches: Boolean = false) =
         "crm/contacts/$contactId?openMatches=$openMatches"
     fun dealDetail(dealId: Long) = "crm/deals/$dealId"
+    fun contractDetail(contractId: Long) = "crm/contracts/$contractId"
+    fun contractCreate(dealId: Long = 0) = "crm/contracts/create?dealId=$dealId"
+    fun contractPdf(contractId: Long, title: String = "") =
+        "crm/contracts/$contractId/pdf?title=${Uri.encode(title)}"
     fun deals(
         customerId: Long? = null,
         propertyId: Long? = null,
@@ -240,7 +273,7 @@ fun DivarFilingNavHost(
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateContacts = { navController.navigate(Routes.contacts()) },
                             onNavigateFiling = { navController.navigate(Routes.FILING) },
-                            onNavigateFilingSearch = { navController.navigate(Routes.filingSearch()) },
+                            onNavigateFilingSearch = { navController.navigate(Routes.globalSearch()) },
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
                             onNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
@@ -249,6 +282,18 @@ fun DivarFilingNavHost(
                             onNavigateMore = { navController.navigate(Routes.MORE) },
                             onDatasetClick = { id -> navController.navigate(Routes.listings(id)) },
                             onNotificationDeepLink = { target -> navController.navigateDeepLink(target) },
+                        )
+                    }
+                    composable(Routes.GLOBAL_SEARCH) {
+                        GlobalSearchScreen(
+                            onBack = { navController.popBackStack() },
+                            onNavigate = { route -> navController.navigate(route) },
+                        )
+                    }
+                    composable(Routes.CRM_PROPERTY_MAP) {
+                        CrmPropertyMapScreen(
+                            onBack = { navController.popBackStack() },
+                            onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
                         )
                     }
                     composable(Routes.CRM) {
@@ -286,6 +331,9 @@ fun DivarFilingNavHost(
                             },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onNavigateWebBridge = { url ->
+                                navController.navigate(Routes.workspaceWeb(url, "ورود مخاطب"))
+                            },
                         )
                     }
                     composable(
@@ -350,6 +398,88 @@ fun DivarFilingNavHost(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
                             onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                            onNavigateWebBridge = { url ->
+                                navController.navigate(Routes.workspaceWeb(url, "قرارداد"))
+                            },
+                            onOpenContractDetail = { contractId ->
+                                navController.navigate(Routes.contractDetail(contractId))
+                            },
+                        )
+                    }
+                    composable(Routes.CRM_CONTRACTS) {
+                        ContractsHomeScreen(
+                            onBack = { navController.popBackStack() },
+                            onContractClick = { id -> navController.navigate(Routes.contractDetail(id)) },
+                            onCreateContract = { navController.navigate(Routes.contractCreate()) },
+                            onNavigatePlans = { navController.navigate(Routes.PLANS) },
+                        )
+                    }
+                    composable(
+                        route = Routes.CRM_CONTRACT_DETAIL,
+                        arguments = listOf(navArgument("contractId") { type = NavType.LongType }),
+                    ) { entry ->
+                        val refreshFlow = entry.savedStateHandle.getStateFlow("refresh_contract", false)
+                        val hybridRefresh by refreshFlow.collectAsStateWithLifecycle()
+                        ContractDetailScreen(
+                            onBack = { navController.popBackStack() },
+                            onNavigateWebBridge = { url -> navController.navigate(Routes.workspaceWeb(url, "قرارداد")) },
+                            onOpenPdf = { id, title -> navController.navigate(Routes.contractPdf(id, title)) },
+                            onNavigateDeal = { dealId -> navController.navigate(Routes.dealDetail(dealId)) },
+                            hybridRefreshPending = hybridRefresh,
+                            onHybridRefreshConsumed = { entry.savedStateHandle["refresh_contract"] = false },
+                        )
+                    }
+                    composable(
+                        route = Routes.CRM_CONTRACT_CREATE,
+                        arguments = listOf(
+                            navArgument("dealId") {
+                                type = NavType.LongType
+                                defaultValue = 0L
+                            },
+                        ),
+                    ) {
+                        ContractCreateScreen(
+                            onBack = { navController.popBackStack() },
+                            onCreatedNavigateDetail = { id ->
+                                navController.navigate(Routes.contractDetail(id)) {
+                                    popUpTo(Routes.CRM_CONTRACTS)
+                                }
+                            },
+                            onNavigateWebBridge = { url -> navController.navigate(Routes.workspaceWeb(url, "قرارداد")) },
+                        )
+                    }
+                    composable(
+                        route = Routes.CRM_CONTRACT_PDF,
+                        arguments = listOf(
+                            navArgument("contractId") { type = NavType.LongType },
+                            navArgument("title") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            },
+                        ),
+                    ) {
+                        ContractPdfScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(
+                        route = Routes.WORKSPACE_WEB,
+                        arguments = listOf(
+                            navArgument("bridgeUrl") { type = NavType.StringType },
+                            navArgument("webTitle") {
+                                type = NavType.StringType
+                                defaultValue = "میزکار"
+                            },
+                        ),
+                    ) { entry ->
+                        val bridgeUrl = entry.arguments?.getString("bridgeUrl").orEmpty()
+                        val webTitle = entry.arguments?.getString("webTitle").orEmpty()
+                        WorkspaceWebScreen(
+                            bridgeUrl = bridgeUrl,
+                            title = webTitle.ifBlank { "میزکار" },
+                            onBack = { navController.popBackStack() },
+                            onFinished = {
+                                navController.previousBackStackEntry?.savedStateHandle?.set("refresh_contract", true)
+                                navController.popBackStack()
+                            },
                         )
                     }
                     composable(Routes.CRM_PROPERTIES) {
@@ -359,6 +489,7 @@ fun DivarFilingNavHost(
                             onPropertyDuplicated = { id ->
                                 navController.navigate(Routes.propertyDetail(id, openEdit = true))
                             },
+                            onNavigateMap = { navController.navigate(Routes.crmPropertyMap()) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                         )
@@ -404,7 +535,7 @@ fun DivarFilingNavHost(
                     composable(Routes.FILING) {
                         DatasetsScreen(
                             onDatasetClick = { id -> navController.navigate(Routes.listings(id)) },
-                            onGlobalSearch = { query -> navController.navigate(Routes.filingSearch(query)) },
+                            onGlobalSearch = { query -> navController.navigate(Routes.globalSearch()) },
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
@@ -521,7 +652,7 @@ fun DivarFilingNavHost(
                         MoreHubScreen(
                             onNavigateTools = { navController.navigate(Routes.TOOLS) },
                             onNavigateExtract = { navController.navigate(Routes.EXTRACT) },
-                            onNavigateFilingSearch = { navController.navigate(Routes.filingSearch()) },
+                            onNavigateFilingSearch = { navController.navigate(Routes.globalSearch()) },
                             onNavigateTemplates = { navController.navigate(Routes.TEMPLATES) },
                             onNavigateCalendar = { navController.navigate(Routes.CALENDAR) },
                             onNavigateAi = { navController.navigate(Routes.ai()) },
@@ -532,6 +663,7 @@ fun DivarFilingNavHost(
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateDeals = { navController.navigate(Routes.deals()) },
+                            onNavigateContracts = { navController.navigate(Routes.CRM_CONTRACTS) },
                             onNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
                             onNavigatePlans = { navController.navigate(Routes.PLANS) },
@@ -545,6 +677,12 @@ fun DivarFilingNavHost(
                             onOpenMembers = { navController.navigate(Routes.TEAM_MEMBERS) },
                             onOpenAnnouncements = { navController.navigate(Routes.TEAM_ANNOUNCEMENTS) },
                             onOpenInbox = { navController.navigate(Routes.TEAM_INBOX) },
+                            onOpenPerformance = { navController.navigate(Routes.TEAM_PERFORMANCE) },
+                            onOpenSeats = { navController.navigate(Routes.TEAM_SEATS) },
+                            onOpenAdvanced = { navController.navigate(Routes.TEAM_ADVANCED) },
+                            onNavigateWebBridge = { url ->
+                                navController.navigate(Routes.workspaceWeb(url, "میزکار تیم"))
+                            },
                         )
                     }
                     composable(Routes.TEAM_MESSAGES) {
@@ -560,13 +698,48 @@ fun DivarFilingNavHost(
                         TeamThreadDetailScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.TEAM_MEMBERS) {
-                        TeamMembersScreen(onBack = { navController.popBackStack() })
+                        TeamMembersScreen(
+                            onBack = { navController.popBackStack() },
+                            onAdvisorClick = { id -> navController.navigate(Routes.teamAdvisor(id)) },
+                        )
+                    }
+                    composable(
+                        route = Routes.TEAM_ADVISOR,
+                        arguments = listOf(navArgument("memberId") { type = NavType.LongType }),
+                    ) {
+                        val memberId = it.arguments?.getLong("memberId") ?: 0L
+                        AgencyAdvisorDetailScreen(
+                            memberId = memberId,
+                            onBack = { navController.popBackStack() },
+                            onOpenPerformance = { navController.navigate(Routes.TEAM_PERFORMANCE) },
+                            onOpenSeats = { navController.navigate(Routes.TEAM_SEATS) },
+                        )
+                    }
+                    composable(Routes.TEAM_PERFORMANCE) {
+                        AgencyPerformanceScreen(
+                            onBack = { navController.popBackStack() },
+                            onAdvisorClick = { id -> navController.navigate(Routes.teamAdvisor(id)) },
+                        )
+                    }
+                    composable(Routes.TEAM_SEATS) {
+                        AgencySeatsScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.TEAM_ADVANCED) {
+                        AgencyAdvancedSettingsScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenBridge = { url ->
+                                navController.navigate(Routes.workspaceWeb(url, "تنظیمات پیشرفته"))
+                            },
+                        )
                     }
                     composable(Routes.TEAM_ANNOUNCEMENTS) {
                         TeamAnnouncementsScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.TEAM_INBOX) {
-                        TeamInboxScreen(onBack = { navController.popBackStack() })
+                        TeamInboxScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenContact = { id -> navController.navigate(Routes.contactDetail(id)) },
+                        )
                     }
                     composable(Routes.TEMPLATES) {
                         MessageTemplatesScreen(onBack = { navController.popBackStack() })

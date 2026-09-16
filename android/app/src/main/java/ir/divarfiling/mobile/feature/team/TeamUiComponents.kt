@@ -49,6 +49,7 @@ import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
 import ir.divarfiling.mobile.core.network.TeamAnnouncementDto
@@ -646,57 +647,59 @@ fun TeamLeadListCard(
     selected: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    onAssign: (() -> Unit)? = null,
+    onOpenContact: (() -> Unit)? = null,
 ) {
     DfCard(
-        onClick = onToggle,
+        onClick = if (onAssign == null) onToggle else null,
         modifier = modifier.fillMaxWidth(),
         containerColor = if (selected) DfColors.GreenLight.copy(alpha = 0.55f) else DfThemeColors.surface(),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TeamAvatar(
-                name = lead.name.ifBlank { lead.phone.ifBlank { "س" } },
-                accent = if (selected) DfColors.Green else DfColors.Blue,
-            )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    lead.name.ifBlank { "بدون نام" },
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
-                )
-                if (lead.phone.isNotBlank()) {
-                    Text(lead.phone, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
-                }
-                Text(
-                    listOfNotNull(
-                        lead.source.takeIf { it.isNotBlank() },
-                        DateUtils.formatRelativeFa(lead.createdAt).takeIf { it.isNotBlank() },
-                    ).joinToString(" · "),
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textMuted(),
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(if (selected) DfColors.Green else Color.Transparent)
-                    .border(
-                        BorderStroke(1.5.dp, if (selected) DfColors.Green else DfThemeColors.outline()),
-                        CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (selected) {
-                    Icon(
-                        imageVector = DfIcons.Check,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(14.dp),
+                TeamAvatar(
+                    name = lead.name.ifBlank { lead.phone.ifBlank { "س" } },
+                    accent = DfColors.Blue,
+                )
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        lead.name.ifBlank { "بدون نام" },
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
                     )
+                    if (lead.needSummary.isNotBlank()) {
+                        Text(lead.needSummary, style = AppTypography.bodyDescription, maxLines = 2)
+                    }
+                    Text(
+                        listOfNotNull(
+                            lead.source.takeIf { it.isNotBlank() },
+                            DateUtils.formatRelativeFa(lead.createdAt).takeIf { it.isNotBlank() },
+                        ).joinToString(" · "),
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textMuted(),
+                    )
+                }
+            }
+            if (onAssign != null || onOpenContact != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    onAssign?.let {
+                        DfPrimaryButton(
+                            text = "واگذاری",
+                            onClick = it,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    onOpenContact?.let {
+                        DfSecondaryButton(
+                            text = "مشاهده مخاطب",
+                            onClick = it,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
@@ -861,5 +864,5 @@ fun teamInitials(name: String): String {
 }
 
 fun teamListContentPadding(bottomExtra: Dp = 0.dp): PaddingValues {
-    return PaddingValues(bottom = AppSpacing.xxxl + bottomExtra)
+    return PaddingValues(bottom = AppSpacing.xxxl + AppSpacing.sheetFooterInset + bottomExtra)
 }

@@ -270,7 +270,7 @@ fun DfSheetHeader(
             IconButton(
                 onClick = onClose,
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(DfColors.SurfaceVariant),
             ) {
@@ -278,7 +278,7 @@ fun DfSheetHeader(
                     imageVector = DfIcons.X,
                     contentDescription = "بستن",
                     tint = DfColors.TextMuted,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
@@ -564,18 +564,11 @@ fun DfMoreActionsSheet(
 ) {
     if (!visible || actions.isEmpty()) return
     DfModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AppSpacing.md)
-                .padding(bottom = AppSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        DfSheetScaffold(
+            title = title,
+            onClose = onDismiss,
+            scrollable = false,
         ) {
-            Text(
-                text = title,
-                style = AppTypography.cardTitle,
-                fontWeight = FontWeight.SemiBold,
-            )
             actions.forEach { action ->
                 DfSheetOptionRow(
                     label = action.label,
