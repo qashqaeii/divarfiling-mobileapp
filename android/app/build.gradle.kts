@@ -16,8 +16,8 @@ android {
         applicationId = "ir.divarfiling.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 46
-        versionName = "2.6.6"
+        versionCode = 47
+        versionName = "2.6.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
