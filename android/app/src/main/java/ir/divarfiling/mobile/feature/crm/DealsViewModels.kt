@@ -29,6 +29,7 @@ import ir.divarfiling.mobile.core.network.DealStageDefDto
 import ir.divarfiling.mobile.core.network.DealTimelineItemDto
 import ir.divarfiling.mobile.core.network.DealStagePresetDto
 import ir.divarfiling.mobile.core.network.DealStagesSaveRequest
+import ir.divarfiling.mobile.core.network.DealCreateRequest
 import ir.divarfiling.mobile.core.network.DealUpdateRequest
 import ir.divarfiling.mobile.feature.crm.components.suggestionMessage
 import ir.divarfiling.mobile.core.network.PropertyContactMatchItemDto

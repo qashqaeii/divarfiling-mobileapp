@@ -37,6 +37,7 @@ import ir.divarfiling.mobile.core.network.TodayData
 import ir.divarfiling.mobile.core.network.WorkspaceBridgeData
 import ir.divarfiling.mobile.core.network.WorkspaceBridgeRequest
 import ir.divarfiling.mobile.core.network.requireData
+import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.WorkspaceBridgePaths
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json

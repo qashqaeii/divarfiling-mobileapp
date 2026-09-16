@@ -178,7 +178,7 @@ class AgencyAdvisorsViewModel @Inject constructor(
 
     fun resendInvitation(id: Long) {
         viewModelScope.launch {
-            when (repository.invitationAction(id, "resend")) {
+            when (val result = repository.invitationAction(id, "resend")) {
                 is ApiResult.Success -> _uiState.update { it.copy(successMessage = "پیامک دوباره ارسال شد") }
                 is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
             }
@@ -187,7 +187,7 @@ class AgencyAdvisorsViewModel @Inject constructor(
 
     fun cancelInvitation(id: Long) {
         viewModelScope.launch {
-            when (repository.invitationAction(id, "cancel")) {
+            when (val result = repository.invitationAction(id, "cancel")) {
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(successMessage = "دعوت لغو شد") }
                     load()

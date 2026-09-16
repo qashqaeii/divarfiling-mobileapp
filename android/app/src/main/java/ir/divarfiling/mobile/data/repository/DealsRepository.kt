@@ -12,6 +12,7 @@ import ir.divarfiling.mobile.core.network.DealJourneyData
 import ir.divarfiling.mobile.core.network.DuplicateDealCheckData
 import ir.divarfiling.mobile.core.network.WorkspaceBridgeData
 import ir.divarfiling.mobile.core.network.WorkspaceBridgeRequest
+import ir.divarfiling.mobile.core.network.DealChecklistToggleRequest
 import ir.divarfiling.mobile.core.network.DealChecklistToggleResponse
 import ir.divarfiling.mobile.core.network.DealFinanceDashboardData
 import ir.divarfiling.mobile.core.network.DealFinanceDefaultsDto

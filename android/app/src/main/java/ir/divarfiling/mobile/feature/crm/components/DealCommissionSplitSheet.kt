@@ -61,11 +61,11 @@ fun DealCommissionSplitSheet(
     ) {
         Text(
             "کمیسیون کل: ${FormatUtils.formatPriceToman(data.totalCommission)}",
-            style = AppTypography.BodySmall,
+            style = AppTypography.bodyDescription,
         )
         Text(
             text = if (kotlin.math.abs(total - 100.0) <= 0.01) "۱۰۰٪ تخصیص داده شده ✓" else "جمع فعلی: ${total.toInt()}٪",
-            style = AppTypography.BodySmall,
+            style = AppTypography.bodyDescription,
         )
         members.forEach { member ->
             DfTextField(

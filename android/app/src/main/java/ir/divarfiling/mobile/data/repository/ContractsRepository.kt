@@ -51,7 +51,8 @@ class ContractsRepository @Inject constructor(
         sort: String = "updated",
         needsAction: Boolean = false,
         page: Int = 1,
-    ): ApiResult<Pair<ContractsListData, PaginatedResult<ContractListItemDto>>> = try {
+    ): ApiResult<Pair<ContractsListData, PaginatedResult<ContractListItemDto>>> {
+        return try {
         val response = api.getContracts(
             query = query.ifBlank { null },
             status = status?.ifBlank { null },
@@ -73,8 +74,9 @@ class ContractsRepository @Inject constructor(
         ApiResult.Success(
             data to PaginatedResult(data.items, page, total, hasMore),
         )
-    } catch (e: Exception) {
+        } catch (e: Exception) {
         ApiResult.Error(e.toUserMessage("خطای شبکه"))
+        }
     }
 
     suspend fun getDetail(contractId: Long): ApiResult<ContractDetailDto> = single {
