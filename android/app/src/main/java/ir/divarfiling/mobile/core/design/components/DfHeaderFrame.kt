@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -86,6 +87,7 @@ fun DfHeaderFrame(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .then(
                 if (showSurfaceTint) {
                     Modifier.background(theme.surfaceTint)

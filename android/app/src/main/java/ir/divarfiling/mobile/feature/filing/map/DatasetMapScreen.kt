@@ -471,6 +471,7 @@ internal fun FilingOsmdroidMap(
                 )
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
+                setBuiltInZoomControls(false)
                 controller.setZoom(13.0)
                 if (viewportCallback != null) {
                     addMapListener(object : MapListener {

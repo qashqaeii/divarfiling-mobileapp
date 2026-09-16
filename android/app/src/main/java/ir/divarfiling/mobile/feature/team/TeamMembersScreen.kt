@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedTextField
+import ir.divarfiling.mobile.core.design.components.DfTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -104,7 +104,7 @@ fun TeamMembersScreen(
             DfPullRefresh(
                 isRefreshing = state.isRefreshing,
                 onRefresh = { viewModel.load() },
-                modifier = Modifier.fillMaxSize().statusBarsPadding(),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 LazyColumn(
                     contentPadding = teamListContentPadding(),
@@ -120,13 +120,14 @@ fun TeamMembersScreen(
                         )
                     }
                     item {
-                        OutlinedTextField(
+                        DfTextField(
                             value = state.query,
                             onValueChange = viewModel::onQueryChange,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = pad),
-                            label = { Text("جستجو") },
+                            label = "جستجو",
+                            placeholder = "نام یا موبایل مشاور…",
                             singleLine = true,
                         )
                     }
@@ -173,7 +174,7 @@ fun TeamMembersScreen(
                         else -> {
                             if (state.statusFilter == AgencyAdvisorFilter.INVITED || state.invitations.isNotEmpty()) {
                                 items(state.invitations, key = { "inv-${it.id}" }) { inv ->
-                                    AgencyInvitationCard(
+                                    TeamInvitationCompactCard(
                                         invitation = inv,
                                         onResend = { viewModel.resendInvitation(inv.id) },
                                         onCancel = { viewModel.cancelInvitation(inv.id) },
@@ -182,7 +183,7 @@ fun TeamMembersScreen(
                                 }
                             }
                             items(state.advisors, key = { it.id }) { advisor ->
-                                AgencyAdvisorCard(
+                                TeamAdvisorCompactCard(
                                     advisor = advisor,
                                     onClick = { onAdvisorClick(advisor.id) },
                                     modifier = Modifier.padding(horizontal = pad),
@@ -190,53 +191,6 @@ fun TeamMembersScreen(
                             }
                         }
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AgencyAdvisorCard(
-    advisor: AgencyAdvisorDto,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    DfCard(modifier = modifier, onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(advisor.name, fontWeight = FontWeight.SemiBold)
-                Text("${advisor.roleLabel} · ${if (advisor.hasSeat) "دارای صندلی" else "بدون صندلی"}")
-                Text(
-                    "سرنخ ${DateUtils.toPersianDigits(advisor.activeLeads.toString())} · معامله ${DateUtils.toPersianDigits(advisor.activeDeals.toString())}",
-                    style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
-                )
-            }
-            if (!advisor.isActive) {
-                DfBadge(text = "غیرفعال", color = DfColors.RoseLight, textColor = DfColors.Rose)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AgencyInvitationCard(
-    invitation: AgencyInvitationDto,
-    onResend: () -> Unit,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    DfCard(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-            Text(invitation.phone, fontWeight = FontWeight.SemiBold)
-            Text("دعوت · ${invitation.status}")
-            if (invitation.status == "pending") {
-                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                    DfSecondaryButton(text = "ارسال مجدد", onClick = onResend)
-                    DfSecondaryButton(text = "لغو", onClick = onCancel)
                 }
             }
         }

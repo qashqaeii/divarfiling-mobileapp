@@ -560,23 +560,16 @@ fun AgencyPerformanceScreen(
                         )
                     }
                     else -> items(state.members, key = { it.memberId ?: it.name }) { row ->
-                        DfCard(
+                        TeamPerformanceAdvisorRow(
+                            rank = row.rank,
+                            name = row.name,
+                            scorePct = row.scorePct,
+                            calls = row.calls,
+                            visits = row.visits,
+                            activeDeals = row.activeDeals,
                             modifier = Modifier.padding(horizontal = pad),
                             onClick = { row.memberId?.let(onAdvisorClick) },
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                                Text(row.name, fontWeight = FontWeight.SemiBold)
-                                Text("رتبه ${row.rank ?: "—"} · امتیاز ${row.scorePct}%")
-                                LinearProgressIndicator(
-                                    progress = { row.scorePct / 100f },
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                                Text(
-                                    "تماس ${row.calls} · بازدید ${row.visits} · معامله ${row.activeDeals}",
-                                    style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
-                                )
-                            }
-                        }
+                        )
                     }
                 }
             }

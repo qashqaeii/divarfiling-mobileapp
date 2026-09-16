@@ -114,9 +114,7 @@ fun TeamMessagesScreen(
             DfPullRefresh(
                 isRefreshing = state.isRefreshing,
                 onRefresh = { viewModel.refresh() },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding(),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 LazyColumn(
                     contentPadding = teamListContentPadding(bottomExtra = 72.dp),
@@ -145,7 +143,7 @@ fun TeamMessagesScreen(
                         }
                         state.threads.isEmpty() -> item {
                             DfEmptyState(
-                                title = "هنوز پیامی نیست",
+                                title = "هنوز پیامی ندارید",
                                 subtitle = "اولین پیام مستقیم به همکار را از دکمه پایین بفرستید.",
                                 variant = DfEmptyVariant.Empty,
                                 modifier = Modifier.padding(horizontal = pad),

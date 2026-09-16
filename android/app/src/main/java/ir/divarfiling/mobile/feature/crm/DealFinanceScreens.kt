@@ -86,8 +86,7 @@ fun DealFinanceDashboardScreen(
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .statusBarsPadding(),
+                .padding(padding),
         ) {
             when {
                 state.isLoading && state.dashboard == null -> DfCardListSkeleton()

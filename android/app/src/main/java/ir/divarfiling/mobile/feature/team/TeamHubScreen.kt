@@ -97,8 +97,7 @@ fun TeamHubScreen(
                 isRefreshing = state.isRefreshing,
                 onRefresh = { viewModel.refresh() },
                 modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding(),
+                    .fillMaxSize(),
             ) {
                 when {
                     state.isLoading -> {
@@ -192,14 +191,10 @@ fun TeamHubScreen(
                                     )
                                 }
                                 items(home.attention.take(4), key = { it.kind + it.title }) { item ->
-                                    DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Text(item.title, fontWeight = FontWeight.SemiBold)
-                                            if (item.subtitle.isNotBlank()) {
-                                                Text(item.subtitle, style = AppTypography.bodyDescription)
-                                            }
-                                        }
-                                    }
+                                    TeamAttentionCard(
+                                        item = item,
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
                                 }
                             }
                             item {
@@ -210,31 +205,29 @@ fun TeamHubScreen(
                                 )
                             }
                             item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = pad),
-                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                                ) {
-                                    if (perms.canInvite) {
-                                        DfSoftChip(text = "دعوت مشاور", selected = false, onClick = onOpenMembers)
-                                    }
-                                    DfSoftChip(text = "اعضا", selected = false, onClick = onOpenMembers)
-                                    if (perms.canOperateInbox) {
-                                        DfSoftChip(text = "Inbox سرنخ", selected = false, onClick = onOpenInbox)
-                                    }
-                                    if (perms.canManage) {
-                                        DfSoftChip(text = "عملکرد تیم", selected = false, onClick = onOpenPerformance)
-                                    }
-                                    if (perms.canManageSeats) {
-                                        DfSoftChip(text = "صندلی‌ها", selected = false, onClick = onOpenSeats)
-                                    }
-                                }
+                                TeamQuickActionGrid(
+                                    actions = buildList {
+                                        if (perms.canInvite) {
+                                            add(TeamQuickAction("دعوت مشاور", DfIcons.UserPlus, onOpenMembers))
+                                        }
+                                        add(TeamQuickAction("اعضا", DfIcons.Users, onOpenMembers))
+                                        if (perms.canOperateInbox) {
+                                            add(TeamQuickAction("Inbox سرنخ", DfIcons.ListTodo, onOpenInbox))
+                                        }
+                                        if (perms.canManage) {
+                                            add(TeamQuickAction("عملکرد تیم", DfIcons.BarChart, onOpenPerformance))
+                                        }
+                                        if (perms.canManageSeats) {
+                                            add(TeamQuickAction("صندلی‌ها", DfIcons.Building, onOpenSeats))
+                                        }
+                                    },
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
                             }
                             item {
                                 TeamSectionLabel(
-                                    title = "میانبرهای روزانه",
-                                    subtitle = "از اینجا مستقیم وارد جریان کار تیم شوید",
+                                    title = "مدیریت روزانه",
+                                    subtitle = "میانبرهای پرکاربرد تیم",
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
                             }
@@ -245,7 +238,7 @@ fun TeamHubScreen(
                                             title = "صندوق پیام",
                                             subtitle = "گفت‌وگوی داخلی و پیگیری سریع همکاران",
                                             metricLabel = "خوانده‌نشده",
-                                            metricValue = unread.messages.toString(),
+                                            metricValue = DateUtils.toPersianDigits(unread.messages.toString()),
                                             tint = DfColors.Blue,
                                             wash = DfColors.BlueLight,
                                             icon = DfIcons.MessageCircle,
@@ -262,7 +255,7 @@ fun TeamHubScreen(
                                             title = "اعلامیه‌ها",
                                             subtitle = "تابلو اطلاع‌رسانی و نکات مهم آژانس",
                                             metricLabel = "جدید",
-                                            metricValue = unread.announcements.toString(),
+                                            metricValue = DateUtils.toPersianDigits(unread.announcements.toString()),
                                             tint = DfColors.Amber,
                                             wash = DfColors.AmberLight,
                                             icon = DfIcons.Sparkles,

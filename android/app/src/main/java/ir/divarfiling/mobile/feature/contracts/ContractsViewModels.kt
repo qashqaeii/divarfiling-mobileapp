@@ -296,7 +296,7 @@ class ContractDetailViewModel @Inject constructor(
 }
 
 data class ContractCreateUiState(
-    val contractType: String = "sale",
+    val contractType: String = "",
     val isSubmitting: Boolean = false,
     val error: String? = null,
     val webBridgeUrl: String? = null,

@@ -1,31 +1,36 @@
 package ir.divarfiling.mobile.feature.filing.map
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
-import ir.divarfiling.mobile.core.design.components.DfEmptyState
-import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -64,18 +69,14 @@ fun CrmPropertyMapScreen(
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .statusBarsPadding(),
+                .padding(padding),
         ) {
             when {
                 state.isInitialLoading -> DfDetailSkeleton()
                 state.error != null && state.mapData == null -> {
                     Column(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
-                        DfDetailPageHeader(
-                            title = "نقشه فایل‌های شخصی",
+                        CrmMapTopHeader(
                             subtitle = "موقعیت فایل‌ها",
-                            sectionLabel = DfHeaderSections.CRM,
-                            titleIconRes = DfDecorIcons.MapPin,
                             onBack = onBack,
                         )
                         DfErrorBanner(state.error!!)
@@ -95,26 +96,44 @@ fun CrmPropertyMapScreen(
                             restoreViewport = state.mapViewport,
                             onViewportChanged = viewModel::onViewportChanged,
                         )
-                        DfDetailPageHeader(
-                            title = "نقشه فایل‌های شخصی",
-                            subtitle = when {
-                                state.isMapLoading -> "در حال به‌روزرسانی…"
-                                markers.isEmpty() -> "در این محدوده فایلی نیست"
-                                else -> "${markers.size} فایل در محدوده"
-                            },
-                            sectionLabel = DfHeaderSections.CRM,
-                            titleIconRes = DfDecorIcons.MapPin,
-                            onBack = onBack,
-                        )
-                        if (markers.isEmpty() && !state.isMapLoading && state.mapData != null) {
-                            DfEmptyState(
-                                title = "در این محدوده فایلی پیدا نشد",
-                                subtitle = "نقشه را جابه‌جا کنید یا فیلترها را تغییر دهید",
-                                variant = DfEmptyVariant.Empty,
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .padding(horizontal = AppSpacing.screenHorizontal),
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.TopCenter),
+                        ) {
+                            CrmMapTopHeader(
+                                subtitle = when {
+                                    state.isMapLoading -> "در حال به‌روزرسانی…"
+                                    markers.isEmpty() -> "در این محدوده فایلی نیست"
+                                    else -> "${DateUtils.toPersianDigits(markers.size.toString())} فایل در محدوده"
+                                },
+                                onBack = onBack,
                             )
+                            if (markers.isEmpty() && !state.isMapLoading && state.mapData != null) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.xs),
+                                    color = DfThemeColors.surface().copy(alpha = 0.94f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    shadowElevation = 2.dp,
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(AppSpacing.sm),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        Text(
+                                            "در این محدوده فایلی پیدا نشد",
+                                            style = AppTypography.cardTitle,
+                                        )
+                                        Text(
+                                            "نقشه را جابه‌جا کنید یا فیلترها را تغییر دهید",
+                                            style = AppTypography.bodyDescription,
+                                            color = DfThemeColors.textSecondary(),
+                                        )
+                                    }
+                                }
+                            }
                         }
                         selected?.let { marker ->
                             PropertyMapPreviewCard(
@@ -132,6 +151,21 @@ fun CrmPropertyMapScreen(
             }
         }
     }
+}
+
+@Composable
+private fun CrmMapTopHeader(
+    subtitle: String,
+    onBack: () -> Unit,
+) {
+    DfDetailPageHeader(
+        title = "نقشه فایل‌های شخصی",
+        subtitle = subtitle,
+        sectionLabel = DfHeaderSections.CRM,
+        titleIconRes = DfDecorIcons.MapPin,
+        onBack = onBack,
+        showBottomDivider = false,
+    )
 }
 
 @Composable

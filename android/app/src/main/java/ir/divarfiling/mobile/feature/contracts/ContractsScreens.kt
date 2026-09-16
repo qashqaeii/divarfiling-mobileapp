@@ -61,6 +61,23 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DateUtils
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfHeaderSections
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfSoftChip
+import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
@@ -97,67 +114,106 @@ fun ContractsHomeScreen(
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
-        topBar = { DfDetailPageHeader(title = "قراردادها", onBack = onBack) },
     ) { padding ->
         if (state.locked) {
             Column(Modifier.padding(padding).padding(AppSpacing.lg), verticalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
                 Text("برای استفاده از قراردادهای دیجیتال، لایسنس فعال لازم است.")
-                Button(onClick = onNavigatePlans, modifier = Modifier.fillMaxWidth()) { Text("فعال‌سازی / خرید اشتراک") }
+                DfPrimaryButton(text = "فعال‌سازی / خرید اشتراک", onClick = onNavigatePlans, modifier = Modifier.fillMaxWidth())
             }
             return@Scaffold
         }
         DfPullRefresh(isRefreshing = state.isRefreshing, onRefresh = { viewModel.load(refresh = true) }, modifier = Modifier.padding(padding)) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(AppSpacing.md),
+                contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
                 item {
-                    OutlinedTextField(
-                        value = state.query,
-                        onValueChange = viewModel::onQueryChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("جستجو…") },
-                        singleLine = true,
-                        trailingIcon = { TextButton(onClick = viewModel::search) { Text("جستجو") } },
+                    DfDetailPageHeader(
+                        title = "قراردادها",
+                        subtitle = "${DateUtils.toPersianDigits(state.stats.all.toString())} قرارداد ثبت‌شده",
+                        sectionLabel = DfHeaderSections.CRM,
+                        titleIconRes = DfDecorIcons.FileText,
+                        onBack = onBack,
+                        showBottomDivider = true,
                     )
                 }
                 item {
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DfTextField(
+                        value = state.query,
+                        onValueChange = viewModel::onQueryChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                        label = "جستجو",
+                        placeholder = "عنوان، شماره یا طرف قرارداد…",
+                        singleLine = true,
+                    )
+                }
+                item {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    ) {
                         ContractSummaryTab.entries.forEach { tab ->
-                            val label = when (tab) {
-                                ContractSummaryTab.ALL -> "همه ${state.stats.all}"
-                                ContractSummaryTab.DRAFT -> "پیش‌نویس ${state.stats.draft}"
-                                ContractSummaryTab.NEEDS_ACTION -> "نیازمند اقدام ${state.stats.needsAction}"
-                                ContractSummaryTab.AWAITING -> "در انتظار ${state.stats.awaitingAcceptance}"
-                                ContractSummaryTab.FINALIZED -> "نهایی ${state.stats.finalized}"
+                            val count = when (tab) {
+                                ContractSummaryTab.ALL -> state.stats.all
+                                ContractSummaryTab.DRAFT -> state.stats.draft
+                                ContractSummaryTab.NEEDS_ACTION -> state.stats.needsAction
+                                ContractSummaryTab.AWAITING -> state.stats.awaitingAcceptance
+                                ContractSummaryTab.FINALIZED -> state.stats.finalized
                             }
-                            FilterChip(selected = state.selectedTab == tab, onClick = { viewModel.onTabSelected(tab) }, label = { Text(label) })
+                            val label = when (tab) {
+                                ContractSummaryTab.ALL -> "همه"
+                                ContractSummaryTab.DRAFT -> "پیش‌نویس"
+                                ContractSummaryTab.NEEDS_ACTION -> "نیازمند اقدام"
+                                ContractSummaryTab.AWAITING -> "در انتظار"
+                                ContractSummaryTab.FINALIZED -> "نهایی"
+                            }
+                            DfSoftChip(
+                                text = "$label ${DateUtils.toPersianDigits(count.toString())}",
+                                selected = state.selectedTab == tab,
+                                onClick = { viewModel.onTabSelected(tab) },
+                            )
                         }
                     }
                 }
                 item {
                     val count = state.appliedFilters.activeCount()
-                    OutlinedButton(onClick = viewModel::openFilterSheet, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (count > 0) "فیلترها ($count)" else "فیلترها")
-                    }
+                    DfSecondaryButton(
+                        text = if (count > 0) "فیلترها (${DateUtils.toPersianDigits(count.toString())})" else "فیلترها",
+                        onClick = viewModel::openFilterSheet,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                    )
                 }
                 state.error?.let { item { DfErrorBanner(message = it) } }
                 if (state.isLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                 if (!state.isLoading && state.items.isEmpty()) {
                     item {
                         DfEmptyState(
-                            title = if (state.isFilteredEmpty) "نتیجه‌ای نیست" else "قراردادی نیست",
+                            title = if (state.isFilteredEmpty) "قراردادی مطابق فیلترها پیدا نشد" else "قراردادی نیست",
                             subtitle = if (state.isFilteredEmpty) "فیلتر یا جستجو را تغییر دهید" else "اولین قرارداد را ایجاد کنید",
                             variant = if (state.isFilteredEmpty) DfEmptyVariant.NoResults else DfEmptyVariant.Empty,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 }
                 items(state.items, key = { it.id }) { item ->
-                    ContractListCard(item = item, onClick = { onContractClick(item.id) })
+                    ContractListCard(item = item, onClick = { onContractClick(item.id) }, modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal))
                 }
                 item {
-                    OutlinedButton(onClick = onCreateContract, modifier = Modifier.fillMaxWidth()) { Text("قرارداد جدید") }
+                    DfPrimaryButton(
+                        text = "قرارداد جدید",
+                        onClick = onCreateContract,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                    )
                 }
             }
         }
@@ -165,25 +221,99 @@ fun ContractsHomeScreen(
 }
 
 @Composable
-private fun ContractListCard(item: ContractListItemDto, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(AppSpacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(item.contractTypeLabel, style = MaterialTheme.typography.labelMedium)
-                AssistChip(onClick = {}, label = { Text(item.statusLabel) })
+private fun ContractListCard(
+    item: ContractListItemDto,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val statusColors = contractStatusColors(item.statusLabel)
+    DfCard(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+        Column(
+            Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    item.contractTypeLabel,
+                    style = AppTypography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                DfBadge(
+                    text = item.statusLabel,
+                    color = statusColors.first,
+                    textColor = statusColors.second,
+                )
             }
-            Text(item.title.ifBlank { item.propertyTitle }, style = MaterialTheme.typography.titleMedium)
-            if (item.primaryParty.isNotBlank()) Text(item.primaryParty, style = MaterialTheme.typography.bodyMedium)
-            if (item.internalNumber.isNotBlank()) Text("شماره: ${item.internalNumber}", style = MaterialTheme.typography.bodySmall)
-            item.updatedAt?.let { iso ->
-                DateUtils.parseInstantMillis(iso)?.let { ms ->
-                    Text("آخرین تغییر: ${DateUtils.formatJalaliDateTimeLatinFromMillis(ms)}", style = MaterialTheme.typography.bodySmall)
+            Text(
+                item.title.ifBlank { item.propertyTitle }.ifBlank { item.contractTypeLabel },
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (item.primaryParty.isNotBlank()) {
+                Text(
+                    "طرف: ${item.primaryParty}",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    if (item.internalNumber.isNotBlank()) {
+                        Text(
+                            "شماره: ${item.internalNumber}",
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    item.updatedAt?.let { iso ->
+                        DateUtils.parseInstantMillis(iso)?.let { ms ->
+                            Text(
+                                "آخرین تغییر: ${DateUtils.formatJalaliDateTimeLatinFromMillis(ms)}",
+                                style = AppTypography.labelSmall,
+                                color = DfThemeColors.textMuted(),
+                            )
+                        }
+                    }
+                }
+                if (item.nextAction.label.isNotBlank()) {
+                    Text(
+                        item.nextAction.label,
+                        style = AppTypography.labelLarge,
+                        color = DfThemeColors.primary(),
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
-            if (item.nextAction.label.isNotBlank()) {
-                Text(item.nextAction.label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            }
         }
+    }
+}
+
+private fun contractStatusColors(statusLabel: String): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> {
+    val label = statusLabel.trim()
+    return when {
+        label.contains("پیش") -> DfColors.AmberLight to DfColors.Amber
+        label.contains("نهای") || label.contains("امض") -> DfColors.GreenLight to DfColors.Green
+        label.contains("انتظار") -> DfColors.BlueLight to DfColors.Blue
+        else -> DfColors.PurpleLight to DfColors.PurpleDark
     }
 }
 
@@ -425,14 +555,99 @@ fun ContractCreateScreen(
     LaunchedEffect(state.webBridgeUrl) {
         state.webBridgeUrl?.let { onNavigateWebBridge(it); viewModel.consumeWebBridge() }
     }
-    Scaffold(containerColor = DfScreenContainerColor, topBar = { DfDetailPageHeader(title = "قرارداد جدید", onBack = onBack) }) { padding ->
-        Column(Modifier.padding(padding).padding(AppSpacing.md), verticalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
-            listOf("sale" to "فروش / مبایعه‌نامه", "lease" to "رهن و اجاره", "jv" to "مشارکت در ساخت").forEach { (key, label) ->
-                FilterChip(selected = state.contractType == key, onClick = { viewModel.onTypeSelected(key) }, label = { Text(label) }, modifier = Modifier.fillMaxWidth())
+    Scaffold(containerColor = DfScreenContainerColor, snackbarHost = { SnackbarHost(remember { SnackbarHostState() }) }) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
+        ) {
+            item {
+                DfDetailPageHeader(
+                    title = "ایجاد قرارداد",
+                    subtitle = "نوع قرارداد را انتخاب کنید",
+                    sectionLabel = DfHeaderSections.CRM,
+                    titleIconRes = DfDecorIcons.FileText,
+                    onBack = onBack,
+                    showBottomDivider = true,
+                )
             }
-            state.error?.let { DfErrorBanner(it) }
-            Button(onClick = viewModel::submit, enabled = !state.isSubmitting, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Text(if (state.isSubmitting) "در حال ایجاد…" else "ادامه در ویزارد")
+            item {
+                Column(
+                    Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    data class ContractTypeOption(
+                        val key: String,
+                        val title: String,
+                        val description: String,
+                        @androidx.annotation.DrawableRes val iconRes: Int,
+                    )
+                    listOf(
+                        ContractTypeOption("sale", "فروش / مبایعه‌نامه", "قرارداد خرید و فروش ملک", DfDecorIcons.Handshake),
+                        ContractTypeOption("lease", "رهن و اجاره", "قرارداد رهن کامل یا اجاره", DfDecorIcons.House),
+                        ContractTypeOption("jv", "مشارکت در ساخت", "قرارداد مشارکت سازنده و مالک", DfDecorIcons.Layers),
+                    ).forEach { option ->
+                        ContractTypePickCard(
+                            title = option.title,
+                            description = option.description,
+                            iconRes = option.iconRes,
+                            selected = state.contractType == option.key,
+                            onClick = { viewModel.onTypeSelected(option.key) },
+                        )
+                    }
+                    state.error?.let { DfErrorBanner(it) }
+                    DfPrimaryButton(
+                        text = if (state.isSubmitting) "در حال ایجاد…" else "ادامه تکمیل قرارداد",
+                        onClick = viewModel::submit,
+                        enabled = state.contractType.isNotBlank() && !state.isSubmitting,
+                        loading = state.isSubmitting,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ContractTypePickCard(
+    title: String,
+    description: String,
+    @androidx.annotation.DrawableRes iconRes: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val border = if (selected) DfThemeColors.primary() else DfThemeColors.outlineSubtle()
+    val bg = if (selected) DfColors.PurpleLight.copy(alpha = 0.35f) else DfThemeColors.surface()
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = bg,
+        border = BorderStroke(if (selected) 1.5.dp else 1.dp, border),
+        shadowElevation = if (selected) 2.dp else 0.dp,
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(AppSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+                Text(description, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
+            }
+            if (selected) {
+                Text("✓", color = DfThemeColors.primary(), fontWeight = FontWeight.Bold)
             }
         }
     }

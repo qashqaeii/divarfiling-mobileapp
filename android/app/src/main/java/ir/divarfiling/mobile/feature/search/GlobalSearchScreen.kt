@@ -60,8 +60,7 @@ fun GlobalSearchScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .statusBarsPadding(),
+                .padding(padding),
             contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {

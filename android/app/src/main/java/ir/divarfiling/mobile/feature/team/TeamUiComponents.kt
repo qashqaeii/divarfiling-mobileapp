@@ -20,8 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,7 +51,10 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.design.components.liquidGlassSurface
-import ir.divarfiling.mobile.core.network.TeamAnnouncementDto
+import ir.divarfiling.mobile.core.design.PresentationLabels
+import ir.divarfiling.mobile.core.network.AgencyAttentionDto
+import ir.divarfiling.mobile.core.network.AgencyAdvisorDto
+import ir.divarfiling.mobile.core.network.AgencyInvitationDto
 import ir.divarfiling.mobile.core.network.TeamChatMessageDto
 import ir.divarfiling.mobile.core.network.TeamLeadDto
 import ir.divarfiling.mobile.core.network.TeamMemberDto
@@ -828,6 +830,255 @@ fun TeamSectionLabel(
                 subtitle,
                 style = AppTypography.bodyDescription,
                 color = DfThemeColors.textSecondary(),
+            )
+        }
+    }
+}
+
+@Composable
+fun TeamAttentionCard(
+    item: AgencyAttentionDto,
+    modifier: Modifier = Modifier,
+) {
+    val warning = item.level == "warning" || item.level == "danger"
+    val tint = if (warning) DfColors.Amber else DfColors.Blue
+    DfCard(
+        modifier = modifier.fillMaxWidth(),
+        containerColor = tint.copy(alpha = 0.08f),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (warning) DfIcons.TriangleAlert else DfIcons.CircleAlert,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(20.dp),
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    PresentationLabels.attentionTitle(item.title),
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val subtitle = PresentationLabels.attentionSubtitle(item.subtitle)
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        subtitle,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (item.count > 0) {
+                DfBadge(
+                    text = DateUtils.toPersianDigits(item.count.toString()),
+                    color = tint.copy(alpha = 0.15f),
+                    textColor = tint,
+                )
+            }
+        }
+    }
+}
+
+data class TeamQuickAction(
+    val label: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TeamQuickActionGrid(
+    actions: List<TeamQuickAction>,
+    modifier: Modifier = Modifier,
+) {
+    if (actions.isEmpty()) return
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+        actions.chunked(2).forEach { rowActions ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                rowActions.forEach { action ->
+                    Surface(
+                        onClick = action.onClick,
+                        modifier = Modifier.weight(1f),
+                        shape = AppShapes.CardSmall,
+                        color = DfThemeColors.surface(),
+                        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+                        shadowElevation = AppElevations.subtle,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(action.icon, contentDescription = null, tint = DfThemeColors.primary(), modifier = Modifier.size(18.dp))
+                            Text(
+                                action.label,
+                                style = AppTypography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+                if (rowActions.size == 1) Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TeamAdvisorCompactCard(
+    advisor: AgencyAdvisorDto,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val displayName = PresentationLabels.memberDisplayName(advisor.name, advisor.phone)
+    val accent = roleAccent(advisor.role)
+    DfCard(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TeamAvatar(name = displayName, accent = accent, size = 44.dp)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(displayName, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "${advisor.roleLabel.ifBlank { "مشاور" }} · ${PresentationLabels.seatLabel(advisor.hasSeat)}",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                    maxLines = 1,
+                )
+                Text(
+                    "سرنخ ${DateUtils.toPersianDigits(advisor.activeLeads.toString())} · معامله ${DateUtils.toPersianDigits(advisor.activeDeals.toString())}",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
+            }
+            DfBadge(
+                text = PresentationLabels.memberActiveLabel(advisor.isActive),
+                color = if (advisor.isActive) DfColors.GreenLight else DfColors.RoseLight,
+                textColor = if (advisor.isActive) DfColors.Green else DfColors.Rose,
+            )
+        }
+    }
+}
+
+@Composable
+fun TeamInvitationCompactCard(
+    invitation: AgencyInvitationDto,
+    onResend: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val statusLabel = PresentationLabels.invitationStatus(invitation.status)
+    DfCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TeamAvatar(name = invitation.phone.ifBlank { "د" }, accent = DfColors.Amber, size = 44.dp)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    invitation.phone.ifBlank { "بدون شماره" },
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+                Text("دعوت", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+            }
+            DfBadge(
+                text = statusLabel,
+                color = DfColors.AmberLight,
+                textColor = DfColors.Amber,
+            )
+        }
+        if (invitation.status == "pending") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.sm)
+                    .padding(bottom = AppSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                DfSecondaryButton(text = "ارسال مجدد", onClick = onResend, modifier = Modifier.weight(1f))
+                DfSecondaryButton(text = "لغو", onClick = onCancel, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+fun TeamPerformanceAdvisorRow(
+    rank: Int?,
+    name: String,
+    scorePct: Int,
+    calls: Int,
+    visits: Int,
+    activeDeals: Int,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+) {
+    val displayName = PresentationLabels.memberDisplayName(name)
+    DfCard(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(DfColors.PurpleLight),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    rank?.let { DateUtils.toPersianDigits(it.toString()) } ?: "—",
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = DfColors.PurpleDark,
+                )
+            }
+            TeamAvatar(name = displayName, size = 40.dp)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(displayName, style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { scorePct.coerceIn(0, 100) / 100f },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "تماس ${DateUtils.toPersianDigits(calls.toString())} · بازدید ${DateUtils.toPersianDigits(visits.toString())} · معامله ${DateUtils.toPersianDigits(activeDeals.toString())}",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
+            }
+            Text(
+                "${DateUtils.toPersianDigits(scorePct.toString())}٪",
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.primary(),
             )
         }
     }
