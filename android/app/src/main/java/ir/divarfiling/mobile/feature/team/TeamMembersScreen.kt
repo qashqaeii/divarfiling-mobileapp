@@ -84,11 +84,11 @@ fun TeamMembersScreen(
                     )
                 },
             ) {
-                OutlinedTextField(
+                DfTextField(
                     value = state.invitePhone,
                     onValueChange = viewModel::onInvitePhoneChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("موبایل") },
+                    label = "موبایل",
                     singleLine = true,
                 )
             }
