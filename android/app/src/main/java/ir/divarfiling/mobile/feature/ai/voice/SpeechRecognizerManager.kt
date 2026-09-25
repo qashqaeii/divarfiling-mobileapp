@@ -26,8 +26,17 @@ class SpeechRecognizerManager @Inject constructor(
     @ApplicationContext private val appContext: Context,
 ) {
     private var recognizer: SpeechRecognizer? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(appContext)
+
+    private fun runOnMain(block: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            block()
+        } else {
+            mainHandler.post(block)
+        }
+    }
 
     fun createListener(
         onPartial: (String) -> Unit,
@@ -36,7 +45,7 @@ class SpeechRecognizerManager @Inject constructor(
         onListeningChanged: (Boolean) -> Unit,
     ): RecognitionListener = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
-            onListeningChanged(true)
+            runOnMain { onListeningChanged(true) }
         }
 
         override fun onBeginningOfSpeech() = Unit
@@ -46,21 +55,25 @@ class SpeechRecognizerManager @Inject constructor(
         override fun onBufferReceived(buffer: ByteArray?) = Unit
 
         override fun onEndOfSpeech() {
-            onListeningChanged(false)
+            runOnMain { onListeningChanged(false) }
         }
 
         override fun onError(error: Int) {
-            onListeningChanged(false)
-            onError(SpeechErrorMapper.fromAndroidCode(error))
+            runOnMain {
+                onListeningChanged(false)
+                onError(SpeechErrorMapper.fromAndroidCode(error))
+            }
         }
 
         override fun onResults(results: Bundle?) {
-            onListeningChanged(false)
             val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 ?.firstOrNull { it.isNotBlank() }
                 ?.trim()
                 .orEmpty()
-            onFinal(text)
+            runOnMain {
+                onListeningChanged(false)
+                onFinal(text)
+            }
         }
 
         override fun onPartialResults(partialResults: Bundle?) {
@@ -68,7 +81,9 @@ class SpeechRecognizerManager @Inject constructor(
                 ?.firstOrNull { it.isNotBlank() }
                 ?.trim()
                 .orEmpty()
-            if (text.isNotBlank()) onPartial(text)
+            if (text.isNotBlank()) {
+                runOnMain { onPartial(text) }
+            }
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) = Unit

@@ -74,6 +74,7 @@ class VoiceSessionController(
     fun suspendForBackground() {
         if (!userListening || sessionFinalized) return
         blockAutoRestart = true
+        userListening = false
         requestStopRecognizer()
         commitCycleToSession()
         syncDisplay()
@@ -91,7 +92,7 @@ class VoiceSessionController(
     }
 
     fun onRecognizerListening(active: Boolean) {
-        if (sessionFinalized || !userListening) return
+        if (sessionFinalized || !userListening || blockAutoRestart) return
         if (active) {
             setPhase(VoiceSessionPhase.Listening)
         }
@@ -129,7 +130,10 @@ class VoiceSessionController(
         if (!hadCycleContent && sessionTranscript.isEmpty()) {
             setPhase(VoiceSessionPhase.Listening)
             onStatusHint(LISTENING_HINT)
-            requestStartRecognizer()
+            scheduleDelayed(150L) {
+                if (blockAutoRestart || manualStopRequested || sessionFinalized || !userListening) return@scheduleDelayed
+                requestStartRecognizer()
+            }
             return
         }
         scheduleRecognitionRestart()

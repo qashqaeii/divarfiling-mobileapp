@@ -142,6 +142,8 @@ fun VoiceTextField(
         voiceSession.manualStop()
     }
 
+    VoiceSessionBackgroundEffect(voiceSession)
+
     DisposableEffect(Unit) {
         onDispose { voiceSession.destroyRecognizer() }
     }

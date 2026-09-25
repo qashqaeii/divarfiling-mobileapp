@@ -35,13 +35,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.content.ContextCompat
-import android.os.Handler
-import android.os.Looper
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -66,6 +61,7 @@ import ir.divarfiling.mobile.feature.ai.voice.VoiceInputPhase
 import ir.divarfiling.mobile.feature.ai.voice.VoiceMicButton
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionController
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionPhase
+import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionBackgroundEffect
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSpeechSession
 import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.feature.ai.voice.openAppSettingsForMic
@@ -209,32 +205,7 @@ private fun SmartCommandSheet(
         else viewModel.onVoiceRecoverableError(SpeechErrorMapper.permissionDenied())
     }
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val mainHandler = remember { Handler(Looper.getMainLooper()) }
-    var backgroundSuspendRunnable by remember { mutableStateOf<Runnable?>(null) }
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_PAUSE -> {
-                    backgroundSuspendRunnable?.let { mainHandler.removeCallbacks(it) }
-                    val r = Runnable { voiceSession.suspendForBackground() }
-                    backgroundSuspendRunnable = r
-                    // دیالوگ مجوز یا overlay کوتاه نباید فوراً STT را بکشد
-                    mainHandler.postDelayed(r, 800L)
-                }
-                Lifecycle.Event.ON_RESUME -> {
-                    backgroundSuspendRunnable?.let { mainHandler.removeCallbacks(it) }
-                    backgroundSuspendRunnable = null
-                }
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            backgroundSuspendRunnable?.let { mainHandler.removeCallbacks(it) }
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
+    VoiceSessionBackgroundEffect(voiceSession)
 
     DisposableEffect(Unit) {
         onDispose { voiceSession.destroyRecognizer() }
@@ -453,6 +424,8 @@ private fun InputAndPreviewStep(
                     DfTextField(
                         value = state.inputText,
                         onValueChange = onInputChange,
+                        readOnly = state.voicePhase == VoiceInputPhase.Listening ||
+                            state.voicePhase == VoiceInputPhase.ProcessingSpeech,
                         placeholder = state.profile?.placeholder?.ifBlank {
                             SmartCommandMapping.defaultPlaceholder(state.profileKey)
                         } ?: SmartCommandMapping.defaultPlaceholder(state.profileKey),

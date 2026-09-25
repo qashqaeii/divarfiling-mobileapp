@@ -5,6 +5,7 @@ import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionController
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionPhase
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSpeechError
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -86,6 +87,17 @@ class VoiceSessionControllerTest {
         ctrl.onRecognizerCycleEnded()
         ctrl.onRecognizerError(VoiceSpeechError.NoSpeech)
         assertTrue(displays.last().contains("موجود"))
+    }
+
+    @Test
+    fun suspendForBackground_ignoresStaleRecognizerCallbacks() {
+        val ctrl = controller()
+        ctrl.startSession("")
+        ctrl.suspendForBackground()
+        assertEquals(VoiceSessionPhase.WaitingForContinuation, ctrl.phase)
+        ctrl.onRecognizerListening(true)
+        ctrl.onAndroidPartial("تست")
+        assertEquals(VoiceSessionPhase.WaitingForContinuation, ctrl.phase)
     }
 
     @Test
