@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
@@ -146,6 +147,7 @@ private fun SmartCommandSheet(
             )
             SmartCommandPhase.ResolvingContact -> ContactResolveStep(
                 candidates = state.parseResult?.contactCandidates.orEmpty(),
+                resolveInFlight = state.contactResolveInFlight,
                 onSelect = viewModel::selectContactCandidate,
                 onCancel = { viewModel.resetFlow() },
             )
@@ -546,6 +548,7 @@ private fun SmartCommandPreviewRow(label: String, value: String) {
 @Composable
 private fun ContactResolveStep(
     candidates: List<NlContactCandidateDto>,
+    resolveInFlight: Boolean,
     onSelect: (Long) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -562,9 +565,30 @@ private fun ContactResolveStep(
                 .padding(bottom = AppSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
+            if (resolveInFlight) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = AppSpacing.md),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = DfColors.Primary,
+                    )
+                    Text(
+                        text = "در حال ثبت انتخاب…",
+                        style = AppTypography.bodyDescription,
+                        color = DfColors.TextSecondary,
+                        modifier = Modifier.padding(start = AppSpacing.sm),
+                    )
+                }
+            }
             candidates.forEach { candidate ->
                 SmartCommandInsetPanel(
-                    modifier = Modifier.clickable { onSelect(candidate.id) },
+                    modifier = Modifier.clickable(enabled = !resolveInFlight) { onSelect(candidate.id) },
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

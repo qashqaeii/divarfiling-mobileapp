@@ -174,18 +174,45 @@ object SmartCommandStateLogic {
         )
     }
 
+    /**
+     * After user picks a contact (web: resolve-contact), merge server state and rebuild preview UI
+     * the same way as [applyParse] — otherwise confirm stays disabled on Android.
+     */
     fun applyResolve(
         current: NlCommandParseResult?,
         data: NlCommandResolveResult,
-    ): Pair<NlCommandParseResult?, ReminderPreviewEdit?> {
-        val reminder = SmartCommandMapping.reminderFromPreview(data.preview)
-        val updated = current?.copy(
-            preview = data.preview,
+        profile: SmartCommandProfileDto?,
+    ): ParseApplyResult {
+        if (current == null) {
+            return ParseApplyResult(
+                phase = SmartCommandPhase.Preview,
+                parseResult = NlCommandParseResult(intent = SmartCommandMapping.INTENT_UNKNOWN),
+                reminderEdit = null,
+                contactEdit = null,
+                propertyEdit = null,
+                statusMessage = null,
+                baselineReminder = null,
+                baselineContact = null,
+                baselineProperty = null,
+                showStructuredPreview = false,
+            )
+        }
+        val merged = current.copy(
+            preview = data.preview ?: current.preview,
             canConfirm = data.canConfirm,
             missingFields = data.missingFields,
             ambiguousFields = data.ambiguousFields,
+            contactCandidates = emptyList(),
         )
-        return updated to reminder
+        val applied = applyParse(
+            data = merged,
+            profile = profile,
+            resumeCorrection = false,
+            currentBaselineReminder = null,
+            currentBaselineContact = null,
+            currentBaselineProperty = null,
+        )
+        return applied.copy(phase = SmartCommandPhase.Preview)
     }
 
     data class ApiErrorApplyResult(

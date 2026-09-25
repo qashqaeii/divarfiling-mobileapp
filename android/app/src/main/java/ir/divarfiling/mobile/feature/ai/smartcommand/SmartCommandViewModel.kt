@@ -40,6 +40,7 @@ data class SmartCommandUiState(
     val contactEdit: ContactPreviewEdit? = null,
     val propertyEdit: PropertyPreviewEdit? = null,
     val selectedContactId: Long? = null,
+    val contactResolveInFlight: Boolean = false,
     val successEntityType: String? = null,
     val successEntityId: Long? = null,
     val successMessage: String? = null,
@@ -278,11 +279,23 @@ class SmartCommandViewModel @Inject constructor(
     fun selectContactCandidate(contactId: Long) {
         val commandId = _uiState.value.parseResult?.commandId ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(phase = SmartCommandPhase.ResolvingContact, selectedContactId = contactId) }
+            _uiState.update {
+                it.copy(
+                    phase = SmartCommandPhase.ResolvingContact,
+                    selectedContactId = contactId,
+                    contactResolveInFlight = true,
+                    errorMessage = null,
+                )
+            }
             when (val result = repository.resolveContact(commandId, contactId)) {
                 is ApiResult.Success -> applyResolve(result.data)
                 is ApiResult.Error -> {
-                    _uiState.update { it.copy(phase = SmartCommandPhase.Preview) }
+                    _uiState.update {
+                        it.copy(
+                            phase = SmartCommandPhase.ResolvingContact,
+                            contactResolveInFlight = false,
+                        )
+                    }
                     handleApiError(result.message, result.code)
                 }
             }
@@ -330,6 +343,7 @@ class SmartCommandViewModel @Inject constructor(
                 errorMessage = null,
                 statusMessage = null,
                 selectedContactId = null,
+                contactResolveInFlight = false,
                 confirmInFlight = false,
             )
         }
@@ -443,14 +457,30 @@ class SmartCommandViewModel @Inject constructor(
     }
 
     private fun applyResolve(data: NlCommandResolveResult) {
-        val (updated, reminder) = SmartCommandStateLogic.applyResolve(_uiState.value.parseResult, data)
-        baselineReminder = reminder
+        val applied = SmartCommandStateLogic.applyResolve(
+            current = _uiState.value.parseResult,
+            data = data,
+            profile = _uiState.value.profile,
+        )
+        baselineReminder = applied.baselineReminder
+        baselineContact = applied.baselineContact
+        baselineProperty = applied.baselineProperty
         _uiState.update {
             it.copy(
-                phase = SmartCommandPhase.Preview,
-                parseResult = updated,
-                reminderEdit = reminder,
-                statusMessage = null,
+                phase = applied.phase,
+                parseResult = applied.parseResult,
+                reminderEdit = applied.reminderEdit,
+                contactEdit = applied.contactEdit,
+                propertyEdit = applied.propertyEdit,
+                statusMessage = applied.statusMessage,
+                errorMessage = null,
+                wrongIntent = applied.wrongIntent,
+                previewLines = applied.previewLines,
+                missingMessages = applied.missingMessages,
+                ambiguousMessages = applied.ambiguousMessages,
+                showStructuredPreview = applied.showStructuredPreview,
+                selectedContactId = null,
+                contactResolveInFlight = false,
             )
         }
     }

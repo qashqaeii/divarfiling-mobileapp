@@ -166,17 +166,47 @@ class SmartCommandStateLogicTest {
     }
 
     @Test
-    fun resolveContact_updatesCanConfirm() {
-        val preview = buildJsonObject { put("contact_name", "احمد") }
-        val (updated, reminder) = SmartCommandStateLogic.applyResolve(
-            current = NlCommandParseResult(intent = SmartCommandMapping.INTENT_REMINDER, canConfirm = false),
+    fun resolveContact_updatesCanConfirmAndPreviewUi() {
+        val previewBefore = buildJsonObject {
+            put("title", "تماس")
+            put("contact_name", "احمدی")
+            put("date_text", "فردا")
+            put("time_text", "عصر")
+        }
+        val current = NlCommandParseResult(
+            intent = SmartCommandMapping.INTENT_REMINDER,
+            preview = previewBefore,
+            canConfirm = false,
+            ambiguousFields = listOf("contact_name"),
+            contactCandidates = listOf(
+                NlContactCandidateDto(1, "احمدی الف", ""),
+                NlContactCandidateDto(2, "احمدی ب", ""),
+            ),
+            commandId = "cmd-1",
+        )
+        val resolvedPreview = buildJsonObject {
+            put("title", "تماس")
+            put("contact_name", "احمدی الف")
+            put("date_text", "فردا")
+            put("time_text", "عصر")
+        }
+        val result = SmartCommandStateLogic.applyResolve(
+            current = current,
             data = ir.divarfiling.mobile.core.network.NlCommandResolveResult(
-                preview = preview,
+                preview = resolvedPreview,
                 canConfirm = true,
+                ambiguousFields = emptyList(),
+            ),
+            profile = SmartCommandProfileDto(
+                allowedIntent = SmartCommandMapping.INTENT_REMINDER,
+                enableContactResolve = true,
             ),
         )
-        assertTrue(updated?.canConfirm == true)
-        assertEquals("احمد", reminder?.contactName)
+        assertEquals(SmartCommandPhase.Preview, result.phase)
+        assertTrue(result.showStructuredPreview)
+        assertTrue(result.parseResult.canConfirm)
+        assertEquals("احمدی الف", result.reminderEdit?.contactName)
+        assertTrue(result.parseResult.contactCandidates.isEmpty())
     }
 
     @Test
