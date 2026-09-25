@@ -213,8 +213,8 @@ fun VoiceMicButton(
                 VoiceInputPhase.ProcessingSpeech ->
                     CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
                 VoiceInputPhase.Listening ->
-                    Icon(DfIcons.Mic, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                else -> Icon(DfIcons.Mic, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(DfIcons.Mic, contentDescription = null, tint = DfThemeColors.primary())
+                else -> Icon(DfIcons.Mic, contentDescription = null, tint = DfThemeColors.primary())
             }
         }
     }
