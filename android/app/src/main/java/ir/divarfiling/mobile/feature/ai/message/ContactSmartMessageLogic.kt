@@ -29,15 +29,18 @@ object ContactSmartMessageLogic {
         val tones = caps.crmMessageTones
         val canUse = caps.canUseCrmMessage
         val block = when {
+            caps.isUnlimited -> null
             !caps.aiEnabled -> caps.messages.aiDisabled
             !caps.hasLicense -> caps.messages.noLicense
             !canUse -> "پیام هوشمند فعال نیست."
-            (caps.crmMessage?.remaining ?: caps.quota?.remaining)?.let { it <= 0 } == true ->
+            (caps.crmMessage?.resolvedRemaining() ?: caps.quota?.resolvedRemaining())?.let { it <= 0 } == true ->
                 caps.messages.quotaExhausted
             else -> null
         }
         val quotaHint = caps.crmMessage?.let { q ->
-            if (q.limit > 0) "${q.remaining} از ${q.limit} پیام امروز باقی مانده" else null
+            val lim = q.effectiveLimit()
+            val rem = q.effectiveRemaining()
+            if (lim > 0 && !caps.isUnlimited) "$rem از $lim پیام امروز باقی مانده" else null
         }
         return CrmMessageAccessState(
             canUse = canUse && block == null,

@@ -19,6 +19,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -185,14 +186,53 @@ class SmartCommandStateLogicTest {
     }
 
     @Test
+    fun unlimited_superuser_notBlocked() {
+        val caps = AiCapabilitiesData(
+            aiEnabled = true,
+            hasLicense = false,
+            isUnlimited = true,
+            canUseSmartCommand = true,
+            nlCommand = AiFeatureQuota(featureRemaining = 0, featureLimit = 10),
+        )
+        assertNull(SmartCommandStateLogic.evaluateBlock(caps))
+    }
+
+    @Test
     fun block_quotaExhausted() {
         val caps = AiCapabilitiesData(
             aiEnabled = true,
             hasLicense = true,
             canUseSmartCommand = true,
-            nlCommand = AiFeatureQuota(remaining = 0, limit = 10),
+            nlCommand = AiFeatureQuota(featureRemaining = 0, featureLimit = 10),
         )
         assertEquals(SmartCommandBlockReason.QuotaExhausted, SmartCommandStateLogic.evaluateBlock(caps))
+    }
+
+    @Test
+    fun quota_notBlockedWhenNlQuotaShapeUnparsed() {
+        val caps = AiCapabilitiesData(
+            aiEnabled = true,
+            hasLicense = true,
+            canUseSmartCommand = true,
+            nlCommand = AiFeatureQuota(
+                remaining = 0,
+                feature = "nl_command",
+                featureLimit = 50,
+            ),
+            quota = AiFeatureQuota(remaining = 25, limit = 100),
+        )
+        assertNull(SmartCommandStateLogic.evaluateBlock(caps))
+    }
+
+    @Test
+    fun quota_blockedWhenRemainingMappedFromApi() {
+        val caps = AiCapabilitiesData(
+            aiEnabled = true,
+            hasLicense = true,
+            canUseSmartCommand = true,
+            nlCommand = AiFeatureQuota(remaining = 12, limit = 50),
+        )
+        assertNull(SmartCommandStateLogic.evaluateBlock(caps))
     }
 
     @Test

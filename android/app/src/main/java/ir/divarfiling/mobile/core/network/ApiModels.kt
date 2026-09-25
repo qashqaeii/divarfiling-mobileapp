@@ -3223,10 +3223,32 @@ data class AiCapabilitiesMessages(
 @Serializable
 data class AiFeatureQuota(
     val remaining: Int = 0,
+    @SerialName("feature_remaining") val featureRemaining: Int? = null,
+    @SerialName("daily_remaining") val dailyRemaining: Int? = null,
     val limit: Int = 0,
+    @SerialName("feature_limit") val featureLimit: Int? = null,
+    @SerialName("daily_limit") val dailyLimit: Int? = null,
     val enabled: Boolean = true,
     @SerialName("feature") val feature: String? = null,
-)
+    @SerialName("is_unlimited") val isUnlimited: Boolean = false,
+) {
+    fun effectiveRemaining(): Int = featureRemaining ?: dailyRemaining ?: remaining
+
+    fun effectiveLimit(): Int = featureLimit ?: dailyLimit ?: limit
+
+    /** Null = unknown (must not treat as exhausted). */
+    fun resolvedRemaining(): Int? {
+        if (isUnlimited) return null
+        featureRemaining?.let { return it }
+        dailyRemaining?.let { return it }
+        if (remaining > 0) return remaining
+        val lim = effectiveLimit()
+        if (lim > 0 && (featureRemaining != null || dailyRemaining != null)) {
+            return featureRemaining ?: dailyRemaining ?: remaining
+        }
+        return null
+    }
+}
 
 @Serializable
 data class AiToneOptionDto(
@@ -3268,6 +3290,7 @@ data class SmartCommandProfilesDto(
 data class AiCapabilitiesData(
     @SerialName("ai_enabled") val aiEnabled: Boolean = false,
     @SerialName("has_license") val hasLicense: Boolean = false,
+    @SerialName("is_unlimited") val isUnlimited: Boolean = false,
     @SerialName("can_use_smart_command") val canUseSmartCommand: Boolean = false,
     @SerialName("can_use_crm_message") val canUseCrmMessage: Boolean = false,
     @SerialName("can_use_listing_summary") val canUseListingSummary: Boolean = false,

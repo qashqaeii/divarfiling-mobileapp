@@ -404,10 +404,15 @@ class SmartCommandViewModel @Inject constructor(
                             profile = prof,
                             isLoadingCapabilities = false,
                             blockReason = block,
-                            quotaHint = SmartCommandMapping.quotaHint(
-                                caps.nlCommand?.remaining ?: caps.quota?.remaining,
-                                caps.nlCommand?.limit ?: caps.quota?.limit,
-                            ),
+                            quotaHint = if (caps.isUnlimited) {
+                                null
+                            } else {
+                                SmartCommandMapping.quotaHint(
+                                    SmartCommandStateLogic.smartCommandRemaining(caps),
+                                    caps.nlCommand?.effectiveLimit()?.takeIf { it > 0 }
+                                        ?: caps.quota?.effectiveLimit()?.takeIf { it > 0 },
+                                )
+                            },
                         )
                     }
                 }

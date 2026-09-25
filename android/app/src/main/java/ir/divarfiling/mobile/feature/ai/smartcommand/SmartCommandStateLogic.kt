@@ -12,12 +12,19 @@ object SmartCommandStateLogic {
 
     fun evaluateBlock(caps: AiCapabilitiesData?): SmartCommandBlockReason? {
         if (caps == null) return null
+        if (caps.isUnlimited) return null
         if (!caps.aiEnabled) return SmartCommandBlockReason.AiDisabled
         if (!caps.hasLicense) return SmartCommandBlockReason.NoLicense
         if (!caps.canUseSmartCommand) return SmartCommandBlockReason.FeatureDisabled
-        val remaining = caps.nlCommand?.remaining ?: caps.quota?.remaining
+        val remaining = smartCommandRemaining(caps)
         if (remaining != null && remaining <= 0) return SmartCommandBlockReason.QuotaExhausted
         return null
+    }
+
+    internal fun smartCommandRemaining(caps: AiCapabilitiesData): Int? {
+        if (caps.isUnlimited) return null
+        caps.nlCommand?.resolvedRemaining()?.let { return it }
+        return caps.quota?.resolvedRemaining()
     }
 
     fun appendVoiceTranscript(currentInput: String, spoken: String): String {
