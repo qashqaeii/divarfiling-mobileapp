@@ -121,9 +121,17 @@ class VoiceSessionController(
     fun onRecognizerCycleEnded() {
         if (sessionFinalized || manualStopRequested) return
         if (!userListening) return
+        val hadCycleContent = cycleFinalTranscript.isNotEmpty() || cycleInterimTranscript.isNotEmpty()
         commitCycleToSession()
         syncDisplay()
         if (blockAutoRestart) return
+        // چرخهٔ خالی (هنوز چیزی گفته نشده) — دوباره گوش بده بدون مصرف سقف restart
+        if (!hadCycleContent && sessionTranscript.isEmpty()) {
+            setPhase(VoiceSessionPhase.Listening)
+            onStatusHint(LISTENING_HINT)
+            requestStartRecognizer()
+            return
+        }
         scheduleRecognitionRestart()
     }
 

@@ -47,6 +47,21 @@ class VoiceSessionControllerTest {
     }
 
     @Test
+    fun emptyCycle_restartsWithoutWaitingState() {
+        var starts = 0
+        val phases = mutableListOf<VoiceSessionPhase>()
+        val ctrl = controller(
+            onPhase = { phases.add(it) },
+            start = { starts += 1 },
+        )
+        ctrl.startSession("")
+        assertEquals(1, starts)
+        ctrl.onRecognizerCycleEnded()
+        assertTrue(starts >= 2)
+        assertFalse(phases.contains(VoiceSessionPhase.WaitingForContinuation))
+    }
+
+    @Test
     fun maxRestart_entersWaitingForContinuation() {
         val phases = mutableListOf<VoiceSessionPhase>()
         var starts = 0

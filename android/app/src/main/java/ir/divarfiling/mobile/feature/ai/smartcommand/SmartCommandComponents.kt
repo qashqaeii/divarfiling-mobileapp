@@ -7,7 +7,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -22,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -31,11 +35,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.content.ContextCompat
+import android.os.Handler
+import android.os.Looper
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -58,10 +64,15 @@ import ir.divarfiling.mobile.feature.ai.voice.SpeechErrorMapper
 import ir.divarfiling.mobile.feature.ai.voice.SpeechRecognizerManager
 import ir.divarfiling.mobile.feature.ai.voice.VoiceInputPhase
 import ir.divarfiling.mobile.feature.ai.voice.VoiceMicButton
+import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionController
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionPhase
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSpeechSession
 import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.feature.ai.voice.openAppSettingsForMic
+
+private const val SMART_COMMAND_SHEET_HEIGHT_DEFAULT = 0.78f
+private const val SMART_COMMAND_SHEET_HEIGHT_PREVIEW = 0.90f
+private const val SMART_COMMAND_SHEET_HEIGHT_COMPACT = 0.72f
 
 @Composable
 fun SmartCommandHost(
@@ -198,15 +209,31 @@ private fun SmartCommandSheet(
         else viewModel.onVoiceRecoverableError(SpeechErrorMapper.permissionDenied())
     }
 
-    val lifecycleOwner = ProcessLifecycleOwner.get()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    var backgroundSuspendRunnable by remember { mutableStateOf<Runnable?>(null) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) {
-                voiceSession.suspendForBackground()
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    backgroundSuspendRunnable?.let { mainHandler.removeCallbacks(it) }
+                    val r = Runnable { voiceSession.suspendForBackground() }
+                    backgroundSuspendRunnable = r
+                    // دیالوگ مجوز یا overlay کوتاه نباید فوراً STT را بکشد
+                    mainHandler.postDelayed(r, 800L)
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    backgroundSuspendRunnable?.let { mainHandler.removeCallbacks(it) }
+                    backgroundSuspendRunnable = null
+                }
+                else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            backgroundSuspendRunnable?.let { mainHandler.removeCallbacks(it) }
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     DisposableEffect(Unit) {
@@ -325,11 +352,27 @@ private fun InputAndPreviewStep(
     val showUnknown = state.phase == SmartCommandPhase.Preview &&
         state.parseResult?.intent == SmartCommandMapping.INTENT_UNKNOWN
     val exampleChips = SmartCommandMapping.profileExamplesForChips(state.profile?.examples.orEmpty())
+    val hasStructuredPreview = state.parseResult != null && !showUnknown && !showWrongIntent &&
+        (state.showStructuredPreview || state.previewLines.isNotEmpty())
+    val sheetHeightFraction = when {
+        hasStructuredPreview || showConfirm -> SMART_COMMAND_SHEET_HEIGHT_PREVIEW
+        state.phase == SmartCommandPhase.Parsing -> SMART_COMMAND_SHEET_HEIGHT_DEFAULT
+        else -> SMART_COMMAND_SHEET_HEIGHT_DEFAULT
+    }
+    val sheetSubtitle = when {
+        showConfirm -> "جزئیات را بررسی کنید؛ در صورت تأیید ثبت می‌شود"
+        state.parseResult != null && !showUnknown -> "درخواست تحلیل شد — متن و جزئیات را مرور کنید"
+        else -> state.profile?.subtitle?.ifBlank { "درخواست خود را بگویید یا بنویسید" }
+            ?: "درخواست خود را بگویید یا بنویسید"
+    }
     DfSheetScaffold(
         title = state.profile?.title?.ifBlank { "دستیار هوشمند" } ?: "دستیار هوشمند",
-        subtitle = "درخواست خود را بگویید یا بنویسید",
+        subtitle = sheetSubtitle,
+        sectionLabel = "دستیار هوشمند",
         icon = DfIcons.Sparkles,
+        iconContainerColor = DfColors.PurpleContainer.copy(alpha = 0.85f),
         onClose = onDismiss,
+        bodyHeightFraction = sheetHeightFraction,
         footer = {
             DfSheetActions(
                 primaryText = when {
@@ -399,8 +442,13 @@ private fun InputAndPreviewStep(
                 modifier = Modifier.padding(bottom = AppSpacing.xs),
             )
         }
-        DfSheetSection(title = if (state.parseResult != null && !showUnknown) "بررسی قبل از ثبت" else "درخواست شما") {
-            DfCard(modifier = Modifier.fillMaxWidth()) {
+        DfSheetSection(
+            title = if (state.parseResult != null && !showUnknown) "ویرایش درخواست" else "درخواست شما",
+        ) {
+            DfCard(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = DfColors.PurpleContainer.copy(alpha = 0.22f),
+            ) {
                 Column(modifier = Modifier.padding(AppSpacing.sm)) {
                     DfTextField(
                         value = state.inputText,
@@ -409,8 +457,8 @@ private fun InputAndPreviewStep(
                             SmartCommandMapping.defaultPlaceholder(state.profileKey)
                         } ?: SmartCommandMapping.defaultPlaceholder(state.profileKey),
                         singleLine = false,
-                        minLines = 2,
-                        maxLines = 5,
+                        minLines = if (hasStructuredPreview) 3 else 4,
+                        maxLines = 8,
                         trailingIcon = if (sttAvailable) {
                             {
                                 VoiceMicButton(
@@ -426,6 +474,8 @@ private fun InputAndPreviewStep(
                         },
                         helperText = when {
                             state.voiceStatusHint != null -> state.voiceStatusHint
+                            state.voiceSessionPhase == VoiceSessionPhase.WaitingForContinuation ->
+                                VoiceSessionController.CONTINUATION_HINT
                             state.voicePhase == VoiceInputPhase.Listening ->
                                 "در حال گوش دادن… برای پایان، میکروفن را بزنید."
                             state.voicePhase == VoiceInputPhase.Error && state.voiceError != null -> state.voiceError
@@ -461,6 +511,12 @@ private fun InputAndPreviewStep(
                     }
                 }
             }
+        }
+        if (hasStructuredPreview && state.inputText.isNotBlank()) {
+            SmartCommandParsedRequestBanner(
+                requestText = state.inputText,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         if (showWrongIntent) {
             val wrong = state.wrongIntent!!
@@ -705,8 +761,10 @@ private fun ContactResolveStep(
     DfSheetScaffold(
         title = "کدام مخاطب منظورتان است؟",
         subtitle = "یکی را انتخاب کنید",
+        sectionLabel = "دستیار هوشمند",
         icon = DfIcons.Users,
         onClose = onCancel,
+        bodyHeightFraction = SMART_COMMAND_SHEET_HEIGHT_DEFAULT,
     ) {
         Column(
             modifier = Modifier
@@ -760,8 +818,12 @@ private fun SuccessStep(
     DfSheetScaffold(
         title = successTitle,
         subtitle = state.successMessage ?: "",
+        sectionLabel = "دستیار هوشمند",
         icon = DfIcons.CircleCheck,
+        iconContainerColor = DfColors.SuccessContainer,
+        iconTint = DfColors.Success,
         onClose = onClose,
+        bodyHeightFraction = SMART_COMMAND_SHEET_HEIGHT_COMPACT,
         footer = {
             val id = state.successEntityId
             DfSheetActions(
@@ -793,6 +855,52 @@ private fun maskPhone(phone: String): String {
     if (digits.length < 4) return phone
     val tail = digits.takeLast(4)
     return "••• ${digits.take(3)} ••• $tail"
+}
+
+@Composable
+private fun SmartCommandParsedRequestBanner(
+    requestText: String,
+    modifier: Modifier = Modifier,
+) {
+    val scroll = rememberScrollState()
+    DfCard(
+        modifier = modifier,
+        containerColor = DfColors.PurpleContainer.copy(alpha = 0.45f),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    DfIcons.Sparkles,
+                    contentDescription = null,
+                    tint = DfColors.Purple,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    "متن درخواست شما",
+                    style = AppTypography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfColors.Purple,
+                )
+            }
+            Text(
+                requestText.trim(),
+                style = AppTypography.bodyDescription,
+                color = DfColors.TextPrimary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 88.dp)
+                    .heightIn(max = 160.dp)
+                    .verticalScroll(scroll),
+            )
+        }
+    }
 }
 
 private fun blockReasonMessage(state: SmartCommandUiState): String? {

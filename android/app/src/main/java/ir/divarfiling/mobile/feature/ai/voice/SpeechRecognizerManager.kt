@@ -3,6 +3,8 @@ package ir.divarfiling.mobile.feature.ai.voice
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -55,7 +57,7 @@ class SpeechRecognizerManager @Inject constructor(
         override fun onResults(results: Bundle?) {
             onListeningChanged(false)
             val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                ?.firstOrNull()
+                ?.firstOrNull { it.isNotBlank() }
                 ?.trim()
                 .orEmpty()
             onFinal(text)
@@ -63,7 +65,7 @@ class SpeechRecognizerManager @Inject constructor(
 
         override fun onPartialResults(partialResults: Bundle?) {
             val text = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                ?.firstOrNull()
+                ?.firstOrNull { it.isNotBlank() }
                 ?.trim()
                 .orEmpty()
             if (text.isNotBlank()) onPartial(text)
@@ -73,11 +75,18 @@ class SpeechRecognizerManager @Inject constructor(
     }
 
     fun startListening(listener: RecognitionListener) {
-        stopInternal()
-        val sr = SpeechRecognizer.createSpeechRecognizer(appContext)
-        recognizer = sr
-        sr.setRecognitionListener(listener)
-        sr.startListening(buildIntent())
+        val startBlock = Runnable {
+            stopInternal()
+            val sr = SpeechRecognizer.createSpeechRecognizer(appContext)
+            recognizer = sr
+            sr.setRecognitionListener(listener)
+            sr.startListening(buildIntent())
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            startBlock.run()
+        } else {
+            Handler(Looper.getMainLooper()).post(startBlock)
+        }
     }
 
     fun stopListening() {
@@ -98,10 +107,13 @@ class SpeechRecognizerManager @Inject constructor(
     }
 
     private fun buildIntent(): Intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, appContext.packageName)
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fa-IR")
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fa-IR")
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
         // پیش‌فرض سیستم (~۱ث) با مکث کوتاه session را می‌بندد؛ برای جمله‌های طولانی‌تر آزادتر باشد.
         putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 6_000L)
         putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 5_000L)

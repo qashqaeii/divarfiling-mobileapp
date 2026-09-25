@@ -14,6 +14,7 @@ class VoiceSpeechSession(
 ) {
     private var controller: VoiceSessionController? = null
     private var pendingCycleEnd: Runnable? = null
+    private var cycleEndPending: Boolean = false
 
     fun start(
         baseInput: String,
@@ -54,6 +55,7 @@ class VoiceSpeechSession(
     fun stopSession() {
         pendingCycleEnd?.let { mainHandler.removeCallbacks(it) }
         pendingCycleEnd = null
+        cycleEndPending = false
         controller?.destroy()
         controller = null
         manager.cancel()
@@ -70,6 +72,7 @@ class VoiceSpeechSession(
 
     private fun startRecognizerInternal() {
         val ctrl = controller ?: return
+        cycleEndPending = false
         val listener = manager.createListener(
             onPartial = { partial -> ctrl.onAndroidPartial(partial) },
             onFinal = { final ->
@@ -88,9 +91,12 @@ class VoiceSpeechSession(
     }
 
     private fun scheduleCycleEnd() {
+        if (cycleEndPending) return
+        cycleEndPending = true
         pendingCycleEnd?.let { mainHandler.removeCallbacks(it) }
         val runnable = Runnable {
             pendingCycleEnd = null
+            cycleEndPending = false
             controller?.onRecognizerCycleEnded()
         }
         pendingCycleEnd = runnable

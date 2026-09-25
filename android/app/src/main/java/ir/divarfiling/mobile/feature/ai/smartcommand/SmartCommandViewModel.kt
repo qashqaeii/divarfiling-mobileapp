@@ -90,7 +90,7 @@ class SmartCommandViewModel @Inject constructor(
             VoiceSessionPhase.Listening,
             VoiceSessionPhase.Restarting,
             -> VoiceInputPhase.Listening
-            VoiceSessionPhase.WaitingForContinuation -> VoiceInputPhase.Listening
+            VoiceSessionPhase.WaitingForContinuation -> VoiceInputPhase.Ready
             VoiceSessionPhase.Finalizing -> VoiceInputPhase.ProcessingSpeech
             VoiceSessionPhase.Error -> VoiceInputPhase.Error
         }

@@ -88,8 +88,9 @@ fun VoiceTextField(
 
     fun mapSessionPhase(phase: VoiceSessionPhase): VoiceInputPhase = when (phase) {
         VoiceSessionPhase.Idle -> VoiceInputPhase.Idle
-        VoiceSessionPhase.Listening, VoiceSessionPhase.Restarting, VoiceSessionPhase.WaitingForContinuation ->
+        VoiceSessionPhase.Listening, VoiceSessionPhase.Restarting ->
             VoiceInputPhase.Listening
+        VoiceSessionPhase.WaitingForContinuation -> VoiceInputPhase.Ready
         VoiceSessionPhase.Finalizing -> VoiceInputPhase.ProcessingSpeech
         VoiceSessionPhase.Error -> VoiceInputPhase.Error
     }
