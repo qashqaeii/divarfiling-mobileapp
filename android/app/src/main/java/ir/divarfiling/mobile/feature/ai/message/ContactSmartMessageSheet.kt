@@ -58,7 +58,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 
 import ir.divarfiling.mobile.core.design.components.DfCard
-
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
@@ -171,32 +171,21 @@ fun ContactSmartMessageSheet(
 
             }
 
-            state.error?.let {
-
-                Text(
-
-                    it.ifBlank { "ساخت پیام انجام نشد. دوباره امتحان کنید." },
-
-                    style = AppTypography.bodyDescription,
-
-                    color = DfThemeColors.error(),
-
-                    modifier = Modifier.fillMaxWidth(),
-
-                )
-
+            state.error?.let { raw ->
+                val message = ContactSmartMessageLogic.humanizeError(raw)
+                DfErrorBanner(message, modifier = Modifier.fillMaxWidth().padding(bottom = AppSpacing.sm))
                 DfSecondaryButton(
-
-                    text = "تلاش دوباره",
-
-                    onClick = viewModel::generate,
-
-                    enabled = state.canUse && !state.isGenerating,
-
-                    modifier = Modifier.fillMaxWidth().padding(top = AppSpacing.xs),
-
+                    text = if (state.draftText.isBlank() && state.tones.isEmpty()) "بارگذاری دوباره" else "تلاش دوباره",
+                    onClick = {
+                        if (state.draftText.isBlank() && state.tones.isEmpty()) {
+                            viewModel.loadCapabilities()
+                        } else {
+                            viewModel.generate()
+                        }
+                    },
+                    enabled = state.canUse && !state.isGenerating && !state.isLoading,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-
             }
 
             if (state.tones.isNotEmpty()) {

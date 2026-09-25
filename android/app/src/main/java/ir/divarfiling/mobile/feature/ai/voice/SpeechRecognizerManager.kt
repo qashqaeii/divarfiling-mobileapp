@@ -58,11 +58,7 @@ class SpeechRecognizerManager @Inject constructor(
                 ?.firstOrNull()
                 ?.trim()
                 .orEmpty()
-            if (text.isNotBlank()) {
-                onFinal(text)
-            } else {
-                onError(VoiceSpeechError.NoSpeech)
-            }
+            onFinal(text)
         }
 
         override fun onPartialResults(partialResults: Bundle?) {

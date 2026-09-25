@@ -60,10 +60,16 @@ class SmartCommandMappingTest {
     @Test
     fun profileExamples_limitedToThree() {
         val chips = SmartCommandMapping.profileExamplesForChips(
-            listOf("a", "b", "c", "d"),
+            listOf(
+                ir.divarfiling.mobile.core.network.SmartCommandExampleDto(label = "a", text = "1"),
+                ir.divarfiling.mobile.core.network.SmartCommandExampleDto(label = "b", text = "2"),
+                ir.divarfiling.mobile.core.network.SmartCommandExampleDto(label = "c", text = "3"),
+                ir.divarfiling.mobile.core.network.SmartCommandExampleDto(label = "d", text = "4"),
+            ),
             max = 3,
         )
         assertEquals(3, chips.size)
+        assertEquals("1", chips.first().commandText())
     }
 
     @Test

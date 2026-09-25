@@ -73,7 +73,9 @@ class VoiceSpeechSession(
         val listener = manager.createListener(
             onPartial = { partial -> ctrl.onAndroidPartial(partial) },
             onFinal = { final ->
-                ctrl.onAndroidFinal(final)
+                if (final.isNotBlank()) {
+                    ctrl.onAndroidFinal(final)
+                }
                 scheduleCycleEnd()
             },
             onError = { err ->

@@ -3235,6 +3235,16 @@ data class AiToneOptionDto(
 )
 
 @Serializable
+data class SmartCommandExampleDto(
+    val label: String = "",
+    val text: String = "",
+) {
+    fun commandText(): String = text.trim().ifBlank { label.trim() }
+
+    fun chipLabel(): String = label.trim().ifBlank { text.trim().take(48) }
+}
+
+@Serializable
 data class SmartCommandProfileDto(
     val context: String = "",
     @SerialName("allowed_intent") val allowedIntent: String = "",
@@ -3243,7 +3253,8 @@ data class SmartCommandProfileDto(
     val placeholder: String = "",
     @SerialName("wrong_intent_message") val wrongIntentMessage: String = "",
     @SerialName("enable_contact_resolve") val enableContactResolve: Boolean = false,
-    val examples: List<String> = emptyList(),
+    @Serializable(with = SmartCommandExamplesSerializer::class)
+    val examples: List<SmartCommandExampleDto> = emptyList(),
 )
 
 @Serializable

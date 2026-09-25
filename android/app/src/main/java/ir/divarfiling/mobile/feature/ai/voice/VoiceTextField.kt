@@ -165,7 +165,9 @@ fun VoiceTextField(
         modifier = Modifier.fillMaxWidth(),
         label = label,
         placeholder = placeholder,
-        enabled = enabled && voicePhase != VoiceInputPhase.Listening,
+        enabled = enabled,
+        readOnly = voicePhase == VoiceInputPhase.Listening ||
+            voicePhase == VoiceInputPhase.ProcessingSpeech,
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,

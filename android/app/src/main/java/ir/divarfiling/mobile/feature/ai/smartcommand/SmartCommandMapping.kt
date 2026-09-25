@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.ai.smartcommand
 
 import ir.divarfiling.mobile.core.network.NlCommandParseResult
+import ir.divarfiling.mobile.core.network.SmartCommandExampleDto
 import ir.divarfiling.mobile.core.network.SmartCommandProfileDto
 import ir.divarfiling.mobile.core.network.SmartCommandProfilesDto
 import kotlinx.serialization.json.JsonObject
@@ -100,8 +101,8 @@ object SmartCommandMapping {
     const val INTENT_CONTACT = "create_contact"
     const val INTENT_PROPERTY = "create_personal_property"
 
-    fun unknownUserMessage(examples: List<String>): String {
-        val hint = examples.take(2).joinToString("\n") { "• $it" }
+    fun unknownUserMessage(examples: List<SmartCommandExampleDto>): String {
+        val hint = examples.take(2).joinToString("\n") { "• ${it.commandText()}" }
         return buildString {
             append("متوجه نشدم چه کاری باید انجام بدم. درخواستت رو کمی واضح‌تر بگو یا بنویس.")
             if (hint.isNotBlank()) {
@@ -199,8 +200,30 @@ object SmartCommandMapping {
         WrongIntentDestination.Properties -> "رفتن به فایل‌های شخصی"
     }
 
-    fun profileExamplesForChips(examples: List<String>, max: Int = 3): List<String> =
-        examples.map { it.trim() }.filter { it.isNotEmpty() }.take(max)
+    fun profileExamplesForChips(examples: List<SmartCommandExampleDto>, max: Int = 3): List<SmartCommandExampleDto> =
+        examples.filter { it.commandText().isNotBlank() }.take(max)
+
+    fun defaultPlaceholder(profileKey: SmartCommandProfileKey): String = when (profileKey) {
+        SmartCommandProfileKey.TODAY, SmartCommandProfileKey.GLOBAL ->
+            "مثلاً: فردا ساعت ۱۰ یادم بنداز به احمدی زنگ بزنم"
+        SmartCommandProfileKey.CONTACTS ->
+            "مثلاً: احمدی، 0912...، خریدار پونک با بودجه تا ۱۲ میلیارد"
+        SmartCommandProfileKey.PROPERTIES ->
+            "مثلاً: پونک، ۱۲۰ متر، دو خواب، فروش ۱۲ میلیارد"
+    }
+
+    fun entrySubtitle(profile: SmartCommandProfileDto?, profileKey: SmartCommandProfileKey): String =
+        profile?.subtitle?.trim().orEmpty().ifBlank {
+            when (profileKey) {
+                SmartCommandProfileKey.CONTACTS -> "نام، شماره و نیاز مشتری را در یک جمله وارد کنید"
+                SmartCommandProfileKey.PROPERTIES -> "محله، متراژ و قیمت را در یک جمله بنویسید"
+                SmartCommandProfileKey.TODAY, SmartCommandProfileKey.GLOBAL ->
+                    "زمان و مخاطب را در یک جمله بنویسید یا بگویید"
+            }
+        }
+
+    fun entryPlaceholder(profile: SmartCommandProfileDto?, profileKey: SmartCommandProfileKey): String =
+        profile?.placeholder?.trim().orEmpty().ifBlank { defaultPlaceholder(profileKey) }
 
     fun previewLinesFromApi(preview: JsonObject?, missingFields: List<String>): List<SmartCommandPreviewLineUi> {
         val missing = missingFields.toSet()

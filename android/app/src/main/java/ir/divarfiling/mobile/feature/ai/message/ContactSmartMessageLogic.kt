@@ -13,6 +13,18 @@ data class CrmMessageAccessState(
 
 object ContactSmartMessageLogic {
 
+    fun humanizeError(message: String): String {
+        val m = message.trim()
+        if (m.isBlank()) return "خطایی رخ داد. دوباره امتحان کنید."
+        if (m.contains("Json", ignoreCase = true) ||
+            m.contains("serialized", ignoreCase = true) ||
+            m.contains("JSON", ignoreCase = true)
+        ) {
+            return "بارگذاری تنظیمات پیام هوشمند ناموفق بود. لطفاً دوباره امتحان کنید."
+        }
+        return m
+    }
+
     fun accessFromCapabilities(caps: AiCapabilitiesData): CrmMessageAccessState {
         val tones = caps.crmMessageTones
         val canUse = caps.canUseCrmMessage

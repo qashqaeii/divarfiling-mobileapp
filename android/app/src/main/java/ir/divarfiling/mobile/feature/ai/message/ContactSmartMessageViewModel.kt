@@ -66,7 +66,9 @@ class ContactSmartMessageViewModel @Inject constructor(
                         )
                     }
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isLoading = false, error = ContactSmartMessageLogic.humanizeError(result.message))
+                }
             }
         }
     }
@@ -108,7 +110,9 @@ class ContactSmartMessageViewModel @Inject constructor(
                         )
                     }
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(isGenerating = false, error = result.message) }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isGenerating = false, error = ContactSmartMessageLogic.humanizeError(result.message))
+                }
             }
         }
     }
