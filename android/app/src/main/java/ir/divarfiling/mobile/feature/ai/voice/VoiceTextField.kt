@@ -37,6 +37,7 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandMapping
+import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandStateLogic
 
 enum class VoiceFieldInsertPolicy {
     Append,
@@ -65,6 +66,7 @@ fun VoiceTextField(
     val sttAvailable = remember { manager.isAvailable() }
 
     var showSettingsCta by remember { mutableStateOf(false) }
+    var voiceSessionBaseline by remember { mutableStateOf("") }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -92,15 +94,26 @@ fun VoiceTextField(
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             return
         }
+        voiceSessionBaseline = value.trim()
         voicePhase = VoiceInputPhase.Listening
         val listener = manager.createListener(
             onPartial = { partial ->
                 voicePhase = VoiceInputPhase.Listening
-                applyVoiceText(value, partial, insertPolicy, onValueChange)
+                val merged = when (insertPolicy) {
+                    VoiceFieldInsertPolicy.Replace -> partial.trim()
+                    VoiceFieldInsertPolicy.Append ->
+                        SmartCommandStateLogic.voiceTextFromBaseline(voiceSessionBaseline, partial)
+                }
+                onValueChange(merged.take(SmartCommandMapping.MAX_INPUT_CHARS))
             },
             onFinal = { final ->
                 voicePhase = VoiceInputPhase.Ready
-                applyVoiceText(value, final, insertPolicy, onValueChange)
+                val merged = when (insertPolicy) {
+                    VoiceFieldInsertPolicy.Replace -> final.trim()
+                    VoiceFieldInsertPolicy.Append ->
+                        SmartCommandStateLogic.voiceTextFromBaseline(voiceSessionBaseline, final)
+                }
+                onValueChange(merged.take(SmartCommandMapping.MAX_INPUT_CHARS))
             },
             onError = { err ->
                 voicePhase = VoiceInputPhase.Error
@@ -161,7 +174,8 @@ fun VoiceTextField(
             null
         },
         helperText = when {
-            voicePhase == VoiceInputPhase.Listening -> "در حال گوش دادن…"
+            voicePhase == VoiceInputPhase.Listening ->
+                "در حال گوش دادن… برای پایان، دوباره میکروفن را بزنید."
             voiceError != null -> voiceError
             else -> null
         },

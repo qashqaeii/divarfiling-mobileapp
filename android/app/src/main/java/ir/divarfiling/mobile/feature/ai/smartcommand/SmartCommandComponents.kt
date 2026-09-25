@@ -7,7 +7,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
@@ -17,8 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +41,7 @@ import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
+import ir.divarfiling.mobile.core.design.components.DfSheetExpandableSection
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.core.design.components.DfTextField
@@ -107,30 +105,39 @@ private fun SmartCommandEntryCard(
     DfCard(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal)
-            .then(if (enabled) Modifier.clickable(onClick = onOpen) else Modifier),
+            .padding(horizontal = AppSpacing.screenHorizontal),
     ) {
         Column(modifier = Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(DfIcons.Sparkles, contentDescription = null, tint = DfColors.Purple)
-                Text(title, style = AppTypography.sectionTitle, color = DfColors.TextPrimary)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, style = AppTypography.sectionTitle, color = DfColors.TextPrimary)
+                    Text(subtitle, style = AppTypography.labelSmall, color = DfColors.TextSecondary)
+                }
             }
-            Text(subtitle, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
-            Text(
-                placeholder.ifBlank { "مثلاً: فردا ساعت ۱۰ یادم بنداز با احمدی تماس بگیرم" },
-                style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
-            )
+            DfCard(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    placeholder.ifBlank { "مثلاً: فردا ساعت ۱۰ یادم بنداز با احمدی تماس بگیرم" },
+                    style = AppTypography.bodyDescription,
+                    color = DfColors.TextMuted,
+                    modifier = Modifier.padding(AppSpacing.sm),
+                )
+            }
             quotaHint?.let {
                 Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted)
             }
             if (!enabled && !disabledMessage.isNullOrBlank()) {
                 Text(disabledMessage, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
             } else if (enabled) {
-                Text("برای شروع ضربه بزنید", style = AppTypography.labelSmall, color = DfColors.Purple)
+                DfPrimaryButton(
+                    text = "شروع دستیار هوشمند",
+                    onClick = onOpen,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
@@ -166,7 +173,7 @@ private fun SmartCommandSheet(
         startSmartCommandVoice(speechManager, viewModel)
     }
 
-    DfModalBottomSheet(onDismissRequest = onDismiss) {
+    DfModalBottomSheet(onDismissRequest = onDismiss, dismissOnScrimOrSwipe = false) {
         when (state.phase) {
             SmartCommandPhase.Success -> SuccessStep(
                 state = state,
@@ -295,40 +302,47 @@ private fun InputAndPreviewStep(
             }
         }
         DfSheetSection(title = if (state.parseResult != null && !showUnknown) "بررسی قبل از ثبت" else "درخواست شما") {
-            DfTextField(
-                value = state.inputText,
-                onValueChange = onInputChange,
-                placeholder = state.profile?.placeholder ?: "فرمان خود را بنویسید…",
-                singleLine = false,
-                minLines = 2,
-                maxLines = 5,
-                trailingIcon = if (sttAvailable) {
-                    {
-                        VoiceMicButton(
-                            phase = state.voicePhase,
-                            onClick = {
-                                if (state.voicePhase == VoiceInputPhase.Listening) onMicStop() else onMicClick()
-                            },
-                            onCancel = onMicCancel,
+            DfCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(AppSpacing.sm)) {
+                    DfTextField(
+                        value = state.inputText,
+                        onValueChange = onInputChange,
+                        placeholder = state.profile?.placeholder ?: "فرمان خود را بنویسید…",
+                        singleLine = false,
+                        minLines = 2,
+                        maxLines = 5,
+                        trailingIcon = if (sttAvailable) {
+                            {
+                                VoiceMicButton(
+                                    phase = state.voicePhase,
+                                    onClick = {
+                                        if (state.voicePhase == VoiceInputPhase.Listening) onMicStop() else onMicClick()
+                                    },
+                                    onCancel = onMicCancel,
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                        helperText = when {
+                            state.voicePhase == VoiceInputPhase.Listening ->
+                                "در حال گوش دادن… برای پایان، میکروفن را بزنید."
+                            state.voicePhase == VoiceInputPhase.Error && state.voiceError != null -> state.voiceError
+                            else -> null
+                        },
+                    )
+                    if (state.voicePhase == VoiceInputPhase.Listening) {
+                        Text("دارم گوش می‌دم…", style = AppTypography.labelSmall, color = DfColors.Purple)
+                    }
+                    if (state.inputText.length > 40) {
+                        Text(
+                            "${state.inputText.length} / ${SmartCommandMapping.MAX_INPUT_CHARS}",
+                            style = AppTypography.labelSmall,
+                            color = DfColors.TextMuted,
                         )
                     }
-                } else {
-                    null
-                },
-                helperText = when {
-                    state.voicePhase == VoiceInputPhase.Listening -> "در حال گوش دادن…"
-                    state.voicePhase == VoiceInputPhase.Error && state.voiceError != null -> state.voiceError
-                    else -> null
-                },
-            )
-            if (state.voicePhase == VoiceInputPhase.Listening) {
-                Text("دارم گوش می‌دم…", style = AppTypography.labelSmall, color = DfColors.Purple)
+                }
             }
-            Text(
-                "${state.inputText.length} / ${SmartCommandMapping.MAX_INPUT_CHARS}",
-                style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
-            )
         }
         if (showUnknown) {
             DfCard(modifier = Modifier.fillMaxWidth()) {
@@ -375,12 +389,22 @@ private fun InputAndPreviewStep(
 
 @Composable
 private fun ReminderPreviewSection(edit: ReminderPreviewEdit, onChange: (ReminderPreviewEdit) -> Unit) {
-    DfSheetSection(title = "یادآوری") {
-        SmartCommandPreviewRow("مخاطب", edit.contactName)
-        SmartCommandPreviewRow("زمان", edit.dueAtDisplay.ifBlank { "${edit.dateText} ${edit.timeText}".trim() })
-        SmartCommandPreviewRow("موضوع", edit.title)
-        DfTextField(edit.contactName, { onChange(edit.copy(contactName = it)) }, label = "ویرایش مخاطب")
-        DfTextField(edit.title, { onChange(edit.copy(title = it)) }, label = "ویرایش موضوع")
+    var showEdit by remember { mutableStateOf(false) }
+    DfCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+            Text("یادآوری", style = AppTypography.sectionTitle)
+            SmartCommandPreviewRow("مخاطب", edit.contactName)
+            SmartCommandPreviewRow("زمان", edit.dueAtDisplay.ifBlank { "${edit.dateText} ${edit.timeText}".trim() })
+            SmartCommandPreviewRow("موضوع", edit.title)
+        }
+    }
+    DfSheetExpandableSection(
+        title = "ویرایش جزئیات",
+        expanded = showEdit,
+        onToggle = { showEdit = !showEdit },
+    ) {
+        DfTextField(edit.contactName, { onChange(edit.copy(contactName = it)) }, label = "مخاطب")
+        DfTextField(edit.title, { onChange(edit.copy(title = it)) }, label = "موضوع")
         DfTextField(edit.dateText, { onChange(edit.copy(dateText = it)) }, label = "تاریخ")
         DfTextField(edit.timeText, { onChange(edit.copy(timeText = it)) }, label = "ساعت")
         VoiceTextField(
@@ -395,16 +419,48 @@ private fun ReminderPreviewSection(edit: ReminderPreviewEdit, onChange: (Reminde
 
 @Composable
 private fun ContactPreviewSection(edit: ContactPreviewEdit, onChange: (ContactPreviewEdit) -> Unit) {
-    DfSheetSection(title = "مخاطب") {
-        SmartCommandPreviewRow("نام", edit.name)
-        SmartCommandPreviewRow("شماره", edit.phone)
-        DfTextField(edit.name, { onChange(edit.copy(name = it)) }, label = "نام")
-        DfTextField(edit.phone, { onChange(edit.copy(phone = it)) }, label = "شماره")
-        DfTextField(edit.customerType, { onChange(edit.copy(customerType = it)) }, label = "نوع مخاطب")
+    val needsCompletion = edit.name.isBlank() || edit.phone.isBlank()
+    var showEdit by remember(edit.name, edit.phone, edit.customerType) {
+        mutableStateOf(needsCompletion)
+    }
+    DfCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+            Text("ثبت مخاطب جدید", style = AppTypography.sectionTitle)
+            if (needsCompletion) {
+                Text(
+                    "نام یا شماره را در بخش زیر تکمیل کنید.",
+                    style = AppTypography.labelSmall,
+                    color = DfColors.Amber,
+                )
+            }
+            SmartCommandPreviewRow("نام", edit.name)
+            SmartCommandPreviewRow("شماره", edit.phone)
+            SmartCommandPreviewRow("نوع", edit.customerType)
+            SmartCommandPreviewRow("شرکت", edit.companyName)
+            SmartCommandPreviewRow("محدوده", edit.areas)
+            SmartCommandPreviewRow("توضیحات", edit.notes)
+        }
+    }
+    DfSheetExpandableSection(
+        title = if (needsCompletion) "تکمیل اطلاعات مخاطب" else "ویرایش جزئیات",
+        expanded = showEdit,
+        onToggle = { showEdit = !showEdit },
+    ) {
+        DfTextField(edit.name, { onChange(edit.copy(name = it)) }, label = "نام و نام خانوادگی")
+        DfTextField(edit.phone, { onChange(edit.copy(phone = it)) }, label = "شماره تماس")
+        DfTextField(
+            edit.customerType,
+            { onChange(edit.copy(customerType = it)) },
+            label = "نوع مخاطب",
+            placeholder = "مثلاً خریدار، مالک، مستأجر",
+        )
+        DfTextField(edit.companyName, { onChange(edit.copy(companyName = it)) }, label = "شرکت (اختیاری)")
+        DfTextField(edit.areas, { onChange(edit.copy(areas = it)) }, label = "مناطق / محدوده")
         VoiceTextField(
             value = edit.notes,
             onValueChange = { onChange(edit.copy(notes = it)) },
             label = "توضیحات",
+            placeholder = "نیاز، بودجه، یادداشت…",
             singleLine = false,
             minLines = 2,
         )
@@ -413,17 +469,46 @@ private fun ContactPreviewSection(edit: ContactPreviewEdit, onChange: (ContactPr
 
 @Composable
 private fun PropertyPreviewSection(edit: PropertyPreviewEdit, onChange: (PropertyPreviewEdit) -> Unit) {
-    DfSheetSection(title = "فایل شخصی") {
-        SmartCommandPreviewRow("نوع ملک", edit.propertyType)
-        SmartCommandPreviewRow("معامله", edit.dealMode)
-        SmartCommandPreviewRow("منطقه", edit.neighborhood)
-        SmartCommandPreviewRow("متراژ", edit.area)
-        SmartCommandPreviewRow("قیمت", edit.salePrice.ifBlank { edit.monthlyRent.ifBlank { edit.deposit } })
-        DfTextField(edit.propertyType, { onChange(edit.copy(propertyType = it)) }, label = "نوع ملک")
-        DfTextField(edit.dealMode, { onChange(edit.copy(dealMode = it)) }, label = "نوع معامله")
-        DfTextField(edit.neighborhood, { onChange(edit.copy(neighborhood = it)) }, label = "منطقه")
-        DfTextField(edit.area, { onChange(edit.copy(area = it)) }, label = "متراژ")
-        DfTextField(edit.salePrice, { onChange(edit.copy(salePrice = it)) }, label = "قیمت")
+    val needsCompletion = edit.propertyType.isBlank() && edit.neighborhood.isBlank()
+    var showEdit by remember(edit.propertyType, edit.neighborhood, edit.salePrice) {
+        mutableStateOf(needsCompletion)
+    }
+    DfCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+            Text("ثبت فایل شخصی", style = AppTypography.sectionTitle)
+            if (needsCompletion) {
+                Text(
+                    "نوع ملک یا منطقه را در بخش زیر تکمیل کنید.",
+                    style = AppTypography.labelSmall,
+                    color = DfColors.Amber,
+                )
+            }
+            SmartCommandPreviewRow("نوع ملک", edit.propertyType)
+            SmartCommandPreviewRow("معامله", edit.dealMode)
+            SmartCommandPreviewRow("منطقه", edit.neighborhood)
+            SmartCommandPreviewRow("شهر", edit.city)
+            SmartCommandPreviewRow("متراژ", edit.area.let { if (it.isBlank()) "" else "$it متر" })
+            SmartCommandPreviewRow("اتاق", edit.rooms.let { if (it.isBlank()) "" else "$it خواب" })
+            SmartCommandPreviewRow("قیمت فروش", edit.salePrice)
+            SmartCommandPreviewRow("ودیعه", edit.deposit)
+            SmartCommandPreviewRow("اجاره", edit.monthlyRent)
+            SmartCommandPreviewRow("توضیحات", edit.notes)
+        }
+    }
+    DfSheetExpandableSection(
+        title = if (needsCompletion) "تکمیل اطلاعات فایل" else "ویرایش جزئیات",
+        expanded = showEdit,
+        onToggle = { showEdit = !showEdit },
+    ) {
+        DfTextField(edit.propertyType, { onChange(edit.copy(propertyType = it)) }, label = "نوع ملک", placeholder = "آپارتمان، ویلا…")
+        DfTextField(edit.dealMode, { onChange(edit.copy(dealMode = it)) }, label = "نوع معامله", placeholder = "فروش، رهن و اجاره…")
+        DfTextField(edit.neighborhood, { onChange(edit.copy(neighborhood = it)) }, label = "منطقه / محله")
+        DfTextField(edit.city, { onChange(edit.copy(city = it)) }, label = "شهر")
+        DfTextField(edit.area, { onChange(edit.copy(area = it)) }, label = "متراژ (متر)")
+        DfTextField(edit.rooms, { onChange(edit.copy(rooms = it)) }, label = "تعداد اتاق")
+        DfTextField(edit.salePrice, { onChange(edit.copy(salePrice = it)) }, label = "قیمت فروش")
+        DfTextField(edit.deposit, { onChange(edit.copy(deposit = it)) }, label = "ودیعه")
+        DfTextField(edit.monthlyRent, { onChange(edit.copy(monthlyRent = it)) }, label = "اجاره ماهانه")
         VoiceTextField(
             value = edit.notes,
             onValueChange = { onChange(edit.copy(notes = it)) },
@@ -458,8 +543,13 @@ private fun ContactResolveStep(
         icon = DfIcons.Users,
         onClose = onCancel,
     ) {
-        LazyColumn(contentPadding = PaddingValues(bottom = AppSpacing.xl), verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-            items(candidates, key = { it.id }) { candidate ->
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = AppSpacing.xl),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            candidates.forEach { candidate ->
                 DfCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -545,10 +635,11 @@ private fun startSmartCommandVoice(
     viewModel: SmartCommandViewModel,
 ) {
     if (!manager.isAvailable()) return
+    viewModel.beginVoiceInputSession()
     viewModel.onVoicePhase(VoiceInputPhase.Listening)
     val listener = manager.createListener(
-        onPartial = { partial -> viewModel.onInputChange(partial) },
-        onFinal = { final -> viewModel.appendVoiceTranscript(final) },
+        onPartial = { partial -> viewModel.updateVoicePartial(partial) },
+        onFinal = { final -> viewModel.finalizeVoiceInput(final) },
         onError = { err -> viewModel.onVoiceError(err) },
         onListeningChanged = { listening ->
             viewModel.onVoicePhase(if (listening) VoiceInputPhase.Listening else VoiceInputPhase.ProcessingSpeech)

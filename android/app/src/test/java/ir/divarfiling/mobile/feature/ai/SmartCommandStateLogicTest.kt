@@ -165,6 +165,15 @@ class SmartCommandStateLogicTest {
     }
 
     @Test
+    fun voiceFromBaseline_partialThenFinal_noDuplicate() {
+        val baseline = ""
+        val partial = SmartCommandStateLogic.voiceTextFromBaseline(baseline, "فردا تماس")
+        val finalText = SmartCommandStateLogic.voiceTextFromBaseline(baseline, "فردا تماس بگیرم")
+        assertEquals("فردا تماس", partial)
+        assertEquals("فردا تماس بگیرم", finalText)
+    }
+
+    @Test
     fun voiceTranscript_appendsToInput() {
         val merged = SmartCommandStateLogic.appendVoiceTranscript("سلام", "فردا تماس")
         assertEquals("سلام فردا تماس", merged)

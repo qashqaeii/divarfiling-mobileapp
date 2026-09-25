@@ -106,6 +106,10 @@ class SpeechRecognizerManager @Inject constructor(
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fa-IR")
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        // پیش‌فرض سیستم (~۱ث) با مکث کوتاه session را می‌بندد؛ برای جمله‌های طولانی‌تر آزادتر باشد.
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 6_000L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 5_000L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 0L)
     }
 }
 
@@ -120,9 +124,8 @@ enum class VoiceSpeechError(val userMessage: String) {
 
 object SpeechErrorMapper {
     fun fromAndroidCode(code: Int): VoiceSpeechError = when (code) {
-        SpeechRecognizer.ERROR_NO_MATCH,
-        SpeechRecognizer.ERROR_SPEECH_TIMEOUT,
-        -> VoiceSpeechError.NoSpeech
+        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> VoiceSpeechError.Timeout
+        SpeechRecognizer.ERROR_NO_MATCH -> VoiceSpeechError.NoSpeech
         SpeechRecognizer.ERROR_NETWORK,
         SpeechRecognizer.ERROR_NETWORK_TIMEOUT,
         -> VoiceSpeechError.Network

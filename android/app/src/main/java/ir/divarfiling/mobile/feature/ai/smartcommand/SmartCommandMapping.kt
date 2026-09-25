@@ -167,12 +167,22 @@ object SmartCommandMapping {
                 "name" -> "نام مخاطب $e"
                 "phone" -> "شماره $e"
                 "type" -> "نوع مخاطب $e"
+                "company" -> "شرکت $e"
+                "areas" -> "منطقه $e"
+                "notes" -> "توضیحات: $e"
                 else -> "$fieldLabel: $e"
             }
             INTENT_PROPERTY -> when (fieldLabel) {
                 "price" -> "قیمت $e"
                 "area" -> "متراژ $e متر"
                 "neighborhood" -> "منطقه $e"
+                "city" -> "شهر $e"
+                "type" -> "نوع ملک $e"
+                "deal" -> "نوع معامله $e"
+                "rooms" -> "$e اتاق"
+                "deposit" -> "ودیعه $e"
+                "rent" -> "اجاره $e"
+                "notes" -> "توضیحات: $e"
                 else -> "$fieldLabel: $e"
             }
             else -> null

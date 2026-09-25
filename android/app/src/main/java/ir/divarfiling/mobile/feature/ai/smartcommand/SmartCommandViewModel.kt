@@ -55,6 +55,20 @@ class SmartCommandViewModel @Inject constructor(
     private var baselineReminder: ReminderPreviewEdit? = null
     private var baselineContact: ContactPreviewEdit? = null
     private var baselineProperty: PropertyPreviewEdit? = null
+    private var voiceInputBaseline: String = ""
+
+    fun beginVoiceInputSession() {
+        voiceInputBaseline = _uiState.value.inputText.trim()
+    }
+
+    fun updateVoicePartial(partial: String) {
+        onInputChange(SmartCommandStateLogic.voiceTextFromBaseline(voiceInputBaseline, partial))
+    }
+
+    fun finalizeVoiceInput(final: String) {
+        onInputChange(SmartCommandStateLogic.voiceTextFromBaseline(voiceInputBaseline, final))
+        _uiState.update { it.copy(voicePhase = VoiceInputPhase.Ready, voiceError = null) }
+    }
 
     fun bindProfile(profile: SmartCommandProfileKey) {
         if (boundProfile == profile && _uiState.value.capabilities != null) {
@@ -98,9 +112,7 @@ class SmartCommandViewModel @Inject constructor(
     }
 
     fun appendVoiceTranscript(text: String) {
-        val merged = SmartCommandStateLogic.appendVoiceTranscript(_uiState.value.inputText, text)
-        onInputChange(merged)
-        _uiState.update { it.copy(voicePhase = VoiceInputPhase.Ready, voiceError = null) }
+        finalizeVoiceInput(text)
     }
 
     fun onVoicePhase(phase: VoiceInputPhase) {
@@ -163,13 +175,23 @@ class SmartCommandViewModel @Inject constructor(
                 SmartCommandMapping.buildResumeCorrection(intent, base.name, edit.name, "name")?.let { corrections.add(it) }
                 SmartCommandMapping.buildResumeCorrection(intent, base.phone, edit.phone, "phone")?.let { corrections.add(it) }
                 SmartCommandMapping.buildResumeCorrection(intent, base.customerType, edit.customerType, "type")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.companyName, edit.companyName, "company")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.areas, edit.areas, "areas")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.notes, edit.notes, "notes")?.let { corrections.add(it) }
             }
             SmartCommandMapping.INTENT_PROPERTY -> {
                 val base = baselineProperty ?: return
                 val edit = state.propertyEdit ?: return
-                SmartCommandMapping.buildResumeCorrection(intent, base.salePrice, edit.salePrice, "price")?.let { corrections.add(it) }
-                SmartCommandMapping.buildResumeCorrection(intent, base.area, edit.area, "area")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.propertyType, edit.propertyType, "type")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.dealMode, edit.dealMode, "deal")?.let { corrections.add(it) }
                 SmartCommandMapping.buildResumeCorrection(intent, base.neighborhood, edit.neighborhood, "neighborhood")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.city, edit.city, "city")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.area, edit.area, "area")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.rooms, edit.rooms, "rooms")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.salePrice, edit.salePrice, "price")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.deposit, edit.deposit, "deposit")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.monthlyRent, edit.monthlyRent, "rent")?.let { corrections.add(it) }
+                SmartCommandMapping.buildResumeCorrection(intent, base.notes, edit.notes, "notes")?.let { corrections.add(it) }
             }
         }
         val merged = SmartCommandMapping.mergeCorrections(corrections)

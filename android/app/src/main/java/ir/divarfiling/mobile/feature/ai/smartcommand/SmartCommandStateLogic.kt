@@ -24,6 +24,15 @@ object SmartCommandStateLogic {
         return merged.take(SmartCommandMapping.MAX_INPUT_CHARS)
     }
 
+    /** Replaces the current utterance onto [baseline] — avoids duplicating partial STT in the field. */
+    fun voiceTextFromBaseline(baseline: String, spoken: String): String {
+        val base = baseline.trim()
+        val text = spoken.trim()
+        if (text.isBlank()) return base.take(SmartCommandMapping.MAX_INPUT_CHARS)
+        val merged = if (base.isBlank()) text else "$base $text"
+        return merged.trim().take(SmartCommandMapping.MAX_INPUT_CHARS)
+    }
+
     fun hasPreviewEdits(
         intent: String?,
         baselineReminder: ReminderPreviewEdit?,

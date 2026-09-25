@@ -416,40 +416,23 @@ fun AgencySpacePublishSheet(
 
                 }
 
-                LazyColumn(
-
+                Column(
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-
                     modifier = Modifier.fillMaxWidth(),
-
                 ) {
-
-                    items(filteredMembers, key = { it.id }) { member ->
-
+                    filteredMembers.forEach { member ->
                         AgencySpaceMemberRow(
-
                             member = member,
-
                             selected = member.id in selectedMembers,
-
                             onToggle = {
-
                                 selectedMembers = if (member.id in selectedMembers) {
-
                                     selectedMembers - member.id
-
                                 } else {
-
                                     selectedMembers + member.id
-
                                 }
-
                             },
-
                         )
-
                     }
-
                 }
 
                 Text(
