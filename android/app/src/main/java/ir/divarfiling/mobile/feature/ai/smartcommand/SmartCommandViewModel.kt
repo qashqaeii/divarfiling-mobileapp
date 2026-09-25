@@ -11,7 +11,6 @@ import ir.divarfiling.mobile.core.network.SmartCommandProfileDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.SmartCommandRepository
 import ir.divarfiling.mobile.feature.ai.voice.VoiceInputPhase
-import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionPhase
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSpeechError
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -28,8 +27,6 @@ data class SmartCommandUiState(
     val capabilities: AiCapabilitiesData? = null,
     val inputText: String = "",
     val voicePhase: VoiceInputPhase = VoiceInputPhase.Idle,
-    val voiceSessionPhase: VoiceSessionPhase = VoiceSessionPhase.Idle,
-    val voiceStatusHint: String? = null,
     val voiceError: String? = null,
     val phase: SmartCommandPhase = SmartCommandPhase.Idle,
     val parseResult: NlCommandParseResult? = null,
@@ -67,56 +64,20 @@ class SmartCommandViewModel @Inject constructor(
     private var baselineContact: ContactPreviewEdit? = null
     private var baselineProperty: PropertyPreviewEdit? = null
     private var parseSlowJob: Job? = null
+    private var voiceInputBaseline: String = ""
 
-    fun onVoiceDisplayText(text: String) {
-        onInputChange(text)
+    fun beginVoiceInputSession() {
+        voiceInputBaseline = _uiState.value.inputText.trim()
     }
 
-    fun onVoiceSessionFinalized(text: String) {
-        onInputChange(text)
-        _uiState.update {
-            it.copy(
-                voicePhase = VoiceInputPhase.Ready,
-                voiceSessionPhase = VoiceSessionPhase.Idle,
-                voiceStatusHint = null,
-                voiceError = null,
-            )
-        }
+    fun updateVoicePartial(partial: String) {
+        onInputChange(SmartCommandStateLogic.voiceTextFromBaseline(voiceInputBaseline, partial))
     }
 
-    fun onVoiceSessionPhase(phase: VoiceSessionPhase) {
-        val mapped = when (phase) {
-            VoiceSessionPhase.Idle -> VoiceInputPhase.Idle
-            VoiceSessionPhase.Listening,
-            VoiceSessionPhase.Restarting,
-            -> VoiceInputPhase.Listening
-            VoiceSessionPhase.WaitingForContinuation -> VoiceInputPhase.Ready
-            VoiceSessionPhase.Finalizing -> VoiceInputPhase.ProcessingSpeech
-            VoiceSessionPhase.Error -> VoiceInputPhase.Error
-        }
-        _uiState.update { it.copy(voicePhase = mapped, voiceSessionPhase = phase) }
+    fun finalizeVoiceInput(final: String) {
+        onInputChange(SmartCommandStateLogic.voiceTextFromBaseline(voiceInputBaseline, final))
+        _uiState.update { it.copy(voicePhase = VoiceInputPhase.Ready, voiceError = null) }
     }
-
-    fun onVoiceStatusHint(hint: String?) {
-        _uiState.update { it.copy(voiceStatusHint = hint) }
-    }
-
-    fun onVoiceRecoverableError(error: VoiceSpeechError) {
-        _uiState.update {
-            it.copy(voicePhase = VoiceInputPhase.Error, voiceError = error.userMessage)
-        }
-    }
-
-    @Deprecated("Session starts from UI via VoiceSpeechSession")
-    fun beginVoiceInputSession() = Unit
-
-    @Deprecated("Use onVoiceDisplayText")
-    fun updateVoicePartial(partial: String) = onVoiceDisplayText(
-        SmartCommandStateLogic.voiceTextFromBaseline(_uiState.value.inputText, partial),
-    )
-
-    @Deprecated("Use onVoiceSessionFinalized")
-    fun finalizeVoiceInput(final: String) = onVoiceSessionFinalized(final)
 
     fun bindProfile(profile: SmartCommandProfileKey) {
         if (boundProfile == profile && _uiState.value.capabilities != null) {

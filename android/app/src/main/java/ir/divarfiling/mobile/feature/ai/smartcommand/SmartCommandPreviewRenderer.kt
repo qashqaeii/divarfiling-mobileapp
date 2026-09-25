@@ -7,11 +7,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
-import ir.divarfiling.mobile.core.design.components.DfCard
-
 @Composable
 fun SmartCommandPreviewSection(
     lines: List<SmartCommandPreviewLineUi>,
@@ -19,30 +18,24 @@ fun SmartCommandPreviewSection(
     title: String = "بررسی قبل از ثبت",
 ) {
     if (lines.isEmpty()) return
-    DfCard(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            Text(title, style = AppTypography.sectionTitle)
-            lines.forEach { line ->
-                SmartCommandPreviewSectionRow(line)
-            }
+    SmartCommandDetailGroup(title = title, modifier = modifier) {
+        lines.forEach { line ->
+            SmartCommandPreviewSectionRow(line)
         }
     }
 }
 
 @Composable
 fun SmartCommandPreviewSectionRow(line: SmartCommandPreviewLineUi) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        if (line.label.isNotBlank()) {
-            Text(line.label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+    val label = line.label.ifBlank { "جزئیات" }
+    val value = line.value.ifBlank { "—" }
+    if (line.isMissing || line.isWarning) {
+        SmartCommandInsetPanel {
+            Text(label, style = AppTypography.labelSmall, color = DfColors.Amber)
+            Text(value, style = AppTypography.bodyDescription, color = DfColors.Rose)
         }
-        Text(
-            line.value.ifBlank { "—" },
-            style = AppTypography.bodyDescription,
-            color = if (line.isMissing || line.isWarning) DfColors.Rose else DfColors.TextPrimary,
-        )
+    } else {
+        SmartCommandKeyValueRow(label = label, value = value)
     }
 }
 
@@ -52,14 +45,15 @@ fun SmartCommandIncompleteBanner(
     modifier: Modifier = Modifier,
 ) {
     if (messages.isEmpty()) return
-    DfCard(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            messages.forEach { msg ->
-                Text(msg, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
-            }
+    SmartCommandInsetPanel(modifier = modifier) {
+        Text(
+            "برای ثبت، این موارد را تکمیل کنید",
+            style = AppTypography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = DfColors.Amber,
+        )
+        messages.forEach { msg ->
+            Text("• $msg", style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
         }
     }
 }
@@ -70,13 +64,11 @@ fun SmartCommandAmbiguousBanner(
     modifier: Modifier = Modifier,
 ) {
     if (messages.isEmpty()) return
-    DfCard(modifier = modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(AppSpacing.cardPadding)) {
-            Text(
-                messages.first(),
-                style = AppTypography.bodyDescription,
-                color = DfColors.TextSecondary,
-            )
-        }
+    SmartCommandInsetPanel(modifier = modifier) {
+        Text(
+            messages.first(),
+            style = AppTypography.bodyDescription,
+            color = DfColors.TextSecondary,
+        )
     }
 }

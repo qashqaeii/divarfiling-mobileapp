@@ -37,6 +37,7 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandMapping
+import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandStateLogic
 
 enum class VoiceFieldInsertPolicy {
     Append,
@@ -59,10 +60,7 @@ fun VoiceTextField(
 ) {
     val context = LocalContext.current
     val manager = speechManager ?: remember { SpeechRecognizerManager(context.applicationContext) }
-    val voiceSession = remember { VoiceSpeechSession(manager) }
     var voicePhase by remember { mutableStateOf(VoiceInputPhase.Idle) }
-    var voiceSessionPhase by remember { mutableStateOf(VoiceSessionPhase.Idle) }
-    var voiceStatusHint by remember { mutableStateOf<String?>(null) }
     var voiceError by remember { mutableStateOf<String?>(null) }
     var pendingStart by remember { mutableStateOf(false) }
     val sttAvailable = remember { manager.isAvailable() }
@@ -86,15 +84,6 @@ fun VoiceTextField(
         }
     }
 
-    fun mapSessionPhase(phase: VoiceSessionPhase): VoiceInputPhase = when (phase) {
-        VoiceSessionPhase.Idle -> VoiceInputPhase.Idle
-        VoiceSessionPhase.Listening, VoiceSessionPhase.Restarting ->
-            VoiceInputPhase.Listening
-        VoiceSessionPhase.WaitingForContinuation -> VoiceInputPhase.Ready
-        VoiceSessionPhase.Finalizing -> VoiceInputPhase.ProcessingSpeech
-        VoiceSessionPhase.Error -> VoiceInputPhase.Error
-    }
-
     fun startListening() {
         if (!sttAvailable) return
         voiceError = null
@@ -105,47 +94,40 @@ fun VoiceTextField(
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             return
         }
-        if (voiceSessionPhase == VoiceSessionPhase.WaitingForContinuation) {
-            voiceSession.resumeAfterPause()
-            return
-        }
-        val baseline = when (insertPolicy) {
-            VoiceFieldInsertPolicy.Replace -> ""
-            VoiceFieldInsertPolicy.Append -> value.trim()
-        }
-        voiceSessionBaseline = baseline
-        voiceSession.start(
-            baseInput = baseline,
-            onDisplayText = { display ->
+        voiceSessionBaseline = value.trim()
+        voicePhase = VoiceInputPhase.Listening
+        val listener = manager.createListener(
+            onPartial = { partial ->
                 voicePhase = VoiceInputPhase.Listening
-                onValueChange(display.take(SmartCommandMapping.MAX_INPUT_CHARS))
+                val merged = when (insertPolicy) {
+                    VoiceFieldInsertPolicy.Replace -> partial.trim()
+                    VoiceFieldInsertPolicy.Append ->
+                        SmartCommandStateLogic.voiceTextFromBaseline(voiceSessionBaseline, partial)
+                }
+                onValueChange(merged.take(SmartCommandMapping.MAX_INPUT_CHARS))
             },
-            onSessionFinalized = { final ->
+            onFinal = { final ->
                 voicePhase = VoiceInputPhase.Ready
-                voiceSessionPhase = VoiceSessionPhase.Idle
-                voiceStatusHint = null
-                onValueChange(final.take(SmartCommandMapping.MAX_INPUT_CHARS))
+                val merged = when (insertPolicy) {
+                    VoiceFieldInsertPolicy.Replace -> final.trim()
+                    VoiceFieldInsertPolicy.Append ->
+                        SmartCommandStateLogic.voiceTextFromBaseline(voiceSessionBaseline, final)
+                }
+                onValueChange(merged.take(SmartCommandMapping.MAX_INPUT_CHARS))
             },
-            onPhase = { phase ->
-                voiceSessionPhase = phase
-                voicePhase = mapSessionPhase(phase)
-            },
-            onStatusHint = { hint -> voiceStatusHint = hint },
-            onRecoverableError = { err ->
+            onError = { err ->
                 voicePhase = VoiceInputPhase.Error
                 voiceError = err.userMessage
             },
+            onListeningChanged = { listening ->
+                voicePhase = if (listening) VoiceInputPhase.Listening else VoiceInputPhase.ProcessingSpeech
+            },
         )
+        manager.startListening(listener)
     }
-
-    fun stopListeningManual() {
-        voiceSession.manualStop()
-    }
-
-    VoiceSessionBackgroundEffect(voiceSession)
 
     DisposableEffect(Unit) {
-        onDispose { voiceSession.destroyRecognizer() }
+        onDispose { manager.destroy() }
     }
 
     if (pendingStart) {
@@ -168,9 +150,7 @@ fun VoiceTextField(
         modifier = Modifier.fillMaxWidth(),
         label = label,
         placeholder = placeholder,
-        enabled = enabled,
-        readOnly = voicePhase == VoiceInputPhase.Listening ||
-            voicePhase == VoiceInputPhase.ProcessingSpeech,
+        enabled = enabled && voicePhase != VoiceInputPhase.Listening,
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
@@ -180,15 +160,13 @@ fun VoiceTextField(
                     phase = voicePhase,
                     onClick = {
                         when (voicePhase) {
-                            VoiceInputPhase.Listening -> stopListeningManual()
+                            VoiceInputPhase.Listening -> manager.stopListening()
                             else -> startListening()
                         }
                     },
                     onCancel = {
-                        voiceSession.stopSession()
+                        manager.cancel()
                         voicePhase = VoiceInputPhase.Idle
-                        voiceSessionPhase = VoiceSessionPhase.Idle
-                        voiceStatusHint = null
                     },
                 )
             }
@@ -196,7 +174,6 @@ fun VoiceTextField(
             null
         },
         helperText = when {
-            voiceStatusHint != null -> voiceStatusHint
             voicePhase == VoiceInputPhase.Listening ->
                 "در حال گوش دادن… برای پایان، دوباره میکروفن را بزنید."
             voiceError != null -> voiceError

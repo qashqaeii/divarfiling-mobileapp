@@ -3,8 +3,6 @@ package ir.divarfiling.mobile.feature.ai.voice
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -26,17 +24,8 @@ class SpeechRecognizerManager @Inject constructor(
     @ApplicationContext private val appContext: Context,
 ) {
     private var recognizer: SpeechRecognizer? = null
-    private val mainHandler = Handler(Looper.getMainLooper())
 
     fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(appContext)
-
-    private fun runOnMain(block: () -> Unit) {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            block()
-        } else {
-            mainHandler.post(block)
-        }
-    }
 
     fun createListener(
         onPartial: (String) -> Unit,
@@ -45,7 +34,7 @@ class SpeechRecognizerManager @Inject constructor(
         onListeningChanged: (Boolean) -> Unit,
     ): RecognitionListener = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
-            runOnMain { onListeningChanged(true) }
+            onListeningChanged(true)
         }
 
         override fun onBeginningOfSpeech() = Unit
@@ -55,53 +44,44 @@ class SpeechRecognizerManager @Inject constructor(
         override fun onBufferReceived(buffer: ByteArray?) = Unit
 
         override fun onEndOfSpeech() {
-            runOnMain { onListeningChanged(false) }
+            onListeningChanged(false)
         }
 
         override fun onError(error: Int) {
-            runOnMain {
-                onListeningChanged(false)
-                onError(SpeechErrorMapper.fromAndroidCode(error))
-            }
+            onListeningChanged(false)
+            onError(SpeechErrorMapper.fromAndroidCode(error))
         }
 
         override fun onResults(results: Bundle?) {
+            onListeningChanged(false)
             val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                ?.firstOrNull { it.isNotBlank() }
+                ?.firstOrNull()
                 ?.trim()
                 .orEmpty()
-            runOnMain {
-                onListeningChanged(false)
+            if (text.isNotBlank()) {
                 onFinal(text)
+            } else {
+                onError(VoiceSpeechError.NoSpeech)
             }
         }
 
         override fun onPartialResults(partialResults: Bundle?) {
             val text = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                ?.firstOrNull { it.isNotBlank() }
+                ?.firstOrNull()
                 ?.trim()
                 .orEmpty()
-            if (text.isNotBlank()) {
-                runOnMain { onPartial(text) }
-            }
+            if (text.isNotBlank()) onPartial(text)
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) = Unit
     }
 
     fun startListening(listener: RecognitionListener) {
-        val startBlock = Runnable {
-            stopInternal()
-            val sr = SpeechRecognizer.createSpeechRecognizer(appContext)
-            recognizer = sr
-            sr.setRecognitionListener(listener)
-            sr.startListening(buildIntent())
-        }
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            startBlock.run()
-        } else {
-            Handler(Looper.getMainLooper()).post(startBlock)
-        }
+        stopInternal()
+        val sr = SpeechRecognizer.createSpeechRecognizer(appContext)
+        recognizer = sr
+        sr.setRecognitionListener(listener)
+        sr.startListening(buildIntent())
     }
 
     fun stopListening() {
@@ -122,13 +102,10 @@ class SpeechRecognizerManager @Inject constructor(
     }
 
     private fun buildIntent(): Intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-        putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, appContext.packageName)
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fa-IR")
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "fa-IR")
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-        putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
         // پیش‌فرض سیستم (~۱ث) با مکث کوتاه session را می‌بندد؛ برای جمله‌های طولانی‌تر آزادتر باشد.
         putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 6_000L)
         putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 5_000L)

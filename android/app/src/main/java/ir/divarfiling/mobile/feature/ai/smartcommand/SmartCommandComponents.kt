@@ -8,14 +8,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
@@ -23,9 +20,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -43,26 +37,17 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
-import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetExpandableSection
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
-import ir.divarfiling.mobile.core.design.components.DfSheetSection
-import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.network.NlContactCandidateDto
 import ir.divarfiling.mobile.feature.ai.voice.SpeechErrorMapper
 import ir.divarfiling.mobile.feature.ai.voice.SpeechRecognizerManager
 import ir.divarfiling.mobile.feature.ai.voice.VoiceInputPhase
-import ir.divarfiling.mobile.feature.ai.voice.VoiceMicButton
-import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionController
-import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionPhase
-import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionBackgroundEffect
-import ir.divarfiling.mobile.feature.ai.voice.VoiceSpeechSession
 import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.feature.ai.voice.openAppSettingsForMic
 
@@ -88,15 +73,15 @@ fun SmartCommandHost(
     val blockMessage = blockReasonMessage(state)
     val showDisabled = state.blockReason != null
 
-    SmartCommandEntryCard(
+    SmartCommandEntryHero(
         title = state.profile?.title?.ifBlank { "دستیار هوشمند" } ?: "دستیار هوشمند",
         subtitle = SmartCommandMapping.entrySubtitle(state.profile, profile),
         placeholder = SmartCommandMapping.entryPlaceholder(state.profile, profile),
         quotaHint = state.quotaHint,
         enabled = !showDisabled,
         disabledMessage = blockMessage,
-        modifier = modifier,
         onOpen = viewModel::openSheet,
+        modifier = modifier,
     )
 
     if (state.isSheetOpen) {
@@ -111,72 +96,6 @@ fun SmartCommandHost(
             onNavigatePropertiesContext = onNavigatePropertiesContext,
             onNavigateTodayContext = onNavigateTodayContext,
         )
-    }
-}
-
-@Composable
-private fun SmartCommandEntryCard(
-    title: String,
-    subtitle: String,
-    placeholder: String,
-    quotaHint: String?,
-    enabled: Boolean,
-    disabledMessage: String?,
-    modifier: Modifier = Modifier,
-    onOpen: () -> Unit,
-) {
-    DfCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppSpacing.screenHorizontal),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    DfIcons.Sparkles,
-                    contentDescription = null,
-                    tint = DfColors.Purple,
-                    modifier = Modifier.size(20.dp),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold, color = DfColors.TextPrimary)
-                    Text(
-                        subtitle,
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
-                        maxLines = 2,
-                    )
-                }
-            }
-            Text(
-                placeholder,
-                style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 40.dp),
-                maxLines = 2,
-            )
-            quotaHint?.let {
-                Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-            }
-            if (!enabled && !disabledMessage.isNullOrBlank()) {
-                Text(disabledMessage, style = AppTypography.labelSmall, color = DfColors.TextSecondary)
-            } else if (enabled) {
-                DfPrimaryButton(
-                    text = "شروع دستیار هوشمند",
-                    onClick = onOpen,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
     }
 }
 
@@ -195,38 +114,22 @@ private fun SmartCommandSheet(
 ) {
     val context = LocalContext.current
     val speechManager = remember { SpeechRecognizerManager(context.applicationContext) }
-    val voiceSession = remember { VoiceSpeechSession(speechManager) }
     val sttAvailable = remember { speechManager.isAvailable() }
     var pendingMic by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) pendingMic = true
-        else viewModel.onVoiceRecoverableError(SpeechErrorMapper.permissionDenied())
+        else viewModel.onVoiceError(SpeechErrorMapper.permissionDenied())
     }
-
-    VoiceSessionBackgroundEffect(voiceSession)
 
     DisposableEffect(Unit) {
-        onDispose { voiceSession.destroyRecognizer() }
-    }
-
-    fun startVoiceListening() {
-        if (!sttAvailable) return
-        viewModel.clearVoiceError()
-        voiceSession.start(
-            baseInput = state.inputText.trim(),
-            onDisplayText = viewModel::onVoiceDisplayText,
-            onSessionFinalized = viewModel::onVoiceSessionFinalized,
-            onPhase = viewModel::onVoiceSessionPhase,
-            onStatusHint = viewModel::onVoiceStatusHint,
-            onRecoverableError = viewModel::onVoiceRecoverableError,
-        )
+        onDispose { speechManager.destroy() }
     }
 
     if (pendingMic) {
         pendingMic = false
-        startVoiceListening()
+        startSmartCommandVoice(speechManager, viewModel)
     }
 
     DfModalBottomSheet(onDismissRequest = onDismiss, dismissOnScrimOrSwipe = false) {
@@ -266,27 +169,21 @@ private fun SmartCommandSheet(
                     viewModel.dismissSheet()
                 },
                 onMicClick = {
-                    if (state.voiceSessionPhase == VoiceSessionPhase.WaitingForContinuation) {
-                        voiceSession.resumeAfterPause()
+                    val granted = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.RECORD_AUDIO,
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (!granted) {
+                        viewModel.onVoicePhase(VoiceInputPhase.RequestingPermission)
+                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     } else {
-                        val granted = ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.RECORD_AUDIO,
-                        ) == PackageManager.PERMISSION_GRANTED
-                        if (!granted) {
-                            viewModel.onVoicePhase(VoiceInputPhase.RequestingPermission)
-                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        } else {
-                            startVoiceListening()
-                        }
+                        startSmartCommandVoice(speechManager, viewModel)
                     }
                 },
-                onMicStop = { voiceSession.manualStop() },
+                onMicStop = { speechManager.stopListening() },
                 onMicCancel = {
-                    voiceSession.stopSession()
+                    speechManager.cancel()
                     viewModel.onVoicePhase(VoiceInputPhase.Idle)
-                    viewModel.onVoiceSessionPhase(VoiceSessionPhase.Idle)
-                    viewModel.onVoiceStatusHint(null)
                 },
                 onOpenSettings = { openAppSettingsForMic(context) },
                 onClearPreview = viewModel::clearPreviewKeepInput,
@@ -339,9 +236,8 @@ private fun InputAndPreviewStep(
     DfSheetScaffold(
         title = state.profile?.title?.ifBlank { "دستیار هوشمند" } ?: "دستیار هوشمند",
         subtitle = sheetSubtitle,
-        sectionLabel = "دستیار هوشمند",
         icon = DfIcons.Sparkles,
-        iconContainerColor = DfColors.PurpleContainer.copy(alpha = 0.85f),
+        iconContainerColor = DfColors.PurpleContainer.copy(alpha = 0.45f),
         onClose = onDismiss,
         bodyHeightFraction = sheetHeightFraction,
         footer = {
@@ -365,174 +261,115 @@ private fun InputAndPreviewStep(
             )
         },
     ) {
-        state.quotaHint?.let {
-            Text(it, style = AppTypography.labelSmall, color = DfColors.TextMuted, modifier = Modifier.padding(bottom = AppSpacing.xs))
-        }
-        state.blockReason?.let {
-            DfCard(modifier = Modifier.fillMaxWidth().padding(bottom = AppSpacing.sm)) {
-                Text(
-                    blockReasonMessage(state).orEmpty(),
-                    style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
-                    modifier = Modifier.padding(AppSpacing.cardPadding),
-                )
-            }
+        SmartCommandFlowStepper(
+            activeStep = smartCommandFlowStep(state.phase, showConfirm),
+            modifier = Modifier.padding(bottom = AppSpacing.xs),
+        )
+        state.quotaHint?.let { SmartCommandQuotaPill(text = it) }
+        state.blockReason?.let { reason ->
+            SmartCommandMessagePanel(
+                title = when (reason) {
+                    SmartCommandBlockReason.QuotaExhausted -> "سهمیه امروز تمام شده"
+                    SmartCommandBlockReason.NoLicense -> "لایسنس فعال لازم است"
+                    SmartCommandBlockReason.AiDisabled -> "دستیار غیرفعال است"
+                    SmartCommandBlockReason.FeatureDisabled -> "این قابلیت فعال نیست"
+                },
+                body = blockReasonMessage(state).orEmpty(),
+            )
         }
         state.errorMessage?.let { DfErrorBanner(it, modifier = Modifier.fillMaxWidth()) }
         if (state.voicePhase == VoiceInputPhase.RequestingPermission) {
-            Text(
-                "برای ثبت فرمان صوتی، دسترسی میکروفن لازم است.",
-                style = AppTypography.bodyDescription,
-                color = DfColors.TextSecondary,
-                modifier = Modifier.padding(bottom = AppSpacing.sm),
+            SmartCommandStatusRow(
+                message = "برای ثبت فرمان صوتی، دسترسی میکروفن لازم است.",
             )
         }
         if (state.phase == SmartCommandPhase.Parsing) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = AppSpacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                Text(
-                    if (state.parseSlowHint) {
-                        "کمی بیشتر زمان می‌بره، هنوز در حال بررسی هستم…"
-                    } else {
-                        "در حال بررسی درخواست…"
-                    },
-                    style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
-                )
-            }
+            SmartCommandStatusRow(
+                message = if (state.parseSlowHint) {
+                    "کمی بیشتر زمان می‌بره، هنوز در حال بررسی هستم…"
+                } else {
+                    "در حال بررسی درخواست…"
+                },
+                showSpinner = true,
+            )
         }
         if (!sttAvailable) {
             Text(
                 "ورود صوتی روی این دستگاه در دسترس نیست.",
                 style = AppTypography.labelSmall,
                 color = DfColors.TextMuted,
-                modifier = Modifier.padding(bottom = AppSpacing.xs),
             )
         }
-        DfSheetSection(
-            title = if (state.parseResult != null && !showUnknown) "ویرایش درخواست" else "درخواست شما",
-        ) {
-            DfCard(
-                modifier = Modifier.fillMaxWidth(),
-                containerColor = DfColors.PurpleContainer.copy(alpha = 0.22f),
-            ) {
-                Column(modifier = Modifier.padding(AppSpacing.sm)) {
-                    DfTextField(
-                        value = state.inputText,
-                        onValueChange = onInputChange,
-                        readOnly = state.voicePhase == VoiceInputPhase.Listening ||
-                            state.voicePhase == VoiceInputPhase.ProcessingSpeech,
-                        placeholder = state.profile?.placeholder?.ifBlank {
-                            SmartCommandMapping.defaultPlaceholder(state.profileKey)
-                        } ?: SmartCommandMapping.defaultPlaceholder(state.profileKey),
-                        singleLine = false,
-                        minLines = if (hasStructuredPreview) 3 else 4,
-                        maxLines = 8,
-                        trailingIcon = if (sttAvailable) {
-                            {
-                                VoiceMicButton(
-                                    phase = state.voicePhase,
-                                    onClick = {
-                                        if (state.voicePhase == VoiceInputPhase.Listening) onMicStop() else onMicClick()
-                                    },
-                                    onCancel = onMicCancel,
-                                )
-                            }
-                        } else {
-                            null
-                        },
-                        helperText = when {
-                            state.voiceStatusHint != null -> state.voiceStatusHint
-                            state.voiceSessionPhase == VoiceSessionPhase.WaitingForContinuation ->
-                                VoiceSessionController.CONTINUATION_HINT
-                            state.voicePhase == VoiceInputPhase.Listening ->
-                                "در حال گوش دادن… برای پایان، میکروفن را بزنید."
-                            state.voicePhase == VoiceInputPhase.Error && state.voiceError != null -> state.voiceError
-                            else -> null
-                        },
+        SmartCommandComposer(
+            value = state.inputText,
+            onValueChange = onInputChange,
+            placeholder = state.profile?.placeholder?.ifBlank {
+                SmartCommandMapping.defaultPlaceholder(state.profileKey)
+            } ?: SmartCommandMapping.defaultPlaceholder(state.profileKey),
+            fieldTitle = if (state.parseResult != null && !showUnknown) "ویرایش درخواست" else "درخواست شما",
+            fieldHint = if (state.parseResult == null) {
+                "یک جمله طبیعی بنویسید یا با میکروفن بگویید"
+            } else {
+                "در صورت نیاز متن را اصلاح کنید"
+            },
+            minLines = if (hasStructuredPreview) 2 else 3,
+            voicePhase = state.voicePhase,
+            sttAvailable = sttAvailable,
+            onMicClick = onMicClick,
+            onMicStop = onMicStop,
+            onMicCancel = onMicCancel,
+            helperText = when {
+                state.voicePhase == VoiceInputPhase.Listening ->
+                    "برای پایان، دوباره میکروفن را بزنید."
+                state.voicePhase == VoiceInputPhase.Error && state.voiceError != null -> state.voiceError
+                else -> null
+            },
+            charCounter = if (state.inputText.length > 40) {
+                "${state.inputText.length} / ${SmartCommandMapping.MAX_INPUT_CHARS}"
+            } else {
+                null
+            },
+            examplesContent = if (exampleChips.isNotEmpty() && state.parseResult == null) {
+                {
+                    SmartCommandExampleSuggestions(
+                        chips = exampleChips,
+                        onSelect = onExampleSelect,
+                        modifier = Modifier.padding(horizontal = AppSpacing.xs),
                     )
-                    if (exampleChips.isNotEmpty() && state.parseResult == null) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(top = AppSpacing.xs),
-                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                        ) {
-                            exampleChips.forEach { example ->
-                                DfSoftChip(
-                                    text = example.chipLabel(),
-                                    selected = false,
-                                    onClick = { onExampleSelect(example.commandText()) },
-                                )
-                            }
-                        }
-                    }
-                    if (state.voicePhase == VoiceInputPhase.Listening && state.voiceStatusHint.isNullOrBlank()) {
-                        Text("دارم گوش می‌دم…", style = AppTypography.labelSmall, color = DfColors.Purple)
-                    }
-                    if (state.inputText.length > 40) {
-                        Text(
-                            "${state.inputText.length} / ${SmartCommandMapping.MAX_INPUT_CHARS}",
-                            style = AppTypography.labelSmall,
-                            color = DfColors.TextMuted,
-                        )
-                    }
                 }
-            }
-        }
-        if (hasStructuredPreview && state.inputText.isNotBlank()) {
-            SmartCommandParsedRequestBanner(
-                requestText = state.inputText,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+            } else {
+                null
+            },
+        )
         if (showWrongIntent) {
             val wrong = state.wrongIntent!!
-            DfCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(AppSpacing.cardPadding),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                ) {
-                    Text(wrong.message, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
-                    Text(
-                        "می‌توانید در بخش مربوطه دوباره بنویسید.",
-                        style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
-                    )
-                    wrong.navigation?.let { dest ->
-                        DfSecondaryButton(
-                            text = SmartCommandMapping.wrongIntentCtaLabel(dest),
-                            onClick = { onWrongIntentNavigate(dest) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
+            SmartCommandMessagePanel(
+                title = "این بخش برای این درخواست نیست",
+                body = wrong.message,
+            )
+            Text(
+                "می‌توانید در بخش مربوطه دوباره بنویسید.",
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+            )
+            wrong.navigation?.let { dest ->
+                DfSecondaryButton(
+                    text = SmartCommandMapping.wrongIntentCtaLabel(dest),
+                    onClick = { onWrongIntentNavigate(dest) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
         if (showUnknown) {
-            DfCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(AppSpacing.cardPadding),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                ) {
-                    Text("درخواستت رو کامل متوجه نشدم", style = AppTypography.sectionTitle)
-                    Text(
-                        state.statusMessage ?: "مثلاً: فردا ساعت ۱۰ یادم بنداز با احمدی تماس بگیرم.",
-                        style = AppTypography.bodyDescription,
-                        color = DfColors.TextSecondary,
-                    )
-                    DfSecondaryButton(
-                        text = "دوباره امتحان می‌کنم",
-                        onClick = onClearPreview,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
+            SmartCommandMessagePanel(
+                title = "درخواستت رو کامل متوجه نشدم",
+                body = state.statusMessage ?: "مثلاً: فردا ساعت ۱۰ یادم بنداز با احمدی تماس بگیرم.",
+            )
+            DfSecondaryButton(
+                text = "دوباره امتحان می‌کنم",
+                onClick = onClearPreview,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         if (!showWrongIntent && state.missingMessages.isNotEmpty() && !showConfirm) {
             SmartCommandIncompleteBanner(
@@ -584,13 +421,13 @@ private fun InputAndPreviewStep(
 @Composable
 private fun ReminderPreviewSection(edit: ReminderPreviewEdit, onChange: (ReminderPreviewEdit) -> Unit) {
     var showEdit by remember { mutableStateOf(false) }
-    DfCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            Text("یادآوری", style = AppTypography.sectionTitle)
-            SmartCommandPreviewRow("مخاطب", edit.contactName)
-            SmartCommandPreviewRow("زمان", edit.dueAtDisplay.ifBlank { "${edit.dateText} ${edit.timeText}".trim() })
-            SmartCommandPreviewRow("موضوع", edit.title)
-        }
+    SmartCommandDetailGroup(
+        title = "یادآوری",
+        modifier = Modifier.fillMaxWidth().padding(top = AppSpacing.sm),
+    ) {
+        SmartCommandPreviewRow("مخاطب", edit.contactName)
+        SmartCommandPreviewRow("زمان", edit.dueAtDisplay.ifBlank { "${edit.dateText} ${edit.timeText}".trim() })
+        SmartCommandPreviewRow("موضوع", edit.title)
     }
     DfSheetExpandableSection(
         title = "ویرایش جزئیات",
@@ -617,23 +454,17 @@ private fun ContactPreviewSection(edit: ContactPreviewEdit, onChange: (ContactPr
     var showEdit by remember(edit.name, edit.phone, edit.customerType) {
         mutableStateOf(needsCompletion)
     }
-    DfCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            Text("ثبت مخاطب جدید", style = AppTypography.sectionTitle)
-            if (needsCompletion) {
-                Text(
-                    "نام یا شماره را در بخش زیر تکمیل کنید.",
-                    style = AppTypography.labelSmall,
-                    color = DfColors.Amber,
-                )
-            }
-            SmartCommandPreviewRow("نام", edit.name)
-            SmartCommandPreviewRow("شماره", edit.phone)
-            SmartCommandPreviewRow("نوع", edit.customerType)
-            SmartCommandPreviewRow("شرکت", edit.companyName)
-            SmartCommandPreviewRow("محدوده", edit.areas)
-            SmartCommandPreviewRow("توضیحات", edit.notes)
-        }
+    SmartCommandDetailGroup(
+        title = "ثبت مخاطب جدید",
+        modifier = Modifier.fillMaxWidth().padding(top = AppSpacing.sm),
+        accent = if (needsCompletion) "نیاز به تکمیل" else null,
+    ) {
+        SmartCommandPreviewRow("نام", edit.name)
+        SmartCommandPreviewRow("شماره", edit.phone)
+        SmartCommandPreviewRow("نوع", edit.customerType)
+        SmartCommandPreviewRow("شرکت", edit.companyName)
+        SmartCommandPreviewRow("محدوده", edit.areas)
+        SmartCommandPreviewRow("توضیحات", edit.notes)
     }
     DfSheetExpandableSection(
         title = if (needsCompletion) "تکمیل اطلاعات مخاطب" else "ویرایش جزئیات",
@@ -667,27 +498,21 @@ private fun PropertyPreviewSection(edit: PropertyPreviewEdit, onChange: (Propert
     var showEdit by remember(edit.propertyType, edit.neighborhood, edit.salePrice) {
         mutableStateOf(needsCompletion)
     }
-    DfCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            Text("ثبت فایل شخصی", style = AppTypography.sectionTitle)
-            if (needsCompletion) {
-                Text(
-                    "نوع ملک یا منطقه را در بخش زیر تکمیل کنید.",
-                    style = AppTypography.labelSmall,
-                    color = DfColors.Amber,
-                )
-            }
-            SmartCommandPreviewRow("نوع ملک", edit.propertyType)
-            SmartCommandPreviewRow("معامله", edit.dealMode)
-            SmartCommandPreviewRow("منطقه", edit.neighborhood)
-            SmartCommandPreviewRow("شهر", edit.city)
-            SmartCommandPreviewRow("متراژ", edit.area.let { if (it.isBlank()) "" else "$it متر" })
-            SmartCommandPreviewRow("اتاق", edit.rooms.let { if (it.isBlank()) "" else "$it خواب" })
-            SmartCommandPreviewRow("قیمت فروش", edit.salePrice)
-            SmartCommandPreviewRow("ودیعه", edit.deposit)
-            SmartCommandPreviewRow("اجاره", edit.monthlyRent)
-            SmartCommandPreviewRow("توضیحات", edit.notes)
-        }
+    SmartCommandDetailGroup(
+        title = "ثبت فایل شخصی",
+        modifier = Modifier.fillMaxWidth().padding(top = AppSpacing.sm),
+        accent = if (needsCompletion) "نیاز به تکمیل" else null,
+    ) {
+        SmartCommandPreviewRow("نوع ملک", edit.propertyType)
+        SmartCommandPreviewRow("معامله", edit.dealMode)
+        SmartCommandPreviewRow("منطقه", edit.neighborhood)
+        SmartCommandPreviewRow("شهر", edit.city)
+        SmartCommandPreviewRow("متراژ", edit.area.let { if (it.isBlank()) "" else "$it متر" })
+        SmartCommandPreviewRow("اتاق", edit.rooms.let { if (it.isBlank()) "" else "$it خواب" })
+        SmartCommandPreviewRow("قیمت فروش", edit.salePrice)
+        SmartCommandPreviewRow("ودیعه", edit.deposit)
+        SmartCommandPreviewRow("اجاره", edit.monthlyRent)
+        SmartCommandPreviewRow("توضیحات", edit.notes)
     }
     DfSheetExpandableSection(
         title = if (needsCompletion) "تکمیل اطلاعات فایل" else "ویرایش جزئیات",
@@ -715,14 +540,7 @@ private fun PropertyPreviewSection(edit: PropertyPreviewEdit, onChange: (Propert
 
 @Composable
 private fun SmartCommandPreviewRow(label: String, value: String) {
-    if (value.isBlank()) return
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
-        Text(value, style = AppTypography.bodyDescription, fontWeight = FontWeight.Medium)
-    }
+    SmartCommandKeyValueRow(label = label, value = value)
 }
 
 @Composable
@@ -734,7 +552,6 @@ private fun ContactResolveStep(
     DfSheetScaffold(
         title = "کدام مخاطب منظورتان است؟",
         subtitle = "یکی را انتخاب کنید",
-        sectionLabel = "دستیار هوشمند",
         icon = DfIcons.Users,
         onClose = onCancel,
         bodyHeightFraction = SMART_COMMAND_SHEET_HEIGHT_DEFAULT,
@@ -746,19 +563,17 @@ private fun ContactResolveStep(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             candidates.forEach { candidate ->
-                DfCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelect(candidate.id) },
+                SmartCommandInsetPanel(
+                    modifier = Modifier.clickable { onSelect(candidate.id) },
                 ) {
                     Row(
-                        modifier = Modifier.padding(AppSpacing.cardPadding),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         DfBadge(text = candidate.name.take(1).ifBlank { "?" })
                         Column(Modifier.weight(1f)) {
-                            Text(candidate.name, style = AppTypography.sectionTitle)
+                            Text(candidate.name, style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold)
                             if (candidate.phone.isNotBlank()) {
                                 Text(
                                     maskPhone(candidate.phone),
@@ -767,6 +582,12 @@ private fun ContactResolveStep(
                                 )
                             }
                         }
+                        Icon(
+                            DfIcons.ChevronLeft,
+                            contentDescription = null,
+                            tint = DfColors.TextMuted,
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                 }
             }
@@ -791,7 +612,6 @@ private fun SuccessStep(
     DfSheetScaffold(
         title = successTitle,
         subtitle = state.successMessage ?: "",
-        sectionLabel = "دستیار هوشمند",
         icon = DfIcons.CircleCheck,
         iconContainerColor = DfColors.SuccessContainer,
         iconTint = DfColors.Success,
@@ -819,7 +639,7 @@ private fun SuccessStep(
             )
         },
     ) {
-        Text("می‌توانید همین حالا نتیجه را ببینید یا بعداً از CRM پیگیری کنید.", style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
+        SmartCommandSuccessBody()
     }
 }
 
@@ -830,50 +650,24 @@ private fun maskPhone(phone: String): String {
     return "••• ${digits.take(3)} ••• $tail"
 }
 
-@Composable
-private fun SmartCommandParsedRequestBanner(
-    requestText: String,
-    modifier: Modifier = Modifier,
+private fun startSmartCommandVoice(
+    manager: SpeechRecognizerManager,
+    viewModel: SmartCommandViewModel,
 ) {
-    val scroll = rememberScrollState()
-    DfCard(
-        modifier = modifier,
-        containerColor = DfColors.PurpleContainer.copy(alpha = 0.45f),
-    ) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    DfIcons.Sparkles,
-                    contentDescription = null,
-                    tint = DfColors.Purple,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    "متن درخواست شما",
-                    style = AppTypography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DfColors.Purple,
-                )
-            }
-            Text(
-                requestText.trim(),
-                style = AppTypography.bodyDescription,
-                color = DfColors.TextPrimary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = 88.dp)
-                    .heightIn(max = 160.dp)
-                    .verticalScroll(scroll),
+    if (!manager.isAvailable()) return
+    viewModel.beginVoiceInputSession()
+    viewModel.onVoicePhase(VoiceInputPhase.Listening)
+    val listener = manager.createListener(
+        onPartial = { partial -> viewModel.updateVoicePartial(partial) },
+        onFinal = { final -> viewModel.finalizeVoiceInput(final) },
+        onError = { err -> viewModel.onVoiceError(err) },
+        onListeningChanged = { listening ->
+            viewModel.onVoicePhase(
+                if (listening) VoiceInputPhase.Listening else VoiceInputPhase.ProcessingSpeech,
             )
-        }
-    }
+        },
+    )
+    manager.startListening(listener)
 }
 
 private fun blockReasonMessage(state: SmartCommandUiState): String? {
