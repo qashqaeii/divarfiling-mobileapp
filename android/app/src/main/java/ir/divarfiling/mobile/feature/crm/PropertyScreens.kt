@@ -97,6 +97,8 @@ fun PropertiesScreen(
     onNavigateMap: () -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
+    onSmartCommandNavigateToday: () -> Unit = {},
+    onSmartCommandNavigateContacts: () -> Unit = {},
     viewModel: PropertiesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -238,6 +240,8 @@ fun PropertiesScreen(
                         profile = SmartCommandProfileKey.PROPERTIES,
                         onNavigateContact = onContactClick,
                         onNavigateProperty = onPropertyClick,
+                        onNavigateTodayContext = onSmartCommandNavigateToday,
+                        onNavigateContactsContext = onSmartCommandNavigateContacts,
                     )
                 }
                 item {

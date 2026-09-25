@@ -5,6 +5,7 @@ import ir.divarfiling.mobile.core.network.AiCapabilitiesMessages
 import ir.divarfiling.mobile.core.network.NlCommandParseResult
 import ir.divarfiling.mobile.core.network.NlCommandResolveResult
 import ir.divarfiling.mobile.core.network.SmartCommandProfileDto
+import ir.divarfiling.mobile.feature.ai.voice.VoiceTranscriptMerge
 
 /** Pure state transitions for Smart Command — unit-testable without ViewModel. */
 object SmartCommandStateLogic {
@@ -20,17 +21,14 @@ object SmartCommandStateLogic {
     }
 
     fun appendVoiceTranscript(currentInput: String, spoken: String): String {
-        val merged = (currentInput.trim() + " " + spoken.trim()).trim()
+        val merged = VoiceTranscriptMerge.appendTranscriptSegmentSafe(currentInput, spoken)
         return merged.take(SmartCommandMapping.MAX_INPUT_CHARS)
     }
 
-    /** Replaces the current utterance onto [baseline] — avoids duplicating partial STT in the field. */
+    /** @deprecated Prefer [VoiceTranscriptMerge.buildLiveTextareaValue] in voice sessions */
     fun voiceTextFromBaseline(baseline: String, spoken: String): String {
-        val base = baseline.trim()
-        val text = spoken.trim()
-        if (text.isBlank()) return base.take(SmartCommandMapping.MAX_INPUT_CHARS)
-        val merged = if (base.isBlank()) text else "$base $text"
-        return merged.trim().take(SmartCommandMapping.MAX_INPUT_CHARS)
+        return VoiceTranscriptMerge.buildLiveTextareaValue(baseline, "", spoken, "")
+            .take(SmartCommandMapping.MAX_INPUT_CHARS)
     }
 
     fun hasPreviewEdits(
@@ -58,6 +56,11 @@ object SmartCommandStateLogic {
         val baselineReminder: ReminderPreviewEdit?,
         val baselineContact: ContactPreviewEdit?,
         val baselineProperty: PropertyPreviewEdit?,
+        val wrongIntent: WrongIntentState? = null,
+        val previewLines: List<SmartCommandPreviewLineUi> = emptyList(),
+        val missingMessages: List<String> = emptyList(),
+        val ambiguousMessages: List<String> = emptyList(),
+        val showStructuredPreview: Boolean = true,
     )
 
     fun applyParse(
@@ -79,29 +82,88 @@ object SmartCommandStateLogic {
                 baselineReminder = currentBaselineReminder,
                 baselineContact = currentBaselineContact,
                 baselineProperty = currentBaselineProperty,
+                showStructuredPreview = false,
             )
         }
+
+        SmartCommandMapping.wrongIntentState(profile, data)?.let { wrong ->
+            return ParseApplyResult(
+                phase = SmartCommandPhase.Preview,
+                parseResult = data,
+                reminderEdit = null,
+                contactEdit = null,
+                propertyEdit = null,
+                statusMessage = wrong.message,
+                baselineReminder = currentBaselineReminder,
+                baselineContact = currentBaselineContact,
+                baselineProperty = currentBaselineProperty,
+                wrongIntent = wrong,
+                showStructuredPreview = false,
+            )
+        }
+
+        if (SmartCommandMapping.isContactNotFound(data)) {
+            return ParseApplyResult(
+                phase = SmartCommandPhase.Preview,
+                parseResult = data,
+                reminderEdit = null,
+                contactEdit = null,
+                propertyEdit = null,
+                statusMessage = data.message ?: data.hint ?: "مخاطب پیدا نشد.",
+                baselineReminder = currentBaselineReminder,
+                baselineContact = currentBaselineContact,
+                baselineProperty = currentBaselineProperty,
+                showStructuredPreview = false,
+            )
+        }
+
+        val phase = if (SmartCommandMapping.needsContactResolution(profile, data)) {
+            SmartCommandPhase.ResolvingContact
+        } else {
+            SmartCommandPhase.Preview
+        }
+
         val reminder = SmartCommandMapping.reminderFromPreview(data.preview)
         val contact = SmartCommandMapping.contactFromPreview(data.preview)
         val property = SmartCommandMapping.propertyFromPreview(data.preview)
         val baselineReminder = if (resumeCorrection) currentBaselineReminder else reminder
         val baselineContact = if (resumeCorrection) currentBaselineContact else contact
         val baselineProperty = if (resumeCorrection) currentBaselineProperty else property
-        val phase = if (SmartCommandMapping.needsContactResolution(data)) {
-            SmartCommandPhase.ResolvingContact
-        } else {
-            SmartCommandPhase.Preview
+
+        val previewLines = SmartCommandMapping.previewLinesFromApi(data.preview, data.missingFields)
+        val missingMessages = SmartCommandMapping.humanizeMissingFields(data.missingFields, data.intent)
+        val ambiguousMessages = SmartCommandMapping.humanizeAmbiguousFields(data.ambiguousFields, data.intent)
+
+        val incompleteReminder = SmartCommandMapping.isIncompleteReminder(data)
+        val showStructuredPreview = when (data.intent) {
+            SmartCommandMapping.INTENT_REMINDER -> !incompleteReminder && data.canConfirm
+            SmartCommandMapping.INTENT_CONTACT,
+            SmartCommandMapping.INTENT_PROPERTY,
+            -> data.canConfirm || previewLines.isNotEmpty()
+            else -> data.canConfirm
         }
+
+        val statusMessage = when {
+            incompleteReminder -> SmartCommandMapping.incompleteReminderMessage(data)
+            !data.canConfirm && missingMessages.isNotEmpty() -> missingMessages.first()
+            !data.canConfirm && ambiguousMessages.isNotEmpty() -> ambiguousMessages.first()
+            else -> data.message ?: data.hint
+        }
+
         return ParseApplyResult(
             phase = phase,
             parseResult = data,
-            reminderEdit = reminder,
-            contactEdit = contact,
-            propertyEdit = property,
-            statusMessage = data.message ?: data.hint,
+            reminderEdit = if (showStructuredPreview) reminder else null,
+            contactEdit = if (showStructuredPreview && data.intent == SmartCommandMapping.INTENT_CONTACT) contact else null,
+            propertyEdit = if (showStructuredPreview && data.intent == SmartCommandMapping.INTENT_PROPERTY) property else null,
+            statusMessage = statusMessage,
             baselineReminder = baselineReminder,
             baselineContact = baselineContact,
             baselineProperty = baselineProperty,
+            previewLines = previewLines,
+            missingMessages = missingMessages,
+            ambiguousMessages = ambiguousMessages,
+            showStructuredPreview = showStructuredPreview,
         )
     }
 

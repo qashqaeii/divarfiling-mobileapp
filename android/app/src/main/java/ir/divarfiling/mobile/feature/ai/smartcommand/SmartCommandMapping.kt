@@ -60,6 +60,25 @@ data class ContactPreviewEdit(
     val areas: String = "",
 )
 
+data class WrongIntentState(
+    val detectedIntent: String,
+    val message: String,
+    val navigation: WrongIntentDestination?,
+)
+
+enum class WrongIntentDestination {
+    Today,
+    Contacts,
+    Properties,
+}
+
+data class SmartCommandPreviewLineUi(
+    val label: String,
+    val value: String,
+    val isMissing: Boolean = false,
+    val isWarning: Boolean = false,
+)
+
 data class PropertyPreviewEdit(
     val propertyType: String = "",
     val dealMode: String = "",
@@ -140,10 +159,122 @@ object SmartCommandMapping {
         )
     }
 
-    fun needsContactResolution(result: NlCommandParseResult): Boolean =
-        result.intent == INTENT_REMINDER &&
+    fun needsContactResolution(
+        profile: SmartCommandProfileDto?,
+        result: NlCommandParseResult,
+    ): Boolean =
+        profile?.enableContactResolve == true &&
+            result.intent == INTENT_REMINDER &&
             result.contactCandidates.isNotEmpty() &&
             result.ambiguousFields.contains("contact_name")
+
+    fun isWrongIntent(profile: SmartCommandProfileDto?, data: NlCommandParseResult): Boolean {
+        val allowed = profile?.allowedIntent?.trim().orEmpty()
+        if (allowed.isBlank() || data.intent.isBlank() || data.intent == INTENT_UNKNOWN) return false
+        return data.intent != allowed
+    }
+
+    fun wrongIntentState(profile: SmartCommandProfileDto?, data: NlCommandParseResult): WrongIntentState? {
+        if (!isWrongIntent(profile, data)) return null
+        val nav = wrongIntentDestination(data.intent)
+        val message = profile?.wrongIntentMessage?.trim().orEmpty()
+            .ifBlank { "این فرمان در این بخش پشتیبانی نمی‌شود." }
+        return WrongIntentState(
+            detectedIntent = data.intent,
+            message = message,
+            navigation = nav,
+        )
+    }
+
+    fun wrongIntentDestination(intent: String): WrongIntentDestination? = when (intent) {
+        INTENT_REMINDER -> WrongIntentDestination.Today
+        INTENT_CONTACT -> WrongIntentDestination.Contacts
+        INTENT_PROPERTY -> WrongIntentDestination.Properties
+        else -> null
+    }
+
+    fun wrongIntentCtaLabel(destination: WrongIntentDestination): String = when (destination) {
+        WrongIntentDestination.Today -> "رفتن به کارهای امروز"
+        WrongIntentDestination.Contacts -> "رفتن به مخاطبین"
+        WrongIntentDestination.Properties -> "رفتن به فایل‌های شخصی"
+    }
+
+    fun profileExamplesForChips(examples: List<String>, max: Int = 3): List<String> =
+        examples.map { it.trim() }.filter { it.isNotEmpty() }.take(max)
+
+    fun previewLinesFromApi(preview: JsonObject?, missingFields: List<String>): List<SmartCommandPreviewLineUi> {
+        val missing = missingFields.toSet()
+        val lines = mutableListOf<SmartCommandPreviewLineUi>()
+        val sections = preview?.get("sections")?.jsonArray
+        if (sections != null) {
+            for (i in 0 until sections.size) {
+                val section = sections[i].jsonObject
+                val title = section["title"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+                val sectionLines = section["lines"]?.jsonArray
+                if (sectionLines != null) {
+                    for (j in 0 until sectionLines.size) {
+                        val raw = sectionLines[j].jsonPrimitive.contentOrNull.orEmpty()
+                        if (raw.isBlank()) continue
+                        val (label, value) = splitPreviewLine(raw, title)
+                        lines.add(
+                            SmartCommandPreviewLineUi(
+                                label = label,
+                                value = value.ifBlank { "—" },
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+        if (lines.isNotEmpty()) return lines
+        return fallbackPreviewLines(preview, missing)
+    }
+
+    fun humanizeMissingFields(fields: List<String>, intent: String): List<String> {
+        if (fields.isEmpty()) return emptyList()
+        return fields.mapNotNull { field -> humanizeMissingField(field, intent) }.distinct()
+    }
+
+    fun humanizeAmbiguousFields(fields: List<String>, intent: String): List<String> {
+        if (fields.isEmpty()) return emptyList()
+        return fields.mapNotNull { field ->
+            when (field) {
+                "contact_name" -> "چند مخاطب با این نام پیدا شد"
+                "due_at" -> if (intent == INTENT_REMINDER) "زمان یادآوری نامعتبر یا در گذشته است" else null
+                else -> null
+            }
+        }.distinct()
+    }
+
+    fun isIncompleteReminder(data: NlCommandParseResult): Boolean {
+        if (data.intent != INTENT_REMINDER || data.canConfirm) return false
+        if (data.contactNotFound) return false
+        if (data.contactCandidates.isNotEmpty() && data.ambiguousFields.contains("contact_name")) return false
+        if (data.missingFields.isNotEmpty()) return true
+        return data.ambiguousFields.contains("due_at")
+    }
+
+    fun isContactNotFound(data: NlCommandParseResult): Boolean =
+        data.intent == INTENT_REMINDER && !data.canConfirm && data.contactNotFound
+
+    fun incompleteReminderMessage(data: NlCommandParseResult): String {
+        val missing = data.missingFields
+        val ambiguous = data.ambiguousFields
+        when {
+            ambiguous.contains("due_at") ->
+                return data.hint ?: data.message ?: "زمان یادآوری در گذشته است یا نامعتبر است."
+            missing.contains("date_text") || missing.contains("time_text") ->
+                return data.hint ?: data.message ?: "زمان یادآوری مشخص نشده"
+            data.hint?.contains("کامل") == true -> return "چی رو یادت بندازم؟"
+            !data.hint.isNullOrBlank() -> return data.hint!!
+            !data.message.isNullOrBlank() -> return data.message!!
+            else -> return "چی رو یادت بندازم؟"
+        }
+    }
+
+    @Deprecated("Use needsContactResolution(profile, result)", ReplaceWith("needsContactResolution(null, result)"))
+    fun needsContactResolution(result: NlCommandParseResult): Boolean =
+        needsContactResolution(null, result)
 
     fun quotaHint(remaining: Int?, limit: Int?): String? {
         if (remaining == null || limit == null || limit <= 0) return null
@@ -227,5 +358,56 @@ object SmartCommandMapping {
             }
         }
         return ""
+    }
+
+    private fun splitPreviewLine(raw: String, sectionTitle: String): Pair<String, String> {
+        val colon = raw.indexOf(':')
+        val dash = raw.indexOf('·')
+        val sep = when {
+            colon in 1 until raw.length -> colon
+            dash in 1 until raw.length -> dash
+            else -> -1
+        }
+        return if (sep > 0) {
+            raw.substring(0, sep).trim() to raw.substring(sep + 1).trim()
+        } else if (sectionTitle.isNotBlank()) {
+            sectionTitle to raw.trim()
+        } else {
+            "" to raw.trim()
+        }
+    }
+
+    private fun fallbackPreviewLines(preview: JsonObject?, missing: Set<String>): List<SmartCommandPreviewLineUi> {
+        if (preview == null) return emptyList()
+        val keys = listOf(
+            "contact_name" to "مخاطب",
+            "due_at_display" to "زمان",
+            "title" to "موضوع",
+            "name" to "نام",
+            "phone_display" to "شماره",
+            "type_deal_display" to "نوع ملک",
+            "location_display" to "موقعیت",
+            "specs_display" to "مشخصات",
+            "sale_price_display" to "قیمت",
+            "notes" to "یادداشت",
+        )
+        return keys.mapNotNull { (key, label) ->
+            val value = previewString(preview, key)
+            if (value.isBlank()) return@mapNotNull null
+            SmartCommandPreviewLineUi(
+                label = label,
+                value = value,
+                isMissing = missing.contains(key),
+            )
+        }
+    }
+
+    private fun humanizeMissingField(field: String, intent: String): String? = when (field) {
+        "date_text", "time_text" -> "زمان یادآوری مشخص نشده"
+        "contact_name" -> if (intent == INTENT_REMINDER) "مخاطب یادآوری مشخص نشده" else null
+        "name" -> "نام مخاطب وارد نشده"
+        "phone" -> "شماره تماس وارد نشده"
+        "deal_mode", "area" -> "اطلاعات ملک ناقص است"
+        else -> null
     }
 }

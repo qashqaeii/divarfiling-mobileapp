@@ -5,10 +5,12 @@ import ir.divarfiling.mobile.core.network.AiCapabilitiesMessages
 import ir.divarfiling.mobile.core.network.AiFeatureQuota
 import ir.divarfiling.mobile.core.network.NlCommandParseResult
 import ir.divarfiling.mobile.core.network.NlContactCandidateDto
+import ir.divarfiling.mobile.core.network.SmartCommandProfileDto
 import ir.divarfiling.mobile.feature.ai.message.ContactSmartMessageLogic
 import ir.divarfiling.mobile.feature.ai.smartcommand.ReminderPreviewEdit
 import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandBlockReason
 import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandMapping
+import ir.divarfiling.mobile.feature.ai.smartcommand.WrongIntentDestination
 import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandPhase
 import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandStateLogic
 import ir.divarfiling.mobile.feature.ai.voice.SpeechErrorMapper
@@ -84,20 +86,82 @@ class SmartCommandStateLogicTest {
     }
 
     @Test
-    fun ambiguousContact_goesToResolving() {
+    fun ambiguousContact_goesToResolvingWhenEnabled() {
+        val profile = SmartCommandProfileDto(
+            allowedIntent = SmartCommandMapping.INTENT_REMINDER,
+            enableContactResolve = true,
+        )
         val result = SmartCommandStateLogic.applyParse(
             data = NlCommandParseResult(
                 intent = SmartCommandMapping.INTENT_REMINDER,
                 ambiguousFields = listOf("contact_name"),
                 contactCandidates = listOf(NlContactCandidateDto(1, "احمدی", "0912…")),
             ),
-            profile = null,
+            profile = profile,
             resumeCorrection = false,
             currentBaselineReminder = null,
             currentBaselineContact = null,
             currentBaselineProperty = null,
         )
         assertEquals(SmartCommandPhase.ResolvingContact, result.phase)
+    }
+
+    @Test
+    fun ambiguousContact_staysPreviewWhenResolveDisabled() {
+        val profile = SmartCommandProfileDto(
+            allowedIntent = SmartCommandMapping.INTENT_REMINDER,
+            enableContactResolve = false,
+        )
+        val result = SmartCommandStateLogic.applyParse(
+            data = NlCommandParseResult(
+                intent = SmartCommandMapping.INTENT_REMINDER,
+                ambiguousFields = listOf("contact_name"),
+                contactCandidates = listOf(NlContactCandidateDto(1, "احمدی", "0912…")),
+            ),
+            profile = profile,
+            resumeCorrection = false,
+            currentBaselineReminder = null,
+            currentBaselineContact = null,
+            currentBaselineProperty = null,
+        )
+        assertEquals(SmartCommandPhase.Preview, result.phase)
+        assertTrue(result.ambiguousMessages.isNotEmpty())
+    }
+
+    @Test
+    fun wrongIntent_inTodayContext() {
+        val profile = SmartCommandProfileDto(
+            allowedIntent = SmartCommandMapping.INTENT_REMINDER,
+            wrongIntentMessage = "این درخواست مربوط به فایل‌های شخصی است.",
+        )
+        val result = SmartCommandStateLogic.applyParse(
+            data = NlCommandParseResult(intent = SmartCommandMapping.INTENT_PROPERTY),
+            profile = profile,
+            resumeCorrection = false,
+            currentBaselineReminder = null,
+            currentBaselineContact = null,
+            currentBaselineProperty = null,
+        )
+        assertEquals(WrongIntentDestination.Properties, result.wrongIntent?.navigation)
+        assertFalse(result.showStructuredPreview)
+    }
+
+    @Test
+    fun incompleteReminder_hidesStructuredPreview() {
+        val result = SmartCommandStateLogic.applyParse(
+            data = NlCommandParseResult(
+                intent = SmartCommandMapping.INTENT_REMINDER,
+                missingFields = listOf("time_text"),
+                canConfirm = false,
+            ),
+            profile = SmartCommandProfileDto(allowedIntent = SmartCommandMapping.INTENT_REMINDER),
+            resumeCorrection = false,
+            currentBaselineReminder = null,
+            currentBaselineContact = null,
+            currentBaselineProperty = null,
+        )
+        assertFalse(result.showStructuredPreview)
+        assertTrue(result.missingMessages.isNotEmpty())
     }
 
     @Test

@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.feature.ai.smartcommand
 
 import ir.divarfiling.mobile.core.network.NlCommandParseResult
 import ir.divarfiling.mobile.core.network.NlContactCandidateDto
+import ir.divarfiling.mobile.core.network.SmartCommandProfileDto
 import ir.divarfiling.mobile.feature.ai.voice.SpeechErrorMapper
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSpeechError
 import kotlinx.serialization.json.JsonObject
@@ -43,7 +44,26 @@ class SmartCommandMappingTest {
             ambiguousFields = listOf("contact_name"),
             contactCandidates = listOf(NlContactCandidateDto(1, "علی", "0912…")),
         )
-        assertTrue(SmartCommandMapping.needsContactResolution(result))
+        val profile = SmartCommandProfileDto(enableContactResolve = true)
+        assertTrue(SmartCommandMapping.needsContactResolution(profile, result))
+        assertFalse(SmartCommandMapping.needsContactResolution(SmartCommandProfileDto(enableContactResolve = false), result))
+    }
+
+    @Test
+    fun wrongIntent_detectsPropertyInTodayProfile() {
+        val profile = SmartCommandProfileDto(allowedIntent = SmartCommandMapping.INTENT_REMINDER)
+        val data = NlCommandParseResult(intent = SmartCommandMapping.INTENT_PROPERTY)
+        assertTrue(SmartCommandMapping.isWrongIntent(profile, data))
+        assertEquals(WrongIntentDestination.Properties, SmartCommandMapping.wrongIntentDestination(data.intent))
+    }
+
+    @Test
+    fun profileExamples_limitedToThree() {
+        val chips = SmartCommandMapping.profileExamplesForChips(
+            listOf("a", "b", "c", "d"),
+            max = 3,
+        )
+        assertEquals(3, chips.size)
     }
 
     @Test

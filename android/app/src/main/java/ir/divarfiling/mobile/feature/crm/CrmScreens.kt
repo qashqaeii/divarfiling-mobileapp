@@ -117,6 +117,8 @@ fun ContactsScreen(
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
     onNavigateWebBridge: (String) -> Unit = {},
+    onSmartCommandNavigateToday: () -> Unit = {},
+    onSmartCommandNavigateProperties: () -> Unit = {},
     viewModel: ContactsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -295,6 +297,8 @@ fun ContactsScreen(
                         profile = SmartCommandProfileKey.CONTACTS,
                         onNavigateContact = onContactClick,
                         onNavigateProperty = onPropertyClick,
+                        onNavigateTodayContext = onSmartCommandNavigateToday,
+                        onNavigatePropertiesContext = onSmartCommandNavigateProperties,
                     )
                 }
                 if (ownerMode) {
@@ -651,6 +655,8 @@ fun TodayScreen(
     onBack: (() -> Unit)? = null,
     onContactClick: (Long) -> Unit = {},
     onPropertyClick: (Long) -> Unit = {},
+    onSmartCommandNavigateContacts: () -> Unit = {},
+    onSmartCommandNavigateProperties: () -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -754,7 +760,9 @@ fun TodayScreen(
                         profile = SmartCommandProfileKey.TODAY,
                         onNavigateContact = onContactClick,
                         onNavigateProperty = onPropertyClick,
-                        onNavigateToday = { },
+                        onNavigateTodayContext = { },
+                        onNavigateContactsContext = onSmartCommandNavigateContacts,
+                        onNavigatePropertiesContext = onSmartCommandNavigateProperties,
                     )
                 }
                 state.error?.let { error ->

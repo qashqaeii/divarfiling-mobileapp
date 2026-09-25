@@ -341,6 +341,8 @@ fun DivarFilingNavHost(
                             onNavigateWebBridge = { url ->
                                 navController.navigate(Routes.workspaceWeb(url, "ورود مخاطب"))
                             },
+                            onSmartCommandNavigateToday = { navController.navigate(Routes.CRM_TODAY) },
+                            onSmartCommandNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                         )
                     }
                     composable(
@@ -503,6 +505,8 @@ fun DivarFilingNavHost(
                             onNavigateMap = { navController.navigate(Routes.crmPropertyMap()) },
                             onNavigateNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onSmartCommandNavigateToday = { navController.navigate(Routes.CRM_TODAY) },
+                            onSmartCommandNavigateContacts = { navController.navigate(Routes.contacts()) },
                         )
                     }
                     composable(
@@ -545,6 +549,8 @@ fun DivarFilingNavHost(
                             onBack = null,
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
                             onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                            onSmartCommandNavigateContacts = { navController.navigate(Routes.contacts()) },
+                            onSmartCommandNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                         )
                     }
                     composable(Routes.FILING) {

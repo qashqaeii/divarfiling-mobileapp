@@ -37,7 +37,6 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandMapping
-import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandStateLogic
 
 enum class VoiceFieldInsertPolicy {
     Append,
@@ -60,7 +59,10 @@ fun VoiceTextField(
 ) {
     val context = LocalContext.current
     val manager = speechManager ?: remember { SpeechRecognizerManager(context.applicationContext) }
+    val voiceSession = remember { VoiceSpeechSession(manager) }
     var voicePhase by remember { mutableStateOf(VoiceInputPhase.Idle) }
+    var voiceSessionPhase by remember { mutableStateOf(VoiceSessionPhase.Idle) }
+    var voiceStatusHint by remember { mutableStateOf<String?>(null) }
     var voiceError by remember { mutableStateOf<String?>(null) }
     var pendingStart by remember { mutableStateOf(false) }
     val sttAvailable = remember { manager.isAvailable() }
@@ -84,6 +86,14 @@ fun VoiceTextField(
         }
     }
 
+    fun mapSessionPhase(phase: VoiceSessionPhase): VoiceInputPhase = when (phase) {
+        VoiceSessionPhase.Idle -> VoiceInputPhase.Idle
+        VoiceSessionPhase.Listening, VoiceSessionPhase.Restarting, VoiceSessionPhase.WaitingForContinuation ->
+            VoiceInputPhase.Listening
+        VoiceSessionPhase.Finalizing -> VoiceInputPhase.ProcessingSpeech
+        VoiceSessionPhase.Error -> VoiceInputPhase.Error
+    }
+
     fun startListening() {
         if (!sttAvailable) return
         voiceError = null
@@ -94,40 +104,45 @@ fun VoiceTextField(
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             return
         }
-        voiceSessionBaseline = value.trim()
-        voicePhase = VoiceInputPhase.Listening
-        val listener = manager.createListener(
-            onPartial = { partial ->
+        if (voiceSessionPhase == VoiceSessionPhase.WaitingForContinuation) {
+            voiceSession.resumeAfterPause()
+            return
+        }
+        val baseline = when (insertPolicy) {
+            VoiceFieldInsertPolicy.Replace -> ""
+            VoiceFieldInsertPolicy.Append -> value.trim()
+        }
+        voiceSessionBaseline = baseline
+        voiceSession.start(
+            baseInput = baseline,
+            onDisplayText = { display ->
                 voicePhase = VoiceInputPhase.Listening
-                val merged = when (insertPolicy) {
-                    VoiceFieldInsertPolicy.Replace -> partial.trim()
-                    VoiceFieldInsertPolicy.Append ->
-                        SmartCommandStateLogic.voiceTextFromBaseline(voiceSessionBaseline, partial)
-                }
-                onValueChange(merged.take(SmartCommandMapping.MAX_INPUT_CHARS))
+                onValueChange(display.take(SmartCommandMapping.MAX_INPUT_CHARS))
             },
-            onFinal = { final ->
+            onSessionFinalized = { final ->
                 voicePhase = VoiceInputPhase.Ready
-                val merged = when (insertPolicy) {
-                    VoiceFieldInsertPolicy.Replace -> final.trim()
-                    VoiceFieldInsertPolicy.Append ->
-                        SmartCommandStateLogic.voiceTextFromBaseline(voiceSessionBaseline, final)
-                }
-                onValueChange(merged.take(SmartCommandMapping.MAX_INPUT_CHARS))
+                voiceSessionPhase = VoiceSessionPhase.Idle
+                voiceStatusHint = null
+                onValueChange(final.take(SmartCommandMapping.MAX_INPUT_CHARS))
             },
-            onError = { err ->
+            onPhase = { phase ->
+                voiceSessionPhase = phase
+                voicePhase = mapSessionPhase(phase)
+            },
+            onStatusHint = { hint -> voiceStatusHint = hint },
+            onRecoverableError = { err ->
                 voicePhase = VoiceInputPhase.Error
                 voiceError = err.userMessage
             },
-            onListeningChanged = { listening ->
-                voicePhase = if (listening) VoiceInputPhase.Listening else VoiceInputPhase.ProcessingSpeech
-            },
         )
-        manager.startListening(listener)
+    }
+
+    fun stopListeningManual() {
+        voiceSession.manualStop()
     }
 
     DisposableEffect(Unit) {
-        onDispose { manager.destroy() }
+        onDispose { voiceSession.destroyRecognizer() }
     }
 
     if (pendingStart) {
@@ -160,13 +175,15 @@ fun VoiceTextField(
                     phase = voicePhase,
                     onClick = {
                         when (voicePhase) {
-                            VoiceInputPhase.Listening -> manager.stopListening()
+                            VoiceInputPhase.Listening -> stopListeningManual()
                             else -> startListening()
                         }
                     },
                     onCancel = {
-                        manager.cancel()
+                        voiceSession.stopSession()
                         voicePhase = VoiceInputPhase.Idle
+                        voiceSessionPhase = VoiceSessionPhase.Idle
+                        voiceStatusHint = null
                     },
                 )
             }
@@ -174,6 +191,7 @@ fun VoiceTextField(
             null
         },
         helperText = when {
+            voiceStatusHint != null -> voiceStatusHint
             voicePhase == VoiceInputPhase.Listening ->
                 "در حال گوش دادن… برای پایان، دوباره میکروفن را بزنید."
             voiceError != null -> voiceError

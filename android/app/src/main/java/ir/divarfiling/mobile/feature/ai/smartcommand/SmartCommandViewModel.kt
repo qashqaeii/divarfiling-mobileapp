@@ -11,8 +11,11 @@ import ir.divarfiling.mobile.core.network.SmartCommandProfileDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.SmartCommandRepository
 import ir.divarfiling.mobile.feature.ai.voice.VoiceInputPhase
+import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionPhase
 import ir.divarfiling.mobile.feature.ai.voice.VoiceSpeechError
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,9 +28,17 @@ data class SmartCommandUiState(
     val capabilities: AiCapabilitiesData? = null,
     val inputText: String = "",
     val voicePhase: VoiceInputPhase = VoiceInputPhase.Idle,
+    val voiceSessionPhase: VoiceSessionPhase = VoiceSessionPhase.Idle,
+    val voiceStatusHint: String? = null,
     val voiceError: String? = null,
     val phase: SmartCommandPhase = SmartCommandPhase.Idle,
     val parseResult: NlCommandParseResult? = null,
+    val wrongIntent: WrongIntentState? = null,
+    val previewLines: List<SmartCommandPreviewLineUi> = emptyList(),
+    val missingMessages: List<String> = emptyList(),
+    val ambiguousMessages: List<String> = emptyList(),
+    val showStructuredPreview: Boolean = true,
+    val parseSlowHint: Boolean = false,
     val reminderEdit: ReminderPreviewEdit? = null,
     val contactEdit: ContactPreviewEdit? = null,
     val propertyEdit: PropertyPreviewEdit? = null,
@@ -55,20 +66,57 @@ class SmartCommandViewModel @Inject constructor(
     private var baselineReminder: ReminderPreviewEdit? = null
     private var baselineContact: ContactPreviewEdit? = null
     private var baselineProperty: PropertyPreviewEdit? = null
-    private var voiceInputBaseline: String = ""
+    private var parseSlowJob: Job? = null
 
-    fun beginVoiceInputSession() {
-        voiceInputBaseline = _uiState.value.inputText.trim()
+    fun onVoiceDisplayText(text: String) {
+        onInputChange(text)
     }
 
-    fun updateVoicePartial(partial: String) {
-        onInputChange(SmartCommandStateLogic.voiceTextFromBaseline(voiceInputBaseline, partial))
+    fun onVoiceSessionFinalized(text: String) {
+        onInputChange(text)
+        _uiState.update {
+            it.copy(
+                voicePhase = VoiceInputPhase.Ready,
+                voiceSessionPhase = VoiceSessionPhase.Idle,
+                voiceStatusHint = null,
+                voiceError = null,
+            )
+        }
     }
 
-    fun finalizeVoiceInput(final: String) {
-        onInputChange(SmartCommandStateLogic.voiceTextFromBaseline(voiceInputBaseline, final))
-        _uiState.update { it.copy(voicePhase = VoiceInputPhase.Ready, voiceError = null) }
+    fun onVoiceSessionPhase(phase: VoiceSessionPhase) {
+        val mapped = when (phase) {
+            VoiceSessionPhase.Idle -> VoiceInputPhase.Idle
+            VoiceSessionPhase.Listening,
+            VoiceSessionPhase.Restarting,
+            -> VoiceInputPhase.Listening
+            VoiceSessionPhase.WaitingForContinuation -> VoiceInputPhase.Listening
+            VoiceSessionPhase.Finalizing -> VoiceInputPhase.ProcessingSpeech
+            VoiceSessionPhase.Error -> VoiceInputPhase.Error
+        }
+        _uiState.update { it.copy(voicePhase = mapped, voiceSessionPhase = phase) }
     }
+
+    fun onVoiceStatusHint(hint: String?) {
+        _uiState.update { it.copy(voiceStatusHint = hint) }
+    }
+
+    fun onVoiceRecoverableError(error: VoiceSpeechError) {
+        _uiState.update {
+            it.copy(voicePhase = VoiceInputPhase.Error, voiceError = error.userMessage)
+        }
+    }
+
+    @Deprecated("Session starts from UI via VoiceSpeechSession")
+    fun beginVoiceInputSession() = Unit
+
+    @Deprecated("Use onVoiceDisplayText")
+    fun updateVoicePartial(partial: String) = onVoiceDisplayText(
+        SmartCommandStateLogic.voiceTextFromBaseline(_uiState.value.inputText, partial),
+    )
+
+    @Deprecated("Use onVoiceSessionFinalized")
+    fun finalizeVoiceInput(final: String) = onVoiceSessionFinalized(final)
 
     fun bindProfile(profile: SmartCommandProfileKey) {
         if (boundProfile == profile && _uiState.value.capabilities != null) {
@@ -138,8 +186,27 @@ class SmartCommandViewModel @Inject constructor(
             _uiState.update { it.copy(errorMessage = "یک فرمان کوتاه بنویسید.") }
             return
         }
+        parseSlowJob?.cancel()
         viewModelScope.launch {
-            _uiState.update { it.copy(phase = SmartCommandPhase.Parsing, errorMessage = null, statusMessage = null) }
+            _uiState.update {
+                it.copy(
+                    phase = SmartCommandPhase.Parsing,
+                    errorMessage = null,
+                    statusMessage = null,
+                    parseSlowHint = false,
+                    wrongIntent = null,
+                )
+            }
+            parseSlowJob = launch {
+                delay(2_000)
+                _uiState.update { current ->
+                    if (current.phase == SmartCommandPhase.Parsing) {
+                        current.copy(parseSlowHint = true)
+                    } else {
+                        current
+                    }
+                }
+            }
             when (
                 val result = repository.parse(
                     NlCommandParseRequest(
@@ -275,6 +342,11 @@ class SmartCommandViewModel @Inject constructor(
                 statusMessage = null,
                 errorMessage = null,
                 selectedContactId = null,
+                wrongIntent = null,
+                previewLines = emptyList(),
+                missingMessages = emptyList(),
+                ambiguousMessages = emptyList(),
+                showStructuredPreview = true,
             )
         }
     }
@@ -354,6 +426,7 @@ class SmartCommandViewModel @Inject constructor(
     }
 
     private fun handleApiError(message: String, code: String?) {
+        parseSlowJob?.cancel()
         val caps = _uiState.value.capabilities
         val mapped = SmartCommandStateLogic.mapApiError(
             message,
@@ -366,11 +439,13 @@ class SmartCommandViewModel @Inject constructor(
                 blockReason = mapped.blockReason ?: it.blockReason,
                 errorMessage = mapped.errorMessage,
                 confirmInFlight = false,
+                parseSlowHint = false,
             )
         }
     }
 
     private fun applyParse(data: NlCommandParseResult, resumeCorrection: Boolean) {
+        parseSlowJob?.cancel()
         val applied = SmartCommandStateLogic.applyParse(
             data = data,
             profile = _uiState.value.profile,
@@ -391,6 +466,12 @@ class SmartCommandViewModel @Inject constructor(
                 propertyEdit = applied.propertyEdit,
                 statusMessage = applied.statusMessage,
                 errorMessage = null,
+                wrongIntent = applied.wrongIntent,
+                previewLines = applied.previewLines,
+                missingMessages = applied.missingMessages,
+                ambiguousMessages = applied.ambiguousMessages,
+                showStructuredPreview = applied.showStructuredPreview,
+                parseSlowHint = false,
             )
         }
     }

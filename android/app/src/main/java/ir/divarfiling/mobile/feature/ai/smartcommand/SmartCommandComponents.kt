@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -27,8 +29,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -44,12 +49,15 @@ import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetExpandableSection
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.network.NlContactCandidateDto
 import ir.divarfiling.mobile.feature.ai.voice.SpeechErrorMapper
 import ir.divarfiling.mobile.feature.ai.voice.SpeechRecognizerManager
 import ir.divarfiling.mobile.feature.ai.voice.VoiceInputPhase
 import ir.divarfiling.mobile.feature.ai.voice.VoiceMicButton
+import ir.divarfiling.mobile.feature.ai.voice.VoiceSessionPhase
+import ir.divarfiling.mobile.feature.ai.voice.VoiceSpeechSession
 import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.feature.ai.voice.openAppSettingsForMic
 
@@ -60,6 +68,9 @@ fun SmartCommandHost(
     onNavigateContact: (Long) -> Unit,
     onNavigateProperty: (Long) -> Unit,
     onNavigateToday: () -> Unit = {},
+    onNavigateContactsContext: () -> Unit = {},
+    onNavigatePropertiesContext: () -> Unit = {},
+    onNavigateTodayContext: () -> Unit = {},
     viewModel: SmartCommandViewModel = hiltViewModel(key = "smart_command_${profile.name}"),
 ) {
     LaunchedEffect(profile) { viewModel.bindProfile(profile) }
@@ -87,6 +98,9 @@ fun SmartCommandHost(
             onNavigateContact = onNavigateContact,
             onNavigateProperty = onNavigateProperty,
             onNavigateToday = onNavigateToday,
+            onNavigateContactsContext = onNavigateContactsContext,
+            onNavigatePropertiesContext = onNavigatePropertiesContext,
+            onNavigateTodayContext = onNavigateTodayContext,
         )
     }
 }
@@ -152,25 +166,53 @@ private fun SmartCommandSheet(
     onNavigateContact: (Long) -> Unit,
     onNavigateProperty: (Long) -> Unit,
     onNavigateToday: () -> Unit,
+    onNavigateContactsContext: () -> Unit,
+    onNavigatePropertiesContext: () -> Unit,
+    onNavigateTodayContext: () -> Unit,
 ) {
     val context = LocalContext.current
     val speechManager = remember { SpeechRecognizerManager(context.applicationContext) }
+    val voiceSession = remember { VoiceSpeechSession(speechManager) }
     val sttAvailable = remember { speechManager.isAvailable() }
     var pendingMic by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) pendingMic = true
-        else viewModel.onVoiceError(SpeechErrorMapper.permissionDenied())
+        else viewModel.onVoiceRecoverableError(SpeechErrorMapper.permissionDenied())
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                voiceSession.suspendForBackground()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     DisposableEffect(Unit) {
-        onDispose { speechManager.destroy() }
+        onDispose { voiceSession.destroyRecognizer() }
+    }
+
+    fun startVoiceListening() {
+        if (!sttAvailable) return
+        viewModel.clearVoiceError()
+        voiceSession.start(
+            baseInput = state.inputText.trim(),
+            onDisplayText = viewModel::onVoiceDisplayText,
+            onSessionFinalized = viewModel::onVoiceSessionFinalized,
+            onPhase = viewModel::onVoiceSessionPhase,
+            onStatusHint = viewModel::onVoiceStatusHint,
+            onRecoverableError = viewModel::onVoiceRecoverableError,
+        )
     }
 
     if (pendingMic) {
         pendingMic = false
-        startSmartCommandVoice(speechManager, viewModel)
+        startVoiceListening()
     }
 
     DfModalBottomSheet(onDismissRequest = onDismiss, dismissOnScrimOrSwipe = false) {
@@ -200,20 +242,37 @@ private fun SmartCommandSheet(
                 onReminderChange = viewModel::updateReminderEdit,
                 onContactChange = viewModel::updateContactEdit,
                 onPropertyChange = viewModel::updatePropertyEdit,
+                onExampleSelect = viewModel::onInputChange,
+                onWrongIntentNavigate = { destination ->
+                    when (destination) {
+                        WrongIntentDestination.Today -> onNavigateTodayContext()
+                        WrongIntentDestination.Contacts -> onNavigateContactsContext()
+                        WrongIntentDestination.Properties -> onNavigatePropertiesContext()
+                    }
+                    viewModel.dismissSheet()
+                },
                 onMicClick = {
-                    val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
-                        PackageManager.PERMISSION_GRANTED
-                    if (!granted) {
-                        viewModel.onVoicePhase(VoiceInputPhase.RequestingPermission)
-                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    if (state.voiceSessionPhase == VoiceSessionPhase.WaitingForContinuation) {
+                        voiceSession.resumeAfterPause()
                     } else {
-                        startSmartCommandVoice(speechManager, viewModel)
+                        val granted = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.RECORD_AUDIO,
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (!granted) {
+                            viewModel.onVoicePhase(VoiceInputPhase.RequestingPermission)
+                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            startVoiceListening()
+                        }
                     }
                 },
-                onMicStop = { speechManager.stopListening() },
+                onMicStop = { voiceSession.manualStop() },
                 onMicCancel = {
-                    speechManager.cancel()
+                    voiceSession.stopSession()
                     viewModel.onVoicePhase(VoiceInputPhase.Idle)
+                    viewModel.onVoiceSessionPhase(VoiceSessionPhase.Idle)
+                    viewModel.onVoiceStatusHint(null)
                 },
                 onOpenSettings = { openAppSettingsForMic(context) },
                 onClearPreview = viewModel::clearPreviewKeepInput,
@@ -233,17 +292,23 @@ private fun InputAndPreviewStep(
     onReminderChange: (ReminderPreviewEdit) -> Unit,
     onContactChange: (ContactPreviewEdit) -> Unit,
     onPropertyChange: (PropertyPreviewEdit) -> Unit,
+    onExampleSelect: (String) -> Unit,
+    onWrongIntentNavigate: (WrongIntentDestination) -> Unit,
     onMicClick: () -> Unit,
     onMicStop: () -> Unit,
     onMicCancel: () -> Unit,
     onOpenSettings: () -> Unit,
     onClearPreview: () -> Unit,
 ) {
+    val showWrongIntent = state.wrongIntent != null
     val showConfirm = state.phase == SmartCommandPhase.Preview &&
         state.parseResult?.intent != SmartCommandMapping.INTENT_UNKNOWN &&
-        state.parseResult?.canConfirm == true
+        state.parseResult?.canConfirm == true &&
+        !showWrongIntent &&
+        state.showStructuredPreview
     val showUnknown = state.phase == SmartCommandPhase.Preview &&
         state.parseResult?.intent == SmartCommandMapping.INTENT_UNKNOWN
+    val exampleChips = SmartCommandMapping.profileExamplesForChips(state.profile?.examples.orEmpty())
     DfSheetScaffold(
         title = state.profile?.title?.ifBlank { "دستیار هوشمند" } ?: "دستیار هوشمند",
         subtitle = "درخواست خود را بگویید یا بنویسید",
@@ -262,7 +327,8 @@ private fun InputAndPreviewStep(
                     state.phase != SmartCommandPhase.Parsing &&
                     state.blockReason == null &&
                     state.inputText.isNotBlank() &&
-                    !showUnknown,
+                    !showUnknown &&
+                    !showWrongIntent,
                 isSubmitting = state.phase == SmartCommandPhase.Parsing || state.confirmInFlight,
                 secondaryText = if (showConfirm || showUnknown) "ویرایش درخواست" else "انصراف",
                 onSecondary = if (showConfirm || showUnknown) onClearPreview else onDismiss,
@@ -298,8 +364,24 @@ private fun InputAndPreviewStep(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                Text("در حال بررسی درخواست…", style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
+                Text(
+                    if (state.parseSlowHint) {
+                        "کمی بیشتر زمان می‌بره، هنوز در حال بررسی هستم…"
+                    } else {
+                        "در حال بررسی درخواست…"
+                    },
+                    style = AppTypography.bodyDescription,
+                    color = DfColors.TextSecondary,
+                )
             }
+        }
+        if (!sttAvailable) {
+            Text(
+                "ورود صوتی روی این دستگاه در دسترس نیست.",
+                style = AppTypography.labelSmall,
+                color = DfColors.TextMuted,
+                modifier = Modifier.padding(bottom = AppSpacing.xs),
+            )
         }
         DfSheetSection(title = if (state.parseResult != null && !showUnknown) "بررسی قبل از ثبت" else "درخواست شما") {
             DfCard(modifier = Modifier.fillMaxWidth()) {
@@ -325,12 +407,30 @@ private fun InputAndPreviewStep(
                             null
                         },
                         helperText = when {
+                            state.voiceStatusHint != null -> state.voiceStatusHint
                             state.voicePhase == VoiceInputPhase.Listening ->
                                 "در حال گوش دادن… برای پایان، میکروفن را بزنید."
                             state.voicePhase == VoiceInputPhase.Error && state.voiceError != null -> state.voiceError
                             else -> null
                         },
                     )
+                    if (exampleChips.isNotEmpty() && state.parseResult == null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(top = AppSpacing.xs),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            exampleChips.forEach { example ->
+                                DfSoftChip(
+                                    text = example,
+                                    selected = false,
+                                    onClick = { onExampleSelect(example) },
+                                )
+                            }
+                        }
+                    }
                     if (state.voicePhase == VoiceInputPhase.Listening) {
                         Text("دارم گوش می‌دم…", style = AppTypography.labelSmall, color = DfColors.Purple)
                     }
@@ -339,6 +439,29 @@ private fun InputAndPreviewStep(
                             "${state.inputText.length} / ${SmartCommandMapping.MAX_INPUT_CHARS}",
                             style = AppTypography.labelSmall,
                             color = DfColors.TextMuted,
+                        )
+                    }
+                }
+            }
+        }
+        if (showWrongIntent) {
+            val wrong = state.wrongIntent!!
+            DfCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(AppSpacing.cardPadding),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    Text(wrong.message, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
+                    Text(
+                        "می‌توانید در بخش مربوطه دوباره بنویسید.",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                    )
+                    wrong.navigation?.let { dest ->
+                        DfSecondaryButton(
+                            text = SmartCommandMapping.wrongIntentCtaLabel(dest),
+                            onClick = { onWrongIntentNavigate(dest) },
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
@@ -364,15 +487,39 @@ private fun InputAndPreviewStep(
                 }
             }
         }
+        if (!showWrongIntent && state.missingMessages.isNotEmpty() && !showConfirm) {
+            SmartCommandIncompleteBanner(
+                messages = state.missingMessages,
+                modifier = Modifier.fillMaxWidth().padding(top = AppSpacing.sm),
+            )
+        }
+        if (!showWrongIntent && state.ambiguousMessages.isNotEmpty() && state.phase != SmartCommandPhase.ResolvingContact) {
+            SmartCommandAmbiguousBanner(
+                messages = state.ambiguousMessages,
+                modifier = Modifier.fillMaxWidth().padding(top = AppSpacing.sm),
+            )
+        }
+        if (!showWrongIntent && state.previewLines.isNotEmpty() && state.showStructuredPreview) {
+            SmartCommandPreviewSection(
+                lines = state.previewLines,
+                modifier = Modifier.fillMaxWidth().padding(top = AppSpacing.sm),
+            )
+        }
         when (state.parseResult?.intent) {
-            SmartCommandMapping.INTENT_REMINDER -> state.reminderEdit?.let { edit ->
-                ReminderPreviewSection(edit, onReminderChange)
+            SmartCommandMapping.INTENT_REMINDER -> if (state.showStructuredPreview) {
+                state.reminderEdit?.let { edit ->
+                    ReminderPreviewSection(edit, onReminderChange)
+                }
             }
-            SmartCommandMapping.INTENT_CONTACT -> state.contactEdit?.let { edit ->
-                ContactPreviewSection(edit, onContactChange)
+            SmartCommandMapping.INTENT_CONTACT -> if (state.showStructuredPreview) {
+                state.contactEdit?.let { edit ->
+                    ContactPreviewSection(edit, onContactChange)
+                }
             }
-            SmartCommandMapping.INTENT_PROPERTY -> state.propertyEdit?.let { edit ->
-                PropertyPreviewSection(edit, onPropertyChange)
+            SmartCommandMapping.INTENT_PROPERTY -> if (state.showStructuredPreview) {
+                state.propertyEdit?.let { edit ->
+                    PropertyPreviewSection(edit, onPropertyChange)
+                }
             }
         }
         if (state.voicePhase == VoiceInputPhase.Error && state.voiceError?.contains("دسترسی") == true) {
@@ -628,24 +775,6 @@ private fun maskPhone(phone: String): String {
     if (digits.length < 4) return phone
     val tail = digits.takeLast(4)
     return "••• ${digits.take(3)} ••• $tail"
-}
-
-private fun startSmartCommandVoice(
-    manager: SpeechRecognizerManager,
-    viewModel: SmartCommandViewModel,
-) {
-    if (!manager.isAvailable()) return
-    viewModel.beginVoiceInputSession()
-    viewModel.onVoicePhase(VoiceInputPhase.Listening)
-    val listener = manager.createListener(
-        onPartial = { partial -> viewModel.updateVoicePartial(partial) },
-        onFinal = { final -> viewModel.finalizeVoiceInput(final) },
-        onError = { err -> viewModel.onVoiceError(err) },
-        onListeningChanged = { listening ->
-            viewModel.onVoicePhase(if (listening) VoiceInputPhase.Listening else VoiceInputPhase.ProcessingSpeech)
-        },
-    )
-    manager.startListening(listener)
 }
 
 private fun blockReasonMessage(state: SmartCommandUiState): String? {
