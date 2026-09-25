@@ -209,7 +209,7 @@ fun ContactSmartMessageSheet(
 
                             DfSoftChip(
 
-                                label = tone.label.ifBlank { tone.id },
+                                text = tone.label.ifBlank { tone.id },
 
                                 selected = tone.id == state.selectedToneId,
 

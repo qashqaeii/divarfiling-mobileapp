@@ -264,7 +264,7 @@ fun AgencySpacePublishSheet(
 
             it.name.contains(q, ignoreCase = true) ||
 
-                it.roleLabel.contains(q, ignoreCase = true)
+                it.role.contains(q, ignoreCase = true)
 
         }
 
@@ -318,7 +318,7 @@ fun AgencySpacePublishSheet(
 
                 DfSoftChip(
 
-                    label = "عمومی برای آژانس",
+                    text = "عمومی برای آژانس",
 
                     selected = visibility == "agency_public",
 
@@ -328,7 +328,7 @@ fun AgencySpacePublishSheet(
 
                 DfSoftChip(
 
-                    label = "فقط افراد منتخب",
+                    text = "فقط افراد منتخب",
 
                     selected = visibility == "selected_members",
 
@@ -360,7 +360,7 @@ fun AgencySpacePublishSheet(
 
                     DfSoftChip(
 
-                        label = "فقط اطلاعات کاری",
+                        text = "فقط اطلاعات کاری",
 
                         selected = shareLevel == "summary",
 
@@ -370,7 +370,7 @@ fun AgencySpacePublishSheet(
 
                     DfSoftChip(
 
-                        label = "همراه اطلاعات تماس",
+                        text = "همراه اطلاعات تماس",
 
                         selected = shareLevel == "full",
 
@@ -578,9 +578,9 @@ private fun AgencySpaceMemberRow(
 
             Text(member.name, style = AppTypography.labelLarge)
 
-            if (member.roleLabel.isNotBlank()) {
+            if (member.role.isNotBlank()) {
 
-                Text(member.roleLabel, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                Text(member.role, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
 
             }
 

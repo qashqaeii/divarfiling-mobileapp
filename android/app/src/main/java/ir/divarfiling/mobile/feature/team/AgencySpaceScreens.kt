@@ -308,7 +308,7 @@ fun AgencySpaceListScreen(
                         items(AgencySpaceTab.labels.size) { index ->
                             val (key, label) = AgencySpaceTab.labels[index]
                             DfSoftChip(
-                                label = label,
+                                text = label,
                                 selected = state.tab == key,
                                 onClick = { viewModel.setTab(key) },
                             )
@@ -321,8 +321,8 @@ fun AgencySpaceListScreen(
                         val (title, desc) = agencySpaceEmptyCopy(state.tab)
                         DfEmptyState(
                             title = title,
-                            description = desc,
-                            variant = DfEmptyVariant.Inbox,
+                            subtitle = desc,
+                            variant = DfEmptyVariant.Empty,
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
@@ -486,7 +486,7 @@ fun AgencySpaceDetailScreen(
                 state.isLoading -> DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
                 state.item == null -> DfEmptyState(
                     title = "یافت نشد",
-                    description = state.error ?: "این مورد در دسترس نیست.",
+                    subtitle = state.error ?: "این مورد در دسترس نیست.",
                     variant = DfEmptyVariant.Error,
                     modifier = Modifier.padding(horizontal = pad),
                 )

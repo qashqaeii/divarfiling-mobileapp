@@ -72,6 +72,7 @@ import ir.divarfiling.mobile.feature.crm.components.ContactReminderSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
 import ir.divarfiling.mobile.feature.crm.components.SendFilingSheet
 import ir.divarfiling.mobile.feature.team.AgencySpacePublishSheet
+import ir.divarfiling.mobile.feature.team.TeamMemberSelectList
 import ir.divarfiling.mobile.feature.team.AgencySpaceProvenanceBadge
 import ir.divarfiling.mobile.feature.ai.message.ContactSmartMessageSheet
 
@@ -587,7 +588,7 @@ fun ContactDetailScreen(
 
     ContactSmartMessageSheet(
         contactId = contact?.id ?: 0L,
-        contactName = contact?.name.orEmpty(),
+        contactName = contact?.fullName.orEmpty(),
         visible = showSmartMessage,
         onDismiss = { showSmartMessage = false },
     )
