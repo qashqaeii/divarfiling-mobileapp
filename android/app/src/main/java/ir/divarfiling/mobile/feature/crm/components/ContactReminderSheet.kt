@@ -21,6 +21,7 @@ import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 
 val ReminderRecurrenceOptions = listOf(
     "" to "یک‌بار",
@@ -64,19 +65,19 @@ fun ContactReminderSheet(
         },
     ) {
         DfSheetSection(title = "جزئیات یادآور") {
-            OutlinedTextField(
+            VoiceTextField(
                 value = title,
                 onValueChange = onTitleChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("عنوان") },
+                label = "عنوان",
                 enabled = !isSubmitting,
             )
-            OutlinedTextField(
+            VoiceTextField(
                 value = note,
                 onValueChange = onNoteChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("یادداشت (اختیاری)") },
+                label = "یادداشت (اختیاری)",
                 enabled = !isSubmitting,
+                singleLine = false,
+                minLines = 2,
             )
             DfDateTimeSelector(
                 millis = dueMillis,

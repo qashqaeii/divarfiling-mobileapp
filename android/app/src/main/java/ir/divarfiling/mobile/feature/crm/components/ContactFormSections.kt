@@ -39,6 +39,7 @@ import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.feature.crm.ContactTypeVisuals
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 import ir.divarfiling.mobile.feature.crm.CrmContactChannels
+import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.feature.crm.CrmTypeProfiles
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -477,14 +478,13 @@ fun ContactChannelsFormSection(
                             exit = shrinkVertically(),
                         ) {
                             if (CrmContactChannels.requiresManualSocialHandle(network.key)) {
-                                OutlinedTextField(
+                                VoiceTextField(
                                     value = linkValue,
                                     onValueChange = { onSocialLinkChange(network.key, it) },
-                                    label = { Text("آیدی ${network.label}") },
-                                    placeholder = { Text(network.placeholder) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
+                                    label = "آیدی ${network.label}",
+                                    placeholder = network.placeholder,
                                     enabled = enabled,
+                                    singleLine = true,
                                 )
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -497,14 +497,13 @@ fun ContactChannelsFormSection(
                                         style = AppTypography.bodyDescription,
                                         color = DfThemeColors.textSecondary(),
                                     )
-                                    OutlinedTextField(
+                                    VoiceTextField(
                                         value = linkValue,
                                         onValueChange = { onSocialLinkChange(network.key, it) },
-                                        label = { Text("شناسه سفارشی (اختیاری)") },
-                                        placeholder = { Text(network.placeholder) },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true,
+                                        label = "شناسه سفارشی (اختیاری)",
+                                        placeholder = network.placeholder,
                                         enabled = enabled && normalizedPhone.isNotBlank(),
+                                        singleLine = true,
                                     )
                                 }
                             }

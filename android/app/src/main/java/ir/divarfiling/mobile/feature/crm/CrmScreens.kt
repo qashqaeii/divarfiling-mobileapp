@@ -51,6 +51,8 @@ import ir.divarfiling.mobile.feature.crm.components.TodayFilterChip
 import ir.divarfiling.mobile.feature.crm.components.TodayFilterTab
 import ir.divarfiling.mobile.feature.crm.components.TodayFilters
 import ir.divarfiling.mobile.feature.crm.components.TodayHeader
+import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandHost
+import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandProfileKey
 import ir.divarfiling.mobile.feature.crm.components.TodayNewTaskFab
 import ir.divarfiling.mobile.feature.crm.components.TodaySearchFilterPanel
 import ir.divarfiling.mobile.feature.crm.components.TodayStatsRow
@@ -110,6 +112,7 @@ import ir.divarfiling.mobile.core.network.TodayItemDto
 fun ContactsScreen(
     onBack: (() -> Unit)? = null,
     onContactClick: (Long) -> Unit = {},
+    onPropertyClick: (Long) -> Unit = {},
     onContactSuggest: (Long) -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
@@ -285,6 +288,13 @@ fun ContactsScreen(
                             append(" مخاطب در نمای فعلی")
                             if (hasActiveListFilters) append(" · فیلترشده")
                         },
+                    )
+                }
+                item {
+                    SmartCommandHost(
+                        profile = SmartCommandProfileKey.CONTACTS,
+                        onNavigateContact = onContactClick,
+                        onNavigateProperty = onPropertyClick,
                     )
                 }
                 if (ownerMode) {
@@ -640,6 +650,7 @@ fun ContactsScreen(
 fun TodayScreen(
     onBack: (() -> Unit)? = null,
     onContactClick: (Long) -> Unit = {},
+    onPropertyClick: (Long) -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -737,6 +748,14 @@ fun TodayScreen(
             ) {
                 item {
                     TodayHeader(onBack = onBack)
+                }
+                item {
+                    SmartCommandHost(
+                        profile = SmartCommandProfileKey.TODAY,
+                        onNavigateContact = onContactClick,
+                        onNavigateProperty = onPropertyClick,
+                        onNavigateToday = { },
+                    )
                 }
                 state.error?.let { error ->
                     item {

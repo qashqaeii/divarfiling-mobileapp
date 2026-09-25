@@ -71,6 +71,7 @@ import ir.divarfiling.mobile.feature.crm.components.PropertySuggestionResultShee
 import ir.divarfiling.mobile.feature.crm.components.suggestionMessage
 import ir.divarfiling.mobile.feature.crm.components.PropertyDetailTabbedContent
 import ir.divarfiling.mobile.feature.crm.components.PropertyTeamShareSheet
+import ir.divarfiling.mobile.feature.team.AgencySpacePublishSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyLocationMapPickerSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFormMode
 import ir.divarfiling.mobile.feature.crm.components.PropertyFormSheet
@@ -82,6 +83,8 @@ import ir.divarfiling.mobile.feature.crm.components.PropertyFilingNav
 import ir.divarfiling.mobile.feature.crm.components.PropertyFolderFormSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyFoldersManageSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
+import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandHost
+import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandProfileKey
 import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,6 +92,7 @@ import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
 fun PropertiesScreen(
     onBack: () -> Unit = {},
     onPropertyClick: (Long) -> Unit = {},
+    onContactClick: (Long) -> Unit = {},
     onPropertyDuplicated: (Long) -> Unit = {},
     onNavigateMap: () -> Unit = {},
     onNavigateNotifications: () -> Unit = {},
@@ -227,6 +231,13 @@ fun PropertiesScreen(
                         onNotificationsClick = onNavigateNotifications,
                         onMenuClick = onNavigateSettings,
                         onBack = onBack,
+                    )
+                }
+                item {
+                    SmartCommandHost(
+                        profile = SmartCommandProfileKey.PROPERTIES,
+                        onNavigateContact = onContactClick,
+                        onNavigateProperty = onPropertyClick,
                     )
                 }
                 item {
@@ -524,6 +535,7 @@ fun PropertyDetailScreen(
     onContactClick: (Long) -> Unit = {},
     onCreateDeal: (customerId: Long?, propertyId: Long) -> Unit = { _, _ -> },
     onDuplicated: (Long) -> Unit = {},
+    onOpenAgencySpaceItem: (Long) -> Unit = {},
     viewModel: PropertyDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -595,6 +607,11 @@ fun PropertyDetailScreen(
                         onEdit = { viewModel.toggleEditSheet(true) },
                         onShare = { viewModel.toggleShareSheet(true) },
                         onTeamShare = { viewModel.openTeamShareSheet() },
+                        onAgencySpace = detail.agencySpace?.takeIf {
+                            it.agencySpaceEnabled && (it.canPublish || it.activeItemId != null)
+                        }?.let { { viewModel.toggleAgencySpaceSheet(true) } },
+                        agencySpaceProvenance = detail.agencySpaceProvenance,
+                        onOpenSpaceItem = onOpenAgencySpaceItem,
                         onWhatsApp = { viewModel.toggleShareSheet(true) },
                         onCreateDeal = {
                             val primary = detail.contacts.firstOrNull { it.isPrimary }
@@ -663,6 +680,23 @@ fun PropertyDetailScreen(
             onRevoke = viewModel::revokeTeamShare,
             onDismiss = viewModel::dismissTeamShareSheet,
         )
+    }
+
+    val agencyCtx = detail?.agencySpace
+    if (state.showAgencySpaceSheet && agencyCtx != null) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleAgencySpaceSheet(false) }) {
+            AgencySpacePublishSheet(
+                context = agencyCtx,
+                isSubmitting = state.agencySpaceSubmitting,
+                onDismiss = { viewModel.toggleAgencySpaceSheet(false) },
+                onPublish = viewModel::publishAgencySpace,
+                onManageExisting = { id ->
+                    viewModel.toggleAgencySpaceSheet(false)
+                    onOpenAgencySpaceItem(id)
+                },
+                onUnpublish = viewModel::unpublishAgencySpace,
+            )
+        }
     }
 
     if (state.showShareSheet && property != null) {

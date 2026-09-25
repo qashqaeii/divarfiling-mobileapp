@@ -20,6 +20,7 @@ import ir.divarfiling.mobile.core.design.components.DfDateTimePresets
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.feature.crm.ContactTypeVisuals
 import ir.divarfiling.mobile.feature.crm.CrmConstants
@@ -348,15 +349,15 @@ fun ContactEditSheet(
         )
 
         DfSheetSection(title = "یادداشت داخلی") {
-            OutlinedTextField(
+            VoiceTextField(
                 value = notes,
                 onValueChange = onNotesChange,
-                label = { Text("یادداشت") },
-                placeholder = { Text("نیازها، محدودیت‌ها، زمان‌بندی بازدید، نکات مذاکره…") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "یادداشت",
+                placeholder = "نیازها، محدودیت‌ها، زمان‌بندی بازدید، نکات مذاکره…",
+                enabled = !isSubmitting,
+                singleLine = false,
                 minLines = 3,
                 maxLines = 6,
-                enabled = !isSubmitting,
             )
         }
     }

@@ -88,6 +88,9 @@ fun PropertyDetailTabbedContent(
     onDuplicate: (() -> Unit)? = null,
     onCreateDeal: (() -> Unit)? = null,
     onTeamShare: (() -> Unit)? = null,
+    onAgencySpace: (() -> Unit)? = null,
+    agencySpaceProvenance: ir.divarfiling.mobile.core.network.AgencySpaceProvenanceDto? = null,
+    onOpenSpaceItem: ((Long) -> Unit)? = null,
     onLinkContact: () -> Unit,
     onContactMatches: () -> Unit = {},
     onContactClick: (Long) -> Unit,
@@ -132,6 +135,16 @@ fun PropertyDetailTabbedContent(
             )
         }
 
+        if (agencySpaceProvenance != null) {
+            item {
+                ir.divarfiling.mobile.feature.team.AgencySpaceProvenanceBadge(
+                    provenance = agencySpaceProvenance,
+                    onOpenSpaceItem = onOpenSpaceItem,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+        }
+
         item {
             val hasOwner = detail.contacts.isNotEmpty() || !property.ownerName.isNullOrBlank()
             DfNbaCard(
@@ -165,6 +178,7 @@ fun PropertyDetailTabbedContent(
                 onDuplicate = if (detail.canEdit) onDuplicate else null,
                 onCreateDeal = onCreateDeal,
                 onTeamShare = if (detail.canEdit) onTeamShare else null,
+                onAgencySpace = onAgencySpace,
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
         }

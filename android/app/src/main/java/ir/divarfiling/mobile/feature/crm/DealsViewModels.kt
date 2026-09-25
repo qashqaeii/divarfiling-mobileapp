@@ -2455,6 +2455,8 @@ data class PropertyDetailUiState(
     val teamShareLoading: Boolean = false,
     val teamShares: ir.divarfiling.mobile.core.network.PropertyTeamSharesData? = null,
     val teamMemberQuery: String = "",
+    val showAgencySpaceSheet: Boolean = false,
+    val agencySpaceSubmitting: Boolean = false,
 )
 
 enum class PropertyDetailTab(val label: String) {
@@ -2469,6 +2471,7 @@ enum class PropertyDetailTab(val label: String) {
 @HiltViewModel
 class PropertyDetailViewModel @Inject constructor(
     private val repository: DealsRepository,
+    private val teamRepository: ir.divarfiling.mobile.data.repository.TeamRepository,
     private val extrasRepository: WorkspaceExtrasRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -3076,6 +3079,83 @@ class PropertyDetailViewModel @Inject constructor(
                 }
                 is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
             }
+        }
+    }
+
+    fun toggleAgencySpaceSheet(show: Boolean) = _uiState.update { it.copy(showAgencySpaceSheet = show) }
+
+    fun publishAgencySpace(
+        visibility: String,
+        contactShareLevel: String,
+        memberIds: List<Long>,
+        note: String,
+    ) {
+        val ctx = _uiState.value.detail?.agencySpace ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(agencySpaceSubmitting = true) }
+            val activeId = ctx.activeItemId
+            val result = if (activeId != null) {
+                teamRepository.updateAgencySpaceItem(
+                    activeId,
+                    ir.divarfiling.mobile.core.network.AgencySpaceUpdateRequest(
+                        visibility = visibility,
+                        contactShareLevel = contactShareLevel,
+                        memberIds = memberIds,
+                        note = note,
+                    ),
+                ).let { r ->
+                    when (r) {
+                        is ApiResult.Success -> ApiResult.Success(Unit)
+                        is ApiResult.Error -> r
+                    }
+                }
+            } else {
+                teamRepository.publishAgencySpaceProperty(
+                    ir.divarfiling.mobile.core.network.AgencySpacePublishRequest(
+                        propertyId = propertyId,
+                        visibility = visibility,
+                        note = note,
+                        memberIds = memberIds,
+                    ),
+                ).let { r ->
+                    when (r) {
+                        is ApiResult.Success -> ApiResult.Success(Unit)
+                        is ApiResult.Error -> r
+                    }
+                }
+            }
+            when (result) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        agencySpaceSubmitting = false,
+                        showAgencySpaceSheet = false,
+                        successMessage = "انتشار فضای آژانس به‌روز شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(agencySpaceSubmitting = false, error = result.message)
+                }
+            }
+            load()
+        }
+    }
+
+    fun unpublishAgencySpace(itemId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(agencySpaceSubmitting = true) }
+            when (val result = teamRepository.unpublishAgencySpaceItem(itemId)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        agencySpaceSubmitting = false,
+                        showAgencySpaceSheet = false,
+                        successMessage = "انتشار لغو شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(agencySpaceSubmitting = false, error = result.message)
+                }
+            }
+            load()
         }
     }
 }

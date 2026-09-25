@@ -768,6 +768,8 @@ data class ContactDetailData(
     val deals: List<DealDto> = emptyList(),
     val properties: List<PropertyDto> = emptyList(),
     val documents: List<CustomerDocumentDto> = emptyList(),
+    @SerialName("agency_space") val agencySpace: AgencySpaceSourceContextDto? = null,
+    @SerialName("agency_space_provenance") val agencySpaceProvenance: AgencySpaceProvenanceDto? = null,
 )
 
 @Serializable
@@ -1393,6 +1395,8 @@ data class PropertyDetailData(
     @SerialName("available_folders") val availableFolders: List<PropertyFolderDto> = emptyList(),
     @SerialName("map_navigation") val mapNavigation: MapNavigationDto? = null,
     @SerialName("nearby_pois_ctx") val nearbyPoisCtx: NearbyPoisContextDto? = null,
+    @SerialName("agency_space") val agencySpace: AgencySpaceSourceContextDto? = null,
+    @SerialName("agency_space_provenance") val agencySpaceProvenance: AgencySpaceProvenanceDto? = null,
 )
 
 @Serializable
@@ -2618,6 +2622,8 @@ data class AgencyHomeDto(
     val kpis: AgencyKpisDto = AgencyKpisDto(),
     val attention: List<AgencyAttentionDto> = emptyList(),
     val seats: AgencySeatsSummaryDto? = null,
+    val capabilities: AgencySpaceCapabilitiesDto = AgencySpaceCapabilitiesDto(),
+    @SerialName("space_kpis") val spaceKpis: AgencySpaceHeaderKpisDto? = null,
 )
 
 @Serializable
@@ -3051,4 +3057,271 @@ data class FilingListingsMapData(
     @SerialName("markers_shown") val markersShown: Int = 0,
     @SerialName("markers_truncated") val markersTruncated: Boolean = false,
     val config: DatasetMapConfigDto? = null,
+)
+
+@Serializable
+data class AgencySpaceCapabilitiesDto(
+    @SerialName("agency_space_enabled") val agencySpaceEnabled: Boolean = false,
+    @SerialName("can_access_agency_space") val canAccessAgencySpace: Boolean = false,
+    @SerialName("can_publish_agency_space") val canPublishAgencySpace: Boolean = false,
+    @SerialName("can_view_space_analytics") val canViewSpaceAnalytics: Boolean = false,
+    @SerialName("can_moderate_agency_space") val canModerateAgencySpace: Boolean = false,
+)
+
+@Serializable
+data class AgencySpaceHeaderKpisDto(
+    @SerialName("active_properties") val activeProperties: Int = 0,
+    @SerialName("active_contacts") val activeContacts: Int = 0,
+    @SerialName("active_publishers") val activePublishers: Int = 0,
+    @SerialName("total_copies") val totalCopies: Int = 0,
+)
+
+@Serializable
+data class AgencySpacePublisherDto(
+    val id: Long = 0,
+    val name: String = "",
+    val role: String = "",
+    @SerialName("role_label") val roleLabel: String = "",
+)
+
+@Serializable
+data class AgencySpacePropertyPreviewDto(
+    val id: Long = 0,
+    val title: String = "",
+    @SerialName("thumbnail_url") val thumbnailUrl: String = "",
+    @SerialName("price_label") val priceLabel: String = "",
+    val region: String = "",
+    @SerialName("property_type") val propertyType: String = "",
+    @SerialName("deal_mode") val dealMode: String = "",
+)
+
+@Serializable
+data class AgencySpaceCustomerPreviewDto(
+    val id: Long = 0,
+    val name: String = "",
+    @SerialName("customer_type") val customerType: String = "",
+    @SerialName("need_summary") val needSummary: String = "",
+    @SerialName("budget_label") val budgetLabel: String = "",
+    val region: String = "",
+)
+
+@Serializable
+data class AgencySpaceItemDto(
+    val id: Long,
+    @SerialName("source_kind") val sourceKind: String = "",
+    val visibility: String = "",
+    @SerialName("visibility_label") val visibilityLabel: String = "",
+    val status: String = "",
+    @SerialName("status_label") val statusLabel: String = "",
+    val note: String = "",
+    @SerialName("published_at_display") val publishedAtDisplay: String = "",
+    val publisher: AgencySpacePublisherDto = AgencySpacePublisherDto(),
+    @SerialName("is_publisher") val isPublisher: Boolean = false,
+    @SerialName("can_edit") val canEdit: Boolean = false,
+    @SerialName("can_unpublish") val canUnpublish: Boolean = false,
+    @SerialName("can_copy") val canCopy: Boolean = false,
+    @SerialName("can_moderate") val canModerate: Boolean = false,
+    @SerialName("already_copied") val alreadyCopied: Boolean = false,
+    @SerialName("copy_target_id") val copyTargetId: Long? = null,
+    val property: AgencySpacePropertyPreviewDto? = null,
+    val customer: AgencySpaceCustomerPreviewDto? = null,
+)
+
+@Serializable
+data class AgencySpaceListPayload(
+    val items: List<AgencySpaceItemDto> = emptyList(),
+    val total: Int = 0,
+    val page: Int = 1,
+    @SerialName("num_pages") val numPages: Int = 1,
+)
+
+@Serializable
+data class AgencySpaceItemDetailPayload(
+    val item: AgencySpaceItemDto,
+)
+
+@Serializable
+data class AgencySpaceCopyResultDto(
+    val kind: String = "",
+    @SerialName("target_id") val targetId: Long = 0,
+    @SerialName("target_url") val targetUrl: String = "",
+    @SerialName("already_copied") val alreadyCopied: Boolean = false,
+)
+
+@Serializable
+data class AgencySpaceItemMetaDto(
+    val id: Long = 0,
+    @SerialName("source_kind") val sourceKind: String = "",
+    val visibility: String = "",
+    @SerialName("visibility_label") val visibilityLabel: String = "",
+    val status: String = "",
+)
+
+@Serializable
+data class AgencySpaceTeamMemberDto(
+    val id: Long = 0,
+    @SerialName("user_id") val userId: Long = 0,
+    val name: String = "",
+    val role: String = "",
+)
+
+@Serializable
+data class AgencySpaceSourceContextDto(
+    @SerialName("agency_space_enabled") val agencySpaceEnabled: Boolean = false,
+    @SerialName("can_access_agency_space") val canAccessAgencySpace: Boolean = false,
+    @SerialName("can_publish_agency_space") val canPublishAgencySpace: Boolean = false,
+    @SerialName("can_view_space_analytics") val canViewSpaceAnalytics: Boolean = false,
+    @SerialName("can_moderate_agency_space") val canModerateAgencySpace: Boolean = false,
+    @SerialName("source_kind") val sourceKind: String = "",
+    @SerialName("property_id") val propertyId: Long? = null,
+    @SerialName("customer_id") val customerId: Long? = null,
+    @SerialName("can_publish") val canPublish: Boolean = false,
+    @SerialName("active_item_id") val activeItemId: Long? = null,
+    @SerialName("active_item") val activeItem: AgencySpaceItemMetaDto? = null,
+    @SerialName("team_members") val teamMembers: List<AgencySpaceTeamMemberDto> = emptyList(),
+)
+
+@Serializable
+data class AgencySpaceProvenanceDto(
+    val label: String = "",
+    @SerialName("publisher_name") val publisherName: String = "",
+    @SerialName("copied_at") val copiedAt: String = "",
+    @SerialName("space_item_id") val spaceItemId: Long? = null,
+)
+
+@Serializable
+data class AgencySpacePublishRequest(
+    @SerialName("property_id") val propertyId: Long? = null,
+    @SerialName("customer_id") val customerId: Long? = null,
+    val visibility: String = "agency_public",
+    @SerialName("contact_share_level") val contactShareLevel: String = "summary",
+    @SerialName("member_ids") val memberIds: List<Long> = emptyList(),
+    val note: String = "",
+)
+
+@Serializable
+data class AgencySpaceUpdateRequest(
+    val visibility: String? = null,
+    @SerialName("contact_share_level") val contactShareLevel: String? = null,
+    @SerialName("member_ids") val memberIds: List<Long>? = null,
+    val note: String? = null,
+)
+
+@Serializable
+data class AgencySpaceModerateRequest(
+    val action: String,
+    val reason: String = "",
+)
+
+@Serializable
+data class AiCapabilitiesMessages(
+    @SerialName("no_license") val noLicense: String = "",
+    @SerialName("quota_exhausted") val quotaExhausted: String = "",
+    @SerialName("ai_disabled") val aiDisabled: String = "",
+)
+
+@Serializable
+data class AiFeatureQuota(
+    val remaining: Int = 0,
+    val limit: Int = 0,
+    val enabled: Boolean = true,
+    @SerialName("feature") val feature: String? = null,
+)
+
+@Serializable
+data class AiToneOptionDto(
+    val id: String = "",
+    val label: String = "",
+)
+
+@Serializable
+data class SmartCommandProfileDto(
+    val context: String = "",
+    @SerialName("allowed_intent") val allowedIntent: String = "",
+    val title: String = "",
+    val subtitle: String = "",
+    val placeholder: String = "",
+    @SerialName("wrong_intent_message") val wrongIntentMessage: String = "",
+    @SerialName("enable_contact_resolve") val enableContactResolve: Boolean = false,
+    val examples: List<String> = emptyList(),
+)
+
+@Serializable
+data class SmartCommandProfilesDto(
+    val today: SmartCommandProfileDto = SmartCommandProfileDto(),
+    val contacts: SmartCommandProfileDto = SmartCommandProfileDto(),
+    val properties: SmartCommandProfileDto = SmartCommandProfileDto(),
+)
+
+@Serializable
+data class AiCapabilitiesData(
+    @SerialName("ai_enabled") val aiEnabled: Boolean = false,
+    @SerialName("has_license") val hasLicense: Boolean = false,
+    @SerialName("can_use_smart_command") val canUseSmartCommand: Boolean = false,
+    @SerialName("can_use_crm_message") val canUseCrmMessage: Boolean = false,
+    @SerialName("can_use_listing_summary") val canUseListingSummary: Boolean = false,
+    val messages: AiCapabilitiesMessages = AiCapabilitiesMessages(),
+    val quota: AiFeatureQuota? = null,
+    @SerialName("nl_command") val nlCommand: AiFeatureQuota? = null,
+    @SerialName("crm_message") val crmMessage: AiFeatureQuota? = null,
+    @SerialName("crm_message_tones") val crmMessageTones: List<AiToneOptionDto> = emptyList(),
+    @SerialName("smart_command_profiles") val smartCommandProfiles: SmartCommandProfilesDto = SmartCommandProfilesDto(),
+)
+
+@Serializable
+data class NlCommandParseRequest(
+    val text: String,
+    val locale: String = "fa-IR",
+    val timezone: String = "Asia/Tehran",
+    @SerialName("command_id") val commandId: String? = null,
+    @SerialName("resume_correction") val resumeCorrection: Boolean = false,
+)
+
+@Serializable
+data class NlCommandConfirmRequest(
+    @SerialName("command_id") val commandId: String,
+)
+
+@Serializable
+data class NlCommandResolveContactRequest(
+    @SerialName("command_id") val commandId: String,
+    @SerialName("contact_id") val contactId: Long,
+)
+
+@Serializable
+data class NlContactCandidateDto(
+    val id: Long,
+    val name: String = "",
+    val phone: String = "",
+)
+
+@Serializable
+data class NlCommandParseResult(
+    @SerialName("command_id") val commandId: String? = null,
+    val intent: String = "unknown",
+    val preview: kotlinx.serialization.json.JsonObject? = null,
+    @SerialName("missing_fields") val missingFields: List<String> = emptyList(),
+    @SerialName("ambiguous_fields") val ambiguousFields: List<String> = emptyList(),
+    @SerialName("can_confirm") val canConfirm: Boolean = false,
+    val message: String? = null,
+    val hint: String? = null,
+    @SerialName("contact_candidates") val contactCandidates: List<NlContactCandidateDto> = emptyList(),
+    @SerialName("contact_not_found") val contactNotFound: Boolean = false,
+)
+
+@Serializable
+data class NlCommandConfirmResult(
+    @SerialName("entity_type") val entityType: String? = null,
+    @SerialName("entity_id") val entityId: Long? = null,
+    val message: String? = null,
+    val duplicate: Boolean = false,
+)
+
+@Serializable
+data class NlCommandResolveResult(
+    @SerialName("command_id") val commandId: String? = null,
+    val preview: kotlinx.serialization.json.JsonObject? = null,
+    @SerialName("missing_fields") val missingFields: List<String> = emptyList(),
+    @SerialName("ambiguous_fields") val ambiguousFields: List<String> = emptyList(),
+    @SerialName("can_confirm") val canConfirm: Boolean = false,
 )

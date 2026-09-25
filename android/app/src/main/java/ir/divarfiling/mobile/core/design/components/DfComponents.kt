@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
@@ -402,9 +403,16 @@ fun DfSearchField(
             focusedBorderColor = DfColors.Purple,
             focusedLabelColor = DfColors.Purple,
         ),
-        trailingIcon = onSearch?.let {
-            {
-                DfGlassTextButton(text = "اعمال", onClick = it, compact = true)
+        trailingIcon = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (value.isNotBlank()) {
+                    IconButton(onClick = { onValueChange("") }) {
+                        Icon(Icons.Default.Close, contentDescription = "پاک کردن جستجو", tint = DfColors.TextMuted)
+                    }
+                }
+                onSearch?.let {
+                    DfGlassTextButton(text = "اعمال", onClick = it, compact = true)
+                }
             }
         },
     )

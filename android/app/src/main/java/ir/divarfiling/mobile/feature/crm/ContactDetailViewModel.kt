@@ -103,6 +103,8 @@ data class ContactDetailUiState(
     val selectedTeamMemberId: Long? = null,
     val teamTransferNote: String = "",
     val teamMembersLoading: Boolean = false,
+    val showAgencySpaceSheet: Boolean = false,
+    val agencySpaceSubmitting: Boolean = false,
 )
 
 @HiltViewModel
@@ -1058,6 +1060,74 @@ class ContactDetailViewModel @Inject constructor(
     }
 
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
+
+    fun toggleAgencySpaceSheet(show: Boolean) = _uiState.update { it.copy(showAgencySpaceSheet = show) }
+
+    fun publishAgencySpace(
+        visibility: String,
+        contactShareLevel: String,
+        memberIds: List<Long>,
+        note: String,
+    ) {
+        val ctx = _uiState.value.data?.agencySpace ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(agencySpaceSubmitting = true) }
+            val activeId = ctx.activeItemId
+            val result = if (activeId != null) {
+                teamRepository.updateAgencySpaceItem(
+                    activeId,
+                    ir.divarfiling.mobile.core.network.AgencySpaceUpdateRequest(
+                        visibility = visibility,
+                        contactShareLevel = contactShareLevel,
+                        memberIds = memberIds,
+                        note = note,
+                    ),
+                )
+            } else {
+                teamRepository.publishAgencySpaceContact(
+                    ir.divarfiling.mobile.core.network.AgencySpacePublishRequest(
+                        customerId = contactId,
+                        visibility = visibility,
+                        contactShareLevel = contactShareLevel,
+                        memberIds = memberIds,
+                        note = note,
+                    ),
+                )
+            }
+            when (result) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        agencySpaceSubmitting = false,
+                        showAgencySpaceSheet = false,
+                        successMessage = "انتشار فضای آژانس به‌روز شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(agencySpaceSubmitting = false, error = result.message)
+                }
+            }
+            load()
+        }
+    }
+
+    fun unpublishAgencySpace(itemId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(agencySpaceSubmitting = true) }
+            when (val result = teamRepository.unpublishAgencySpaceItem(itemId)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        agencySpaceSubmitting = false,
+                        showAgencySpaceSheet = false,
+                        successMessage = "انتشار لغو شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(agencySpaceSubmitting = false, error = result.message)
+                }
+            }
+            load()
+        }
+    }
 
     private fun maybeOpenSmartMatchAfterStatus(status: String) {
         val customerType = _uiState.value.data?.contact?.customerType

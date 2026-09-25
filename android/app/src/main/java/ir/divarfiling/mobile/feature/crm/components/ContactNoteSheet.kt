@@ -10,6 +10,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,13 +37,13 @@ fun ContactNoteSheet(
         },
     ) {
         DfSheetSection(title = "متن یادداشت") {
-            OutlinedTextField(
+            VoiceTextField(
                 value = note,
                 onValueChange = onNoteChange,
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 4,
-                placeholder = { Text("متن یادداشت…") },
+                placeholder = "متن یادداشت…",
                 enabled = !isSubmitting,
+                singleLine = false,
+                minLines = 4,
             )
         }
     }

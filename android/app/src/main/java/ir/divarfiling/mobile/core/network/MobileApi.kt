@@ -739,6 +739,18 @@ interface MobileApi {
     @GET("ai/quota")
     suspend fun getAiQuota(): ApiEnvelope
 
+    @GET("ai/capabilities")
+    suspend fun getAiCapabilities(): ApiEnvelope
+
+    @POST("ai/nl/parse")
+    suspend fun nlCommandParse(@Body body: NlCommandParseRequest): ApiEnvelope
+
+    @POST("ai/nl/confirm")
+    suspend fun nlCommandConfirm(@Body body: NlCommandConfirmRequest): ApiEnvelope
+
+    @POST("ai/nl/resolve-contact")
+    suspend fun nlCommandResolveContact(@Body body: NlCommandResolveContactRequest): ApiEnvelope
+
     @POST("ai/draft-message")
     suspend fun aiDraftMessage(@Body body: AiDraftMessageRequest): ApiEnvelope
 
@@ -855,6 +867,39 @@ interface MobileApi {
 
     @GET("agency/performance")
     suspend fun getAgencyPerformance(@Query("days") days: Int? = null): ApiEnvelope
+
+    @GET("agency/space/items")
+    suspend fun getAgencySpaceItems(@QueryMap params: Map<String, String>): ApiEnvelope
+
+    @GET("agency/space/analytics")
+    suspend fun getAgencySpaceAnalytics(): ApiEnvelope
+
+    @GET("agency/space/items/{id}")
+    suspend fun getAgencySpaceItem(@Path("id") itemId: Long): ApiEnvelope
+
+    @PATCH("agency/space/items/{id}")
+    suspend fun updateAgencySpaceItem(
+        @Path("id") itemId: Long,
+        @Body body: AgencySpaceUpdateRequest,
+    ): ApiEnvelope
+
+    @POST("agency/space/publish/property")
+    suspend fun publishAgencySpaceProperty(@Body body: AgencySpacePublishRequest): ApiEnvelope
+
+    @POST("agency/space/publish/contact")
+    suspend fun publishAgencySpaceContact(@Body body: AgencySpacePublishRequest): ApiEnvelope
+
+    @POST("agency/space/items/{id}/unpublish")
+    suspend fun unpublishAgencySpaceItem(@Path("id") itemId: Long): ApiEnvelope
+
+    @POST("agency/space/items/{id}/copy")
+    suspend fun copyAgencySpaceItem(@Path("id") itemId: Long): ApiEnvelope
+
+    @POST("agency/space/items/{id}/moderate")
+    suspend fun moderateAgencySpaceItem(
+        @Path("id") itemId: Long,
+        @Body body: AgencySpaceModerateRequest,
+    ): ApiEnvelope
 
     @POST("crm/contacts/{id}/assign")
     suspend fun assignContact(

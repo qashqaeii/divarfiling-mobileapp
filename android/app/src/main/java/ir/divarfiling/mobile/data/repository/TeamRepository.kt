@@ -205,6 +205,60 @@ class TeamRepository @Inject constructor(
     suspend fun getAgencyPerformance(days: Int): ApiResult<ir.divarfiling.mobile.core.network.AgencyPerformancePayload> =
         single { api.getAgencyPerformance(days = days) }
 
+    suspend fun getAgencySpaceItems(
+        params: Map<String, String>,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencySpaceListPayload> =
+        single { api.getAgencySpaceItems(params) }
+
+    suspend fun getAgencySpaceItem(
+        itemId: Long,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencySpaceItemDetailPayload> =
+        single { api.getAgencySpaceItem(itemId) }
+
+    suspend fun publishAgencySpaceProperty(
+        request: ir.divarfiling.mobile.core.network.AgencySpacePublishRequest,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencySpaceItemDetailPayload> =
+        single { api.publishAgencySpaceProperty(request) }
+
+    suspend fun publishAgencySpaceContact(
+        request: ir.divarfiling.mobile.core.network.AgencySpacePublishRequest,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencySpaceItemDetailPayload> =
+        single { api.publishAgencySpaceContact(request) }
+
+    suspend fun copyAgencySpaceItem(
+        itemId: Long,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencySpaceCopyResultDto> =
+        single { api.copyAgencySpaceItem(itemId) }
+
+    suspend fun unpublishAgencySpaceItem(itemId: Long): ApiResult<Unit> = try {
+        val response = api.unpublishAgencySpaceItem(itemId)
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
+    suspend fun updateAgencySpaceItem(
+        itemId: Long,
+        request: ir.divarfiling.mobile.core.network.AgencySpaceUpdateRequest,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencySpaceItemDetailPayload> =
+        single { api.updateAgencySpaceItem(itemId, request) }
+
+    suspend fun moderateAgencySpaceItem(
+        itemId: Long,
+        action: String,
+        reason: String = "",
+    ): ApiResult<Unit> = try {
+        val response = api.moderateAgencySpaceItem(
+            itemId,
+            ir.divarfiling.mobile.core.network.AgencySpaceModerateRequest(action = action, reason = reason),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
     suspend fun assignLead(customerId: Long, memberId: Long): ApiResult<Unit> = try {
         val response = api.assignTeamLead(customerId, ir.divarfiling.mobile.core.network.TeamLeadAssignRequest(memberId))
         if (!response.ok) ApiResult.Error(response.error ?: "تخصیص ناموفق")

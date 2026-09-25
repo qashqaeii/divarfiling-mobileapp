@@ -18,6 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -68,7 +71,9 @@ import ir.divarfiling.mobile.feature.crm.components.ContactReminderCard
 import ir.divarfiling.mobile.feature.crm.components.ContactReminderSheet
 import ir.divarfiling.mobile.feature.crm.components.PropertyListCard
 import ir.divarfiling.mobile.feature.crm.components.SendFilingSheet
-import ir.divarfiling.mobile.feature.team.TeamMemberSelectList
+import ir.divarfiling.mobile.feature.team.AgencySpacePublishSheet
+import ir.divarfiling.mobile.feature.team.AgencySpaceProvenanceBadge
+import ir.divarfiling.mobile.feature.ai.message.ContactSmartMessageSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +83,7 @@ fun ContactDetailScreen(
     onPropertyClick: (Long) -> Unit = {},
     onCreateDeal: (Long) -> Unit = {},
     onOpenAi: (Long) -> Unit = {},
+    onOpenAgencySpaceItem: (Long) -> Unit = {},
     viewModel: ContactDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -88,6 +94,7 @@ fun ContactDetailScreen(
     val documentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.uploadDocument(it) }
     }
+    var showSmartMessage by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.pendingSocialShare) {
         val pending = state.pendingSocialShare ?: return@LaunchedEffect
@@ -135,13 +142,21 @@ fun ContactDetailScreen(
                     val detail = state.data!!
                     val contactInfo = detail.contact
                     val nbaAction = resolveContactNba(contactInfo, deals = detail.deals, linkedListings = detail.linkedListings)
-                    val visibleActions = buildVisibleContactActions(contactInfo, context, viewModel, haptics)
+                    val visibleActions = buildVisibleContactActions(
+                        contactInfo,
+                        context,
+                        viewModel,
+                        haptics,
+                        onOpenSmartMessage = {
+                            showSmartMessage = true
+                        },
+                    )
                     val moreActions = buildMoreContactActions(
                         contact = contactInfo,
+                        agencySpace = detail.agencySpace,
                         context = context,
                         viewModel = viewModel,
                         pickDocument = documentPicker::launch,
-                        onOpenAi = { onOpenAi(contactInfo.id) },
                         onCreateDeal = { onCreateDeal(contactInfo.id) },
                     )
 
@@ -156,6 +171,15 @@ fun ContactDetailScreen(
                                 onBack = onBack,
                                 onEdit = { viewModel.toggleEditSheet(true) },
                             )
+                        }
+                        detail.agencySpaceProvenance?.let { prov ->
+                            item {
+                                AgencySpaceProvenanceBadge(
+                                    provenance = prov,
+                                    onOpenSpaceItem = onOpenAgencySpaceItem,
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                )
+                            }
                         }
                         item { ContactDetailInsightStrip(contact = contactInfo) }
                         item {
@@ -523,6 +547,23 @@ fun ContactDetailScreen(
         }
     }
 
+    val agencyCtx = state.data?.agencySpace
+    if (state.showAgencySpaceSheet && agencyCtx != null) {
+        DfModalBottomSheet(onDismissRequest = { viewModel.toggleAgencySpaceSheet(false) }) {
+            AgencySpacePublishSheet(
+                context = agencyCtx,
+                isSubmitting = state.agencySpaceSubmitting,
+                onDismiss = { viewModel.toggleAgencySpaceSheet(false) },
+                onPublish = viewModel::publishAgencySpace,
+                onManageExisting = { id ->
+                    viewModel.toggleAgencySpaceSheet(false)
+                    onOpenAgencySpaceItem(id)
+                },
+                onUnpublish = viewModel::unpublishAgencySpace,
+            )
+        }
+    }
+
     ContactMatchesSheet(
         visible = state.showMatchesSheet,
         matches = state.matchesData,
@@ -542,6 +583,13 @@ fun ContactDetailScreen(
         onSuggest = { selected, shareChannel ->
             viewModel.suggestMatches(selected, shareChannel = shareChannel)
         },
+    )
+
+    ContactSmartMessageSheet(
+        contactId = contact?.id ?: 0L,
+        contactName = contact?.name.orEmpty(),
+        visible = showSmartMessage,
+        onDismiss = { showSmartMessage = false },
     )
 }
 
@@ -570,6 +618,7 @@ private fun buildVisibleContactActions(
     context: android.content.Context,
     viewModel: ContactDetailViewModel,
     haptics: DfHapticPerformer,
+    onOpenSmartMessage: () -> Unit,
 ): List<ContactQuickActionItem> = buildList {
     add(
         ContactQuickActionItem("تماس", DfColors.Blue, icon = DfIcons.Phone) {
@@ -587,6 +636,12 @@ private fun buildVisibleContactActions(
                 DossierShareActions.openWhatsApp(context, "سلام", phone)
                 viewModel.logActivity("واتساپ", "پیام واتساپ")
             }
+        },
+    )
+    add(
+        ContactQuickActionItem("پیام هوشمند", DfColors.Purple, icon = DfIcons.MessageSquare) {
+            haptics.tick()
+            onOpenSmartMessage()
         },
     )
     if (CrmConstants.isMatchEligible(contact.customerType)) {
@@ -608,12 +663,17 @@ private fun buildVisibleContactActions(
 
 private fun buildMoreContactActions(
     contact: ir.divarfiling.mobile.core.network.ContactDto,
+    agencySpace: ir.divarfiling.mobile.core.network.AgencySpaceSourceContextDto?,
     context: android.content.Context,
     viewModel: ContactDetailViewModel,
     pickDocument: (String) -> Unit,
-    onOpenAi: () -> Unit,
     onCreateDeal: () -> Unit,
 ): List<ContactQuickActionItem> = buildList {
+    agencySpace?.takeIf { it.agencySpaceEnabled && (it.canPublish || it.activeItemId != null) }?.let {
+        add(ContactQuickActionItem("فضای آژانس", DfColors.Purple, icon = DfIcons.Layers) {
+            viewModel.toggleAgencySpaceSheet(true)
+        })
+    }
     add(ContactQuickActionItem("معامله جدید", DfColors.Purple, icon = DfIcons.Handshake) {
         onCreateDeal()
     })
@@ -639,9 +699,6 @@ private fun buildMoreContactActions(
     })
     add(ContactQuickActionItem("یادداشت", DfColors.Purple, icon = DfIcons.StickyNote) {
         viewModel.toggleNoteDialog(true)
-    })
-    add(ContactQuickActionItem("دستیار AI", DfColors.Purple, icon = DfIcons.Bot) {
-        onOpenAi()
     })
     add(ContactQuickActionItem("تخصیص", DfColors.Blue, icon = DfIcons.UserPlus) {
         viewModel.openTeamAssign("assign")

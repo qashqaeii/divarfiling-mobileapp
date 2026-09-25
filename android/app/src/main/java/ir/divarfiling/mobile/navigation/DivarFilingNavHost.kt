@@ -68,6 +68,8 @@ import ir.divarfiling.mobile.feature.tools.smartToolIdFromKey
 import ir.divarfiling.mobile.feature.team.AgencyAdvancedSettingsScreen
 import ir.divarfiling.mobile.feature.team.AgencyAdvisorDetailScreen
 import ir.divarfiling.mobile.feature.team.AgencyPerformanceScreen
+import ir.divarfiling.mobile.feature.team.AgencySpaceDetailScreen
+import ir.divarfiling.mobile.feature.team.AgencySpaceListScreen
 import ir.divarfiling.mobile.feature.team.AgencySeatsScreen
 import ir.divarfiling.mobile.feature.team.TeamAnnouncementsScreen
 import ir.divarfiling.mobile.feature.team.TeamHubScreen
@@ -132,6 +134,10 @@ object Routes {
     const val TEAM_PERFORMANCE = "team/performance"
     const val TEAM_SEATS = "team/seats"
     const val TEAM_ADVANCED = "team/advanced"
+    const val TEAM_SPACE = "team/space"
+    const val TEAM_SPACE_DETAIL = "team/space/{itemId}"
+
+    fun teamSpaceDetail(itemId: Long) = "team/space/$itemId"
 
     fun teamAdvisor(memberId: Long) = "team/advisors/$memberId"
 
@@ -326,6 +332,7 @@ fun DivarFilingNavHost(
                                 null
                             },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
                             onContactSuggest = { id ->
                                 navController.navigate(Routes.contactDetail(id, openMatches = true))
                             },
@@ -355,6 +362,9 @@ fun DivarFilingNavHost(
                             },
                             onOpenAi = { contactId ->
                                 navController.navigate(Routes.ai(contactId = contactId, mode = "draft"))
+                            },
+                            onOpenAgencySpaceItem = { id ->
+                                navController.navigate(Routes.teamSpaceDetail(id))
                             },
                         )
                     }
@@ -486,6 +496,7 @@ fun DivarFilingNavHost(
                         PropertiesScreen(
                             onBack = { navController.popBackStack() },
                             onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                            onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
                             onPropertyDuplicated = { id ->
                                 navController.navigate(Routes.propertyDetail(id, openEdit = true))
                             },
@@ -507,6 +518,9 @@ fun DivarFilingNavHost(
                         PropertyDetailScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onOpenAgencySpaceItem = { id ->
+                                navController.navigate(Routes.teamSpaceDetail(id))
+                            },
                             onCreateDeal = { customerId, propertyId ->
                                 navController.navigate(
                                     Routes.deals(
@@ -530,6 +544,7 @@ fun DivarFilingNavHost(
                         TodayScreen(
                             onBack = null,
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onPropertyClick = { id -> navController.navigate(Routes.propertyDetail(id)) },
                         )
                     }
                     composable(Routes.FILING) {
@@ -680,6 +695,7 @@ fun DivarFilingNavHost(
                             onOpenPerformance = { navController.navigate(Routes.TEAM_PERFORMANCE) },
                             onOpenSeats = { navController.navigate(Routes.TEAM_SEATS) },
                             onOpenAdvanced = { navController.navigate(Routes.TEAM_ADVANCED) },
+                            onOpenAgencySpace = { navController.navigate(Routes.TEAM_SPACE) },
                             onNavigateWebBridge = { url ->
                                 navController.navigate(Routes.workspaceWeb(url, "میزکار تیم"))
                             },
@@ -739,6 +755,34 @@ fun DivarFilingNavHost(
                         TeamInboxScreen(
                             onBack = { navController.popBackStack() },
                             onOpenContact = { id -> navController.navigate(Routes.contactDetail(id)) },
+                        )
+                    }
+                    composable(Routes.TEAM_SPACE) {
+                        AgencySpaceListScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenItem = { id -> navController.navigate(Routes.teamSpaceDetail(id)) },
+                            onOpenCopiedTarget = { kind, targetId ->
+                                when (kind) {
+                                    "property" -> navController.navigate(Routes.propertyDetail(targetId))
+                                    "customer" -> navController.navigate(Routes.contactDetail(targetId))
+                                }
+                            },
+                        )
+                    }
+                    composable(
+                        route = Routes.TEAM_SPACE_DETAIL,
+                        arguments = listOf(navArgument("itemId") { type = NavType.LongType }),
+                    ) {
+                        val spaceItemId = it.arguments?.getLong("itemId") ?: 0L
+                        AgencySpaceDetailScreen(
+                            itemId = spaceItemId,
+                            onBack = { navController.popBackStack() },
+                            onOpenCopiedTarget = { kind, targetId ->
+                                when (kind) {
+                                    "property" -> navController.navigate(Routes.propertyDetail(targetId))
+                                    "customer" -> navController.navigate(Routes.contactDetail(targetId))
+                                }
+                            },
                         )
                     }
                     composable(Routes.TEMPLATES) {

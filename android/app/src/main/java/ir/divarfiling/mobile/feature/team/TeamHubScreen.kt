@@ -63,6 +63,7 @@ fun TeamHubScreen(
     onOpenPerformance: () -> Unit = {},
     onOpenSeats: () -> Unit = {},
     onOpenAdvanced: () -> Unit = {},
+    onOpenAgencySpace: () -> Unit = {},
     onNavigateWebBridge: (String) -> Unit = {},
     viewModel: TeamHubViewModel = hiltViewModel(),
 ) {
@@ -230,6 +231,23 @@ fun TeamHubScreen(
                                     subtitle = "میانبرهای پرکاربرد تیم",
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
+                            }
+                            if (home.capabilities.canAccessAgencySpace) {
+                                item {
+                                    TeamDestinationCard(
+                                        destination = TeamDestination(
+                                            title = "فضای آژانس",
+                                            subtitle = "فایل‌ها و مخاطبین منتشرشده تیم",
+                                            metricLabel = "فعال",
+                                            metricValue = home.spaceKpis?.activeProperties?.toString() ?: "—",
+                                            tint = DfColors.Purple,
+                                            wash = DfColors.PurpleLight,
+                                            icon = DfIcons.Layers,
+                                            onClick = onOpenAgencySpace,
+                                        ),
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
                             }
                             if (perms.messagesEnabled) {
                                 item {

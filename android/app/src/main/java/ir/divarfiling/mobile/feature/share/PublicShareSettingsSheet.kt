@@ -11,6 +11,7 @@ import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.core.design.components.ShareToggleRow
 
 private val LOCATION_RADIUS_OPTIONS = listOf("300", "500", "750", "1000", "1500")
@@ -78,23 +79,23 @@ fun PublicShareSettingsSheet(
                 singleLine = true,
                 enabled = !isSubmitting,
             )
-            OutlinedTextField(
+            VoiceTextField(
                 value = welcomeMessage,
                 onValueChange = onWelcomeMessageChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("پیام خوش‌آمد") },
-                placeholder = { Text("مثلاً برای بازدید با من هماهنگ کنید") },
-                minLines = 3,
+                label = "پیام خوش‌آمد",
+                placeholder = "مثلاً برای بازدید با من هماهنگ کنید",
                 enabled = !isSubmitting,
+                singleLine = false,
+                minLines = 3,
             )
-            OutlinedTextField(
+            VoiceTextField(
                 value = defaultShareMessage,
                 onValueChange = onDefaultShareMessageChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("پیام پیش‌فرض اشتراک") },
-                placeholder = { Text("متن آماده برای ارسال سریع به مشتری") },
-                minLines = 3,
+                label = "پیام پیش‌فرض اشتراک",
+                placeholder = "متن آماده برای ارسال سریع به مشتری",
                 enabled = !isSubmitting,
+                singleLine = false,
+                minLines = 3,
             )
         }
         DfSheetSection(title = "تنظیمات نمایش") {

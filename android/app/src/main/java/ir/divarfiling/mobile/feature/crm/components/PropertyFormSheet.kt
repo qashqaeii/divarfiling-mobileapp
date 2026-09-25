@@ -40,6 +40,7 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
@@ -471,14 +472,14 @@ fun PropertyFormSheet(
                 enabled = !isSubmitting,
                 onVacancyDateChange = { onFormChange(form.copy(vacancyDate = it)) },
             )
-            OutlinedTextField(
+            VoiceTextField(
                 value = form.notes,
                 onValueChange = { onFormChange(form.copy(notes = it)) },
-                label = { Text("یادداشت داخلی") },
-                placeholder = { Text("اختیاری") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
+                label = "یادداشت داخلی",
+                placeholder = "اختیاری",
                 enabled = !isSubmitting,
+                singleLine = false,
+                minLines = 3,
             )
         }
 
