@@ -576,7 +576,7 @@ private fun ContactResolveStep(
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
                         strokeWidth = 2.dp,
-                        color = DfColors.Primary,
+                        color = DfColors.Purple,
                     )
                     Text(
                         text = "در حال ثبت انتخاب…",
