@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.data.repository
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.NotificationPrefsDto
+import ir.divarfiling.mobile.core.network.ProfileAvatarKeyRequest
 import ir.divarfiling.mobile.core.network.ProfileUpdateRequest
 import ir.divarfiling.mobile.core.network.UserDto
 import ir.divarfiling.mobile.core.network.requireData
@@ -49,6 +50,18 @@ class SettingsRepository @Inject constructor(
             val part = MultipartBody.Part.createFormData("avatar", filename, body)
             val response = api.uploadProfileAvatar(part)
             if (!response.ok) return ApiResult.Error(response.error ?: "بارگذاری تصویر ناموفق")
+            val user = response.requireData<UserDto>(json)
+            sessionStore.updateUser(user)
+            ApiResult.Success(user)
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun setAvatarKey(avatarKey: String): ApiResult<UserDto> {
+        return try {
+            val response = api.setProfileAvatarKey(ProfileAvatarKeyRequest(avatarKey = avatarKey))
+            if (!response.ok) return ApiResult.Error(response.error ?: "ذخیره آواتار ناموفق")
             val user = response.requireData<UserDto>(json)
             sessionStore.updateUser(user)
             ApiResult.Success(user)

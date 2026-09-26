@@ -44,6 +44,8 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.ProfileAvatarEditor
+import ir.divarfiling.mobile.core.design.components.SettingsHeroAvatar
 import ir.divarfiling.mobile.core.design.components.DfAsyncImage
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
@@ -66,16 +68,9 @@ import ir.divarfiling.mobile.core.network.UserDto
 fun SettingsHeroCard(
     user: UserDto?,
     onEditProfile: () -> Unit,
+    onAvatarClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val initials = user?.fullName
-        ?.trim()
-        ?.split(" ")
-        ?.mapNotNull { it.firstOrNull()?.toString() }
-        ?.take(2)
-        ?.joinToString("")
-        ?.ifBlank { "؟" } ?: "؟"
-
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
@@ -99,29 +94,10 @@ fun SettingsHeroCard(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(AppColors.Surface.copy(alpha = 0.22f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (!user?.avatarUrl.isNullOrBlank()) {
-                        DfAsyncImage(
-                            url = user?.avatarUrl,
-                            modifier = Modifier.size(56.dp),
-                            shape = CircleShape,
-                            contentDescription = "آواتار",
-                        )
-                    } else {
-                        Text(
-                            initials,
-                            style = AppTypography.sectionTitle,
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.Surface,
-                        )
-                    }
-                }
+                SettingsHeroAvatar(
+                    user = user,
+                    onAvatarClick = onAvatarClick,
+                )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
@@ -530,12 +506,13 @@ fun ProfileEditSheet(
     visible: Boolean,
     fullName: String,
     phone: String,
-    avatarUrl: String?,
+    user: UserDto?,
     isSaving: Boolean,
     isUploadingAvatar: Boolean,
     onFullNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onPickAvatar: () -> Unit,
+    onPickGalleryAvatar: () -> Unit,
     onRemoveAvatar: () -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
@@ -558,42 +535,18 @@ fun ProfileEditSheet(
             },
         ) {
             DfSheetSection(title = "عکس پروفایل") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(AppColors.PurpleContainer),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (!avatarUrl.isNullOrBlank()) {
-                            DfAsyncImage(
-                                url = avatarUrl,
-                                modifier = Modifier.size(64.dp),
-                                shape = CircleShape,
-                                contentDescription = "آواتار",
-                            )
-                        } else {
-                            Text("عکس", style = AppTypography.labelSmall)
-                        }
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                        DfGlassTextButton(
-                            text = if (isUploadingAvatar) "در حال بارگذاری…" else "انتخاب از گالری",
-                            onClick = onPickAvatar,
-                        )
-                        if (!avatarUrl.isNullOrBlank()) {
-                            DfGlassTextButton(
-                                text = "حذف عکس",
-                                onClick = onRemoveAvatar,
-                            )
-                        }
-                    }
-                }
+                ProfileAvatarEditor(
+                    user = user,
+                    onChangeAvatar = onPickAvatar,
+                    onGalleryPick = onPickGalleryAvatar,
+                    onRemove = if (user?.hasCustomAvatar == true || !user?.avatarKey.isNullOrBlank()) {
+                        onRemoveAvatar
+                    } else {
+                        null
+                    },
+                    isUploadingGallery = isUploadingAvatar,
+                    onSurface = true,
+                )
             }
             DfSheetSection(title = "اطلاعات کاربری") {
                 DfTextField(

@@ -776,6 +776,7 @@ fun DfContactRow(
     phone: String?,
     status: String?,
     customerType: String?,
+    photoUrl: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     DfCard(onClick = onClick) {
@@ -784,19 +785,10 @@ fun DfContactRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(DfColors.PurpleContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    name.firstOrNull()?.toString() ?: "?",
-                    fontWeight = FontWeight.Bold,
-                    color = DfColors.PurpleDark,
-                )
-            }
+            AppAvatar(
+                resolved = ir.divarfiling.mobile.core.avatar.AvatarResolver.resolveContact(name, photoUrl),
+                size = AppAvatarSize.Medium,
+            )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     name,

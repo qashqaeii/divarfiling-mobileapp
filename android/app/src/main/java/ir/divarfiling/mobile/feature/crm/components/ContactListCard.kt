@@ -41,6 +41,8 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.network.ContactDto
+import ir.divarfiling.mobile.core.design.components.AppAvatarSize
+import ir.divarfiling.mobile.core.design.components.AppContactAvatar
 import ir.divarfiling.mobile.feature.crm.ContactTypeVisuals
 import ir.divarfiling.mobile.feature.crm.CrmConstants
 
@@ -94,11 +96,7 @@ fun ContactListCard(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ContactTypeIcon(
-                        icon = typeVisual.icon,
-                        accent = typeVisual.accent,
-                        container = typeVisual.container,
-                    )
+                    AppContactAvatar(contact = contact, size = AppAvatarSize.Medium)
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(3.dp),

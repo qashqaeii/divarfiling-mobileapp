@@ -36,6 +36,7 @@ import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.AvatarPickerSheet
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.share.DossierShareActions
 
@@ -73,16 +74,27 @@ fun SettingsScreen(
         uri?.let(viewModel::uploadAvatar)
     }
 
+    AvatarPickerSheet(
+        visible = state.showAvatarPicker,
+        selectedKey = state.pendingAvatarKey,
+        canSave = viewModel.isAvatarPickerDirty(),
+        isSaving = state.isSavingAvatarKey,
+        onSelect = viewModel::onPendingAvatarKeyChange,
+        onDismiss = { viewModel.toggleAvatarPicker(false) },
+        onSave = viewModel::saveAvatarKey,
+    )
+
     ProfileEditSheet(
         visible = state.showProfileSheet,
         fullName = state.editFullName,
         phone = state.editPhone,
-        avatarUrl = state.user?.avatarUrl,
+        user = state.user,
         isSaving = state.isSavingProfile,
         isUploadingAvatar = state.isUploadingAvatar,
         onFullNameChange = viewModel::onEditFullNameChange,
         onPhoneChange = viewModel::onEditPhoneChange,
-        onPickAvatar = { avatarPicker.launch("image/*") },
+        onPickAvatar = { viewModel.toggleAvatarPicker(true) },
+        onPickGalleryAvatar = { avatarPicker.launch("image/*") },
         onRemoveAvatar = viewModel::removeAvatar,
         onDismiss = { viewModel.toggleProfileSheet(false) },
         onSave = viewModel::saveProfile,
@@ -125,6 +137,7 @@ fun SettingsScreen(
                     SettingsHeroCard(
                         user = state.user,
                         onEditProfile = { viewModel.toggleProfileSheet(true) },
+                        onAvatarClick = { viewModel.toggleAvatarPicker(true) },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

@@ -87,24 +87,13 @@ fun DealDetailHeroCard(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(accent, accent.copy(alpha = 0.65f)),
-                                ),
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = DealsFilters.customerInitials(deal.customerName),
-                            style = AppTypography.cardTitle,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                    }
+                    ir.divarfiling.mobile.core.design.components.AppAvatar(
+                        resolved = ir.divarfiling.mobile.core.avatar.AvatarResolver.resolveContact(
+                            deal.customerName,
+                            null,
+                        ),
+                        size = ir.divarfiling.mobile.core.design.components.AppAvatarSize.Medium,
+                    )
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(4.dp),

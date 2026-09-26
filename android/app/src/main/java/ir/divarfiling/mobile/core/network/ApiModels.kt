@@ -48,6 +48,8 @@ data class UserDto(
     @SerialName("agency_name") val agencyName: String? = null,
     @SerialName("phone_verified") val phoneVerified: Boolean = true,
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("avatar_key") val avatarKey: String? = null,
+    @SerialName("has_custom_avatar") val hasCustomAvatar: Boolean = false,
 )
 
 @Serializable
@@ -303,6 +305,11 @@ data class ProfileUpdateRequest(
 )
 
 @Serializable
+data class ProfileAvatarKeyRequest(
+    @SerialName("avatar_key") val avatarKey: String,
+)
+
+@Serializable
 data class NotificationPrefsDto(
     @SerialName("crm_reminders") val crmReminders: Boolean = true,
     @SerialName("today_digest") val todayDigest: Boolean = true,
@@ -374,6 +381,8 @@ data class ContactDto(
     @SerialName("matching_tolerance_percent") val matchingTolerancePercent: Int? = null,
     @SerialName("social_links") val socialLinks: Map<String, String> = emptyMap(),
     @SerialName("active_channels") val activeChannels: List<String> = emptyList(),
+    @SerialName("photo_url") val photoUrl: String? = null,
+    @SerialName("avatar_key") val avatarKey: String? = null,
 )
 
 @Serializable

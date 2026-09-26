@@ -39,7 +39,11 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.avatar.AvatarResolver
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.AppAvatar
+import ir.divarfiling.mobile.core.design.components.AppAvatarSize
+import ir.divarfiling.mobile.core.design.components.AppContactAvatar
 import ir.divarfiling.mobile.core.network.TodayItemDto
 import kotlin.math.absoluteValue
 
@@ -86,22 +90,13 @@ fun TodayTaskCard(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(accent.copy(alpha = 0.9f), accent.copy(alpha = 0.55f)),
-                            ),
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = taskInitials(contactName),
-                        style = AppTypography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                val taskContact = item.contact
+                if (taskContact != null) {
+                    AppContactAvatar(contact = taskContact, size = AppAvatarSize.Medium)
+                } else {
+                    AppAvatar(
+                        resolved = AvatarResolver.resolveContact(contactName, null),
+                        size = AppAvatarSize.Medium,
                     )
                 }
                 Column(

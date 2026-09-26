@@ -77,7 +77,6 @@ fun ContactDetailHero(
     modifier: Modifier = Modifier,
 ) {
     val accent = contactAccentColor(contact.fullName)
-    val initials = contactInitials(contact.fullName)
 
     val surface = DfThemeColors.surface()
     Box(
@@ -134,20 +133,10 @@ fun ContactDetailHero(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(76.dp)
-                        .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(accent, accent.copy(alpha = 0.6f)))),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = initials,
-                        style = AppTypography.sectionTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                }
+                ir.divarfiling.mobile.core.design.components.AppContactAvatar(
+                    contact = contact,
+                    size = ir.divarfiling.mobile.core.design.components.AppAvatarSize.XLarge,
+                )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp),

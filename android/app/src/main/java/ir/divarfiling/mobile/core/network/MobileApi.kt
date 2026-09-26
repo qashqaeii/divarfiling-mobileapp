@@ -92,6 +92,9 @@ interface MobileApi {
     @POST("settings/profile/avatar")
     suspend fun uploadProfileAvatar(@Part avatar: MultipartBody.Part): ApiEnvelope
 
+    @POST("settings/profile/avatar")
+    suspend fun setProfileAvatarKey(@Body body: ProfileAvatarKeyRequest): ApiEnvelope
+
     @DELETE("settings/profile/avatar")
     suspend fun deleteProfileAvatar(): ApiEnvelope
 

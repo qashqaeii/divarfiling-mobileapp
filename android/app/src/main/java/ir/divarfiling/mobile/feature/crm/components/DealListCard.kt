@@ -91,11 +91,12 @@ fun DealListCard(
                             strokeWidth = 3.dp,
                             strokeCap = StrokeCap.Round,
                         )
-                        Text(
-                            text = DealsFilters.customerInitials(deal.customerName),
-                            style = AppTypography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = stageColors.first,
+                        ir.divarfiling.mobile.core.design.components.AppAvatar(
+                            resolved = ir.divarfiling.mobile.core.avatar.AvatarResolver.resolveContact(
+                                deal.customerName,
+                                null,
+                            ),
+                            size = ir.divarfiling.mobile.core.design.components.AppAvatarSize.Small,
                         )
                     }
                     Column(

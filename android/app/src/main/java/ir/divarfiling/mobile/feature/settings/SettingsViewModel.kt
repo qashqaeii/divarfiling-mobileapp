@@ -12,6 +12,7 @@ import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.core.license.LicenseState
 import ir.divarfiling.mobile.core.network.NotificationPrefsDto
 import ir.divarfiling.mobile.core.network.UserDto
+import ir.divarfiling.mobile.core.avatar.AvatarCatalog
 import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.AuthRepository
@@ -39,6 +40,10 @@ data class SettingsUiState(
     val isUploadingAvatar: Boolean = false,
     val isSavingPrefs: Boolean = false,
     val showProfileSheet: Boolean = false,
+    val showAvatarPicker: Boolean = false,
+    val pendingAvatarKey: String? = null,
+    val isSavingAvatarKey: Boolean = false,
+    val avatarPickerTouched: Boolean = false,
     val editFullName: String = "",
     val editPhone: String = "",
     val deviceId: String = "",
@@ -117,6 +122,59 @@ class SettingsViewModel @Inject constructor(
                 editFullName = user?.fullName ?: it.editFullName,
                 editPhone = user?.phone.orEmpty().ifBlank { it.editPhone },
             )
+        }
+    }
+
+    fun toggleAvatarPicker(show: Boolean) {
+        _uiState.update { state ->
+            val user = state.user
+            val seed = when {
+                user?.hasCustomAvatar == true -> AvatarCatalog.DEFAULT_KEY
+                !user?.avatarKey.isNullOrBlank() -> AvatarCatalog.normalizeKey(user.avatarKey)
+                else -> AvatarCatalog.DEFAULT_KEY
+            }
+            state.copy(
+                showAvatarPicker = show,
+                pendingAvatarKey = if (show) seed else state.pendingAvatarKey,
+                avatarPickerTouched = if (show) false else state.avatarPickerTouched,
+            )
+        }
+    }
+
+    fun isAvatarPickerDirty(): Boolean {
+        val state = _uiState.value
+        val user = state.user ?: return false
+        val pending = AvatarCatalog.normalizeKey(state.pendingAvatarKey ?: AvatarCatalog.DEFAULT_KEY)
+        if (user.hasCustomAvatar) {
+            return state.avatarPickerTouched
+        }
+        val saved = user.avatarKey
+            ?.let(AvatarCatalog::normalizeKey)
+            ?: AvatarCatalog.DEFAULT_KEY
+        return pending != saved
+    }
+
+    fun onPendingAvatarKeyChange(key: String) {
+        _uiState.update { it.copy(pendingAvatarKey = key, avatarPickerTouched = true) }
+    }
+
+    fun saveAvatarKey() {
+        val key = _uiState.value.pendingAvatarKey ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingAvatarKey = true, error = null) }
+            when (val result = settingsRepository.setAvatarKey(key)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isSavingAvatarKey = false,
+                        user = result.data,
+                        showAvatarPicker = false,
+                        successMessage = "آواتار شما تغییر کرد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSavingAvatarKey = false, error = result.message)
+                }
+            }
         }
     }
 
