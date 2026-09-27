@@ -787,6 +787,7 @@ fun DfContactRow(
         ) {
             AppAvatar(
                 resolved = ir.divarfiling.mobile.core.avatar.AvatarResolver.resolveContact(name, photoUrl),
+                placeholderInitials = ir.divarfiling.mobile.core.avatar.AvatarResolver.initialsFromName(name),
                 size = AppAvatarSize.Medium,
             )
             Column(modifier = Modifier.weight(1f)) {

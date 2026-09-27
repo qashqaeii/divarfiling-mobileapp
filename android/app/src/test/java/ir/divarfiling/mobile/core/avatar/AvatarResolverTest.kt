@@ -9,10 +9,11 @@ import org.junit.Test
 
 class AvatarResolverTest {
     @Test
-    fun contact_without_photo_uses_default_avatar() {
+    fun contact_without_photo_does_not_use_account_preset() {
         val resolved = AvatarResolver.resolveContact(ContactDto(id = 1, fullName = "علی"))
-        assertTrue(resolved.usePreset)
-        assertEquals(AvatarCatalog.DEFAULT_KEY, resolved.presetKey)
+        assertFalse(resolved.usePreset)
+        assertTrue(resolved.remoteUrl.isNullOrBlank())
+        assertEquals("ع", AvatarResolver.initialsFromName("علی"))
     }
 
     @Test

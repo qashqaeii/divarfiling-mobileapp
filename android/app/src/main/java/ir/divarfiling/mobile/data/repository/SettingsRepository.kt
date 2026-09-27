@@ -24,7 +24,9 @@ class SettingsRepository @Inject constructor(
         return try {
             val response = api.getProfile()
             if (!response.ok) return ApiResult.Error(response.error ?: "خطا در دریافت پروفایل")
-            ApiResult.Success(response.requireData(json))
+            val user = response.requireData<UserDto>(json)
+            sessionStore.updateUser(user)
+            ApiResult.Success(user)
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")
         }

@@ -10,19 +10,18 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -30,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,7 +50,7 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AvatarPickerSheet(
     visible: Boolean,
@@ -64,7 +64,6 @@ fun AvatarPickerSheet(
     if (!visible) return
     val columns = if (LocalConfiguration.current.screenWidthDp >= 400) 4 else 3
     val effectiveSelection = AvatarCatalog.normalizeKey(selectedKey ?: AvatarCatalog.DEFAULT_KEY)
-    val gridHeight = (LocalConfiguration.current.screenHeightDp * 0.34f).coerceIn(220f, 320f).dp
 
     DfModalBottomSheet(onDismissRequest = onDismiss) {
         DfSheetScaffold(
@@ -72,7 +71,7 @@ fun AvatarPickerSheet(
             subtitle = "یک تصویر برای پروفایل خود انتخاب کنید",
             icon = DfIcons.User,
             onClose = onDismiss,
-            scrollable = false,
+            scrollable = true,
             bodyHeightFraction = 0.78f,
             footer = {
                 DfSheetActions(
@@ -116,23 +115,16 @@ fun AvatarPickerSheet(
                 }
             }
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columns),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(gridHeight),
-                contentPadding = PaddingValues(
-                    top = AppSpacing.xs,
-                    bottom = AppSpacing.md,
-                ),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                maxItemsInEachRow = columns,
             ) {
-                items(AvatarCatalog.allKeys, key = { it }) { key ->
-                    val index = AvatarCatalog.allKeys.indexOf(key) + 1
+                AvatarCatalog.allKeys.forEachIndexed { index, key ->
                     AvatarPickerGridCell(
                         avatarKey = key,
-                        index = index,
+                        index = index + 1,
                         selected = key == effectiveSelection,
                         onClick = { onSelect(key) },
                     )
@@ -166,10 +158,17 @@ private fun AvatarPickerGridCell(
         label = "avatarCellScale",
     )
     val a11yLabel = "آواتار شماره $index، ${if (selected) "انتخاب‌شده" else "انتخاب نشده"}"
+    val interactionSource = remember { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
+            .sizeIn(minWidth = 80.dp, minHeight = 80.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            )
             .semantics {
                 role = Role.Button
                 contentDescription = a11yLabel
@@ -178,7 +177,6 @@ private fun AvatarPickerGridCell(
         contentAlignment = Alignment.Center,
     ) {
         Surface(
-            onClick = onClick,
             shape = CircleShape,
             color = if (selected) DfColors.Purple.copy(alpha = 0.08f) else Color.Transparent,
             border = if (selected) {
@@ -187,7 +185,7 @@ private fun AvatarPickerGridCell(
                 BorderStroke(1.dp, DfThemeColors.outlineSubtle().copy(alpha = 0.65f))
             },
             modifier = Modifier
-                .sizeIn(minWidth = 72.dp, minHeight = 72.dp)
+                .size(72.dp)
                 .padding(4.dp),
         ) {
             Box(
@@ -200,7 +198,7 @@ private fun AvatarPickerGridCell(
                     drawableRes = AvatarCatalog.drawableForKey(avatarKey),
                     size = AppAvatarSize.Picker,
                     selected = false,
-                    contentDescription = a11yLabel,
+                    contentDescription = null,
                     modifier = Modifier.graphicsLayer {
                         scaleX = scale
                         scaleY = scale

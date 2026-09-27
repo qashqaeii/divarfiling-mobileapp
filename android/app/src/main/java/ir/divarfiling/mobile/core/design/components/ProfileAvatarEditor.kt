@@ -1,6 +1,8 @@
 package ir.divarfiling.mobile.core.design.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,9 +64,17 @@ fun ProfileAvatarEditor(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        Box(contentAlignment = Alignment.BottomEnd) {
-            Surface(
+        val avatarInteraction = remember { MutableInteractionSource() }
+        Box(
+            modifier = Modifier.clickable(
+                interactionSource = avatarInteraction,
+                indication = null,
+                role = Role.Button,
                 onClick = onChangeAvatar,
+            ),
+            contentAlignment = Alignment.BottomEnd,
+        ) {
+            Surface(
                 shape = CircleShape,
                 color = Color.Transparent,
                 border = BorderStroke(
@@ -79,7 +90,6 @@ fun ProfileAvatarEditor(
                 )
             }
             Surface(
-                onClick = onChangeAvatar,
                 shape = CircleShape,
                 color = DfColors.Purple,
                 border = BorderStroke(2.dp, if (onSurface) DfThemeColors.surface() else Color.White),

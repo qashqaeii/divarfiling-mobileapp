@@ -27,14 +27,23 @@ object AvatarResolver {
         if (!contact.photoUrl.isNullOrBlank()) {
             return ResolvedAvatar(remoteUrl = contact.photoUrl)
         }
-        return presetOnly(AvatarCatalog.DEFAULT_KEY)
+        return ResolvedAvatar()
     }
 
     fun resolveContact(name: String?, photoUrl: String?): ResolvedAvatar {
         if (!photoUrl.isNullOrBlank()) {
             return ResolvedAvatar(remoteUrl = photoUrl)
         }
-        return presetOnly(AvatarCatalog.DEFAULT_KEY)
+        return ResolvedAvatar()
+    }
+
+    fun initialsFromName(name: String?): String {
+        val parts = name?.trim()?.split(Regex("\\s+"))?.filter { it.isNotBlank() } ?: emptyList()
+        return when {
+            parts.isEmpty() -> "?"
+            parts.size == 1 -> parts[0].take(1)
+            else -> "${parts[0].take(1)}${parts[1].take(1)}"
+        }
     }
 
     private fun presetOnly(key: String): ResolvedAvatar {

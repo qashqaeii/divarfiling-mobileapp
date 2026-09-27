@@ -81,6 +81,7 @@ fun AppContactAvatar(
         modifier = modifier,
         size = size,
         selected = selected,
+        placeholderInitials = AvatarResolver.initialsFromName(contact.fullName),
         contentDescription = contentDescription,
     )
 }

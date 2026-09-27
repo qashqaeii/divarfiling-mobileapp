@@ -77,15 +77,15 @@ fun SettingsScreen(
     AvatarPickerSheet(
         visible = state.showAvatarPicker,
         selectedKey = state.pendingAvatarKey,
-        canSave = viewModel.isAvatarPickerDirty(),
+        canSave = state.canSaveAvatarPicker,
         isSaving = state.isSavingAvatarKey,
         onSelect = viewModel::onPendingAvatarKeyChange,
-        onDismiss = { viewModel.toggleAvatarPicker(false) },
+        onDismiss = viewModel::dismissAvatarPicker,
         onSave = viewModel::saveAvatarKey,
     )
 
     ProfileEditSheet(
-        visible = state.showProfileSheet,
+        visible = state.showProfileSheet && !state.showAvatarPicker,
         fullName = state.editFullName,
         phone = state.editPhone,
         user = state.user,
@@ -93,7 +93,7 @@ fun SettingsScreen(
         isUploadingAvatar = state.isUploadingAvatar,
         onFullNameChange = viewModel::onEditFullNameChange,
         onPhoneChange = viewModel::onEditPhoneChange,
-        onPickAvatar = { viewModel.toggleAvatarPicker(true) },
+        onPickAvatar = { viewModel.openAvatarPicker(fromProfileEdit = true) },
         onPickGalleryAvatar = { avatarPicker.launch("image/*") },
         onRemoveAvatar = viewModel::removeAvatar,
         onDismiss = { viewModel.toggleProfileSheet(false) },
@@ -137,7 +137,7 @@ fun SettingsScreen(
                     SettingsHeroCard(
                         user = state.user,
                         onEditProfile = { viewModel.toggleProfileSheet(true) },
-                        onAvatarClick = { viewModel.toggleAvatarPicker(true) },
+                        onAvatarClick = { viewModel.openAvatarPicker() },
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
