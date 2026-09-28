@@ -198,7 +198,7 @@ private fun AvatarPickerGridCell(
                     drawableRes = AvatarCatalog.drawableForKey(avatarKey),
                     size = AppAvatarSize.Picker,
                     selected = false,
-                    contentDescription = null,
+                    contentDescription = "",
                     modifier = Modifier.graphicsLayer {
                         scaleX = scale
                         scaleY = scale
