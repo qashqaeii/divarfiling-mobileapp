@@ -27,11 +27,6 @@ object PropertyAmenityCatalog {
             "رفاهی و لوکس",
             listOf("روف گاردن", "سالن ورزش"),
         ),
-        PropertyAmenityGroup(
-            "conditions",
-            "شرایط و وضعیت",
-            listOf("سند", "مجوز ساخت"),
-        ),
     )
 
     val allLabels: Set<String> = groups.flatMap { it.labels }.toSet() + featureManaged
