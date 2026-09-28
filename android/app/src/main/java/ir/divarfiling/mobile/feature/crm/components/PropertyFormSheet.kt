@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -250,6 +251,16 @@ fun PropertyFormSheet(
                 singleLine = true,
                 enabled = !isSubmitting,
             )
+            OutlinedTextField(
+                value = form.postalCode,
+                onValueChange = { onFormChange(form.copy(postalCode = it)) },
+                label = { Text("کد پستی") },
+                placeholder = { Text("اختیاری") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = !isSubmitting,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
             PropertyMapLocationButton(
                 latitude = form.latitude,
                 longitude = form.longitude,
@@ -285,12 +296,23 @@ fun PropertyFormSheet(
                 OutlinedTextField(
                     value = form.area,
                     onValueChange = { onFormChange(form.copy(area = it)) },
-                    label = { Text("متراژ (متر)") },
+                    label = { Text("متراژ بنا (مترمربع)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     enabled = !isSubmitting,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
+                OutlinedTextField(
+                    value = form.landArea,
+                    onValueChange = { onFormChange(form.copy(landArea = it)) },
+                    label = { Text("متراژ زمین (مترمربع)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 OutlinedTextField(
                     value = form.rooms,
                     onValueChange = { onFormChange(form.copy(rooms = it)) },
@@ -298,6 +320,15 @@ fun PropertyFormSheet(
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     enabled = !isSubmitting,
+                )
+                OutlinedTextField(
+                    value = form.frontageWidth,
+                    onValueChange = { onFormChange(form.copy(frontageWidth = it)) },
+                    label = { Text("دهنه ملک (متر)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
@@ -327,6 +358,48 @@ fun PropertyFormSheet(
                 singleLine = true,
                 enabled = !isSubmitting,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+        }
+
+        DfSheetSection(title = "ویژگی‌های ملک") {
+            PropertyBoolSwitchRow(
+                label = "کمد دیواری",
+                checked = form.hasWardrobe,
+                enabled = !isSubmitting,
+                onCheckedChange = { onFormChange(form.copy(hasWardrobe = it)) },
+            )
+            PropertyBoolSwitchRow(
+                label = "دو نبش",
+                checked = form.hasTwoCorner,
+                enabled = !isSubmitting,
+                onCheckedChange = { onFormChange(form.copy(hasTwoCorner = it)) },
+            )
+            PropertyBoolSwitchRow(
+                label = "دو معبر",
+                checked = form.hasTwoAccess,
+                enabled = !isSubmitting,
+                onCheckedChange = { onFormChange(form.copy(hasTwoAccess = it)) },
+            )
+        }
+
+        DfSheetSection(title = "رفاهی و تزئینات") {
+            PropertyBoolSwitchRow(
+                label = "کاغذ دیواری",
+                checked = form.hasWallpaper,
+                enabled = !isSubmitting,
+                onCheckedChange = { onFormChange(form.copy(hasWallpaper = it)) },
+            )
+            PropertyBoolSwitchRow(
+                label = "کناف",
+                checked = form.hasKnauf,
+                enabled = !isSubmitting,
+                onCheckedChange = { onFormChange(form.copy(hasKnauf = it)) },
+            )
+            PropertyBoolSwitchRow(
+                label = "نورپردازی",
+                checked = form.hasLighting,
+                enabled = !isSubmitting,
+                onCheckedChange = { onFormChange(form.copy(hasLighting = it)) },
             )
         }
 
@@ -691,6 +764,29 @@ private fun PropertyChoiceChip(
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             color = if (selected) selectedColor else DfThemeColors.textSecondary(),
             textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun PropertyBoolSwitchRow(
+    label: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = AppTypography.labelSmall, fontWeight = FontWeight.Medium)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled,
         )
     }
 }

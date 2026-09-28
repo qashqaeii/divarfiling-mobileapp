@@ -93,6 +93,13 @@ fun PropertyLocationSection(
                 property.address?.takeIf { it.isNotBlank() }?.let { address ->
                     Text(address, style = AppTypography.labelSmall, color = DfColors.TextMuted)
                 }
+                property.postalCode?.takeIf { it.isNotBlank() }?.let { postal ->
+                    Text(
+                        "کد پستی: $postal",
+                        style = AppTypography.labelSmall,
+                        color = DfColors.TextMuted,
+                    )
+                }
                 if (hasCoords) {
                     ListingMiniMap(
                         latitude = lat!!,

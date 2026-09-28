@@ -302,6 +302,35 @@ fun PropertyDetailTabbedContent(
     }
 }
 
+private fun propertyLocationDossierRows(property: PropertyDto): List<Pair<String, String>> =
+    buildList {
+        property.city?.takeIf { it.isNotBlank() }?.let { add("شهر" to it) }
+        property.district?.takeIf { it.isNotBlank() }?.let { add("منطقه" to it) }
+        property.neighborhood?.takeIf { it.isNotBlank() }?.let { add("محله" to it) }
+        property.postalCode?.takeIf { it.isNotBlank() }?.let { add("کد پستی" to it) }
+        property.address?.takeIf { it.isNotBlank() }?.let { add("آدرس" to it) }
+    }
+
+private fun propertyFacadeType(property: PropertyDto): String? =
+    property.featureData["نمای ساختمان"]?.takeIf { it.isNotBlank() }
+
+private fun propertyBoolDetailLabel(enabled: Boolean): String? =
+    if (enabled) PropertyAmenityResolver.label(true) else null
+
+private fun propertyFeatureAmenityRows(property: PropertyDto): List<Pair<String, String>> =
+    buildList {
+        propertyBoolDetailLabel(property.hasWardrobe)?.let { add("کمد دیواری" to it) }
+        propertyBoolDetailLabel(property.hasTwoCorner)?.let { add("دو نبش" to it) }
+        propertyBoolDetailLabel(property.hasTwoAccess)?.let { add("دو معبر" to it) }
+    }
+
+private fun propertyDecorationDossierRows(property: PropertyDto): List<Pair<String, String>> =
+    buildList {
+        propertyBoolDetailLabel(property.hasWallpaper)?.let { add("کاغذ دیواری" to it) }
+        propertyBoolDetailLabel(property.hasKnauf)?.let { add("کناف" to it) }
+        propertyBoolDetailLabel(property.hasLighting)?.let { add("نورپردازی" to it) }
+    }
+
 private fun buildPropertyTabs(detail: PropertyDetailData): List<PropertyDetailTab> {
     val hasSpecs = detail.featureProfile?.hasDetails == true || detail.listingHighlights.isNotEmpty()
     return buildList {
@@ -623,22 +652,40 @@ private fun PropertyDossierPanel(
             },
         )
         PropertyDossierGroup(
+            title = "موقعیت",
+            icon = DfIcons.MapPin,
+            rows = propertyLocationDossierRows(property),
+        )
+        PropertyDossierGroup(
             title = "مشخصات فنی",
             iconRes = DfDecorIcons.Ruler,
             rows = buildList {
                 property.propertyType?.let { add("نوع ملک" to it) }
-                PropertyFilters.formatArea(property.area)?.let { add("متراژ" to it) }
+                PropertyFilters.formatArea(property.area)?.let { add("متراژ بنا" to it) }
+                PropertyFilters.formatArea(property.landArea)?.let { add("متراژ زمین" to it) }
+                PropertyFilters.formatArea(property.frontageWidth)?.let { add("دهنه ملک" to it) }
                 property.rooms?.takeIf { it.isNotBlank() }?.let { add("اتاق" to it) }
                 PropertyFilters.formatFloor(property.floor, property.totalFloors)?.let { add("طبقه" to it) }
                 property.buildYear?.let { add("سال ساخت" to it.toString()) }
+                propertyFacadeType(property)?.let { add("نمای ساختمان" to it) }
                 add("پارکینگ" to PropertyAmenityResolver.label(parking))
                 add("انباری" to PropertyAmenityResolver.label(storage))
                 add("آسانسور" to PropertyAmenityResolver.label(elevator))
             },
         )
+        PropertyDossierGroup(
+            title = "امکانات",
+            icon = DfIcons.Star,
+            rows = propertyFeatureAmenityRows(property),
+        )
+        PropertyDossierGroup(
+            title = "رفاهی و تزئینات",
+            icon = DfIcons.Sparkles,
+            rows = propertyDecorationDossierRows(property),
+        )
         property.amenities?.takeIf { it.isNotBlank() }?.let { amenities ->
             PropertyDossierGroup(
-                title = "امکانات",
+                title = "سایر امکانات",
                 icon = DfIcons.Star,
                 rows = listOf("توضیحات" to amenities),
             )

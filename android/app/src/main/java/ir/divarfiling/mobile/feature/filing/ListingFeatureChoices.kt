@@ -15,7 +15,7 @@ object ListingFeatureChoices {
     private val suitable = listOf("خانواده", "مجرد", "هر دو")
     private val cabinet = listOf("MDF", "های‌گلاس", "ممبران", "فلزی", "چوب", "سایر")
     private val deed = listOf("تک‌برگ", "قولنامه‌ای", "منگوله‌دار", "سایر")
-    private val facade = listOf("سنگ", "آجر", "سیمان", "کامپوزیت", "چوب", "شیشه", "سایر")
+    private val facade = listOf("سنگ", "آجر", "سیمان", "سرامیک", "کامپوزیت", "چوب", "شیشه", "سایر")
     private val occupancy = listOf("تخلیه", "در اختیار مالک", "در اختیار مستاجر")
     private val docStatus = listOf("آزاد", "در رهن", "وکالتی", "سایر")
     private val currentStatus = listOf("تخلیه", "فعال", "در حال بهره‌برداری", "نیاز به تعمیر", "سایر")
