@@ -11,8 +11,8 @@ data class PropertyAmenityGroup(
 
 object PropertyAmenityCatalog {
     private val featureManaged = setOf(
-        "بالکن", "استخر", "سونا", "جکوزی", "حیوان خانگی مجاز",
-        "بازسازی شده", "قابل معاوضه", "نگهبانی",
+        "بالکن", "استخر", "سونا", "جکوزی", "روف گاردن", "سالن ورزش",
+        "حیوان خانگی مجاز", "بازسازی شده", "قابل معاوضه", "نگهبانی",
     )
 
     val groups: List<PropertyAmenityGroup> = listOf(
@@ -21,11 +21,6 @@ object PropertyAmenityCatalog {
             "building",
             "امکانات ساختمان",
             listOf("تراس", "لابی", "آیفون تصویری", "درب ضدسرقت", "سرایداری", "آنتن مرکزی"),
-        ),
-        PropertyAmenityGroup(
-            "luxury",
-            "رفاهی و لوکس",
-            listOf("روف گاردن", "سالن ورزش"),
         ),
     )
 
