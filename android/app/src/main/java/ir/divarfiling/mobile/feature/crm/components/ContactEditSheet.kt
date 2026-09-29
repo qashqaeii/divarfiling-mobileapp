@@ -70,6 +70,7 @@ fun ContactEditSheet(
     phoneAlt: String = "",
     email: String = "",
     job: String = "",
+    gender: String? = null,
     companyName: String = "",
     nationalId: String = "",
     leaseDeadline: String = "",
@@ -91,6 +92,7 @@ fun ContactEditSheet(
     onPhoneAltChange: (String) -> Unit = {},
     onEmailChange: (String) -> Unit = {},
     onJobChange: (String) -> Unit = {},
+    onGenderChange: (String?) -> Unit = {},
     onCompanyNameChange: (String) -> Unit = {},
     onNationalIdChange: (String) -> Unit = {},
     onLeaseDeadlineChange: (String) -> Unit = {},
@@ -184,6 +186,12 @@ fun ContactEditSheet(
                 leadingIcon = {
                     Icon(DfIcons.Phone, contentDescription = null, tint = DfThemeColors.textMuted())
                 },
+            )
+            ContactGenderSelectorSection(
+                selectedGender = gender,
+                customerType = selectedType,
+                enabled = !isSubmitting,
+                onGenderChange = onGenderChange,
             )
             OutlinedTextField(
                 value = phoneAlt,

@@ -59,6 +59,7 @@ data class ContactDetailUiState(
     val editPhoneAlt: String = "",
     val editEmail: String = "",
     val editJob: String = "",
+    val editGender: String? = null,
     val editCompanyName: String = "",
     val editNationalId: String = "",
     val editLeaseDeadline: String = "",
@@ -149,6 +150,7 @@ class ContactDetailViewModel @Inject constructor(
                             editPhoneAlt = editFields.editPhoneAlt,
                             editEmail = editFields.editEmail,
                             editJob = editFields.editJob,
+                            editGender = editFields.editGender,
                             editCompanyName = editFields.editCompanyName,
                             editNationalId = editFields.editNationalId,
                             editLeaseDeadline = editFields.editLeaseDeadline,
@@ -392,6 +394,7 @@ class ContactDetailViewModel @Inject constructor(
                     district = prefs.district.ifBlank { "" },
                     email = state.editEmail.trim().ifBlank { "" },
                     job = state.editJob.trim(),
+                    gender = state.editGender?.ifBlank { null },
                     companyName = state.editCompanyName.trim(),
                     nationalId = state.editNationalId.trim(),
                     leaseDeadline = state.editLeaseDeadline.trim(),
@@ -814,6 +817,7 @@ class ContactDetailViewModel @Inject constructor(
                     editPhoneAlt = editFields.editPhoneAlt,
                     editEmail = editFields.editEmail,
                     editJob = editFields.editJob,
+                    editGender = editFields.editGender,
                     editCompanyName = editFields.editCompanyName,
                     editNationalId = editFields.editNationalId,
                     editLeaseDeadline = editFields.editLeaseDeadline,
@@ -844,6 +848,7 @@ class ContactDetailViewModel @Inject constructor(
             state.editPhoneAlt != contact.phoneAlt.orEmpty() ||
             state.editEmail != contact.email.orEmpty() ||
             state.editJob != contact.job.orEmpty() ||
+            state.editGender != contact.gender ||
             state.editCompanyName != contact.companyName.orEmpty() ||
             state.editNationalId != contact.nationalId.orEmpty() ||
             state.editLeaseDeadline != DateUtils.formatJalaliDate(contact.leaseDeadline).orEmpty() ||
@@ -926,6 +931,7 @@ class ContactDetailViewModel @Inject constructor(
     fun onEditPhoneAltChange(v: String) = _uiState.update { it.copy(editPhoneAlt = v) }
     fun onEditEmailChange(v: String) = _uiState.update { it.copy(editEmail = v) }
     fun onEditJobChange(v: String) = _uiState.update { it.copy(editJob = v) }
+    fun onEditGenderChange(v: String?) = _uiState.update { it.copy(editGender = v) }
     fun onEditCompanyNameChange(v: String) = _uiState.update { it.copy(editCompanyName = v) }
     fun onEditNationalIdChange(v: String) = _uiState.update { it.copy(editNationalId = v) }
     fun onEditLeaseDeadlineChange(v: String) = _uiState.update { it.copy(editLeaseDeadline = v) }
@@ -1152,6 +1158,7 @@ private data class ContactEditFieldsSnapshot(
     val editPhoneAlt: String,
     val editEmail: String,
     val editJob: String,
+    val editGender: String?,
     val editCompanyName: String,
     val editNationalId: String,
     val editLeaseDeadline: String,
@@ -1174,6 +1181,7 @@ private fun editFieldsFromContact(contact: ContactDto): ContactEditFieldsSnapsho
     editPhoneAlt = contact.phoneAlt.orEmpty(),
     editEmail = contact.email.orEmpty(),
     editJob = contact.job.orEmpty(),
+    editGender = contact.gender,
     editCompanyName = contact.companyName.orEmpty(),
     editNationalId = contact.nationalId.orEmpty(),
     editLeaseDeadline = DateUtils.formatJalaliDate(contact.leaseDeadline).orEmpty(),

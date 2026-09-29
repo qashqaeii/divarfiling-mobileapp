@@ -683,3 +683,25 @@ fun ContactMatchingToleranceSlider(
         )
     }
 }
+
+@Composable
+fun ContactGenderSelectorSection(
+    selectedGender: String?,
+    customerType: String,
+    enabled: Boolean,
+    onGenderChange: (String?) -> Unit,
+) {
+    if (customerType == "اشخاص حقوقی") return
+    val selected = selectedGender.orEmpty()
+    DfSheetSection(title = "جنسیت") {
+        DfFilterChipRow(
+            options = listOf(
+                DfFilterOption("", "مشخص نشده"),
+                DfFilterOption("female", "خانم"),
+                DfFilterOption("male", "آقا"),
+            ),
+            selected = selected,
+            onSelect = { choice -> onGenderChange(choice.ifBlank { null }) },
+        )
+    }
+}

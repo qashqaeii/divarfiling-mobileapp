@@ -149,6 +149,31 @@ fun ContactDetailHero(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    contact.gender?.takeIf { it.isNotBlank() && contact.customerType != "اشخاص حقوقی" }?.let { gender ->
+                        val label = when (gender) {
+                            "female" -> "خانم"
+                            "male" -> "آقا"
+                            else -> null
+                        }
+                        if (label != null) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = if (gender == "female") DfIcons.User else DfIcons.User,
+                                    contentDescription = label,
+                                    tint = DfThemeColors.textMuted(),
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Text(
+                                    text = label,
+                                    style = AppTypography.labelSmall,
+                                    color = DfThemeColors.textMuted(),
+                                )
+                            }
+                        }
+                    }
                     contact.phone?.let { phone ->
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
