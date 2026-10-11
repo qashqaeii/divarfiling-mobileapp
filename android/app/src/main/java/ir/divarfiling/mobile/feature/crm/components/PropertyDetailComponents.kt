@@ -190,6 +190,7 @@ fun propertyDetailImageUrls(property: PropertyDto): List<String> {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PropertyDetailMediaHeader(
     property: PropertyDto,
