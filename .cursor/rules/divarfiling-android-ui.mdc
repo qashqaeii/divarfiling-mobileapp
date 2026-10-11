@@ -1,0 +1,14 @@
+---
+description: Core UI/UX constraints and project skills for native Divar Filing Android app
+alwaysApply: true
+---
+
+# Divar Filing Android — light project rule
+- پاسخ به کاربر فارسی، صریح و مختصر؛ اصطلاحات فنی انگلیسی با توضیح فارسی در صورت نیاز.
+- این پروژه Kotlin + Jetpack Compose + Material3 است؛ ابتدا `.cursor/skills/android-ui-ux-master/SKILL.md` را در درخواست‌های redesign/UI/UX بخوان و فقط اسکیل‌های موضوعی لازم را فعال کن.
+- ۸ اسکیل رسمی این پکیج در `.cursor/skills/` هستند؛ طبق آن‌ها تغییر بده؛ هیچ اسکیل جایگزین موازی نساز.
+- Style = Bold Premium، رنگ برند `#5B4FCF`، فونت Vazirmatn، RTL/Persian و light/dark محفوظ؛ تغییر پالت/هویت صرفاً با اجازه.
+- حفظ API Django، repository/viewmodel، models، license، sync، extraction، payment، navigation و رفتار موجود؛ redesign در وهله اول UI/UX باشد.
+- مرورگر را بدون اجازه باز نکن؛ بدون تأیید push/deploy/release یا تغییر پکیج/وابستگی انجام نده.
+- مراحل کوچک و قابل تست؛ Audit فقط روی screen مرتبط؛ قبل از ساخت کامپوننت جدید `core/design/components/` را بررسی کن.
+- در پایان هر slice: فایل‌ها، اثر UX، تست واقعاً اجراشده/اجرانشده و ریسک باقی‌مانده را کوتاه بنویس.
