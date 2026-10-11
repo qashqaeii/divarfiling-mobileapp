@@ -103,13 +103,13 @@ fun DfBottomNavigation(
                 if (item.isCenter) {
                     DfCenterNavItem(
                         item = item,
-                        selected = selectedRoute == item.route,
+                        isSelected = selectedRoute == item.route,
                         onClick = { onItemClick(item.route) },
                     )
                 } else {
                     DfSideNavItem(
                         item = item,
-                        selected = selectedRoute == item.route,
+                        isSelected = selectedRoute == item.route,
                         onClick = { onItemClick(item.route) },
                     )
                 }
@@ -121,11 +121,11 @@ fun DfBottomNavigation(
 @Composable
 private fun DfCenterNavItem(
     item: DfNavItem,
-    selected: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1.04f else 1f,
+        targetValue = if (isSelected) 1.04f else 1f,
         animationSpec = DfAnimation.springSnappy(),
         label = "centerNavScale",
     )
@@ -142,11 +142,11 @@ private fun DfCenterNavItem(
                 .size(DfComponentSpec.MinTouchTargetDp.dp)
                 .semantics {
                     role = Role.Tab
-                    selected = selected
+                    selected = isSelected
                     contentDescription = item.label
                 }
                 .shadow(
-                    elevation = if (selected) AppElevations.raised else AppElevations.subtle,
+                    elevation = if (isSelected) AppElevations.raised else AppElevations.subtle,
                     shape = CircleShape,
                     ambientColor = DfThemeColors.primary().copy(alpha = 0.18f),
                 )
@@ -181,8 +181,8 @@ private fun DfCenterNavItem(
         Text(
             text = item.label,
             style = AppTypography.bottomNav,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) DfThemeColors.primary() else DfThemeColors.textMuted(),
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (isSelected) DfThemeColors.primary() else DfThemeColors.textMuted(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -196,10 +196,10 @@ private fun DfCenterNavItem(
 @Composable
 private fun DfSideNavItem(
     item: DfNavItem,
-    selected: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val tint = if (selected) DfThemeColors.primary() else DfThemeColors.textMuted()
+    val tint = if (isSelected) DfThemeColors.primary() else DfThemeColors.textMuted()
     val tabLabel = item.badge?.takeIf { it > 0 }?.let { count ->
         "${item.label}، ${if (count > 9) "9+" else count} اعلان"
     } ?: item.label
@@ -211,7 +211,7 @@ private fun DfSideNavItem(
             .clip(AppShapes.Chip)
             .semantics {
                 role = Role.Tab
-                selected = selected
+                selected = isSelected
                 contentDescription = tabLabel
             }
             .clickable(
@@ -222,7 +222,7 @@ private fun DfSideNavItem(
             .padding(horizontal = AppSpacing.xxs, vertical = AppSpacing.xxs),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            if (selected) {
+            if (isSelected) {
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -235,7 +235,7 @@ private fun DfSideNavItem(
                     resId = item.iconRes,
                     size = DfDecorSize.NavSide,
                     contentDescription = item.label,
-                    alpha = if (selected) 1f else 0.5f,
+                    alpha = if (isSelected) 1f else 0.5f,
                 )
             } else {
                 Icon(
@@ -268,7 +268,7 @@ private fun DfSideNavItem(
         Text(
             text = item.label,
             style = AppTypography.bottomNav,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
             color = tint,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
