@@ -717,7 +717,7 @@ private fun InsightStat(
     Column(
         modifier = modifier
             .clip(AppShapes.CardSmall)
-            .background(DfThemeColors.surface()Variant.copy(alpha = 0.35f))
+            .background(DfThemeColors.surfaceVariant().copy(alpha = 0.35f))
             .padding(horizontal = AppSpacing.xs, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -1008,7 +1008,7 @@ private fun SelectionMark(selected: Boolean) {
         modifier = Modifier
             .size(26.dp)
             .clip(CircleShape)
-            .background(if (selected) DfThemeColors.primary() else DfThemeColors.surface()Variant),
+            .background(if (selected) DfThemeColors.primary() else DfThemeColors.surfaceVariant()),
         contentAlignment = Alignment.Center,
     ) {
         if (selected) {
@@ -1183,7 +1183,7 @@ private fun ColumnScope.TemplateQuickPicker(
                     Surface(
                         onClick = { if (!isSubmitting) onApplyTemplate(template) },
                         shape = AppShapes.CardSmall,
-                        color = DfThemeColors.surface()Variant.copy(alpha = 0.55f),
+                        color = DfThemeColors.surfaceVariant().copy(alpha = 0.55f),
                         border = BorderStroke(1.dp, DfThemeColors.outline().copy(alpha = 0.35f)),
                     ) {
                         Column(
