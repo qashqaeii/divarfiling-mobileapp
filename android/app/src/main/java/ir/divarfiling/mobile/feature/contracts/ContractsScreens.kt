@@ -330,6 +330,7 @@ private fun ContractListCard(
             }
         }
     }
+    }
 }
 
 private fun contractStatusColors(statusLabel: String): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> {
