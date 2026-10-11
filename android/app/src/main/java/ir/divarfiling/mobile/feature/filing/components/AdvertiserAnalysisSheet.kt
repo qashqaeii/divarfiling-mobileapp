@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
@@ -65,14 +65,14 @@ fun AdvertiserAnalysisSheet(
                 },
                 style = AppTypography.bodyDescription,
                 fontWeight = FontWeight.Bold,
-                color = DfColors.TextPrimary,
+                color = DfThemeColors.textPrimary(),
             )
 
             if (analysis.summary.isNotBlank()) {
                 Text(
                     text = analysis.summary,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextSecondary,
+                    color = DfThemeColors.textSecondary(),
                     fontWeight = FontWeight.Normal,
                     lineHeight = AppTypography.labelSmall.fontSize * 1.5,
                     maxLines = 4,
@@ -114,11 +114,11 @@ private fun FeedbackSection(
             .padding(top = AppSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.35f))
+        HorizontalDivider(color = DfThemeColors.outlineSubtle())
         Text(
             text = "درست بود؟",
             style = AppTypography.labelSmall,
-            color = DfColors.TextMuted,
+            color = DfThemeColors.textMuted(),
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
@@ -191,10 +191,10 @@ private fun FeedbackActionButton(
         onClick = onClick,
         modifier = modifier,
         shape = AppShapes.Card,
-        color = if (selected) DfColors.PurpleContainer else DfColors.Surface,
+        color = if (selected) DfThemeColors.primaryContainer() else DfThemeColors.surface(),
         border = BorderStroke(
             1.dp,
-            if (selected) DfColors.Purple.copy(alpha = 0.45f) else DfColors.Outline.copy(alpha = 0.5f),
+            if (selected) DfThemeColors.primary().copy(alpha = 0.45f) else DfThemeColors.outlineSubtle(),
         ),
     ) {
         Text(
@@ -204,7 +204,7 @@ private fun FeedbackActionButton(
                 .padding(vertical = 12.dp),
             style = AppTypography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = if (selected) DfColors.PurpleDark else DfColors.TextPrimary,
+            color = if (selected) DfThemeColors.onPrimaryContainer() else DfThemeColors.textPrimary(),
             textAlign = TextAlign.Center,
             maxLines = 1,
         )
@@ -225,10 +225,10 @@ private fun CorrectionChip(
         onClick = { onSelect(value) },
         modifier = modifier,
         shape = AppShapes.Chip,
-        color = if (isSelected) DfColors.PurpleContainer else DfColors.SurfaceVariant,
+        color = if (isSelected) DfThemeColors.primaryContainer() else DfThemeColors.surfaceVariant(),
         border = BorderStroke(
             1.dp,
-            if (isSelected) DfColors.Purple.copy(alpha = 0.4f) else DfColors.Outline.copy(alpha = 0.35f),
+            if (isSelected) DfThemeColors.primary().copy(alpha = 0.4f) else DfThemeColors.outlineSubtle(),
         ),
     ) {
         Text(
@@ -238,7 +238,7 @@ private fun CorrectionChip(
                 .padding(vertical = 8.dp),
             style = AppTypography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = if (isSelected) DfColors.PurpleDark else DfColors.TextSecondary,
+            color = if (isSelected) DfThemeColors.onPrimaryContainer() else DfThemeColors.textSecondary(),
             textAlign = TextAlign.Center,
             maxLines = 1,
         )

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -79,7 +80,9 @@ private fun QuickActionItem(
             color = DfThemeColors.surface(),
             border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
             shadowElevation = AppElevations.subtle,
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier
+                .size(64.dp)
+                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
         ) {
             Box(
                 contentAlignment = Alignment.Center,

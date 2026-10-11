@@ -36,7 +36,9 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfComponentSpec
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import androidx.compose.foundation.layout.defaultMinSize
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 import ir.divarfiling.mobile.core.design.components.DfListingImage
@@ -61,7 +63,7 @@ fun FilingListingCard(
 ) {
     val advertiserBadge = ListingAdvertiserUtils.badgeStyle(listing)
     val txLabel = ListingPriceUtils.transactionLabel(listing)
-    val txColor = if (ListingPriceUtils.isRental(listing)) DfColors.Blue else DfColors.Pink
+    val txColor = if (ListingPriceUtils.isRental(listing)) DfThemeColors.info() else DfThemeColors.primary()
     val location = listOfNotNull(listing.district, listing.city).filter { it.isNotBlank() }.joinToString("، ")
     val amenities = ListingAmenityUtils.buildAmenities(listing)
     val primaryPrice = ListingPriceUtils.primaryPriceLine(listing)
@@ -123,7 +125,7 @@ fun FilingListingCard(
                     datasetLabel?.takeIf { it.isNotBlank() }?.let {
                         ListingGlassTag(
                             text = it,
-                            accent = DfColors.PurpleDark,
+                            accent = DfThemeColors.onPrimaryContainer(),
                         )
                     }
                     valuePresentation?.let { value ->
@@ -135,13 +137,13 @@ fun FilingListingCard(
                     if (listing.isAddedToPersonal) {
                         ListingGlassTag(
                             text = "به فایل‌های شخصی اضافه شده",
-                            accent = DfColors.Green,
+                            accent = DfThemeColors.success(),
                         )
                     }
                     if (ListingRetentionUtils.isWarning(listing.retention)) {
                         ListingGlassTag(
                             text = ListingRetentionUtils.badgeText(listing.retention?.daysRemaining),
-                            accent = DfColors.Amber,
+                            accent = DfThemeColors.warning(),
                         )
                     }
                 }
@@ -446,7 +448,8 @@ private fun ListingActionButton(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 11.dp),
+                .defaultMinSize(minHeight = DfComponentSpec.MinTouchTargetDp.dp)
+                .padding(vertical = 10.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {

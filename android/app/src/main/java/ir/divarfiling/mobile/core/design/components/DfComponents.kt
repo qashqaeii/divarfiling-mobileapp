@@ -39,6 +39,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -124,13 +127,13 @@ fun DfTopBar(
 fun DfCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    containerColor: Color = DfColors.Surface,
+    containerColor: Color? = null,
     content: @Composable () -> Unit,
 ) {
     DfPremiumCard(
         modifier = modifier,
         onClick = onClick,
-        containerColor = containerColor,
+        containerColor = containerColor ?: DfThemeColors.surface(),
         content = content,
     )
 }
@@ -214,7 +217,7 @@ fun DfSecondaryButton(
                 text,
                 style = AppTypography.button,
                 fontWeight = FontWeight.SemiBold,
-                color = DfColors.TextPrimary,
+                color = DfThemeColors.textPrimary(),
             )
         }
     }
@@ -247,7 +250,7 @@ fun DfDestructiveButton(
         if (loading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(22.dp),
-                color = DfColors.Rose,
+                color = DfThemeColors.error(),
                 strokeWidth = 2.dp,
             )
         } else {
@@ -255,7 +258,7 @@ fun DfDestructiveButton(
                 text,
                 style = AppTypography.button,
                 fontWeight = FontWeight.SemiBold,
-                color = DfColors.Rose,
+                color = DfThemeColors.error(),
             )
         }
     }
@@ -579,6 +582,10 @@ fun DfFab(
                 variant = DfGlassButtonVariant.Primary,
                 elevation = AppElevations.floating,
             )
+            .semantics {
+                this.contentDescription = contentDescription
+                role = androidx.compose.ui.semantics.Role.Button
+            }
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -635,7 +642,7 @@ fun DfActionButton(
     val variant = if (filled) DfGlassButtonVariant.Primary else DfGlassButtonVariant.Secondary
     val labelColor = when (variant) {
         DfGlassButtonVariant.Primary -> Color.White
-        else -> DfColors.TextPrimary
+        else -> DfThemeColors.textPrimary()
     }
     val iconTint = when (variant) {
         DfGlassButtonVariant.Primary -> Color.White
@@ -643,7 +650,7 @@ fun DfActionButton(
     }
     Row(
         modifier = modifier
-            .defaultMinSize(minHeight = 42.dp)
+            .defaultMinSize(minHeight = DfComponentSpec.MinTouchTargetDp.dp)
             .liquidGlassSurface(
                 shape = AppShapes.GlassSmall,
                 variant = variant,

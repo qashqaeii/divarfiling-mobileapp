@@ -78,10 +78,18 @@ import ir.divarfiling.mobile.feature.filing.components.FilingDatasetFilters
 import ir.divarfiling.mobile.feature.filing.components.FilingDatasetsSection
 import ir.divarfiling.mobile.feature.filing.components.FilingExtractFab
 import ir.divarfiling.mobile.feature.filing.components.FilingHubHeader
+import ir.divarfiling.mobile.feature.filing.components.FilingStatsRow
 import ir.divarfiling.mobile.feature.filing.components.FilingSearchFilterPanel
 import ir.divarfiling.mobile.feature.filing.components.ListingsActiveFilterChips
 import ir.divarfiling.mobile.feature.filing.components.ListingsSearchFilterPanel
 import ir.divarfiling.mobile.feature.filing.components.SavedFiltersChipRow
+
+private data class FilingHubStats(
+    val totalAds: Int,
+    val filesCount: Int,
+    val estimatedSizeGb: Double,
+    val datasetsThisMonth: Int,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,6 +108,16 @@ fun DatasetsScreen(
     var cityFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_CITIES) }
     var transactionFilter by remember { mutableStateOf(FilingDatasetFilters.ALL_TRANSACTIONS) }
     var favoriteIds by remember { mutableStateOf(setOf<String>()) }
+
+    val filingHubStats = remember(state.datasets) {
+        val totalAds = FilingDatasetFilters.totalAds(state.datasets)
+        FilingHubStats(
+            totalAds = totalAds,
+            filesCount = state.datasets.size,
+            estimatedSizeGb = FilingDatasetFilters.estimatedSizeGb(totalAds),
+            datasetsThisMonth = FilingDatasetFilters.datasetsThisMonth(state.datasets),
+        )
+    }
 
     val filteredDatasets = remember(
         state.datasets,
@@ -163,6 +181,16 @@ fun DatasetsScreen(
                         onNotificationsClick = onNavigateNotifications,
                         onMenuClick = onNavigateSettings,
                     )
+                }
+                if (!state.isLoading || state.datasets.isNotEmpty()) {
+                    item {
+                        FilingStatsRow(
+                            totalAds = filingHubStats.totalAds,
+                            filesCount = filingHubStats.filesCount,
+                            estimatedSizeGb = filingHubStats.estimatedSizeGb,
+                            datasetsThisMonth = filingHubStats.datasetsThisMonth,
+                        )
+                    }
                 }
                 item {
                     FilingSearchFilterPanel(

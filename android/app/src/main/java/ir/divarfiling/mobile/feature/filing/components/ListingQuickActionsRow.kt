@@ -36,7 +36,11 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfComponentSpec
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.defaultMinSize
 import ir.divarfiling.mobile.core.design.components.DfMoreAction
 import ir.divarfiling.mobile.core.design.components.DfMoreActionsSheet
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
@@ -60,29 +64,29 @@ fun ListingQuickActionsRow(
         QuickActionSpec(
             label = "ارسال",
             icon = DfIcons.UserPlus,
-            tint = DfColors.Purple,
-            background = DfColors.PurpleContainer,
+            tint = DfThemeColors.primary(),
+            background = DfThemeColors.primaryContainer(),
             onClick = onSendToContact,
         ),
         QuickActionSpec(
             label = "اشتراک",
             icon = DfIcons.Share2,
-            tint = DfColors.TextSecondary,
-            background = DfColors.SurfaceVariant,
+            tint = DfThemeColors.textSecondary(),
+            background = DfThemeColors.surfaceVariant(),
             onClick = onShare,
         ),
         QuickActionSpec(
             label = "تلفن مالک",
             icon = DfIcons.Phone,
-            tint = DfColors.TextSecondary,
-            background = DfColors.SurfaceVariant,
+            tint = DfThemeColors.textSecondary(),
+            background = DfThemeColors.surfaceVariant(),
             onClick = onOwnerPhone,
         ),
         QuickActionSpec(
             label = "بیشتر",
             icon = DfIcons.MoreVertical,
-            tint = DfColors.TextSecondary,
-            background = DfColors.SurfaceVariant,
+            tint = DfThemeColors.textSecondary(),
+            background = DfThemeColors.surfaceVariant(),
             onClick = { showMore = true },
         ),
     )
@@ -100,7 +104,8 @@ fun ListingQuickActionsRow(
             .fillMaxWidth()
             .padding(horizontal = AppSpacing.screenHorizontal),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.subtle,
     ) {
         Row(
@@ -163,7 +168,12 @@ private fun ListingQuickActionButton(
             shape = CircleShape,
             color = background,
             shadowElevation = 0.dp,
-            modifier = Modifier.size(44.dp),
+            modifier = Modifier
+                .size(48.dp)
+                .defaultMinSize(
+                    minWidth = DfComponentSpec.MinTouchTargetDp.dp,
+                    minHeight = DfComponentSpec.MinTouchTargetDp.dp,
+                ),
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -195,7 +205,7 @@ private fun ListingQuickActionButton(
             text = label,
             style = AppTypography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = DfColors.TextPrimary,
+            color = DfThemeColors.textPrimary(),
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

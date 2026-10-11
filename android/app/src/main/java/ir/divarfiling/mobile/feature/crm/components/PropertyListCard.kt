@@ -97,8 +97,8 @@ fun PropertyListCard(
                         property.propertyType?.let {
                             PropertyBadge(
                                 text = it,
-                                color = DfColors.TextSecondary,
-                                bg = DfColors.SurfaceVariant,
+                                color = DfThemeColors.textSecondary(),
+                                bg = DfThemeColors.surfaceVariant(),
                             )
                         }
                         if (onDuplicate != null) {
@@ -109,7 +109,7 @@ fun PropertyListCard(
                                 Icon(
                                     imageVector = DfIcons.ClipboardList,
                                     contentDescription = "کپی فایل",
-                                    tint = DfColors.TextSecondary,
+                                    tint = DfThemeColors.textSecondary(),
                                     modifier = Modifier.size(16.dp),
                                 )
                             }

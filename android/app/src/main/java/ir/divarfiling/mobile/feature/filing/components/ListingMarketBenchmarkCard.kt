@@ -48,7 +48,7 @@ fun ListingMarketBenchmarkCard(
         ListingMarketTier.Under -> DfThemeColors.successContainer()
         ListingMarketTier.Over -> DfThemeColors.errorContainer()
         ListingMarketTier.Fair -> DfThemeColors.warningContainer()
-        ListingMarketTier.Unknown -> DfColors.SurfaceVariant
+        ListingMarketTier.Unknown -> DfThemeColors.surfaceVariant()
     }
     val icon = when (presentation.tier) {
         ListingMarketTier.Under -> DfIcons.TrendingDown

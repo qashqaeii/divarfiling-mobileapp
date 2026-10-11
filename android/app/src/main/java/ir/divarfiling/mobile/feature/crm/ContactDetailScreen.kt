@@ -616,15 +616,21 @@ private fun performContactNba(
     }
 }
 
+@Composable
 private fun buildVisibleContactActions(
     contact: ir.divarfiling.mobile.core.network.ContactDto,
     context: android.content.Context,
     viewModel: ContactDetailViewModel,
     haptics: DfHapticPerformer,
     onOpenSmartMessage: () -> Unit,
-): List<ContactQuickActionItem> = buildList {
+): List<ContactQuickActionItem> {
+    val info = DfThemeColors.info()
+    val success = DfThemeColors.success()
+    val primary = DfThemeColors.primary()
+    val error = DfThemeColors.error()
+    return buildList {
     add(
-        ContactQuickActionItem("تماس", DfColors.Blue, icon = DfIcons.Phone) {
+        ContactQuickActionItem("تماس", info, icon = DfIcons.Phone) {
             contact.phone?.let { phone ->
                 haptics.tick()
                 context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
@@ -633,7 +639,7 @@ private fun buildVisibleContactActions(
         },
     )
     add(
-        ContactQuickActionItem("واتساپ", DfColors.Green, iconRes = R.drawable.ic_whatsapp) {
+        ContactQuickActionItem("واتساپ", success, iconRes = R.drawable.ic_whatsapp) {
             contact.phone?.let { phone ->
                 haptics.tick()
                 DossierShareActions.openWhatsApp(context, "سلام", phone)
@@ -642,28 +648,30 @@ private fun buildVisibleContactActions(
         },
     )
     add(
-        ContactQuickActionItem("پیام هوشمند", DfColors.Purple, icon = DfIcons.MessageSquare) {
+        ContactQuickActionItem("پیام هوشمند", primary, icon = DfIcons.MessageSquare) {
             haptics.tick()
             onOpenSmartMessage()
         },
     )
     if (CrmConstants.isMatchEligible(contact.customerType)) {
         add(
-            ContactQuickActionItem("پیشنهادها", DfColors.Purple, icon = DfIcons.Sparkles) {
+            ContactQuickActionItem("پیشنهادها", primary, icon = DfIcons.Sparkles) {
                 haptics.tick()
                 viewModel.toggleMatchesSheet(true)
             },
         )
     } else {
         add(
-            ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
+            ContactQuickActionItem("یادآور", error, icon = DfIcons.Bell) {
                 haptics.tick()
                 viewModel.toggleReminderDialog(true)
             },
         )
     }
+    }
 }
 
+@Composable
 private fun buildMoreContactActions(
     contact: ir.divarfiling.mobile.core.network.ContactDto,
     agencySpace: ir.divarfiling.mobile.core.network.AgencySpaceSourceContextDto?,
@@ -671,51 +679,59 @@ private fun buildMoreContactActions(
     viewModel: ContactDetailViewModel,
     pickDocument: (String) -> Unit,
     onCreateDeal: () -> Unit,
-): List<ContactQuickActionItem> = buildList {
+): List<ContactQuickActionItem> {
+    val info = DfThemeColors.info()
+    val success = DfThemeColors.success()
+    val primary = DfThemeColors.primary()
+    val error = DfThemeColors.error()
+    val warning = DfThemeColors.warning()
+    val muted = DfThemeColors.textSecondary()
+    return buildList {
     agencySpace?.takeIf { it.agencySpaceEnabled && (it.canPublish || it.activeItemId != null) }?.let {
-        add(ContactQuickActionItem("فضای آژانس", DfColors.Purple, icon = DfIcons.Layers) {
+        add(ContactQuickActionItem("فضای آژانس", primary, icon = DfIcons.Layers) {
             viewModel.toggleAgencySpaceSheet(true)
         })
     }
-    add(ContactQuickActionItem("معامله جدید", DfColors.Purple, icon = DfIcons.Handshake) {
+    add(ContactQuickActionItem("معامله جدید", primary, icon = DfIcons.Handshake) {
         onCreateDeal()
     })
-    add(ContactQuickActionItem("ارسال فایل", DfColors.Blue, icon = DfIcons.Share2) {
+    add(ContactQuickActionItem("ارسال فایل", info, icon = DfIcons.Share2) {
         viewModel.toggleSendFilingSheet(true)
     })
     if (CrmConstants.isMatchEligible(contact.customerType)) {
-        add(ContactQuickActionItem("یادآور", DfColors.Rose, icon = DfIcons.Bell) {
+        add(ContactQuickActionItem("یادآور", error, icon = DfIcons.Bell) {
             viewModel.toggleReminderDialog(true)
         })
     }
-    add(ContactQuickActionItem("بله", DfColors.Blue, icon = DfIcons.Share2) {
+    add(ContactQuickActionItem("بله", info, icon = DfIcons.Share2) {
         contact.phone?.let {
             DossierShareActions.openBale(context, "سلام")
             viewModel.logActivity("بله", "پیام بله")
         }
     })
-    add(ContactQuickActionItem("پیامک", DfColors.Amber, icon = DfIcons.MessageCircle) {
+    add(ContactQuickActionItem("پیامک", warning, icon = DfIcons.MessageCircle) {
         contact.phone?.let { phone ->
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("smsto:$phone")))
             viewModel.logActivity("پیامک", "ارسال پیامک")
         }
     })
-    add(ContactQuickActionItem("یادداشت", DfColors.Purple, icon = DfIcons.StickyNote) {
+    add(ContactQuickActionItem("یادداشت", primary, icon = DfIcons.StickyNote) {
         viewModel.toggleNoteDialog(true)
     })
-    add(ContactQuickActionItem("تخصیص", DfColors.Blue, icon = DfIcons.UserPlus) {
+    add(ContactQuickActionItem("تخصیص", info, icon = DfIcons.UserPlus) {
         viewModel.openTeamAssign("assign")
     })
-    add(ContactQuickActionItem("انتقال", DfColors.Amber, icon = DfIcons.ArrowRight) {
+    add(ContactQuickActionItem("انتقال", warning, icon = DfIcons.ArrowRight) {
         viewModel.openTeamAssign("transfer")
     })
-    add(ContactQuickActionItem("مدرک", DfColors.TextSecondary, icon = DfIcons.Paperclip) {
+    add(ContactQuickActionItem("مدرک", muted, icon = DfIcons.Paperclip) {
         pickDocument("*/*")
     })
-    add(ContactQuickActionItem("بازدید", DfColors.Green, icon = DfIcons.MapPin) {
+    add(ContactQuickActionItem("بازدید", success, icon = DfIcons.MapPin) {
         viewModel.openActivitySheet(type = "بازدید")
     })
-    add(ContactQuickActionItem("فعالیت", DfColors.Blue, icon = DfIcons.ClipboardList) {
+    add(ContactQuickActionItem("فعالیت", info, icon = DfIcons.ClipboardList) {
         viewModel.openActivitySheet()
     })
+    }
 }

@@ -1,6 +1,8 @@
 package ir.divarfiling.mobile.feature.filing.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -26,11 +28,15 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.HorizontalDivider
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
@@ -61,7 +67,7 @@ fun ListingNotesSection(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(DfIcons.StickyNote, contentDescription = null, tint = DfColors.Amber, modifier = Modifier.size(18.dp))
+                    Icon(DfIcons.StickyNote, contentDescription = null, tint = DfThemeColors.warning(), modifier = Modifier.size(18.dp))
                     Text("یادداشت آگهی", style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold, color = DfThemeColors.textPrimary())
                 }
                 TextButton(onClick = onEdit) {
@@ -106,8 +112,8 @@ fun ListingNotesSheet(
         title = "یادداشت آگهی",
         subtitle = "برچسب و یادداشت فقط برای فایلینگ شما ذخیره می‌شود",
         icon = DfIcons.StickyNote,
-        iconContainerColor = DfColors.AmberLight,
-        iconTint = DfColors.Amber,
+        iconContainerColor = DfThemeColors.warningContainer(),
+        iconTint = DfThemeColors.warning(),
         onClose = onDismiss,
         bodyHeightFraction = 0.62f,
         footer = {
@@ -130,14 +136,14 @@ fun ListingNotesSheet(
                     Surface(
                         onClick = { onTagChange(option) },
                         shape = AppShapes.Chip,
-                        color = if (tag == option) DfColors.PurpleContainer else DfColors.SurfaceVariant,
+                        color = if (tag == option) DfThemeColors.primaryContainer() else DfThemeColors.surfaceVariant(),
                     ) {
                         Text(
                             text = label,
                             modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
                             style = AppTypography.labelSmall,
                             fontWeight = if (tag == option) FontWeight.Bold else FontWeight.Medium,
-                            color = if (tag == option) DfColors.Purple else DfColors.TextSecondary,
+                            color = if (tag == option) DfThemeColors.onPrimaryContainer() else DfThemeColors.textSecondary(),
                             maxLines = 1,
                         )
                     }
@@ -198,10 +204,25 @@ fun ListingContactsSection(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(DfIcons.Users, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(18.dp))
-                    Text("مخاطبین این ملک", style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold, color = DfThemeColors.textPrimary())
+                    Icon(DfIcons.Users, contentDescription = null, tint = DfThemeColors.primary(), modifier = Modifier.size(18.dp))
+                    Column {
+                        Text(
+                            "مخاطبین این ملک",
+                            style = AppTypography.sectionTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = DfThemeColors.textPrimary(),
+                        )
+                        val total = presentation.occupancy.size + presentation.others.size
+                        if (total > 0) {
+                            Text(
+                                "${DateUtils.toPersianDigits(total.toString())} نفر",
+                                style = AppTypography.labelSmall,
+                                color = DfThemeColors.textMuted(),
+                            )
+                        }
+                    }
                 }
-                TextButton(onClick = onAdd) { Text("ارسال") }
+                TextButton(onClick = onAdd) { Text("ارسال به مخاطب") }
             }
             if (presentation.occupancy.isEmpty() && presentation.others.isEmpty()) {
                 Text(
@@ -246,42 +267,61 @@ private fun ListingOccupancyRow(
     onEdit: () -> Unit,
 ) {
     val isOwner = person.role == ListingOccupancyContacts.ROLE_OWNER
-    val badgeColor = if (isOwner) DfColors.GreenLight else DfColors.BlueLight
-    val badgeText = if (isOwner) DfColors.Green else DfColors.Blue
+    val accent = if (isOwner) DfThemeColors.success() else DfThemeColors.info()
+    val badgeColor = if (isOwner) DfThemeColors.successContainer() else DfThemeColors.infoContainer()
+    val badgeText = accent
     val content: @Composable () -> Unit = {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                .heightIn(min = 88.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(accent, AppShapes.Chip),
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(AppSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                Text(
-                    text = person.name,
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfThemeColors.textPrimary(),
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                DfBadge(text = person.role, color = badgeColor, textColor = badgeText)
-                TextButton(onClick = onEdit) { Text("ویرایش") }
-            }
-            person.phone.takeIf { it.isNotBlank() }?.let { phone ->
-                Text(phone, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
-            }
-            if (onCall != null || onSms != null || onWhatsApp != null || onBale != null) {
-                ListingOwnerContactActions(
-                    onCall = onCall ?: {},
-                    onSms = onSms ?: {},
-                    onWhatsApp = onWhatsApp ?: {},
-                    onBale = onBale ?: {},
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = person.name,
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    DfBadge(text = person.role, color = badgeColor, textColor = badgeText)
+                }
+                person.phone.takeIf { it.isNotBlank() }?.let { phone ->
+                    Text(phone, style = AppTypography.labelLarge, fontWeight = FontWeight.Medium, color = DfThemeColors.textSecondary())
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (onCall != null || onSms != null || onWhatsApp != null || onBale != null) {
+                        ListingOwnerContactActions(
+                            onCall = onCall ?: {},
+                            onSms = onSms ?: {},
+                            onWhatsApp = onWhatsApp ?: {},
+                            onBale = onBale ?: {},
+                        )
+                    }
+                    TextButton(onClick = onEdit) { Text("ویرایش") }
+                }
             }
         }
     }
@@ -289,13 +329,15 @@ private fun ListingOccupancyRow(
         Surface(
             onClick = onClick,
             shape = AppShapes.CardSmall,
-            color = DfThemeColors.surfaceVariant().copy(alpha = 0.65f),
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
             content = { content() },
         )
     } else {
         Surface(
             shape = AppShapes.CardSmall,
-            color = DfThemeColors.surfaceVariant().copy(alpha = 0.65f),
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
             content = { content() },
         )
     }
@@ -312,7 +354,8 @@ private fun ListingContactRow(
     Surface(
         onClick = onClick,
         shape = AppShapes.CardSmall,
-        color = DfColors.SurfaceVariant,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
         Column(
             modifier = Modifier
@@ -336,18 +379,18 @@ private fun ListingContactRow(
                 )
             }
             contact.phone.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
+                Text(it, style = AppTypography.labelLarge, fontWeight = FontWeight.Medium, color = DfThemeColors.textSecondary())
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 val roleColor = when (contact.role) {
-                    ListingOccupancyContacts.ROLE_OWNER -> DfColors.GreenLight
-                    ListingOccupancyContacts.ROLE_TENANT -> DfColors.BlueLight
-                    else -> DfColors.PurpleContainer
+                    ListingOccupancyContacts.ROLE_OWNER -> DfThemeColors.successContainer()
+                    ListingOccupancyContacts.ROLE_TENANT -> DfThemeColors.infoContainer()
+                    else -> DfThemeColors.primaryContainer()
                 }
                 val roleText = when (contact.role) {
-                    ListingOccupancyContacts.ROLE_OWNER -> DfColors.Green
-                    ListingOccupancyContacts.ROLE_TENANT -> DfColors.Blue
-                    else -> DfColors.PurpleDark
+                    ListingOccupancyContacts.ROLE_OWNER -> DfThemeColors.success()
+                    ListingOccupancyContacts.ROLE_TENANT -> DfThemeColors.info()
+                    else -> DfThemeColors.onPrimaryContainer()
                 }
                 if (contact.role.isNotBlank()) DfBadge(text = contact.role, color = roleColor, textColor = roleText)
                 if (contact.dealType.isNotBlank()) DfBadge(text = contact.dealType)
@@ -361,7 +404,7 @@ private fun ListingContactRow(
                     TextButton(onClick = onCall) { Text("تماس") }
                 }
                 TextButton(onClick = onUnlink) {
-                    Text("حذف پیوند", color = DfColors.Rose)
+                    Text("حذف پیوند", color = DfThemeColors.error())
                 }
             }
         }
@@ -421,7 +464,7 @@ fun ListingAiSummarySection(
                 val badgeLabel = modelLabel?.takeIf { it.isNotBlank() }
                     ?: if (isFallback && summary.isNotBlank()) "مدل داخلی سیستم" else null
                 badgeLabel?.let {
-                    DfBadge(text = it, color = DfColors.SurfaceVariant, textColor = DfThemeColors.textMuted())
+                    DfBadge(text = it, color = DfThemeColors.surfaceVariant(), textColor = DfThemeColors.textMuted())
                 }
             }
 
@@ -509,7 +552,7 @@ private fun AiSummaryStructuredBody(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("•", style = AppTypography.bodyDescription, color = DfColors.Purple)
+                    Text("•", style = AppTypography.bodyDescription, color = DfThemeColors.primary())
                     Text(
                         item,
                         style = AppTypography.bodyDescription,
@@ -524,8 +567,8 @@ private fun AiSummaryStructuredBody(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = AppShapes.CardSmall,
-                color = if (isFallback) DfColors.AmberLight.copy(alpha = 0.55f) else DfColors.PurpleContainer.copy(alpha = 0.45f),
-                border = BorderStroke(0.5.dp, if (isFallback) DfColors.Amber.copy(alpha = 0.25f) else DfColors.Purple.copy(alpha = 0.18f)),
+                color = if (isFallback) DfThemeColors.warningContainer().copy(alpha = 0.65f) else DfThemeColors.primaryContainer().copy(alpha = 0.55f),
+                border = BorderStroke(0.5.dp, if (isFallback) DfThemeColors.warning().copy(alpha = 0.25f) else DfThemeColors.primary().copy(alpha = 0.18f)),
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -535,7 +578,7 @@ private fun AiSummaryStructuredBody(
                         "نکته مذاکره",
                         style = AppTypography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isFallback) DfColors.Amber else DfColors.Purple,
+                        color = if (isFallback) DfThemeColors.warning() else DfThemeColors.primary(),
                     )
                     Text(
                         tip,

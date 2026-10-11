@@ -47,8 +47,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppColors
+import ir.divarfiling.mobile.core.design.DfComponentSpec
 import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
@@ -94,11 +100,19 @@ fun DfBottomNavigation(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             items.forEach { item ->
-                DfSideNavItem(
-                    item = item,
-                    selected = selectedRoute == item.route,
-                    onClick = { onItemClick(item.route) },
-                )
+                if (item.isCenter) {
+                    DfCenterNavItem(
+                        item = item,
+                        selected = selectedRoute == item.route,
+                        onClick = { onItemClick(item.route) },
+                    )
+                } else {
+                    DfSideNavItem(
+                        item = item,
+                        selected = selectedRoute == item.route,
+                        onClick = { onItemClick(item.route) },
+                    )
+                }
             }
         }
     }
@@ -125,11 +139,16 @@ private fun DfCenterNavItem(
         Box(
             modifier = Modifier
                 .scale(scale)
-                .size(48.dp)
+                .size(DfComponentSpec.MinTouchTargetDp.dp)
+                .semantics {
+                    role = Role.Tab
+                    selected = selected
+                    contentDescription = item.label
+                }
                 .shadow(
                     elevation = if (selected) AppElevations.raised else AppElevations.subtle,
                     shape = CircleShape,
-                    ambientColor = AppColors.Purple.copy(alpha = 0.18f),
+                    ambientColor = DfThemeColors.primary().copy(alpha = 0.18f),
                 )
                 .clip(CircleShape)
                 .background(
@@ -181,12 +200,20 @@ private fun DfSideNavItem(
     onClick: () -> Unit,
 ) {
     val tint = if (selected) DfThemeColors.primary() else DfThemeColors.textMuted()
+    val tabLabel = item.badge?.takeIf { it > 0 }?.let { count ->
+        "${item.label}، ${if (count > 9) "9+" else count} اعلان"
+    } ?: item.label
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .widthIn(min = 52.dp, max = 72.dp)
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = DfComponentSpec.MinTouchTargetDp.dp)
             .clip(AppShapes.Chip)
+            .semantics {
+                role = Role.Tab
+                selected = selected
+                contentDescription = tabLabel
+            }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true),
@@ -194,7 +221,15 @@ private fun DfSideNavItem(
             )
             .padding(horizontal = AppSpacing.xxs, vertical = AppSpacing.xxs),
     ) {
-        Box {
+        Box(contentAlignment = Alignment.Center) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(DfThemeColors.primaryContainer().copy(alpha = 0.55f)),
+                )
+            }
             if (item.iconRes != null) {
                 DfDecorImage(
                     resId = item.iconRes,
@@ -250,7 +285,7 @@ fun DfAnimatedCounter(
     target: Int,
     modifier: Modifier = Modifier,
     style: androidx.compose.ui.text.TextStyle = AppTypography.statNumber,
-    color: Color = AppColors.TextPrimary,
+    color: Color = DfThemeColors.textPrimary(),
 ) {
     val animated by animateIntAsState(
         targetValue = target,
@@ -343,13 +378,13 @@ fun DfSectionTitle(
             badge?.let {
                 Surface(
                     shape = AppShapes.Chip,
-                    color = AppColors.PurpleContainer,
+                    color = DfThemeColors.primaryContainer(),
                 ) {
                     Text(
                         text = it,
                         modifier = Modifier.padding(horizontal = AppSpacing.xs, vertical = 2.dp),
                         style = AppTypography.labelSmall,
-                        color = AppColors.PurpleDark,
+                        color = DfThemeColors.onPrimaryContainer(),
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                     )
@@ -414,7 +449,7 @@ private fun DfBottomNavigationPreview() {
                 DfNavItem("contacts", "مخاطبین", iconRes = DfDecorIcons.Users),
                 DfNavItem("home", "میزکار", iconRes = DfDecorIcons.House, isCenter = true),
                 DfNavItem("today", "امروز", iconRes = DfDecorIcons.Handshake),
-                DfNavItem("settings", "تنظیمات", iconRes = DfDecorIcons.Settings),
+                DfNavItem("more", "بیشتر", iconRes = DfDecorIcons.Layers),
             ),
             selectedRoute = "home",
             onItemClick = {},

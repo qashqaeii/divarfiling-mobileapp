@@ -55,7 +55,7 @@ fun ContactActivityTimeline(
                     modifier = Modifier
                         .size(width = 3.dp, height = 16.dp)
                         .clip(AppShapes.Chip)
-                        .background(DfColors.Purple),
+                        .background(DfThemeColors.primary()),
                 )
                 Text(
                     text = "تاریخچه فعالیت",

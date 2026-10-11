@@ -1,10 +1,12 @@
 package ir.divarfiling.mobile.feature.extract.schedule
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 
 internal fun scheduleIntervalIcon(hours: Double): ImageVector = when {
     hours <= 0.25 -> DfIcons.Zap
@@ -59,11 +61,12 @@ internal data class ScheduleStatusStyle(
     val background: Color,
 )
 
+@Composable
 internal fun scheduleStatusStyle(status: String): ScheduleStatusStyle = when (status) {
-    "success" -> ScheduleStatusStyle("موفق", DfColors.Green, DfColors.GreenLight)
-    "failed" -> ScheduleStatusStyle("ناموفق", DfColors.Rose, DfColors.RoseLight)
-    "running" -> ScheduleStatusStyle("در حال اجرا", DfColors.Blue, DfColors.BlueLight)
-    "queued" -> ScheduleStatusStyle("در صف", DfColors.Amber, DfColors.AmberLight)
-    "skipped_limit" -> ScheduleStatusStyle("سقف روزانه", DfColors.Amber, DfColors.AmberLight)
-    else -> ScheduleStatusStyle(status, DfColors.TextMuted, DfColors.SurfaceVariant)
+    "success" -> ScheduleStatusStyle("موفق", DfThemeColors.success(), DfThemeColors.successContainer())
+    "failed" -> ScheduleStatusStyle("ناموفق", DfThemeColors.error(), DfThemeColors.errorContainer())
+    "running" -> ScheduleStatusStyle("در حال اجرا", DfThemeColors.info(), DfThemeColors.infoContainer())
+    "queued" -> ScheduleStatusStyle("در صف", DfThemeColors.warning(), DfThemeColors.warningContainer())
+    "skipped_limit" -> ScheduleStatusStyle("سقف روزانه", DfThemeColors.warning(), DfThemeColors.warningContainer())
+    else -> ScheduleStatusStyle(status, DfThemeColors.textMuted(), DfThemeColors.surfaceVariant())
 }

@@ -19,9 +19,9 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.feature.extract.schedule.scheduleNextRunLabel
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
@@ -37,6 +37,10 @@ fun ScheduleSummaryHero(
     val activeCount = schedules.count { it.isEnabled }
     val pausedCount = schedules.size - activeCount
     val totalRuns = schedules.sumOf { it.runCount }
+    val runningCount = schedules.count { it.lastStatus == "running" }
+    val nextSchedule = schedules
+        .filter { it.isEnabled && !it.nextRunAt.isNullOrBlank() }
+        .minByOrNull { it.nextRunAt.orEmpty() }
 
     DfCard(modifier = modifier.fillMaxWidth()) {
         Column(
@@ -83,8 +87,8 @@ fun ScheduleSummaryHero(
                 SummaryMetricChip(
                     value = DateUtils.toPersianDigits(activeCount.toString()),
                     label = "فعال",
-                    accent = DfColors.Green,
-                    background = DfColors.GreenLight,
+                    accent = DfThemeColors.success(),
+                    background = DfThemeColors.successContainer(),
                     modifier = Modifier.weight(1f),
                 )
                 SummaryMetricChip(
@@ -103,11 +107,30 @@ fun ScheduleSummaryHero(
                 )
             }
 
-            DfStatusBanner(
-                message = "اعلان‌ها را فعال نگه دارید تا از اتمام هر استخراج باخبر شوید.",
-                tone = DfStatusTone.Info,
-                icon = DfIcons.Smartphone,
-            )
+            when {
+                runningCount > 0 -> {
+                    DfStatusBanner(
+                        message = "${DateUtils.toPersianDigits(runningCount.toString())} زمان‌بندی در حال اجراست؛ نتیجه پس از اتمام در فایلینگ ظاهر می‌شود.",
+                        tone = DfStatusTone.Info,
+                        icon = DfIcons.RefreshCw,
+                    )
+                }
+                nextSchedule != null -> {
+                    val nextLabel = scheduleNextRunLabel(nextSchedule.nextRunAt!!) ?: "به‌زودی"
+                    DfStatusBanner(
+                        message = "اجرای بعدی «${nextSchedule.title}»: $nextLabel",
+                        tone = DfStatusTone.Info,
+                        icon = DfIcons.AlarmClock,
+                    )
+                }
+                else -> {
+                    DfStatusBanner(
+                        message = "اعلان‌ها را فعال نگه دارید تا از اتمام هر استخراج باخبر شوید.",
+                        tone = DfStatusTone.Info,
+                        icon = DfIcons.Smartphone,
+                    )
+                }
+            }
         }
     }
 }

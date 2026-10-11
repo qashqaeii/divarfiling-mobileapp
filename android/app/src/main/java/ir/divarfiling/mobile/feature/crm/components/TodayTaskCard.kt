@@ -66,8 +66,8 @@ fun TodayTaskCard(
     val dueLabel = TodayTaskLabels.dueLabel(item)
     val phone = item.contact?.phone
     val accent = taskAccentColor(contactName)
-    val statusColor = if (isOverdue) DfColors.OverdueAccent else DfColors.Purple
-    val statusBg = if (isOverdue) DfColors.RoseLight else DfColors.PurpleContainer
+    val statusColor = if (isOverdue) DfThemeColors.error() else DfThemeColors.primary()
+    val statusBg = if (isOverdue) DfThemeColors.errorContainer() else DfThemeColors.primaryContainer()
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -75,7 +75,7 @@ fun TodayTaskCard(
         color = DfThemeColors.surface(),
         border = BorderStroke(
             1.dp,
-            if (isOverdue) DfColors.OverdueAccent.copy(alpha = 0.25f) else DfThemeColors.outlineSubtle(),
+            if (isOverdue) DfThemeColors.error().copy(alpha = 0.28f) else DfThemeColors.outlineSubtle(),
         ),
         shadowElevation = if (isOverdue) AppElevations.card else AppElevations.subtle,
     ) {

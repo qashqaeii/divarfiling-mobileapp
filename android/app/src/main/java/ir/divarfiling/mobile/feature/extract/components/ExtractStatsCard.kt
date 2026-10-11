@@ -1,6 +1,6 @@
 package ir.divarfiling.mobile.feature.extract.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,10 +26,9 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
-import ir.divarfiling.mobile.core.design.DateUtils
 import java.time.Instant
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -53,61 +55,72 @@ fun ExtractStatsCard(
 
     ExtractSectionCard(modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
+            ExtractSectionTitle(title = "سهمیه امروز", iconRes = ir.divarfiling.mobile.core.design.components.DfDecorIcons.Database)
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
-                    Text(
-                        text = "باقی‌مانده امروز",
-                        style = AppTypography.labelSmall,
-                        color = DfThemeColors.textMuted(),
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(72.dp),
+                ) {
+                    CircularProgressIndicator(
+                        progress = { progress.coerceIn(0f, 1f) },
+                        modifier = Modifier.size(72.dp),
+                        color = accent,
+                        trackColor = DfThemeColors.surfaceVariant(),
+                        strokeWidth = 6.dp,
                     )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = remainingToday.toString(),
-                            style = AppTypography.sectionTitle,
+                            text = DateUtils.toPersianDigits(remainingToday.toString()),
+                            style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
                             color = accent,
                         )
                         Text(
-                            text = "آگهی",
+                            text = "باقی",
                             style = AppTypography.labelSmall,
-                            color = DfThemeColors.textSecondary(),
+                            color = DfThemeColors.textMuted(),
                         )
                     }
                 }
                 Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
                     Text(
-                        text = "$usagePercent٪",
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = accent,
+                        text = "از ${DateUtils.toPersianDigits(dailyLimit.toString())} آگهی مجاز",
+                        style = AppTypography.bodyDescription,
+                        fontWeight = FontWeight.Medium,
+                        color = DfThemeColors.textPrimary(),
                     )
                     Text(
-                        text = "از $dailyLimit",
+                        text = "${DateUtils.toPersianDigits(usagePercent.toString())}٪ مصرف شده",
                         style = AppTypography.labelSmall,
-                        color = DfThemeColors.textMuted(),
+                        color = DfThemeColors.textSecondary(),
                     )
+                    LinearProgressIndicator(
+                        progress = { progress.coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = accent,
+                        trackColor = DfThemeColors.surfaceVariant(),
+                    )
+                    if (!canExtractNow) {
+                        Text(
+                            text = "سقف امروز تکمیل شده",
+                            style = AppTypography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DfThemeColors.error(),
+                        )
+                    }
                 }
             }
-
-            LinearProgressIndicator(
-                progress = { progress.coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)),
-                color = accent,
-                trackColor = DfThemeColors.surfaceVariant(),
-            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -116,15 +129,13 @@ fun ExtractStatsCard(
                 StatTile(
                     label = "آخرین استخراج",
                     value = lastExtractionLabel,
-                    background = DfColors.AmberLight,
-                    valueColor = DfColors.Amber,
+                    accent = DfThemeColors.warning(),
                     modifier = Modifier.weight(1f),
                 )
                 StatTile(
                     label = "استخراج امروز",
-                    value = extractionsToday.toString(),
-                    background = DfColors.PurpleContainer,
-                    valueColor = DfColors.Purple,
+                    value = DateUtils.toPersianDigits(extractionsToday.toString()),
+                    accent = DfThemeColors.primary(),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -136,15 +147,13 @@ fun ExtractStatsCard(
                 StatTile(
                     label = "استخراج موفق",
                     value = successfulCountLabel,
-                    background = DfColors.GreenLight,
-                    valueColor = DfColors.Green,
+                    accent = DfThemeColors.success(),
                     modifier = Modifier.weight(1f),
                 )
                 StatTile(
                     label = "میانگین زمان",
                     value = averageTimeLabel,
-                    background = DfColors.BlueLight,
-                    valueColor = DfColors.Blue,
+                    accent = DfThemeColors.info(),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -156,17 +165,19 @@ fun ExtractStatsCard(
 private fun StatTile(
     label: String,
     value: String,
-    background: Color,
-    valueColor: Color,
+    accent: Color,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .clip(AppShapes.Card)
-            .background(background.copy(alpha = 0.55f))
-            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+    Surface(
+        modifier = modifier,
+        shape = AppShapes.CardSmall,
+        color = accent.copy(alpha = if (DfThemeColors.isDark()) 0.12f else 0.08f),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.2f)),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             Text(
                 text = label,
                 style = AppTypography.labelSmall,
@@ -176,9 +187,9 @@ private fun StatTile(
             )
             Text(
                 text = value,
-                style = AppTypography.cardTitle,
+                style = AppTypography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = valueColor,
+                color = accent,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -208,7 +219,7 @@ fun formatSuccessfulCountLabel(
     sessionCount: Int?,
 ): String {
     val count = sessionCount ?: persistedCount
-    return count?.takeIf { it > 0 }?.toString() ?: "—"
+    return count?.takeIf { it > 0 }?.let { DateUtils.toPersianDigits(it.toString()) } ?: "—"
 }
 
 fun formatAverageTimeLabel(
@@ -235,8 +246,8 @@ private fun ExtractStatsCardPreview() {
             dailyLimit = 100,
             canExtractNow = true,
             lastExtractionLabel = "امروز",
-            successfulCountLabel = "120",
-            averageTimeLabel = "2.4 دقیقه",
+            successfulCountLabel = "۱۲۰",
+            averageTimeLabel = "۲.۴ دقیقه",
             modifier = Modifier.padding(AppSpacing.screenHorizontal),
         )
     }

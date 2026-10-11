@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -224,17 +226,17 @@ private fun ContactMetaFlow(contact: ContactDto) {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         contact.customerType?.takeIf { it.isNotBlank() }?.let {
-            ContactMetaPill(it, DfColors.Purple, DfColors.PurpleContainer)
+            ContactMetaPill(it, DfThemeColors.onPrimaryContainer(), DfThemeColors.primaryContainer())
         }
         contact.status?.takeIf { it.isNotBlank() }?.let { status ->
-            val colors = contactStatusColors(status)
-            ContactMetaPill(status, colors.second, colors.third)
+            val (fg, bg) = contactStatusPillColors(status)
+            ContactMetaPill(status, fg, bg)
         }
         contact.priority?.takeIf { it.isNotBlank() }?.let {
-            ContactMetaPill(it, DfColors.Amber, DfColors.AmberLight)
+            ContactMetaPill(it, DfThemeColors.warning(), DfThemeColors.warningContainer())
         }
         contact.source?.takeIf { it.isNotBlank() }?.let {
-            ContactMetaPill(it, DfColors.Blue, DfColors.BlueLight)
+            ContactMetaPill(it, DfThemeColors.info(), DfThemeColors.infoContainer())
         }
     }
 }
@@ -262,25 +264,28 @@ fun ContactDetailInsightStrip(
         DateUtils.formatRelativeTimeUntil(due) ?: DateUtils.formatJalaliDateTime(due)
     }
     val profile = CrmTypeProfiles.profileFor(contact.customerType)
+    val accentSuccess = DfThemeColors.success()
+    val accentInfo = DfThemeColors.info()
+    val accentWarning = DfThemeColors.warning()
     val financialTiles = buildList {
         if (contact.isBuilder || contact.customerType == "سازنده") {
             formatMoneyRange(contact.budgetMin, contact.budgetMax)?.let { range ->
-                add(FinancialInsightTile("فروش آپارتمان", range, DfColors.Green))
+                add(FinancialInsightTile("فروش آپارتمان", range, accentSuccess))
             }
             formatMoneyRange(contact.builderBuyBudgetMin, contact.builderBuyBudgetMax)?.let { range ->
-                add(FinancialInsightTile("خرید پروژه", range, DfColors.Blue))
+                add(FinancialInsightTile("خرید پروژه", range, accentInfo))
             }
         } else if (CrmTypeProfiles.showsBudget(profile.moneyMode)) {
             formatMoneyRange(contact.budgetMin, contact.budgetMax)?.let { range ->
-                add(FinancialInsightTile(profile.budgetLabels.first.substringBefore(' '), range, DfColors.Green))
+                add(FinancialInsightTile(profile.budgetLabels.first.substringBefore(' '), range, accentSuccess))
             }
         }
         if (CrmTypeProfiles.showsRent(profile.moneyMode)) {
             formatMoneyRange(contact.depositMin, contact.depositMax)?.let { range ->
-                add(FinancialInsightTile("رهن", range, DfColors.Blue))
+                add(FinancialInsightTile("رهن", range, accentInfo))
             }
             formatMoneyRange(contact.rentMin, contact.rentMax)?.let { range ->
-                add(FinancialInsightTile("اجاره", range, DfColors.Amber))
+                add(FinancialInsightTile("اجاره", range, accentWarning))
             }
         }
     }
@@ -305,7 +310,7 @@ fun ContactDetailInsightStrip(
             ContactInsightTile(
                 label = "پیگیری",
                 value = followUp,
-                accent = DfColors.Amber,
+                accent = accentWarning,
                 modifier = Modifier.width(148.dp),
             )
         }
@@ -343,19 +348,27 @@ private fun ContactInsightTile(
         border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.subtle,
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
-            Text(
-                value,
-                style = AppTypography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = accent,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        Row(modifier = Modifier.heightIn(min = 64.dp)) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(accent, AppShapes.Chip),
             )
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                Text(
+                    value,
+                    style = AppTypography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = accent,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -763,4 +776,13 @@ fun contactStatusColors(status: String): Triple<Color, Color, Color> = when {
     status == "جدید" -> Triple(DfColors.Blue, DfColors.Blue, DfColors.BlueLight)
     status.contains("قرارداد") -> Triple(DfColors.Purple, DfColors.Purple, DfColors.PurpleContainer)
     else -> Triple(DfColors.TextMuted, DfColors.TextSecondary, DfColors.SurfaceVariant)
+}
+
+@Composable
+private fun contactStatusPillColors(status: String): Pair<Color, Color> = when {
+    status.contains("پیگیری") -> DfThemeColors.warning() to DfThemeColors.warningContainer()
+    status.contains("بازدید") -> DfThemeColors.success() to DfThemeColors.successContainer()
+    status == "جدید" -> DfThemeColors.info() to DfThemeColors.infoContainer()
+    status.contains("قرارداد") -> DfThemeColors.onPrimaryContainer() to DfThemeColors.primaryContainer()
+    else -> DfThemeColors.textSecondary() to DfThemeColors.surfaceVariant()
 }

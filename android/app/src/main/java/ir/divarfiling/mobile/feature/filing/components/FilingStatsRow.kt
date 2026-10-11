@@ -56,7 +56,8 @@ fun FilingStatsRow(
                 label = "از کل فایل‌ها",
                 title = "کل آگهی‌ها",
                 iconRes = DfDecorIcons.ClipboardList,
-                background = DfColors.PurpleContainer,
+                background = DfThemeColors.primaryContainer(),
+                iconTint = DfThemeColors.primary(),
                 modifier = Modifier.weight(1f),
             )
             FilingStatCard(
@@ -64,7 +65,8 @@ fun FilingStatsRow(
                 label = "تعداد فایل",
                 title = "فایل‌ها",
                 iconRes = DfDecorIcons.Layers,
-                background = DfColors.GreenLight,
+                background = DfThemeColors.successContainer(),
+                iconTint = DfThemeColors.success(),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -74,10 +76,11 @@ fun FilingStatsRow(
         ) {
             FilingStatCard(
                 value = String.format(Locale.US, "%.1f GB", estimatedSizeGb),
-                label = "فضای استفاده‌شده",
+                label = "تخمین حجم",
                 title = "حجم کل",
                 iconRes = DfDecorIcons.Database,
-                background = DfColors.BlueLight,
+                background = DfThemeColors.infoContainer(),
+                iconTint = DfThemeColors.info(),
                 modifier = Modifier.weight(1f),
             )
             FilingStatCard(
@@ -85,7 +88,8 @@ fun FilingStatsRow(
                 label = "پوشه‌های ایجادشده",
                 title = "ماه جاری",
                 iconRes = DfDecorIcons.Calendar,
-                background = DfColors.AmberLight,
+                background = DfThemeColors.warningContainer(),
+                iconTint = DfThemeColors.warning(),
                 modifier = Modifier.weight(1f),
             )
         }

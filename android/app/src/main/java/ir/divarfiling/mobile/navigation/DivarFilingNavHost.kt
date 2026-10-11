@@ -229,9 +229,9 @@ fun DivarFilingNavHost(
                 onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
             val bottomItems = listOf(
-                DfNavItem(Routes.HOME, "میزکار", iconRes = DfDecorIcons.House),
                 DfNavItem(Routes.FILING, "فایلینگ", iconRes = DfDecorIcons.Folder),
                 DfNavItem(Routes.CRM_CONTACTS, "مخاطبین", iconRes = DfDecorIcons.Users),
+                DfNavItem(Routes.HOME, "میزکار", iconRes = DfDecorIcons.House, isCenter = true),
                 DfNavItem(Routes.CRM_TODAY, "امروز", iconRes = DfDecorIcons.Handshake),
                 DfNavItem(Routes.MORE, "بیشتر", iconRes = DfDecorIcons.Layers),
             )

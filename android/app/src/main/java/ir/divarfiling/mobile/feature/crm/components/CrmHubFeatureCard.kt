@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -61,13 +62,24 @@ fun CrmHubFeatureCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(152.dp),
+            .height(158.dp),
         shape = AppShapes.Hero,
         color = DfThemeColors.surface(),
         border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.subtle,
         tonalElevation = AppElevations.none,
     ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(tint, tint.copy(alpha = 0.35f)),
+                        ),
+                    ),
+            )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -110,7 +122,7 @@ fun CrmHubFeatureCard(
                             text = title,
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
-                            color = DfColors.TextPrimary,
+                            color = DfThemeColors.textPrimary(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -118,7 +130,7 @@ fun CrmHubFeatureCard(
                     Text(
                         text = subtitle,
                         style = AppTypography.bodyDescription,
-                        color = DfColors.TextSecondary,
+                        color = DfThemeColors.textSecondary(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -150,6 +162,7 @@ fun CrmHubFeatureCard(
                 illustration()
             }
         }
+        }
     }
 }
 
@@ -174,7 +187,7 @@ private fun CrmHubStatItem(
         Text(
             text = "${stat.label} ${stat.value}",
             style = AppTypography.labelSmall,
-            color = DfColors.TextSecondary,
+            color = DfThemeColors.textSecondary(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -186,7 +199,7 @@ fun CrmHubFeatureCardSkeleton(modifier: Modifier = Modifier) {
     DfShimmerBox(
         modifier = modifier
             .fillMaxWidth()
-            .height(152.dp),
+            .height(158.dp),
     )
 }
 

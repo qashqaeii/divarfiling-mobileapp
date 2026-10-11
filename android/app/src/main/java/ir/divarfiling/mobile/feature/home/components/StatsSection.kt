@@ -2,15 +2,22 @@ package ir.divarfiling.mobile.feature.home.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfCompactStat
 import ir.divarfiling.mobile.core.design.components.DfCompactStatBar
@@ -38,6 +45,43 @@ fun StatsSection(
                     .height(56.dp),
             )
             return
+        }
+        val progress = stats.dailyProgressPercent.coerceIn(0, 100)
+        val showProgress = stats.todayTasksTotal > 0 || progress > 0
+        if (showProgress) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "پیشرفت امروز",
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = "${DateUtils.toPersianDigits(progress.toString())}٪",
+                        style = AppTypography.labelLarge,
+                        color = DfThemeColors.primary(),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { progress / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp),
+                    color = DfThemeColors.primary(),
+                    trackColor = DfThemeColors.surfaceVariant(),
+                    drawStopIndicator = {},
+                    gapSize = 0.dp,
+                )
+            }
         }
         DfCompactStatBar(
             stats = listOf(

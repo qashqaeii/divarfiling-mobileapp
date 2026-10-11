@@ -40,6 +40,7 @@ import ir.divarfiling.mobile.feature.extract.components.ExtractFiltersCard
 import ir.divarfiling.mobile.feature.extract.components.ExtractHeader
 import ir.divarfiling.mobile.feature.extract.components.ExtractLoadingExperience
 import ir.divarfiling.mobile.feature.extract.components.ExtractLocationCard
+import ir.divarfiling.mobile.feature.extract.components.ExtractResultSummaryCard
 import ir.divarfiling.mobile.feature.extract.components.ExtractScheduleCard
 import ir.divarfiling.mobile.feature.extract.components.ExtractStartButton
 import ir.divarfiling.mobile.feature.extract.components.ExtractStatsCard
@@ -251,24 +252,15 @@ fun ExtractScreen(
                 )
             }
 
-            state.message?.let {
+            state.message?.let { message ->
                 item {
-                    Column(
+                    ExtractResultSummaryCard(
+                        message = message,
+                        stats = state.lastUploadStats,
+                        datasetId = state.lastDatasetId,
+                        onViewDataset = onViewDataset,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    ) {
-                        DfStatusBanner(
-                            message = it,
-                            tone = DfStatusTone.Success,
-                            title = "استخراج انجام شد",
-                        )
-                        state.lastUploadStats?.let { stats ->
-                            IngestStatsCard(stats)
-                        }
-                        state.lastDatasetId?.let { id ->
-                            DfPrimaryButton(text = "مشاهده در فایلینگ", onClick = { onViewDataset(id) })
-                        }
-                    }
+                    )
                 }
             }
 
@@ -384,62 +376,6 @@ private fun FilterRangeRow(
             enabled = enabled,
             singleLine = true,
             shape = ir.divarfiling.mobile.core.design.AppShapes.Field,
-        )
-    }
-}
-
-@Composable
-private fun IngestStatsCard(stats: ir.divarfiling.mobile.core.network.ExtractionUploadData) {
-    DfCard {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-        ) {
-            stats.datasetName?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    it,
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfThemeColors.textPrimary(),
-                )
-            }
-            IngestStatRow("پردازش‌شده", stats.ingestedCount)
-            IngestStatRow("جدید", stats.createdCount)
-            IngestStatRow("به‌روزرسانی", stats.updatedCount)
-            if (stats.genuinePersonalCount > 0) {
-                IngestStatRow("مالک واقعی", stats.genuinePersonalCount)
-            }
-            if (stats.disguisedConsultantCount > 0) {
-                IngestStatRow("مشاور پنهان", stats.disguisedConsultantCount)
-            }
-            if (stats.duplicateCount > 0) {
-                IngestStatRow("تکراری/ردشده", stats.duplicateCount + stats.skippedCount)
-            } else if (stats.skippedCount > 0) {
-                IngestStatRow("ردشده", stats.skippedCount)
-            }
-            IngestStatRow("کل فایلینگ", stats.totalInDataset)
-            if (stats.datasetMerged) {
-                Text(
-                    "با فایلینگ قبلی ادغام شد",
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textMuted(),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun IngestStatRow(label: String, value: Int) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
-        Text(
-            value.toString(),
-            style = AppTypography.bodyDescription,
-            fontWeight = FontWeight.SemiBold,
-            color = DfThemeColors.textPrimary(),
         )
     }
 }

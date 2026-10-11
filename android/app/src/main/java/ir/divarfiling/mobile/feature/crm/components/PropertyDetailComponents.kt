@@ -186,7 +186,7 @@ fun PropertyDetailContent(
                     .padding(horizontal = AppSpacing.screenHorizontal),
                 enabled = !isSubmitting,
             ) {
-                Text("حذف فایل شخصی", color = DfColors.OverdueAccent)
+                Text("حذف فایل شخصی", color = DfThemeColors.error())
             }
         }
     }
@@ -221,7 +221,7 @@ private fun PropertyDetailGallery(
                     .fillMaxSize()
                     .background(
                         Brush.linearGradient(
-                            listOf(dealAccent.copy(alpha = 0.25f), DfColors.PurpleContainer),
+                            listOf(dealAccent.copy(alpha = 0.25f), DfThemeColors.primaryContainer()),
                         ),
                     ),
                 contentAlignment = Alignment.Center,
@@ -305,7 +305,7 @@ private fun PropertyDetailSummaryCard(
             modifier = Modifier.padding(AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            Text("خلاصه فایل", style = AppTypography.labelSmall, fontWeight = FontWeight.SemiBold, color = DfColors.TextMuted)
+            Text("خلاصه فایل", style = AppTypography.labelSmall, fontWeight = FontWeight.SemiBold, color = DfThemeColors.textMuted())
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
@@ -358,7 +358,7 @@ private fun PropertySummaryChip(
         ) {
             Icon(icon, null, tint = accent, modifier = Modifier.size(16.dp))
             Column {
-                Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                 Text(value, style = AppTypography.labelLarge, fontWeight = FontWeight.Bold, color = accent, maxLines = 1)
             }
         }
@@ -382,7 +382,12 @@ fun PropertyDetailPriceBoard(
             modifier = Modifier.padding(AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            Text("قیمت‌گذاری", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+            Text(
+                "قیمت‌گذاری",
+                style = AppTypography.cardTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
@@ -391,14 +396,14 @@ fun PropertyDetailPriceBoard(
                     PropertyPriceCell("فروش", FormatUtils.formatPriceToman(it), accent, Modifier.weight(1f))
                 }
                 property.deposit?.let {
-                    PropertyPriceCell("رهن", FormatUtils.formatPriceToman(it), DfColors.Blue, Modifier.weight(1f))
+                    PropertyPriceCell("رهن", FormatUtils.formatPriceToman(it), DfThemeColors.info(), Modifier.weight(1f))
                 }
                 property.rent?.let {
-                    PropertyPriceCell("اجاره", FormatUtils.formatPriceToman(it), DfColors.Amber, Modifier.weight(1f))
+                    PropertyPriceCell("اجاره", FormatUtils.formatPriceToman(it), DfThemeColors.warning(), Modifier.weight(1f))
                 }
             }
             if (property.salePrice == null && property.deposit == null && property.rent == null) {
-                Text("قیمت ثبت نشده", style = AppTypography.bodyDescription, color = DfColors.TextMuted)
+                Text("قیمت ثبت نشده", style = AppTypography.bodyDescription, color = DfThemeColors.textMuted())
             }
         }
     }
@@ -415,7 +420,7 @@ private fun PropertyPriceCell(label: String, value: String, color: Color, modifi
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+            Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
             Text(value, style = AppTypography.labelLarge, fontWeight = FontWeight.Bold, color = color, maxLines = 2)
         }
     }
@@ -459,7 +464,7 @@ fun PropertyDetailSpecsGrid(
 private fun PropertySpecTile(label: String, value: String, icon: ImageVector) {
     Surface(
         shape = AppShapes.CardSmall,
-        color = DfColors.SurfaceVariant.copy(alpha = 0.55f),
+        color = DfThemeColors.surfaceVariant().copy(alpha = 0.55f),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),

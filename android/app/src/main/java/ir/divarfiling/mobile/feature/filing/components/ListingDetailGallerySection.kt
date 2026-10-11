@@ -24,7 +24,11 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfComponentSpec
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.defaultMinSize
 
 @Composable
 fun ListingDetailGallerySection(
@@ -95,14 +99,14 @@ private fun ListingDetailToolbar(
                 text = "جزئیات آگهی",
                 style = AppTypography.sectionTitle,
                 fontWeight = FontWeight.Bold,
-                color = DfColors.TextPrimary,
+                color = DfThemeColors.textPrimary(),
                 maxLines = 1,
             )
             if (title.isNotBlank()) {
                 Text(
                     text = title,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -111,15 +115,16 @@ private fun ListingDetailToolbar(
         Surface(
             onClick = onFavoriteToggle,
             shape = AppShapes.IconContainer,
-            color = if (isFavorite) DfColors.RoseLight else DfColors.Surface,
+            color = if (isFavorite) DfThemeColors.errorContainer() else DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
             shadowElevation = AppElevations.subtle,
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(DfComponentSpec.MinTouchTargetDp.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = DfIcons.Heart,
                     contentDescription = if (isFavorite) "حذف از علاقه‌مندی" else "افزودن به علاقه‌مندی",
-                    tint = if (isFavorite) DfColors.Rose else DfColors.TextMuted,
+                    tint = if (isFavorite) DfThemeColors.error() else DfThemeColors.textMuted(),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -133,15 +138,16 @@ private fun ListingDetailBackButton(onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = AppShapes.IconContainer,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.subtle,
-        modifier = Modifier.size(40.dp),
+        modifier = Modifier.size(DfComponentSpec.MinTouchTargetDp.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = DfIcons.ChevronLeft,
                 contentDescription = "بازگشت",
-                tint = DfColors.TextPrimary,
+                tint = DfThemeColors.textPrimary(),
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -161,7 +167,8 @@ private fun ListingGalleryActionsRow(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.subtle,
     ) {
         Row(
@@ -173,8 +180,8 @@ private fun ListingGalleryActionsRow(
             GalleryActionChip(
                 label = "ویرایش",
                 icon = DfIcons.Pencil,
-                tint = DfColors.Purple,
-                background = DfColors.PurpleContainer,
+                tint = DfThemeColors.primary(),
+                background = DfThemeColors.primaryContainer(),
                 enabled = true,
                 onClick = onEdit,
                 modifier = Modifier.weight(1f),
@@ -182,8 +189,8 @@ private fun ListingGalleryActionsRow(
             GalleryActionChip(
                 label = if (isAddedToPersonal) "مشاهده فایل شخصی" else "فایل شخصی",
                 icon = DfIcons.Building,
-                tint = DfColors.Amber,
-                background = DfColors.AmberLight,
+                tint = DfThemeColors.warning(),
+                background = DfThemeColors.warningContainer(),
                 enabled = !isAddedToPersonal || onViewPersonalProperty != null,
                 onClick = {
                     if (isAddedToPersonal) {
@@ -197,8 +204,8 @@ private fun ListingGalleryActionsRow(
             GalleryActionChip(
                 label = "دیوار",
                 icon = DfIcons.ExternalLink,
-                tint = DfColors.Blue,
-                background = DfColors.BlueLight,
+                tint = DfThemeColors.info(),
+                background = DfThemeColors.infoContainer(),
                 enabled = onOpenDivar != null,
                 onClick = { onOpenDivar?.invoke() },
                 modifier = Modifier.weight(1f),
@@ -206,8 +213,8 @@ private fun ListingGalleryActionsRow(
             GalleryActionChip(
                 label = "مسیریابی",
                 icon = DfIcons.Compass,
-                tint = DfColors.Green,
-                background = DfColors.GreenLight,
+                tint = DfThemeColors.success(),
+                background = DfThemeColors.successContainer(),
                 enabled = onNavigate != null,
                 onClick = { onNavigate?.invoke() },
                 modifier = Modifier.weight(1f),
@@ -227,8 +234,8 @@ private fun GalleryActionChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val resolvedTint = if (enabled) tint else DfColors.TextMuted
-    val resolvedBackground = if (enabled) background else DfColors.SurfaceVariant
+    val resolvedTint = if (enabled) tint else DfThemeColors.textMuted()
+    val resolvedBackground = if (enabled) background else DfThemeColors.surfaceVariant()
     Surface(
         onClick = onClick,
         enabled = enabled,

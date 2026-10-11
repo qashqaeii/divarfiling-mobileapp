@@ -2,10 +2,8 @@ package ir.divarfiling.mobile.feature.home
 
 import ir.divarfiling.mobile.core.design.DfColors
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -32,6 +30,7 @@ import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfSectionTitle
 import ir.divarfiling.mobile.feature.home.components.HomeDashboardCard
 import ir.divarfiling.mobile.feature.home.components.HomeHeader
 import ir.divarfiling.mobile.feature.home.components.HomePrioritySection
@@ -183,16 +182,25 @@ fun HomeScreen(
                     )
                 }
                 item {
-                    QuickActionsRow(
-                        actions = buildQuickActions(
-                            onNavigateExtract = onNavigateExtract,
-                            onNavigateFilingSearch = onNavigateFilingSearch,
-                            onNavigateProperties = onNavigateProperties,
-                            onNavigateContacts = onNavigateContacts,
-                        ),
-                    )
+                    StatsSection(stats = state.stats, isLoading = true)
                 }
-                item { StatsSection(stats = state.stats, isLoading = true) }
+                item {
+                    Column(
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    ) {
+                        DfSectionTitle(title = "دسترسی سریع")
+                        QuickActionsRow(
+                            actions = buildQuickActions(
+                                onNavigateExtract = onNavigateExtract,
+                                onNavigateFilingSearch = onNavigateFilingSearch,
+                                onNavigateProperties = onNavigateProperties,
+                                onNavigateContacts = onNavigateContacts,
+                            ),
+                            modifier = Modifier.padding(horizontal = 0.dp),
+                        )
+                    }
+                }
                 item { RecentListingsSection(files = emptyList(), isLoading = true, onFileClick = {}) }
             } else {
                 item {
@@ -209,21 +217,23 @@ fun HomeScreen(
                     )
                 }
                 item {
-                    QuickActionsRow(
-                        actions = buildQuickActions(
-                            onNavigateExtract = onNavigateExtract,
-                            onNavigateFilingSearch = onNavigateFilingSearch,
-                            onNavigateProperties = onNavigateProperties,
-                            onNavigateContacts = onNavigateContacts,
-                        ),
-                    )
+                    StatsSection(stats = state.stats, isLoading = false)
                 }
                 item {
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn() + slideInVertically { it / 4 },
+                    Column(
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     ) {
-                        StatsSection(stats = state.stats, isLoading = false)
+                        DfSectionTitle(title = "دسترسی سریع")
+                        QuickActionsRow(
+                            actions = buildQuickActions(
+                                onNavigateExtract = onNavigateExtract,
+                                onNavigateFilingSearch = onNavigateFilingSearch,
+                                onNavigateProperties = onNavigateProperties,
+                                onNavigateContacts = onNavigateContacts,
+                            ),
+                            modifier = Modifier.padding(horizontal = 0.dp),
+                        )
                     }
                 }
                 if (state.todayTasks.isNotEmpty()) {
@@ -339,21 +349,30 @@ internal fun HomeScreenContentPreview() {
             )
         }
         item {
-            QuickActionsRow(
-                actions = buildQuickActions({}, {}, {}, {}),
-            )
-        }
-        item {
             StatsSection(
                 stats = DashboardStats(
                     todayTasksDone = 12,
                     todayTasksRemaining = 8,
+                    todayTasksTotal = 20,
                     dailyProgressPercent = 65,
                     tasksDoneDelta = 3,
                     activeReminders = 4,
+                    contacts = 48,
                 ),
                 isLoading = false,
             )
+        }
+        item {
+            Column(
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                DfSectionTitle(title = "دسترسی سریع")
+                QuickActionsRow(
+                    actions = buildQuickActions({}, {}, {}, {}),
+                    modifier = Modifier.padding(horizontal = 0.dp),
+                )
+            }
         }
         item {
             HomeDashboardCard(

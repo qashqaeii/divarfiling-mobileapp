@@ -26,7 +26,10 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfComponentSpec
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import androidx.compose.foundation.BorderStroke
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
 
@@ -70,24 +73,24 @@ fun ListingDetailHeroSection(
             HeroActionChip(
                 label = if (isFavorite) "علاقه‌مندی" else "علاقه‌مندی",
                 icon = DfIcons.Heart,
-                tint = if (isFavorite) DfColors.Rose else DfColors.Purple,
-                background = if (isFavorite) DfColors.Rose.copy(alpha = 0.12f) else DfColors.PurpleContainer,
+                tint = if (isFavorite) DfThemeColors.error() else DfThemeColors.primary(),
+                background = if (isFavorite) DfThemeColors.errorContainer() else DfThemeColors.primaryContainer(),
                 onClick = onFavoriteToggle,
                 modifier = Modifier.weight(1f),
             )
             HeroActionChip(
                 label = "فایل شخصی",
                 iconRes = DfDecorIcons.Building,
-                tint = DfColors.Amber,
-                background = DfColors.AmberLight,
+                tint = DfThemeColors.warning(),
+                background = DfThemeColors.warningContainer(),
                 onClick = onSaveAsPersonal,
                 modifier = Modifier.weight(1f),
             )
             HeroActionChip(
                 label = "کپی لینک",
                 iconRes = DfDecorIcons.Copy,
-                tint = DfColors.Blue,
-                background = DfColors.BlueLight,
+                tint = DfThemeColors.info(),
+                background = DfThemeColors.infoContainer(),
                 onClick = onCopyLink,
                 modifier = Modifier.weight(1f),
             )
@@ -110,15 +113,16 @@ private fun HeroIconButton(
     Surface(
         onClick = onClick,
         shape = AppShapes.IconContainer,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.subtle,
-        modifier = Modifier.size(40.dp),
+        modifier = Modifier.size(DfComponentSpec.MinTouchTargetDp.dp),
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = DfColors.TextPrimary,
+                tint = DfThemeColors.textPrimary(),
                 modifier = Modifier.size(20.dp),
             )
         }

@@ -272,7 +272,7 @@ private fun FilingDatasetCoverPlaceholder(
             modifier = Modifier
                 .size(72.dp)
                 .clip(AppShapes.GlassSmall)
-                .background(Color.White.copy(alpha = 0.55f)),
+                .background(DfThemeColors.surface().copy(alpha = if (DfThemeColors.isDark()) 0.35f else 0.55f)),
             contentAlignment = Alignment.Center,
         ) {
             DfDecorImage(

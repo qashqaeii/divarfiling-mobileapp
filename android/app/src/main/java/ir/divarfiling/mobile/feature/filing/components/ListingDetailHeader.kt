@@ -30,6 +30,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
 import ir.divarfiling.mobile.core.filing.ListingMarketTier
@@ -109,7 +110,7 @@ fun ListingDetailHeader(
                         ListingMarketTier.Under -> DfColors.Green to DfColors.GreenLight
                         ListingMarketTier.Over -> DfColors.Rose to DfColors.RoseLight
                         ListingMarketTier.Fair -> DfColors.Amber to DfColors.AmberLight
-                        ListingMarketTier.Unknown -> DfColors.TextMuted to DfColors.SurfaceVariant
+                        ListingMarketTier.Unknown -> DfThemeColors.textMuted() to DfThemeColors.surfaceVariant()
                     }
                     StatusChip(
                         label = pres.detailLabel,
@@ -140,7 +141,7 @@ fun ListingDetailHeader(
             text = listing.title ?: "—",
             style = AppTypography.pageTitle,
             fontWeight = FontWeight.Bold,
-            color = DfColors.TextPrimary,
+            color = DfThemeColors.textPrimary(),
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
         )
@@ -367,7 +368,8 @@ private fun KeyStatTile(
     Surface(
         modifier = modifier,
         shape = AppShapes.Card,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.subtle,
     ) {
         Row(
@@ -380,20 +382,20 @@ private fun KeyStatTile(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = DfColors.Purple,
+                tint = DfThemeColors.primary(),
                 modifier = Modifier.size(16.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
                 Text(
                     text = value,
                     style = AppTypography.bodyDescription,
                     fontWeight = FontWeight.Bold,
-                    color = DfColors.TextPrimary,
+                    color = DfThemeColors.textPrimary(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Start,
@@ -426,8 +428,8 @@ private fun ListingCoreAmenityRow(listing: ListingDetailDto) {
     ) {
         chips.forEach { spec ->
             val positive = spec.value == true
-            val color = if (positive) DfColors.Green else DfColors.TextMuted
-            val bg = if (positive) DfColors.GreenLight else DfColors.SurfaceVariant
+            val color = if (positive) DfThemeColors.success() else DfThemeColors.textMuted()
+            val bg = if (positive) DfThemeColors.successContainer() else DfThemeColors.surfaceVariant()
             Surface(shape = AppShapes.Chip, color = bg) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),

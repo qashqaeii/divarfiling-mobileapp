@@ -21,8 +21,11 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import androidx.compose.foundation.BorderStroke
+import ir.divarfiling.mobile.core.design.DfComponentSpec
+import androidx.compose.foundation.layout.defaultMinSize
 
 data class FilingCategoryTab(
     val id: String,
@@ -71,25 +74,31 @@ private fun FilingCategoryChip(
     Surface(
         onClick = onClick,
         shape = AppShapes.ButtonPill,
-        color = if (selected) DfColors.PurpleContainer else DfColors.Surface,
-        shadowElevation = if (selected) 0.dp else 0.dp,
+        color = if (selected) DfThemeColors.primaryContainer() else DfThemeColors.surface(),
+        border = BorderStroke(
+            1.dp,
+            if (selected) DfThemeColors.primary().copy(alpha = 0.35f) else DfThemeColors.outlineSubtle(),
+        ),
+        shadowElevation = 0.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = 10.dp),
+            modifier = Modifier
+                .defaultMinSize(minHeight = DfComponentSpec.MinTouchTargetDp.dp)
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = tab.icon,
                 contentDescription = null,
-                tint = if (selected) DfColors.Purple else DfColors.TextMuted,
+                tint = if (selected) DfThemeColors.primary() else DfThemeColors.textMuted(),
                 modifier = Modifier.size(14.dp),
             )
             Text(
                 text = tab.label,
                 style = AppTypography.labelSmall,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) DfColors.Purple else DfColors.TextSecondary,
+                color = if (selected) DfThemeColors.primary() else DfThemeColors.textSecondary(),
             )
         }
     }

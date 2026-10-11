@@ -364,7 +364,7 @@ private fun LocationSelectedRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(DfColors.Surface.copy(alpha = 0.85f))
+            .background(DfThemeColors.surface().copy(alpha = 0.92f))
             .padding(horizontal = AppSpacing.sm, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

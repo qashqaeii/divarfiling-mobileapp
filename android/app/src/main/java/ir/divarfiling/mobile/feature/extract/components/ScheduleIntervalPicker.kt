@@ -17,8 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBottomSheetPicker
 
 data class ScheduleIntervalOption(
@@ -53,7 +53,7 @@ fun ScheduleIntervalField(
             .fillMaxWidth()
             .clickable(enabled = enabled, onClick = onClick),
         shape = MaterialTheme.shapes.medium,
-        color = DfColors.SurfaceVariant,
+        color = DfThemeColors.surfaceVariant(),
     ) {
         Row(
             modifier = Modifier
@@ -63,15 +63,15 @@ fun ScheduleIntervalField(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("فاصله زمان‌بندی", style = MaterialTheme.typography.labelMedium, color = DfColors.TextMuted)
+                Text("فاصله زمان‌بندی", style = MaterialTheme.typography.labelMedium, color = DfThemeColors.textMuted())
                 Text(
                     scheduleLabelForHours(selectedHours),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (enabled) DfColors.TextPrimary else DfColors.TextMuted,
+                    color = if (enabled) DfThemeColors.textPrimary() else DfThemeColors.textMuted(),
                 )
             }
-            Icon(DfIcons.Clock, contentDescription = null, tint = DfColors.Purple)
+            Icon(DfIcons.Clock, contentDescription = null, tint = DfThemeColors.primary())
         }
     }
 }
@@ -98,7 +98,7 @@ fun ScheduleIntervalBottomSheet(
                         onDismiss()
                     },
                 shape = MaterialTheme.shapes.medium,
-                color = if (selected) DfColors.PurpleContainer else DfColors.SurfaceVariant,
+                color = if (selected) DfThemeColors.primaryContainer() else DfThemeColors.surfaceVariant(),
             ) {
                 Row(
                     modifier = Modifier
@@ -111,10 +111,10 @@ fun ScheduleIntervalBottomSheet(
                         option.label,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (selected) DfColors.PurpleDark else DfColors.TextPrimary,
+                        color = if (selected) DfThemeColors.onPrimaryContainer() else DfThemeColors.textPrimary(),
                     )
                     if (selected) {
-                        Icon(DfIcons.Check, contentDescription = null, tint = DfColors.Purple)
+                        Icon(DfIcons.Check, contentDescription = null, tint = DfThemeColors.primary())
                     }
                 }
             }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -65,11 +66,12 @@ fun ExtractLoadingExperience(
     } else {
         (phaseProgress / 100f).coerceIn(0f, 1f)
     }
-    val percentLabel = if (progressTotal > 0) {
-        "${(itemProgress * 100).toInt().coerceIn(0, 100)}٪"
+    val percentInt = if (progressTotal > 0) {
+        (itemProgress * 100).toInt().coerceIn(0, 100)
     } else {
-        "${phaseProgress.toInt()}٪"
+        phaseProgress.toInt().coerceIn(0, 100)
     }
+    val percentLabel = "${DateUtils.toPersianDigits(percentInt.toString())}٪"
     val remainingSeconds = estimateRemainingSeconds(phase, itemProgress, elapsedSeconds)
 
     val pulse by rememberInfiniteTransition(label = "extractPulse").animateFloat(
@@ -116,23 +118,30 @@ fun ExtractLoadingExperience(
                 Box(
                     modifier = Modifier
                         .scale(pulse)
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(DfThemeColors.primary()),
+                        .size(68.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(32.dp),
-                        strokeWidth = 2.5.dp,
-                        color = DfThemeColors.surface(),
+                        progress = { barProgress.coerceIn(0f, 1f) },
+                        modifier = Modifier.size(68.dp),
+                        strokeWidth = 5.dp,
+                        color = DfThemeColors.primary(),
+                        trackColor = DfThemeColors.surfaceVariant(),
+                    )
+                    Text(
+                        text = percentLabel,
+                        style = AppTypography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.primary(),
                     )
                 }
             }
 
             LinearProgressIndicator(
-                progress = { barProgress },
+                progress = { barProgress.coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(8.dp)
                     .clip(AppShapes.Chip),
                 color = DfThemeColors.primary(),
                 trackColor = DfThemeColors.surfaceVariant(),
@@ -140,7 +149,7 @@ fun ExtractLoadingExperience(
 
             if (progressTotal > 0) {
                 Text(
-                    "$progressCurrent از $progressTotal آگهی",
+                    "${DateUtils.toPersianDigits(progressCurrent.toString())} از ${DateUtils.toPersianDigits(progressTotal.toString())} آگهی",
                     style = AppTypography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = DfThemeColors.textPrimary(),

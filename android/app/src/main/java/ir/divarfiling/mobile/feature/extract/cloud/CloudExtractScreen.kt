@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,6 +48,13 @@ import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.network.CloudExtractionJobDto
 import ir.divarfiling.mobile.feature.extract.ExtractCategories
+import ir.divarfiling.mobile.feature.extract.components.ExtractSectionTitle
+import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.DfIcons
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.text.style.TextOverflow
+import kotlin.math.min
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,6 +103,15 @@ fun CloudExtractScreen(
                         Column(
                             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                         ) {
+                            ExtractSectionTitle(
+                                title = "درخواست استخراج ابری",
+                                icon = DfIcons.Cloud,
+                            )
+                            Text(
+                                text = "سرور فایلینگ استخراج را انجام می‌دهد؛ گوشی شما درگیر نمی‌شود.",
+                                style = AppTypography.bodyDescription,
+                                color = DfThemeColors.textSecondary(),
+                            )
                             CityDropdown(state.cities, state.cityName, viewModel::onCityChange)
                             CategoryDropdown(subcategories.map { it.label }, state.categoryLabel, viewModel::onCategoryLabelChange)
                             OutlinedTextField(
@@ -231,33 +248,96 @@ private fun CloudJobCard(
         DfStatusTone.Info -> "در حال اجرا"
         else -> job.status
     }
+    val progress = if (job.maxItems > 0) {
+        min(1f, job.ingestedCount.toFloat() / job.maxItems)
+    } else {
+        0f
+    }
+    val isRunning = statusTone == DfStatusTone.Info
+
     DfCard(
         modifier = modifier.fillMaxWidth(),
         onClick = job.datasetId?.takeIf { job.status == "success" }?.let { { onOpenDataset(it) } },
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            Text(
-                "درخواست #${job.id}",
-                style = AppTypography.cardTitle,
-                fontWeight = FontWeight.Bold,
-                color = DfThemeColors.textPrimary(),
-            )
-            DfStatusBanner(
-                message = "${job.ingestedCount} / ${job.maxItems} آگهی",
-                tone = statusTone,
-                title = statusTitle,
-            )
-            job.createdAt?.let {
-                Text(it, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "درخواست ${DateUtils.toPersianDigits(job.id.toString())}",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    job.createdAt?.let {
+                        Text(
+                            it,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                androidx.compose.material3.Surface(
+                    shape = AppShapes.Chip,
+                    color = when (statusTone) {
+                        DfStatusTone.Success -> DfThemeColors.successContainer()
+                        DfStatusTone.Error -> DfThemeColors.errorContainer()
+                        DfStatusTone.Info -> DfThemeColors.infoContainer()
+                        else -> DfThemeColors.warningContainer()
+                    },
+                    border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+                ) {
+                    Text(
+                        text = statusTitle,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = when (statusTone) {
+                            DfStatusTone.Success -> DfThemeColors.success()
+                            DfStatusTone.Error -> DfThemeColors.error()
+                            DfStatusTone.Info -> DfThemeColors.info()
+                            else -> DfThemeColors.warning()
+                        },
+                    )
+                }
             }
+
+            if (isRunning || job.ingestedCount > 0) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = DfThemeColors.primary(),
+                    trackColor = DfThemeColors.surfaceVariant(),
+                )
+                Text(
+                    text = "${DateUtils.toPersianDigits(job.ingestedCount.toString())} از ${DateUtils.toPersianDigits(job.maxItems.toString())} آگهی",
+                    style = AppTypography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DfThemeColors.textPrimary(),
+                )
+            }
+
             job.error?.takeIf { it.isNotBlank() }?.let {
                 DfStatusBanner(message = it, tone = DfStatusTone.Error)
             }
-            job.datasetId?.takeIf { job.status == "success" }?.let {
-                Text("مشاهده فایل", style = AppTypography.labelSmall, color = DfThemeColors.info())
+
+            if (job.status == "success" && job.datasetId != null) {
+                Text(
+                    text = "برای باز کردن فایل، کارت را بزنید",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.primary(),
+                    fontWeight = FontWeight.Medium,
+                )
             }
         }
     }

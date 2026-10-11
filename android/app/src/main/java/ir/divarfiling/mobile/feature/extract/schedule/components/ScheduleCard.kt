@@ -35,7 +35,6 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDestructiveButton
@@ -268,7 +267,15 @@ private fun ScheduleTimelinePanel(schedule: ExtractionScheduleDto) {
                 title = "وضعیت",
                 relative = "در حال اجرا…",
                 absolute = schedule.lastRunAt?.let(::scheduleDateTimeLabel) ?: "شروع شده",
-                accent = DfColors.Blue,
+                accent = DfThemeColors.info(),
+            )
+            androidx.compose.material3.LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(AppShapes.Chip),
+                color = DfThemeColors.info(),
+                trackColor = DfThemeColors.surface(),
             )
         } else {
             schedule.nextRunAt?.takeIf { schedule.isEnabled }?.let { nextRun ->

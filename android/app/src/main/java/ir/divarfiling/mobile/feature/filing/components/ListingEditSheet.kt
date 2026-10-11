@@ -39,6 +39,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfOccupancyVacancyDateSection
 import ir.divarfiling.mobile.core.design.components.DfMoneyField
@@ -474,8 +475,8 @@ private fun AmenityTriRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(16.dp))
-            Text(text = label, style = AppTypography.labelSmall, fontWeight = FontWeight.SemiBold, color = DfColors.TextPrimary)
+            Icon(imageVector = icon, contentDescription = null, tint = DfThemeColors.primary(), modifier = Modifier.size(16.dp))
+            Text(text = label, style = AppTypography.labelSmall, fontWeight = FontWeight.SemiBold, color = DfThemeColors.textPrimary())
         }
         Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
             ChoiceChip(
@@ -483,16 +484,16 @@ private fun AmenityTriRow(
                 selected = value == true,
                 onClick = { onChange(true) },
                 modifier = Modifier.weight(1f),
-                selectedColor = DfColors.Green,
-                selectedBackground = DfColors.GreenLight,
+                selectedColor = DfThemeColors.success(),
+                selectedBackground = DfThemeColors.successContainer(),
             )
             ChoiceChip(
                 label = "ندارد",
                 selected = value == false,
                 onClick = { onChange(false) },
                 modifier = Modifier.weight(1f),
-                selectedColor = DfColors.Rose,
-                selectedBackground = DfColors.RoseLight,
+                selectedColor = DfThemeColors.error(),
+                selectedBackground = DfThemeColors.errorContainer(),
             )
             ChoiceChip(
                 label = "نامشخص",
@@ -511,14 +512,14 @@ private fun ChoiceChip(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    selectedColor: Color = DfColors.Purple,
-    selectedBackground: Color = DfColors.PurpleContainer,
+    selectedColor: Color = DfThemeColors.primary(),
+    selectedBackground: Color = DfThemeColors.primaryContainer(),
 ) {
     Surface(
         onClick = onClick,
         modifier = modifier,
         shape = AppShapes.Chip,
-        color = if (selected) selectedBackground else DfColors.SurfaceVariant,
+        color = if (selected) selectedBackground else DfThemeColors.surfaceVariant(),
     ) {
         Text(
             text = label,
@@ -527,7 +528,7 @@ private fun ChoiceChip(
                 .padding(vertical = 8.dp, horizontal = 4.dp),
             style = AppTypography.labelSmall,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) selectedColor else DfColors.TextSecondary,
+            color = if (selected) selectedColor else DfThemeColors.textSecondary(),
             textAlign = TextAlign.Center,
         )
     }

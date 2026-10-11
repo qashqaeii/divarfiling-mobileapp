@@ -91,7 +91,7 @@ fun ContactTypeSelectorSection(
         Text(
             text = "برای تغییر نقش، یکی از گزینه‌های زیر را انتخاب کنید",
             style = MaterialTheme.typography.bodySmall,
-            color = DfColors.TextMuted,
+            color = DfThemeColors.textMuted(),
         )
 
         FlowRow(
@@ -166,7 +166,7 @@ fun ContactMoneyFormSection(
             Text(
                 text = profile.sectionHint,
                 style = MaterialTheme.typography.bodySmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             if (showBudget) {
                 ContactMoneyRangeRow(
@@ -210,7 +210,7 @@ fun ContactMoneyFormSection(
             Text(
                 text = "بودجه و منطقه خرید ویلا، کلنگی و زمین برای توسعه پروژه",
                 style = MaterialTheme.typography.bodySmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             ContactMoneyRangeRow(
                 minValue = builder.buyBudgetMin,
@@ -283,7 +283,7 @@ fun ContactPropertyPrefsFormSection(
         Text(
             text = "نوع ملک",
             style = AppTypography.labelSmall,
-            color = DfColors.TextMuted,
+            color = DfThemeColors.textMuted(),
         )
         DfFilterChipRow(
             options = listOf(DfFilterOption("", "نامشخص")) +
@@ -353,7 +353,7 @@ fun ContactPropertyPrefsFormSection(
             Text(
                 text = "امکانات مورد نیاز",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             ContactAmenityToggleRow("پارکینگ", prefs.wantParking, enabled, onWantParkingChange)
             ContactAmenityToggleRow("انباری", prefs.wantStorage, enabled, onWantStorageChange)
@@ -389,7 +389,7 @@ fun ContactChannelsFormSection(
         Text(
             text = "روش‌هایی که می‌توانید با این مخاطب در ارتباط باشید",
             style = MaterialTheme.typography.bodySmall,
-            color = DfColors.TextMuted,
+            color = DfThemeColors.textMuted(),
         )
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CrmContactChannels.builtinChannels.forEach { channel ->
@@ -409,7 +409,7 @@ fun ContactChannelsFormSection(
             Text(
                 text = "شماره موبایل را وارد کنید تا واتساپ، پیامک و تماس فعال شوند.",
                 style = MaterialTheme.typography.bodySmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
         }
     }
@@ -418,7 +418,7 @@ fun ContactChannelsFormSection(
         Text(
             text = "برای تلگرام، بله و… از شماره موبایل استفاده می‌شود؛ اینستاگرام نیاز به آیدی دارد.",
             style = MaterialTheme.typography.bodySmall,
-            color = DfColors.TextMuted,
+            color = DfThemeColors.textMuted(),
         )
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CrmContactChannels.socialNetworks.forEach { network ->
@@ -615,7 +615,7 @@ fun ContactMoneyRangeRow(
                 singleLine = true,
                 enabled = enabled,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                placeholder = { Text("از", color = DfColors.TextMuted) },
+                placeholder = { Text("از", color = DfThemeColors.textMuted()) },
             )
             OutlinedTextField(
                 value = maxValue,
@@ -625,7 +625,7 @@ fun ContactMoneyRangeRow(
                 singleLine = true,
                 enabled = enabled,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                placeholder = { Text("تا", color = DfColors.TextMuted) },
+                placeholder = { Text("تا", color = DfThemeColors.textMuted()) },
             )
         }
     }
@@ -665,7 +665,7 @@ fun ContactMatchingToleranceSlider(
             Text(
                 text = "$coerced٪",
                 style = AppTypography.labelSmall,
-                color = DfColors.Purple,
+                color = DfThemeColors.primary(),
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -679,7 +679,7 @@ fun ContactMatchingToleranceSlider(
         Text(
             text = "هرچه بیشتر باشد، پیشنهادهای بیشتری (با فاصله از معیارها) نمایش داده می‌شود.",
             style = MaterialTheme.typography.bodySmall,
-            color = DfColors.TextMuted,
+            color = DfThemeColors.textMuted(),
         )
     }
 }

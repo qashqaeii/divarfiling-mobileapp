@@ -87,7 +87,7 @@ fun DealListCard(
                             progress = { progress / 100f },
                             modifier = Modifier.size(48.dp),
                             color = stageColors.first,
-                            trackColor = DfColors.SurfaceVariant,
+                            trackColor = DfThemeColors.surfaceVariant(),
                             strokeWidth = 3.dp,
                             strokeCap = StrokeCap.Round,
                         )
@@ -107,7 +107,7 @@ fun DealListCard(
                             text = deal.title,
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
-                            color = DfColors.TextPrimary,
+                            color = DfThemeColors.textPrimary(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -115,7 +115,7 @@ fun DealListCard(
                             Text(
                                 text = name,
                                 style = AppTypography.labelSmall,
-                                color = DfColors.TextSecondary,
+                                color = DfThemeColors.textSecondary(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
