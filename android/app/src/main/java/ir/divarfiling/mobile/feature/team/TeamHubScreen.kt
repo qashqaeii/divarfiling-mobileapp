@@ -35,7 +35,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
@@ -153,12 +152,21 @@ fun TeamHubScreen(
                         ) {
                             item {
                                 DfHubPageHeader(
-                                    title = agency?.name ?: "میزکار آژانس",
-                                    subtitle = buildString {
-                                        append(membership?.roleLabel.orEmpty())
+                                    title = "آژانس",
+                                    subtitle = "میزکار تیم و همکاری",
+                                    sectionLabel = DfHeaderSections.TEAM,
+                                    titleIconRes = DfDecorIcons.Users,
+                                    userName = state.userName,
+                                    onBack = onBack,
+                                )
+                            }
+                            item {
+                                TeamIdentityHero(
+                                    agencyName = agency?.name ?: "میزکار آژانس",
+                                    roleLabel = membership?.roleLabel.orEmpty(),
+                                    title = buildString {
                                         seats?.let { s ->
                                             if (s.total > 0) {
-                                                append(" · ")
                                                 append(DateUtils.toPersianDigits(s.assigned.toString()))
                                                 append("/")
                                                 append(DateUtils.toPersianDigits(s.total.toString()))
@@ -166,19 +174,21 @@ fun TeamHubScreen(
                                             }
                                         }
                                     },
-                                    sectionLabel = DfHeaderSections.TEAM,
-                                titleIconRes = DfDecorIcons.Users,
-                                    userName = state.userName,
-                                    onBack = onBack,
+                                    unreadTotal = unread.messages + unread.announcements + unread.notifications,
+                                    modifier = Modifier.padding(horizontal = pad),
                                 )
                             }
                             item {
+                                val primary = DfThemeColors.primary()
+                                val success = DfThemeColors.success()
+                                val warning = DfThemeColors.warning()
+                                val info = DfThemeColors.info()
                                 TeamMetricsRow(
                                     metrics = listOf(
-                                        TeamMetric("اعضا", DateUtils.toPersianDigits(kpis.activeMembers.toString()), DfColors.Purple, DfIcons.Users),
-                                        TeamMetric("سرنخ", DateUtils.toPersianDigits(kpis.unassignedLeads.toString()), DfColors.Green, DfIcons.UserPlus),
-                                        TeamMetric("پیگیری", DateUtils.toPersianDigits(kpis.teamFollowupsToday.toString()), DfColors.Amber, DfIcons.Clock),
-                                        TeamMetric("معامله", DateUtils.toPersianDigits(kpis.activeDeals.toString()), DfColors.Blue, DfIcons.Handshake),
+                                        TeamMetric("اعضا", DateUtils.toPersianDigits(kpis.activeMembers.toString()), primary, DfIcons.Users),
+                                        TeamMetric("سرنخ", DateUtils.toPersianDigits(kpis.unassignedLeads.toString()), success, DfIcons.UserPlus),
+                                        TeamMetric("پیگیری", DateUtils.toPersianDigits(kpis.teamFollowupsToday.toString()), warning, DfIcons.Clock),
+                                        TeamMetric("معامله", DateUtils.toPersianDigits(kpis.activeDeals.toString()), info, DfIcons.Handshake),
                                     ),
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
@@ -232,87 +242,89 @@ fun TeamHubScreen(
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
                             }
-                            if (home.capabilities.canAccessAgencySpace) {
-                                item {
-                                    TeamDestinationCard(
-                                        destination = TeamDestination(
-                                            title = "فضای آژانس",
-                                            subtitle = "فایل‌ها و مخاطبین منتشرشده تیم",
-                                            metricLabel = "فعال",
-                                            metricValue = home.spaceKpis?.activeProperties?.toString() ?: "—",
-                                            tint = DfColors.Purple,
-                                            wash = DfColors.PurpleLight,
-                                            icon = DfIcons.Layers,
-                                            onClick = onOpenAgencySpace,
-                                        ),
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                            }
-                            if (perms.messagesEnabled) {
-                                item {
-                                    TeamDestinationCard(
-                                        destination = TeamDestination(
-                                            title = "صندوق پیام",
-                                            subtitle = "گفت‌وگوی داخلی و پیگیری سریع همکاران",
-                                            metricLabel = "خوانده‌نشده",
-                                            metricValue = DateUtils.toPersianDigits(unread.messages.toString()),
-                                            tint = DfColors.Blue,
-                                            wash = DfColors.BlueLight,
-                                            icon = DfIcons.MessageCircle,
-                                            onClick = onOpenMessages,
-                                        ),
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                            }
-                            if (perms.announcementsEnabled) {
-                                item {
-                                    TeamDestinationCard(
-                                        destination = TeamDestination(
-                                            title = "اعلامیه‌ها",
-                                            subtitle = "تابلو اطلاع‌رسانی و نکات مهم آژانس",
-                                            metricLabel = "جدید",
-                                            metricValue = DateUtils.toPersianDigits(unread.announcements.toString()),
-                                            tint = DfColors.Amber,
-                                            wash = DfColors.AmberLight,
-                                            icon = DfIcons.Sparkles,
-                                            onClick = onOpenAnnouncements,
-                                        ),
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                            }
                             item {
-                                TeamDestinationCard(
-                                    destination = TeamDestination(
-                                        title = "اعضا",
-                                        subtitle = "نقش‌ها، عنوان‌ها و دسترسی‌های تیم",
-                                        metricLabel = "نفر",
-                                        metricValue = home.membersCount.toString(),
-                                        tint = DfColors.Purple,
-                                        wash = DfColors.PurpleLight,
-                                        icon = DfIcons.Users,
-                                        onClick = onOpenMembers,
-                                    ),
-                                    modifier = Modifier.padding(horizontal = pad),
-                                )
-                            }
-                            if (perms.canOperateInbox) {
-                                item {
+                                val primary = DfThemeColors.primary()
+                                val primaryWash = DfThemeColors.primaryContainer()
+                                val info = DfThemeColors.info()
+                                val infoWash = DfThemeColors.infoContainer()
+                                val warning = DfThemeColors.warning()
+                                val warningWash = DfThemeColors.warningContainer()
+                                val success = DfThemeColors.success()
+                                val successWash = DfThemeColors.successContainer()
+                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)) {
+                                    if (home.capabilities.canAccessAgencySpace) {
+                                        TeamDestinationCard(
+                                            destination = TeamDestination(
+                                                title = "فضای آژانس",
+                                                subtitle = "فایل‌ها و مخاطبین منتشرشده تیم",
+                                                metricLabel = "فعال",
+                                                metricValue = home.spaceKpis?.activeProperties?.toString() ?: "—",
+                                                tint = primary,
+                                                wash = primaryWash,
+                                                icon = DfIcons.Layers,
+                                                onClick = onOpenAgencySpace,
+                                            ),
+                                            modifier = Modifier.padding(horizontal = pad),
+                                        )
+                                    }
+                                    if (perms.messagesEnabled) {
+                                        TeamDestinationCard(
+                                            destination = TeamDestination(
+                                                title = "صندوق پیام",
+                                                subtitle = "گفت‌وگوی داخلی و پیگیری سریع همکاران",
+                                                metricLabel = "خوانده‌نشده",
+                                                metricValue = DateUtils.toPersianDigits(unread.messages.toString()),
+                                                tint = info,
+                                                wash = infoWash,
+                                                icon = DfIcons.MessageCircle,
+                                                onClick = onOpenMessages,
+                                            ),
+                                            modifier = Modifier.padding(horizontal = pad),
+                                        )
+                                    }
+                                    if (perms.announcementsEnabled) {
+                                        TeamDestinationCard(
+                                            destination = TeamDestination(
+                                                title = "اعلامیه‌ها",
+                                                subtitle = "تابلو اطلاع‌رسانی و نکات مهم آژانس",
+                                                metricLabel = "جدید",
+                                                metricValue = DateUtils.toPersianDigits(unread.announcements.toString()),
+                                                tint = warning,
+                                                wash = warningWash,
+                                                icon = DfIcons.Sparkles,
+                                                onClick = onOpenAnnouncements,
+                                            ),
+                                            modifier = Modifier.padding(horizontal = pad),
+                                        )
+                                    }
                                     TeamDestinationCard(
                                         destination = TeamDestination(
-                                            title = "صندوق سرنخ",
-                                            subtitle = "تخصیص سریع لیدهای در صف",
-                                            metricLabel = "در صف",
-                                            metricValue = home.inboxLeadsCount.toString(),
-                                            tint = DfColors.Green,
-                                            wash = DfColors.GreenLight,
-                                            icon = DfIcons.UserPlus,
-                                            onClick = onOpenInbox,
+                                            title = "اعضا",
+                                            subtitle = "نقش‌ها، عنوان‌ها و دسترسی‌های تیم",
+                                            metricLabel = "نفر",
+                                            metricValue = home.membersCount.toString(),
+                                            tint = primary,
+                                            wash = primaryWash,
+                                            icon = DfIcons.Users,
+                                            onClick = onOpenMembers,
                                         ),
                                         modifier = Modifier.padding(horizontal = pad),
                                     )
+                                    if (perms.canOperateInbox) {
+                                        TeamDestinationCard(
+                                            destination = TeamDestination(
+                                                title = "صندوق سرنخ",
+                                                subtitle = "تخصیص سریع لیدهای در صف",
+                                                metricLabel = "در صف",
+                                                metricValue = home.inboxLeadsCount.toString(),
+                                                tint = success,
+                                                wash = successWash,
+                                                icon = DfIcons.UserPlus,
+                                                onClick = onOpenInbox,
+                                            ),
+                                            modifier = Modifier.padding(horizontal = pad),
+                                        )
+                                    }
                                 }
                             }
                             if (state.notifications.isNotEmpty()) {
@@ -335,7 +347,7 @@ fun TeamHubScreen(
                                                     onClick = viewModel::markAllNotificationsRead,
                                                     modifier = Modifier.align(Alignment.End),
                                                 ) {
-                                                    Text("همه خوانده شد", color = DfColors.Blue)
+                                                    Text("همه خوانده شد", color = DfThemeColors.info())
                                                 }
                                             }
                                             state.notifications.forEach { note ->
@@ -385,7 +397,7 @@ private fun TeamNotificationRow(
         color = if (note.isRead) {
             DfThemeColors.surfaceVariant().copy(alpha = 0.35f)
         } else {
-            DfColors.BlueLight.copy(alpha = 0.45f)
+            DfThemeColors.infoContainer().copy(alpha = 0.55f)
         },
         shape = RoundedCornerShape(14.dp),
     ) {
@@ -396,7 +408,7 @@ private fun TeamNotificationRow(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TeamAvatar(name = note.title, size = 36.dp, accent = DfColors.Blue)
+            TeamAvatar(name = note.title, size = 36.dp, accent = DfThemeColors.info())
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     note.title,
@@ -419,7 +431,7 @@ private fun TeamNotificationRow(
                 )
             }
             if (!note.isRead) {
-                DfBadge(text = "جدید", color = DfColors.BlueLight, textColor = DfColors.Blue)
+                DfBadge(text = "جدید", color = DfThemeColors.infoContainer(), textColor = DfThemeColors.info())
             }
         }
     }

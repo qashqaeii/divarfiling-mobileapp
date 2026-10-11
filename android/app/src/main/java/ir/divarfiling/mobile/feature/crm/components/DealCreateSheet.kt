@@ -13,8 +13,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
 import ir.divarfiling.mobile.core.design.components.DfJalaliDateTimeField
 import ir.divarfiling.mobile.core.design.components.DfMoneyField
@@ -107,7 +107,7 @@ fun DealCreateSheet(
                 Text(
                     text = "ابتدا در بخش مخاطبین، یک مشتری ثبت کنید",
                     style = AppTypography.labelSmall,
-                    color = DfColors.Amber,
+                    color = DfThemeColors.warning(),
                 )
             } else {
                 DealSearchablePicker(
@@ -337,7 +337,7 @@ private fun DealSearchablePicker(
                 Text(
                     text = "موردی یافت نشد",
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
         }

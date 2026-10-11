@@ -107,7 +107,7 @@ fun TodayTaskCard(
                         text = contactName,
                         style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.TextPrimary,
+                        color = DfThemeColors.textPrimary(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -115,7 +115,7 @@ fun TodayTaskCard(
                         Text(
                             text = taskTitle,
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextSecondary,
+                            color = DfThemeColors.textSecondary(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -124,7 +124,7 @@ fun TodayTaskCard(
                         Text(
                             text = it,
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextMuted,
+                            color = DfThemeColors.textMuted(),
                             maxLines = 1,
                         )
                     }
@@ -160,21 +160,21 @@ fun TodayTaskCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TodayQuickAction(
                         icon = DfIcons.Phone,
-                        tint = DfColors.Purple,
+                        tint = DfThemeColors.primary(),
                         contentDescription = "تماس",
                         enabled = !isActionRunning,
                         onClick = onCall,
                     )
                     TodayQuickAction(
                         icon = DfIcons.MessageCircle,
-                        tint = DfColors.Green,
+                        tint = DfThemeColors.success(),
                         contentDescription = "واتساپ",
                         enabled = !isActionRunning,
                         onClick = onWhatsApp,
                     )
                     TodayQuickAction(
                         icon = DfIcons.CircleCheck,
-                        tint = DfColors.Blue,
+                        tint = DfThemeColors.info(),
                         contentDescription = "انجام",
                         enabled = !isActionRunning,
                         onClick = onComplete,
@@ -189,7 +189,7 @@ fun TodayTaskCard(
                         Icon(
                             imageVector = DfIcons.MoreVertical,
                             contentDescription = "بیشتر",
-                            tint = DfColors.TextMuted,
+                            tint = DfThemeColors.textMuted(),
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -220,16 +220,16 @@ fun TodayTaskCard(
 @Composable
 private fun TaskTypeBadge(label: String, isOverdue: Boolean) {
     val bg = when {
-        isOverdue -> DfColors.RoseLight
-        label == "یادآور" -> DfColors.BlueLight
-        label == "پیگیری" -> DfColors.AmberLight
-        else -> DfColors.PurpleContainer
+        isOverdue -> DfThemeColors.errorContainer()
+        label == "یادآور" -> DfThemeColors.infoContainer()
+        label == "پیگیری" -> DfThemeColors.warningContainer()
+        else -> DfThemeColors.primaryContainer()
     }
     val fg = when {
-        isOverdue -> DfColors.OverdueAccent
-        label == "یادآور" -> DfColors.Blue
-        label == "پیگیری" -> DfColors.Amber
-        else -> DfColors.Purple
+        isOverdue -> DfThemeColors.error()
+        label == "یادآور" -> DfThemeColors.info()
+        label == "پیگیری" -> DfThemeColors.warning()
+        else -> DfThemeColors.primary()
     }
     Surface(shape = AppShapes.Chip, color = bg) {
         Row(

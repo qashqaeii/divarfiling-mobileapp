@@ -88,16 +88,16 @@ fun PropertyLocationSection(
                 Text(
                     PropertyFilters.locationLabel(property),
                     style = AppTypography.bodyDescription,
-                    color = DfColors.TextSecondary,
+                    color = DfThemeColors.textSecondary(),
                 )
                 property.address?.takeIf { it.isNotBlank() }?.let { address ->
-                    Text(address, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                    Text(address, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                 }
                 property.postalCode?.takeIf { it.isNotBlank() }?.let { postal ->
                     Text(
                         "کد پستی: $postal",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                 }
                 if (hasCoords) {
@@ -117,7 +117,7 @@ fun PropertyLocationSection(
                             "موقعیت دقیق روی نقشه ثبت نشده است.",
                             modifier = Modifier.padding(AppSpacing.sm),
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextMuted,
+                            color = DfThemeColors.textMuted(),
                         )
                     }
                 }
@@ -218,7 +218,7 @@ fun PropertyNearbyPoisSection(
                 Text(
                     "دسترسی محلی · $categoryCount مورد · شعاع ۳ کیلومتر",
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
             if (canEdit && hasCoords) {
@@ -272,7 +272,7 @@ fun PropertyNearbyPoisSection(
                     "در حال دریافت امکانات اطراف…",
                     modifier = Modifier.padding(start = AppSpacing.sm),
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
         }
@@ -298,7 +298,7 @@ fun PropertyNearbyPoisSection(
                 Text(
                     "داده‌ای یافت نشد. دوباره «محاسبه» را بزنید.",
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             }
         }
@@ -306,7 +306,7 @@ fun PropertyNearbyPoisSection(
             Text(
                 "برای نمایش مترو، بیمارستان، پارک و… دکمه «محاسبه» را بزنید.",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
         }
     }
@@ -377,7 +377,7 @@ private fun NearbyPoiRow(item: NearbyPoiItemDto) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(item.label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+            Text(item.label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
             Text(
                 when {
                     item.found && item.name.isNotBlank() -> item.name
@@ -396,7 +396,7 @@ private fun NearbyPoiRow(item: NearbyPoiItemDto) {
                     Text(item.distanceLabel, style = AppTypography.labelSmall, fontWeight = FontWeight.Bold)
                 }
                 if (item.walkLabel.isNotBlank()) {
-                    Text(item.walkLabel, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                    Text(item.walkLabel, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                 }
             }
         }

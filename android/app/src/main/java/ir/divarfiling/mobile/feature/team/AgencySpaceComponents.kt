@@ -42,8 +42,6 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 
 import ir.divarfiling.mobile.core.design.AppTypography
 
-import ir.divarfiling.mobile.core.design.DfColors
-
 import ir.divarfiling.mobile.core.design.DfThemeColors
 
 import ir.divarfiling.mobile.core.design.components.DfBadge
@@ -91,8 +89,8 @@ fun AgencySpaceVisibilityBadge(
     androidx.compose.foundation.layout.Box(modifier = modifier) {
         DfBadge(
             text = if (isConfidential) "🔒 ${label.ifBlank { "محرمانه" }}" else "🌐 ${label.ifBlank { "عمومی" }}",
-            color = if (isConfidential) DfColors.Amber.copy(alpha = 0.15f) else DfColors.Blue.copy(alpha = 0.12f),
-            textColor = if (isConfidential) DfColors.Amber else DfColors.Blue,
+            color = if (isConfidential) DfThemeColors.warningContainer() else DfThemeColors.infoContainer(),
+            textColor = if (isConfidential) DfThemeColors.warning() else DfThemeColors.info(),
         )
     }
 
@@ -126,9 +124,9 @@ fun AgencySpacePublisherRow(
 
             text = name.take(1).ifBlank { "?" },
 
-            color = DfColors.PurpleLight,
+            color = DfThemeColors.primaryContainer(),
 
-            textColor = DfColors.Purple,
+            textColor = DfThemeColors.primary(),
 
         )
 
@@ -184,9 +182,9 @@ fun AgencySpaceProvenanceBadge(
 
             text = provenance.label.ifBlank { "فضای آژانس" },
 
-            color = DfColors.PurpleLight,
+            color = DfThemeColors.primaryContainer(),
 
-            textColor = DfColors.Purple,
+            textColor = DfThemeColors.primary(),
 
         )
 
@@ -551,9 +549,9 @@ private fun AgencySpaceMemberRow(
 
             text = member.name.take(1).ifBlank { "?" },
 
-            color = DfColors.PurpleLight,
+            color = DfThemeColors.primaryContainer(),
 
-            textColor = DfColors.Purple,
+            textColor = DfThemeColors.primary(),
 
         )
 

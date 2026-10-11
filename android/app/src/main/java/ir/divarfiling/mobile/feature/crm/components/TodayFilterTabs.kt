@@ -20,8 +20,11 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import androidx.compose.foundation.BorderStroke
+import ir.divarfiling.mobile.core.design.DfComponentSpec
+import androidx.compose.foundation.layout.defaultMinSize
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -69,26 +72,31 @@ private fun TodayFilterChipItem(
 ) {
     Surface(
         onClick = onClick,
-        shape = AppShapes.ButtonPill,
-        color = if (selected) DfColors.PurpleContainer else DfColors.SurfaceVariant.copy(alpha = 0.65f),
+        shape = AppShapes.Chip,
+        color = if (selected) DfThemeColors.primaryContainer() else DfThemeColors.surfaceVariant(),
+        border = BorderStroke(
+            1.dp,
+            if (selected) DfThemeColors.primary().copy(alpha = 0.35f) else DfThemeColors.outlineSubtle(),
+        ),
+        modifier = Modifier.defaultMinSize(minHeight = DfComponentSpec.MinTouchTargetDp.dp),
         shadowElevation = 0.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) DfColors.Purple else DfColors.TextMuted,
+                tint = if (selected) DfThemeColors.primary() else DfThemeColors.textMuted(),
                 modifier = Modifier.size(13.dp),
             )
             Text(
                 text = label,
                 style = AppTypography.labelSmall,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) DfColors.Purple else DfColors.TextSecondary,
+                color = if (selected) DfThemeColors.onPrimaryContainer() else DfThemeColors.textSecondary(),
                 maxLines = 1,
             )
         }

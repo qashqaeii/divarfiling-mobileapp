@@ -32,7 +32,6 @@ import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
@@ -125,13 +124,13 @@ fun DealListCard(
                 }
 
                 if (deal.isStale) {
-                    Surface(shape = AppShapes.Chip, color = DfColors.AmberLight) {
+                    Surface(shape = AppShapes.Chip, color = DfThemeColors.warningContainer()) {
                         Text(
                             text = "نیاز به پیگیری — ${deal.daysInStage} روز",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = AppTypography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = DfColors.Amber,
+                            color = DfThemeColors.warning(),
                         )
                     }
                 }
@@ -144,13 +143,13 @@ fun DealListCard(
                         Icon(
                             imageVector = DfIcons.Building,
                             contentDescription = null,
-                            tint = DfColors.TextMuted,
+                            tint = DfThemeColors.textMuted(),
                             modifier = Modifier.size(12.dp),
                         )
                         Text(
                             text = property,
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextMuted,
+                            color = DfThemeColors.textMuted(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -162,14 +161,18 @@ fun DealListCard(
                         text = nextLabel,
                         style = AppTypography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (deal.nextAction?.isOverdue == true) DfColors.Amber else DfColors.TextSecondary,
+                        color = if (deal.nextAction?.isOverdue == true) {
+                            DfThemeColors.warning()
+                        } else {
+                            DfThemeColors.textSecondary()
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 } ?: Text(
                     text = "اقدام بعدی تعیین نشده",
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
 
                 Row(
@@ -178,13 +181,13 @@ fun DealListCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     deal.amount?.let { amount ->
-                        Surface(shape = AppShapes.Chip, color = DfColors.PurpleContainer.copy(alpha = 0.65f)) {
+                        Surface(shape = AppShapes.Chip, color = DfThemeColors.primaryContainer()) {
                             Text(
                                 text = FormatUtils.formatPriceShort(amount) + " تومان",
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 style = AppTypography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = DfColors.Purple,
+                                color = DfThemeColors.onPrimaryContainer(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -192,32 +195,24 @@ fun DealListCard(
                     } ?: Text(
                         text = "بدون مبلغ",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
-                    run {
+                    if (deal.hasCommissionDisplay()) {
                         val advisor = deal.advisorCommission?.takeIf { it > 0 }
-                        val commission = deal.commissionAmount?.takeIf { it > 0 }
-                        when {
-                            advisor != null -> Surface(shape = AppShapes.Chip, color = DfColors.GreenLight) {
-                                Text(
-                                    text = "سهم شما ${FormatUtils.formatPriceShort(advisor)}",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = AppTypography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = DfColors.Green,
-                                    maxLines = 1,
-                                )
-                            }
-                            commission != null -> Surface(shape = AppShapes.Chip, color = DfColors.GreenLight) {
-                                Text(
-                                    text = "کمیسیون ${FormatUtils.formatPriceShort(commission)}",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = AppTypography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = DfColors.Green,
-                                    maxLines = 1,
-                                )
-                            }
+                        val label = if (advisor != null) {
+                            "سهم شما ${FormatUtils.formatPriceShort(advisor)}"
+                        } else {
+                            "کمیسیون ${FormatUtils.formatPriceShort(deal.displayCommissionTotal())}"
+                        }
+                        Surface(shape = AppShapes.Chip, color = DfThemeColors.successContainer()) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = AppTypography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DfThemeColors.success(),
+                                maxLines = 1,
+                            )
                         }
                     }
                 }
@@ -250,14 +245,14 @@ fun DealListCard(
                         Text(
                             text = jalaliDate,
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextSecondary,
+                            color = DfThemeColors.textSecondary(),
                             maxLines = 1,
                         )
                         if (jalaliTime != "—") {
                             Text(
                                 text = jalaliTime,
                                 style = AppTypography.labelSmall,
-                                color = DfColors.TextMuted,
+                                color = DfThemeColors.textMuted(),
                                 maxLines = 1,
                             )
                         }

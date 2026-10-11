@@ -41,7 +41,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
@@ -63,11 +62,16 @@ import ir.divarfiling.mobile.core.share.DossierShareActions
 import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.feature.crm.ContactPickerSheet
 import ir.divarfiling.mobile.feature.crm.ListingPickerSheet
+import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandHost
+import ir.divarfiling.mobile.feature.ai.smartcommand.SmartCommandProfileKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiAssistantScreen(
     onBack: () -> Unit,
+    onNavigateContact: (Long) -> Unit = {},
+    onNavigateProperty: (Long) -> Unit = {},
+    onNavigateToday: () -> Unit = {},
     viewModel: AiAssistantViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -134,10 +138,21 @@ fun AiAssistantScreen(
                     item {
                         DfHubPageHeader(
                             title = "دستیار AI",
-                            subtitle = "پیش‌نویس و خلاصه در جریان واقعی کار",
+                            subtitle = "پیش‌نویس، خلاصه و فرمان صوتی/متنی",
                             sectionLabel = DfHeaderSections.AI,
                             titleIconRes = DfDecorIcons.Sparkles,
                             onBack = onBack,
+                        )
+                    }
+
+                    item {
+                        SmartCommandHost(
+                            profile = SmartCommandProfileKey.GLOBAL,
+                            modifier = Modifier.padding(horizontal = pad),
+                            onNavigateContact = onNavigateContact,
+                            onNavigateProperty = onNavigateProperty,
+                            onNavigateToday = onNavigateToday,
+                            onNavigateTodayContext = onNavigateToday,
                         )
                     }
 
@@ -181,6 +196,18 @@ fun AiAssistantScreen(
                                 remaining = quota.remaining,
                                 limit = quota.limit,
                                 enabled = quota.enabled,
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
+                        }
+                    }
+
+                    if (state.isSubmitting || state.isLoading) {
+                        item {
+                            DfStatusBanner(
+                                message = "در حال پردازش درخواست… لطفاً صبر کنید.",
+                                tone = DfStatusTone.Info,
+                                title = "دستیار در حال کار",
+                                icon = DfIcons.Sparkles,
                                 modifier = Modifier.padding(horizontal = pad),
                             )
                         }
@@ -325,8 +352,8 @@ private fun AiAmbientBackground() {
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        DfColors.Purple.copy(alpha = 0.10f),
-                        DfColors.Blue.copy(alpha = 0.05f),
+                        DfThemeColors.primary().copy(alpha = 0.10f),
+                        DfThemeColors.info().copy(alpha = 0.05f),
                         DfThemeColors.background(),
                         DfThemeColors.background(),
                     ),
@@ -344,9 +371,9 @@ private fun AiQuotaHero(
     modifier: Modifier = Modifier,
 ) {
     val accent = when {
-        !enabled -> DfColors.Amber
-        remaining > 0 -> DfColors.Green
-        else -> DfColors.Rose
+        !enabled -> DfThemeColors.warning()
+        remaining > 0 -> DfThemeColors.success()
+        else -> DfThemeColors.error()
     }
     Box(
         modifier = modifier
@@ -356,7 +383,7 @@ private fun AiQuotaHero(
                 Brush.linearGradient(
                     listOf(
                         accent.copy(alpha = 0.16f),
-                        DfColors.Purple.copy(alpha = 0.08f),
+                        DfThemeColors.primary().copy(alpha = 0.08f),
                         DfThemeColors.surface().copy(alpha = 0.96f),
                     ),
                 ),
@@ -441,8 +468,8 @@ private fun AiResultCard(
                 )
                 DfBadge(
                     text = if (isFallback) "جایگزین" else "AI",
-                    color = if (isFallback) DfColors.AmberLight else DfColors.PurpleLight,
-                    textColor = if (isFallback) DfColors.Amber else DfColors.PurpleDark,
+                    color = if (isFallback) DfThemeColors.warningContainer() else DfThemeColors.primaryContainer(),
+                    textColor = if (isFallback) DfThemeColors.warning() else DfThemeColors.primary(),
                 )
             }
             DfTextField(

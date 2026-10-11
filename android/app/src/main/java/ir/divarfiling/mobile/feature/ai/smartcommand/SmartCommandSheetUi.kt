@@ -40,6 +40,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import ir.divarfiling.mobile.core.network.SmartCommandExampleDto
@@ -343,7 +344,7 @@ fun SmartCommandComposer(
                     Text(
                         it,
                         style = AppTypography.labelSmall,
-                        color = if (voicePhase == VoiceInputPhase.Error) DfColors.Rose else DfColors.TextMuted,
+                        color = if (voicePhase == VoiceInputPhase.Error) DfThemeColors.error() else DfThemeColors.textMuted(),
                         modifier = Modifier.padding(horizontal = AppSpacing.sm),
                     )
                 }

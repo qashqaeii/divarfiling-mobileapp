@@ -29,8 +29,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
@@ -153,6 +154,9 @@ fun TeamAnnouncementsScreen(
             DfSheetScaffold(
                 title = detail.title,
                 subtitle = detail.createdBy.ifBlank { "اعلامیه آژانس" },
+                icon = DfIcons.Sparkles,
+                iconContainerColor = DfThemeColors.warningContainer(),
+                iconTint = DfThemeColors.warning(),
                 onClose = viewModel::dismissDetail,
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
@@ -160,10 +164,18 @@ fun TeamAnnouncementsScreen(
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
                         if (detail.importance == "important" || detail.importance == "urgent") {
-                            DfBadge(text = "مهم", color = DfColors.RoseLight, textColor = DfColors.Rose)
+                            DfBadge(
+                                text = "مهم",
+                                color = DfThemeColors.errorContainer(),
+                                textColor = DfThemeColors.error(),
+                            )
                         }
                         if (detail.isPinned) {
-                            DfBadge(text = "سنجاق", color = DfColors.AmberLight, textColor = DfColors.Amber)
+                            DfBadge(
+                                text = "سنجاق",
+                                color = DfThemeColors.primaryContainer(),
+                                textColor = DfThemeColors.primary(),
+                            )
                         }
                     }
                     Text(
@@ -225,11 +237,18 @@ fun TeamAnnouncementsScreen(
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
+                    state.error?.let { err ->
+                        if (!state.isLoading && state.items.isEmpty()) {
+                            item {
+                                DfErrorBanner(message = err, modifier = Modifier.padding(horizontal = pad))
+                            }
+                        }
+                    }
                     when {
                         state.isLoading -> item {
                             DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
                         }
-                        state.items.isEmpty() -> item {
+                        state.items.isEmpty() && state.error == null -> item {
                             DfEmptyState(
                                 title = "اعلامیه‌ای نیست",
                                 subtitle = "وقتی مدیر اعلامیه بگذارد اینجا می‌بینید.",

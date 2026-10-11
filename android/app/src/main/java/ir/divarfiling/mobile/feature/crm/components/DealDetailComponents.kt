@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,6 +36,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfComponentSpec
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
@@ -104,7 +106,16 @@ fun DealDetailHeroCard(
                                 text = name,
                                 style = AppTypography.cardTitle,
                                 fontWeight = FontWeight.Bold,
-                                color = DfColors.TextPrimary,
+                                color = DfThemeColors.textPrimary(),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        deal.propertyTitle?.takeIf { it.isNotBlank() }?.let { property ->
+                            Text(
+                                text = property,
+                                style = AppTypography.labelSmall,
+                                color = DfThemeColors.textSecondary(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -115,7 +126,7 @@ fun DealDetailHeroCard(
                             progress = { progress / 100f },
                             modifier = Modifier.size(52.dp),
                             color = stageColors.first,
-                            trackColor = DfColors.SurfaceVariant,
+                            trackColor = DfThemeColors.surfaceVariant(),
                             strokeWidth = 4.dp,
                             strokeCap = StrokeCap.Round,
                         )
@@ -128,33 +139,16 @@ fun DealDetailHeroCard(
                     }
                 }
 
-                deal.amount?.let { amount ->
-                    Text(
-                        text = FormatUtils.formatPriceToman(amount),
-                        style = AppTypography.sectionTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = DfColors.Purple,
-                    )
-                } ?: Text(
-                    text = "مبلغ ثبت نشده",
-                    style = AppTypography.bodyDescription,
-                    color = DfColors.TextMuted,
-                )
-
-                Text(
-                    text = DealUiUtils.stageDescription(stage, stageDef),
-                    style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
-                )
+                DealHeroMetricsRow(deal = deal, stage = stage, stageDef = stageDef)
 
                 if (deal.isStale) {
-                    Surface(shape = AppShapes.Chip, color = DfColors.AmberLight) {
+                    Surface(shape = AppShapes.Chip, color = DfThemeColors.warningContainer()) {
                         Text(
                             text = "این معامله ${deal.daysInStage} روز در این مرحله مانده و نیاز به پیگیری دارد",
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             style = AppTypography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = DfColors.Amber,
+                            color = DfThemeColors.warning(),
                         )
                     }
                 }
@@ -196,30 +190,6 @@ fun DealDetailHeroCard(
                         value = contract,
                     )
                 }
-                deal.commissionAmount?.let { commission ->
-                    DealDetailMetaRow(
-                        icon = DfIcons.Coins,
-                        label = "کمیسیون کل",
-                        value = FormatUtils.formatPriceToman(commission),
-                        valueColor = DfColors.Green,
-                    )
-                }
-                deal.advisorCommission?.let { advisor ->
-                    DealDetailMetaRow(
-                        icon = DfIcons.Handshake,
-                        label = "سهم مشاور",
-                        value = FormatUtils.formatPriceToman(advisor),
-                        valueColor = DfColors.Green,
-                    )
-                }
-                deal.agencyCommission?.let { agency ->
-                    DealDetailMetaRow(
-                        icon = DfIcons.Landmark,
-                        label = "سهم املاک",
-                        value = FormatUtils.formatPriceToman(agency),
-                        valueColor = DfColors.Purple,
-                    )
-                }
                 deal.commissionRate?.let { rate ->
                     DealDetailMetaRow(
                         icon = DfIcons.Percent,
@@ -232,7 +202,7 @@ fun DealDetailHeroCard(
                         icon = DfIcons.CircleAlert,
                         label = "دلیل از دست رفتن",
                         value = reason,
-                        valueColor = DfColors.Amber,
+                        valueColor = DfThemeColors.warning(),
                     )
                 }
                 DealDetailMetaRow(
@@ -244,7 +214,7 @@ fun DealDetailHeroCard(
                 deal.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                     Surface(
                         shape = AppShapes.CardSmall,
-                        color = DfColors.SurfaceVariant.copy(alpha = 0.45f),
+                        color = DfThemeColors.surfaceVariant().copy(alpha = 0.55f),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(
@@ -258,25 +228,95 @@ fun DealDetailHeroCard(
                                 Icon(
                                     imageVector = DfIcons.StickyNote,
                                     contentDescription = null,
-                                    tint = DfColors.TextMuted,
+                                    tint = DfThemeColors.textMuted(),
                                     modifier = Modifier.size(14.dp),
                                 )
                                 Text(
                                     text = "یادداشت",
                                     style = AppTypography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = DfColors.TextMuted,
+                                    color = DfThemeColors.textMuted(),
                                 )
                             }
                             Text(
                                 text = notes,
                                 style = AppTypography.bodyDescription,
-                                color = DfColors.TextSecondary,
+                                color = DfThemeColors.textSecondary(),
                             )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DealHeroMetricsRow(
+    deal: DealDto,
+    stage: String,
+    stageDef: ir.divarfiling.mobile.core.network.DealStageDefDto?,
+) {
+    val dealValue = deal.contractAmount ?: deal.amount
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        DealHeroMetricCell(
+            label = "ارزش",
+            value = dealValue?.let { FormatUtils.formatPriceShort(it) } ?: "—",
+            modifier = Modifier.weight(1f),
+        )
+        DealHeroMetricCell(
+            label = "کمیسیون",
+            value = if (deal.hasCommissionDisplay()) {
+                FormatUtils.formatPriceShort(deal.displayCommissionTotal())
+            } else {
+                "—"
+            },
+            valueColor = if (deal.hasCommissionDisplay()) DfThemeColors.success() else DfThemeColors.textMuted(),
+            modifier = Modifier.weight(1f),
+        )
+        DealHeroMetricCell(
+            label = "احتمال",
+            value = deal.probability?.let { "$it٪" } ?: "—",
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Text(
+        text = DealUiUtils.stageDescription(stage, stageDef),
+        style = AppTypography.labelSmall,
+        color = DfThemeColors.textMuted(),
+    )
+}
+
+@Composable
+private fun DealHeroMetricCell(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = DfThemeColors.textPrimary(),
+) {
+    Surface(
+        modifier = modifier,
+        shape = AppShapes.CardSmall,
+        color = DfThemeColors.surfaceVariant().copy(alpha = 0.45f),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+            Text(
+                value,
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = valueColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -303,13 +343,13 @@ fun DealStageSection(
                 text = "مرحله فروش",
                 style = AppTypography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             if (isSubmitting) {
                 Text(
                     text = "در حال به‌روزرسانی…",
                     style = AppTypography.labelSmall,
-                    color = DfColors.Purple,
+                    color = DfThemeColors.primary(),
                 )
             }
         }
@@ -337,24 +377,24 @@ fun DealDetailQuickActions(
         DealQuickAction(
             label = "ویرایش",
             icon = DfIcons.Pencil,
-            background = DfColors.PurpleContainer,
-            iconTint = DfColors.Purple,
+            background = DfThemeColors.primaryContainer(),
+            iconTint = DfThemeColors.primary(),
             onClick = onEdit,
             modifier = Modifier.weight(1f),
         )
         DealQuickAction(
             label = "مالی",
             icon = DfIcons.Coins,
-            background = DfColors.GreenLight,
-            iconTint = DfColors.Green,
+            background = DfThemeColors.successContainer(),
+            iconTint = DfThemeColors.success(),
             onClick = onFinance,
             modifier = Modifier.weight(1f),
         )
         DealQuickAction(
             label = "حذف",
-            icon = DfIcons.X,
-            background = DfColors.RoseLight,
-            iconTint = DfColors.Rose,
+            icon = DfIcons.Trash,
+            background = DfThemeColors.errorContainer(),
+            iconTint = DfThemeColors.error(),
             onClick = onDelete,
             modifier = Modifier.weight(1f),
         )
@@ -382,12 +422,12 @@ fun DealChecklistSection(
                 text = "چک‌لیست معامله",
                 style = AppTypography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             Text(
                 text = "$doneCount از ${items.size}",
                 style = AppTypography.labelSmall,
-                color = DfColors.Purple,
+                color = DfThemeColors.primary(),
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -416,13 +456,13 @@ fun DealChecklistSection(
                                 text = item.label.orEmpty(),
                                 style = AppTypography.bodyDescription,
                                 fontWeight = if (item.done) FontWeight.Normal else FontWeight.Medium,
-                                color = if (item.done) DfColors.TextMuted else DfColors.TextPrimary,
+                                color = if (item.done) DfThemeColors.textMuted() else DfThemeColors.textPrimary(),
                             )
                             if (item.required) {
                                 Text(
                                     text = "الزامی",
                                     style = AppTypography.labelSmall,
-                                    color = DfColors.Amber,
+                                    color = DfThemeColors.warning(),
                                 )
                             }
                         }
@@ -471,7 +511,7 @@ private fun DealDetailMetaRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String,
-    valueColor: Color = DfColors.TextPrimary,
+    valueColor: Color = DfThemeColors.textPrimary(),
     onClick: (() -> Unit)? = null,
 ) {
     val clickable = onClick != null
@@ -505,7 +545,7 @@ private fun DealDetailMetaRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = DfColors.TextMuted,
+                tint = DfThemeColors.textMuted(),
                 modifier = Modifier.size(15.dp),
             )
         }
@@ -513,13 +553,13 @@ private fun DealDetailMetaRow(
             Text(
                 text = label,
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             Text(
                 text = value,
                 style = AppTypography.bodyDescription,
                 fontWeight = FontWeight.Medium,
-                color = if (clickable) DfColors.Purple else valueColor,
+                color = if (clickable) DfThemeColors.primary() else valueColor,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -528,7 +568,7 @@ private fun DealDetailMetaRow(
             Icon(
                 imageVector = DfIcons.ChevronLeft,
                 contentDescription = null,
-                tint = DfColors.TextMuted,
+                tint = DfThemeColors.textMuted(),
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -546,14 +586,15 @@ private fun DealQuickAction(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.defaultMinSize(minHeight = DfComponentSpec.MinTouchTargetDp.dp),
         shape = AppShapes.Card,
-        color = background.copy(alpha = 0.55f),
+        color = background.copy(alpha = 0.72f),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 14.dp, horizontal = AppSpacing.sm),
+                .padding(vertical = 10.dp, horizontal = AppSpacing.sm),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {

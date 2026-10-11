@@ -37,6 +37,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
@@ -239,7 +240,8 @@ private fun InputAndPreviewStep(
         title = state.profile?.title?.ifBlank { "دستیار هوشمند" } ?: "دستیار هوشمند",
         subtitle = sheetSubtitle,
         icon = DfIcons.Sparkles,
-        iconContainerColor = DfColors.PurpleContainer.copy(alpha = 0.45f),
+        iconContainerColor = DfThemeColors.primaryContainer().copy(alpha = 0.45f),
+        iconTint = DfThemeColors.primary(),
         onClose = onDismiss,
         bodyHeightFraction = sheetHeightFraction,
         footer = {
@@ -299,7 +301,7 @@ private fun InputAndPreviewStep(
             Text(
                 "ورود صوتی روی این دستگاه در دسترس نیست.",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
         }
         SmartCommandComposer(
@@ -352,7 +354,7 @@ private fun InputAndPreviewStep(
             Text(
                 "می‌توانید در بخش مربوطه دوباره بنویسید.",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             wrong.navigation?.let { dest ->
                 DfSecondaryButton(
@@ -609,7 +611,7 @@ private fun ContactResolveStep(
                         Icon(
                             DfIcons.ChevronLeft,
                             contentDescription = null,
-                            tint = DfColors.TextMuted,
+                            tint = DfThemeColors.textMuted(),
                             modifier = Modifier.size(18.dp),
                         )
                     }

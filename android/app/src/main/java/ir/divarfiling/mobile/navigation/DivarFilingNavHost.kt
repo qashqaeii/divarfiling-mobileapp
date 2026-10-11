@@ -817,7 +817,14 @@ fun DivarFilingNavHost(
                             },
                         ),
                     ) {
-                        AiAssistantScreen(onBack = { navController.popBackStack() })
+                        AiAssistantScreen(
+                            onBack = { navController.popBackStack() },
+                            onNavigateContact = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onNavigateProperty = { id ->
+                                navController.navigate(Routes.propertyDetail(id))
+                            },
+                            onNavigateToday = { navController.navigate(Routes.CRM_TODAY) },
+                        )
                     }
                     composable(Routes.SUPPORT) {
                         SupportTicketsScreen(

@@ -1,6 +1,10 @@
 package ir.divarfiling.mobile.feature.team
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,12 +44,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
@@ -315,9 +319,16 @@ fun AgencySpaceListScreen(
                         }
                     }
                 }
+                state.error?.let { err ->
+                    if (!state.isLoading && state.items.isEmpty()) {
+                        item {
+                            DfErrorBanner(message = err, modifier = Modifier.padding(horizontal = pad))
+                        }
+                    }
+                }
                 when {
                     state.isLoading -> item { DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad)) }
-                    state.items.isEmpty() -> item {
+                    state.items.isEmpty() && state.error == null -> item {
                         val (title, desc) = agencySpaceEmptyCopy(state.tab)
                         DfEmptyState(
                             title = title,
@@ -351,9 +362,9 @@ private fun AgencySpaceKpiRow(
 ) {
     TeamMetricsRow(
         metrics = listOf(
-            TeamMetric("فایل‌ها", kpis.activeProperties.toString(), DfColors.Blue, DfIcons.Building),
-            TeamMetric("مخاطبین", kpis.activeContacts.toString(), DfColors.Green, DfIcons.Users),
-            TeamMetric("ذخیره‌ها", kpis.totalCopies.toString(), DfColors.Amber, DfIcons.Sparkles),
+            TeamMetric("فایل‌ها", kpis.activeProperties.toString(), DfThemeColors.info(), DfIcons.Building),
+            TeamMetric("مخاطبین", kpis.activeContacts.toString(), DfThemeColors.success(), DfIcons.Users),
+            TeamMetric("ذخیره‌ها", kpis.totalCopies.toString(), DfThemeColors.warning(), DfIcons.Sparkles),
         ),
         modifier = modifier,
     )
@@ -385,11 +396,26 @@ private fun AgencySpaceListCard(
         item.customer?.needSummary?.takeIf { it.isNotBlank() },
     ).joinToString(" · ")
     val copyKind = if (isProperty) "property" else "customer"
+    val typeLabel = if (isProperty) "ملک" else "مخاطب"
+    val accent = if (isProperty) DfThemeColors.info() else DfThemeColors.primary()
     DfCard(modifier = modifier, onClick = onOpen) {
         Row(
-            modifier = Modifier.padding(AppSpacing.cardPadding),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
         ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(accent),
+            )
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(AppSpacing.cardPadding),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
             if (isProperty) {
                 DfListingImage(
                     thumbnailUrl = item.property?.thumbnailUrl,
@@ -402,7 +428,24 @@ private fun AgencySpaceListCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
             ) {
-                Text(title, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    DfBadge(
+                        text = typeLabel,
+                        color = accent.copy(alpha = 0.12f),
+                        textColor = accent,
+                    )
+                    Text(
+                        title,
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 if (region.isNotBlank()) {
                     Text(region, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                 }
@@ -445,6 +488,7 @@ private fun AgencySpaceListCard(
                         )
                     }
                 }
+            }
             }
         }
     }
@@ -499,6 +543,17 @@ fun AgencySpaceDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                         modifier = Modifier.fillMaxSize(),
                     ) {
+                        item {
+                            AgencySpaceDetailHero(
+                                isProperty = isProperty,
+                                title = item.property?.title ?: item.customer?.name ?: "—",
+                                subtitle = item.property?.priceLabel
+                                    ?: item.customer?.budgetLabel
+                                    ?: item.property?.region
+                                    ?: item.customer?.region.orEmpty(),
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
+                        }
                         if (isProperty && !item.property?.thumbnailUrl.isNullOrBlank()) {
                             item {
                                 DfListingImage(
@@ -625,6 +680,52 @@ fun AgencySpaceDetailScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgencySpaceDetailHero(
+    isProperty: Boolean,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+) {
+    val typeLabel = if (isProperty) "ملک اشتراکی" else "مخاطب اشتراکی"
+    val accent = if (isProperty) DfThemeColors.info() else DfThemeColors.primary()
+    DfCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(accent),
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(AppSpacing.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                DfBadge(text = typeLabel, color = accent.copy(alpha = 0.12f), textColor = accent)
+                Text(
+                    title,
+                    style = AppTypography.pageTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.textPrimary(),
+                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        subtitle,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                    )
                 }
             }
         }

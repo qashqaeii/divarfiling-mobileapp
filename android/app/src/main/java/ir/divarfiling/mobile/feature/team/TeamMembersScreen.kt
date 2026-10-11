@@ -42,8 +42,10 @@ import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.network.AgencyAdvisorDto
 import ir.divarfiling.mobile.core.network.AgencyInvitationDto
 
@@ -73,6 +75,9 @@ fun TeamMembersScreen(
             DfSheetScaffold(
                 title = "دعوت مشاور",
                 subtitle = "پیامک دعوت برای عضو جدید",
+                icon = DfIcons.UserPlus,
+                iconContainerColor = DfThemeColors.primaryContainer(),
+                iconTint = DfThemeColors.primary(),
                 onClose = viewModel::dismissInvite,
                 footer = {
                     DfSheetActions(
@@ -159,11 +164,18 @@ fun TeamMembersScreen(
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
+                    state.error?.let { err ->
+                        if (!state.isLoading) {
+                            item {
+                                DfErrorBanner(message = err, modifier = Modifier.padding(horizontal = pad))
+                            }
+                        }
+                    }
                     when {
                         state.isLoading -> item {
                             DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
                         }
-                        state.advisors.isEmpty() && state.invitations.isEmpty() -> item {
+                        state.advisors.isEmpty() && state.invitations.isEmpty() && state.error == null -> item {
                             DfEmptyState(
                                 title = "هنوز عضوی به تیم اضافه نشده",
                                 subtitle = "با دعوت مشاور، تیم خود را بسازید.",

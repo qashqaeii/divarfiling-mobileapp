@@ -2,7 +2,9 @@ package ir.divarfiling.mobile.feature.crm.components
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -27,9 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,6 +51,8 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.DfComponentSpec
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfNbaAction
@@ -146,28 +149,6 @@ fun PropertyDetailTabbedContent(
         }
 
         item {
-            val hasOwner = detail.contacts.isNotEmpty() || !property.ownerName.isNullOrBlank()
-            DfNbaCard(
-                action = if (!hasOwner) {
-                    DfNbaAction(
-                        title = "مالک مشخص نیست",
-                        subtitle = "مالک را به این ملک وصل کنید",
-                        cta = "اتصال مالک",
-                        onClick = onLinkContact,
-                    )
-                } else {
-                    DfNbaAction(
-                        title = "مخاطب‌های پیشنهادی",
-                        subtitle = "این ملک برای چه کسی مناسب است؟",
-                        cta = "مشاهده پیشنهادها",
-                        onClick = onContactMatches,
-                    )
-                },
-                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-            )
-        }
-
-        item {
             PropertyDetailQuickActions(
                 onEdit = onEdit,
                 onShare = onShare,
@@ -183,6 +164,38 @@ fun PropertyDetailTabbedContent(
             )
         }
 
+        item {
+            val hasOwner = detail.contacts.isNotEmpty() || !property.ownerName.isNullOrBlank()
+            DfNbaCard(
+                compact = true,
+                action = if (!hasOwner) {
+                    DfNbaAction(
+                        title = "مالک مشخص نیست",
+                        subtitle = "برای پیگیری و معامله، مالک را وصل کنید",
+                        cta = "اتصال مالک",
+                        onClick = onLinkContact,
+                    )
+                } else {
+                    DfNbaAction(
+                        title = "تطبیق با مشتری",
+                        subtitle = "مشتریان هم‌خوان با این فایل",
+                        cta = "پیشنهادها",
+                        onClick = onContactMatches,
+                    )
+                },
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+            )
+        }
+
+        item {
+            PropertyDetailTabBar(
+                tabs = tabs,
+                selectedTab = selectedTab,
+                onTabSelect = onTabSelect,
+                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+            )
+        }
+
         if (detail.canEdit && detail.availableFolders.isNotEmpty()) {
             item {
                 PropertyFolderPicker(
@@ -193,15 +206,6 @@ fun PropertyDetailTabbedContent(
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
-        }
-
-        item {
-            PropertyDetailTabBar(
-                tabs = tabs,
-                selectedTab = selectedTab,
-                onTabSelect = onTabSelect,
-                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-            )
         }
 
         item {
@@ -363,9 +367,8 @@ private fun SmartMatchEntryCard(
                 .background(
                     Brush.horizontalGradient(
                         listOf(
-                            DfColors.Purple.copy(alpha = 0.14f),
-                            DfColors.Blue.copy(alpha = 0.10f),
-                            DfColors.Green.copy(alpha = 0.08f),
+                            DfThemeColors.primary().copy(alpha = 0.12f),
+                            DfThemeColors.info().copy(alpha = 0.08f),
                         ),
                     ),
                 )
@@ -378,16 +381,16 @@ private fun SmartMatchEntryCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
-                        .background(DfColors.PurpleContainer),
+                        .background(DfThemeColors.primaryContainer()),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         DfIcons.Sparkles,
                         contentDescription = null,
-                        tint = DfColors.Purple,
-                        modifier = Modifier.size(22.dp),
+                        tint = DfThemeColors.primary(),
+                        modifier = Modifier.size(20.dp),
                     )
                 }
                 Column(
@@ -398,12 +401,12 @@ private fun SmartMatchEntryCard(
                         "پیشنهاد هوشمند",
                         style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.TextPrimary,
+                        color = DfThemeColors.textPrimary(),
                     )
                     Text(
                         "مشتریان هم‌خوان با این فایل را پیدا و پیشنهاد کنید",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
+                        color = DfThemeColors.textSecondary(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -411,7 +414,7 @@ private fun SmartMatchEntryCard(
                 Icon(
                     DfIcons.ChevronLeft,
                     contentDescription = null,
-                    tint = DfColors.Purple,
+                    tint = DfThemeColors.primary(),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -436,7 +439,7 @@ private fun PropertyDetailHero(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(196.dp),
+                .height(176.dp),
         ) {
             DfListingImage(
                 thumbnailUrl = cover,
@@ -450,7 +453,7 @@ private fun PropertyDetailHero(
                         .fillMaxSize()
                         .background(
                             Brush.linearGradient(
-                                listOf(dealAccent.copy(alpha = 0.25f), DfColors.PurpleContainer),
+                                listOf(dealAccent.copy(alpha = 0.25f), DfThemeColors.primaryContainer()),
                             ),
                         ),
                     contentAlignment = Alignment.Center,
@@ -506,12 +509,22 @@ private fun PropertyDetailHero(
                         Text(location, style = AppTypography.labelSmall, color = Color.White.copy(alpha = 0.9f))
                     }
                 }
-                property.salePrice?.let {
+                val priceLine = when {
+                    property.salePrice != null -> FormatUtils.formatPriceToman(property.salePrice)
+                    property.deposit != null && property.rent != null ->
+                        "${FormatUtils.formatPriceShort(property.deposit)} / ${FormatUtils.formatPriceShort(property.rent)}"
+                    property.deposit != null -> FormatUtils.formatPriceToman(property.deposit)
+                    property.rent != null -> FormatUtils.formatPriceToman(property.rent)
+                    else -> null
+                }
+                priceLine?.let {
                     Text(
-                        text = FormatUtils.formatPriceToman(it),
-                        style = AppTypography.sectionTitle,
+                        text = it,
+                        style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.BlueLight,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Row(
@@ -580,6 +593,7 @@ private fun PropertyHeroKpi(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PropertyDetailTabBar(
     tabs: List<PropertyDetailTab>,
@@ -587,26 +601,33 @@ private fun PropertyDetailTabBar(
     onTabSelect: (PropertyDetailTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val selectedIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)
-    ScrollableTabRow(
-        selectedTabIndex = selectedIndex,
-        modifier = modifier.fillMaxWidth(),
-        containerColor = Color.Transparent,
-        edgePadding = 0.dp,
-        divider = {},
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
         tabs.forEach { tab ->
-            Tab(
-                selected = tab == selectedTab,
+            val selected = tab == selectedTab
+            Surface(
                 onClick = { onTabSelect(tab) },
-                text = {
-                    Text(
-                        text = tab.label,
-                        style = AppTypography.labelLarge,
-                        fontWeight = if (tab == selectedTab) FontWeight.Bold else FontWeight.Medium,
-                    )
-                },
-            )
+                shape = AppShapes.Chip,
+                color = if (selected) DfThemeColors.primaryContainer() else DfThemeColors.surfaceVariant(),
+                border = BorderStroke(
+                    1.dp,
+                    if (selected) DfThemeColors.primary().copy(alpha = 0.35f) else DfThemeColors.outlineSubtle(),
+                ),
+                modifier = Modifier.defaultMinSize(minHeight = DfComponentSpec.MinTouchTargetDp.dp),
+            ) {
+                Text(
+                    text = tab.label,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = AppTypography.labelLarge,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (selected) DfThemeColors.onPrimaryContainer() else DfThemeColors.textSecondary(),
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -622,18 +643,7 @@ private fun PropertyDossierPanel(
     val storage = PropertyAmenityResolver.effectiveStorage(property, profile)
     val elevator = PropertyAmenityResolver.effectiveElevator(property, profile)
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)) {
-        Text(
-            text = "پرونده کامل ملک",
-            style = AppTypography.cardTitle,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = "اطلاعات ثبت‌شده برای معرفی، پیگیری و ارائه به مشتری",
-            style = AppTypography.bodyDescription,
-            color = DfColors.TextMuted,
-        )
-
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
         PropertyAmenitiesPanel(
             parking = parking,
             storage = storage,
@@ -747,14 +757,14 @@ private fun PropertyAmenityTile(
     val isYes = value == true
     val isNo = value == false
     val color = when {
-        isYes -> DfColors.Green
-        isNo -> DfColors.TextMuted
-        else -> DfColors.Amber
+        isYes -> DfThemeColors.success()
+        isNo -> DfThemeColors.textMuted()
+        else -> DfThemeColors.warning()
     }
     val bg = when {
-        isYes -> DfColors.GreenLight
-        isNo -> DfColors.SurfaceVariant
-        else -> DfColors.AmberLight
+        isYes -> DfThemeColors.successContainer()
+        isNo -> DfThemeColors.surfaceVariant()
+        else -> DfThemeColors.warningContainer()
     }
     Surface(
         modifier = modifier,
@@ -769,7 +779,7 @@ private fun PropertyAmenityTile(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             DfDecorImage(resId = iconRes, size = 18.dp)
-            Text(label, style = AppTypography.labelSmall, color = DfColors.TextSecondary, maxLines = 1)
+            Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textSecondary(), maxLines = 1)
             Text(
                 PropertyAmenityResolver.label(value),
                 style = AppTypography.labelLarge,
@@ -800,13 +810,13 @@ private fun PropertyDossierGroup(
             ) {
                 when {
                     iconRes != null -> DfDecorImage(resId = iconRes, size = 16.dp)
-                    icon != null -> Icon(icon, null, tint = DfColors.Purple, modifier = Modifier.size(16.dp))
+                    icon != null -> Icon(icon, null, tint = DfThemeColors.primary(), modifier = Modifier.size(16.dp))
                 }
                 Text(title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
             }
             rows.forEachIndexed { index, (label, value) ->
                 if (index > 0) {
-                    HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.2f))
+                    HorizontalDivider(color = DfThemeColors.outlineSubtle())
                 }
                 Row(
                     modifier = Modifier
@@ -815,7 +825,7 @@ private fun PropertyDossierGroup(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(label, style = AppTypography.labelSmall, color = DfColors.TextMuted, modifier = Modifier.weight(0.42f))
+                    Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted(), modifier = Modifier.weight(0.42f))
                     Text(
                         value,
                         style = AppTypography.labelLarge,
@@ -844,9 +854,18 @@ private fun PropertyContactsPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("مخاطبین مرتبط", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("مخاطبین مرتبط", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold, color = DfThemeColors.textPrimary())
+                Text(
+                    "مالک، خریدار و پیگیری‌های متصل به این فایل",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
+            }
             if (canEdit) {
-                TextButton(onClick = onLinkContact) { Text("پیوند مخاطب") }
+                TextButton(onClick = onLinkContact) {
+                    Text("پیوند", color = DfThemeColors.primary(), fontWeight = FontWeight.SemiBold)
+                }
             }
         }
         if (contacts.isEmpty()) {
@@ -868,21 +887,31 @@ private fun PropertyContactCard(
     link: PropertyContactLinkDto,
     onClick: () -> Unit,
 ) {
+    val accent = DfThemeColors.primary()
     DfPremiumCard(onClick = onClick) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(72.dp)
+                    .background(accent, AppShapes.Chip),
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(AppSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(link.customerName, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+                Text(link.customerName, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold, color = DfThemeColors.textPrimary())
                 link.role?.let { DfBadge(it) }
             }
             link.phone?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
+                Text(it, style = AppTypography.labelLarge, fontWeight = FontWeight.Medium, color = DfThemeColors.textSecondary())
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 link.dealType?.let { DfBadge(it) }
@@ -890,7 +919,8 @@ private fun PropertyContactCard(
                 if (link.isPrimary) DfBadge("اصلی")
             }
             link.notes?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
+                Text(it, style = AppTypography.bodyDescription, color = DfThemeColors.textMuted(), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
             }
         }
     }

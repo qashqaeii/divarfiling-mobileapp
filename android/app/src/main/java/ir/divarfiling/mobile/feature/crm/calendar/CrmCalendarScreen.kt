@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.crm.calendar
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,15 +9,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -437,14 +442,29 @@ private fun ReminderCard(
     onOpenContact: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DfCard(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        containerColor = DfThemeColors.surface(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
         ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(DfThemeColors.primary()),
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(AppSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
             Text(
                 reminder.title,
                 style = AppTypography.cardTitle,
@@ -508,6 +528,7 @@ private fun ReminderCard(
                 onClick = onEdit,
                 compact = true,
             )
+            }
         }
     }
 }

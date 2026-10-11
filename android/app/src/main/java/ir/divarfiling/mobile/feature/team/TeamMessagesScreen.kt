@@ -20,9 +20,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfExtendedFab
@@ -48,6 +51,7 @@ fun TeamMessagesScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val pad = teamHorizontalPadding()
+    val unreadThreads = state.threads.sumOf { it.unreadCount }
 
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
@@ -60,6 +64,8 @@ fun TeamMessagesScreen(
                 title = "پیام جدید",
                 subtitle = "ارسال مستقیم به یک عضو تیم",
                 icon = DfIcons.MessageCircle,
+                iconContainerColor = DfThemeColors.infoContainer(),
+                iconTint = DfThemeColors.info(),
                 onClose = { viewModel.toggleCompose(false) },
                 footer = {
                     DfSheetActions(
@@ -123,7 +129,11 @@ fun TeamMessagesScreen(
                     item {
                         DfHubPageHeader(
                             title = "صندوق پیام",
-                            subtitle = "گفت‌وگوهای داخلی آژانس",
+                            subtitle = if (unreadThreads > 0) {
+                                "${DateUtils.toPersianDigits(unreadThreads.toString())} پیام خوانده‌نشده"
+                            } else {
+                                "گفت‌وگوهای داخلی آژانس"
+                            },
                             sectionLabel = DfHeaderSections.TEAM,
                             titleIconRes = DfDecorIcons.Users,
                             onBack = onBack,
@@ -137,11 +147,18 @@ fun TeamMessagesScreen(
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
+                    state.error?.let { err ->
+                        if (!state.isLoading && state.threads.isEmpty()) {
+                            item {
+                                DfErrorBanner(message = err, modifier = Modifier.padding(horizontal = pad))
+                            }
+                        }
+                    }
                     when {
                         state.isLoading -> item {
                             DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
                         }
-                        state.threads.isEmpty() -> item {
+                        state.threads.isEmpty() && state.error == null -> item {
                             DfEmptyState(
                                 title = "هنوز پیامی ندارید",
                                 subtitle = "اولین پیام مستقیم به همکار را از دکمه پایین بفرستید.",

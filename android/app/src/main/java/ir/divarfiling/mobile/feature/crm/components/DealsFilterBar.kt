@@ -15,7 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfFilterChipSection
 import ir.divarfiling.mobile.core.design.components.DfFilterDropdown
 import ir.divarfiling.mobile.core.design.components.DfFilterDropdownRow
@@ -50,7 +50,7 @@ fun DealsSearchFilterPanel(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
-                HorizontalDivider(color = DfColors.Outline.copy(alpha = 0.2f))
+                HorizontalDivider(color = DfThemeColors.outlineSubtle())
                 DfFilterChipSection(label = "مرتب‌سازی") {
                     DfFilterDropdownRow {
                         DfFilterDropdown(
@@ -80,7 +80,7 @@ fun DealsSearchFilterPanel(
                                 text = "پاک‌سازی فیلترها",
                                 style = AppTypography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = DfColors.Purple,
+                                color = DfThemeColors.primary(),
                             )
                         }
                     }

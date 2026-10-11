@@ -29,7 +29,6 @@ import ir.divarfiling.mobile.R
 import ir.divarfiling.mobile.core.share.DossierShareActions
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfHapticPerformer
 import ir.divarfiling.mobile.core.design.DfHaptics
 import ir.divarfiling.mobile.core.design.DfIcons

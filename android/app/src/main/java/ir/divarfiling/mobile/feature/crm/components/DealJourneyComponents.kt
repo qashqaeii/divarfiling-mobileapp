@@ -1,21 +1,29 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
@@ -62,26 +70,57 @@ fun DealJourneyHeroCard(
     modifier: Modifier = Modifier,
 ) {
     val primary = journey?.primary ?: DealJourneyCtaDto()
-    DfCard(modifier = modifier.fillMaxWidth()) {
-        Column(Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = journey?.headline?.ifBlank { "قدم بعدی" } ?: "قدم بعدی",
-                style = AppTypography.sectionTitle,
-                fontWeight = FontWeight.Bold,
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.primaryContainer().copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, DfThemeColors.primary().copy(alpha = 0.22f)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(DfThemeColors.primary()),
             )
-            journey?.subline?.takeIf { it.isNotBlank() }?.let {
-                Text(text = it, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
-            }
-            primary.description.takeIf { it.isNotBlank() }?.let {
-                Text(text = it, style = AppTypography.bodyDescription)
-            }
-            if (primary.label.isNotBlank()) {
-                DfPrimaryButton(
-                    text = primary.label,
-                    onClick = onPrimaryClick,
-                    enabled = !isSubmitting,
-                    modifier = Modifier.fillMaxWidth(),
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(AppSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = journey?.headline?.ifBlank { "قدم بعدی در معامله" } ?: "قدم بعدی در معامله",
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.textPrimary(),
                 )
+                journey?.subline?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = it,
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textSecondary(),
+                    )
+                }
+                primary.description.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = it,
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                    )
+                }
+                if (primary.label.isNotBlank()) {
+                    DfPrimaryButton(
+                        text = primary.label,
+                        onClick = onPrimaryClick,
+                        enabled = !isSubmitting,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -97,7 +136,8 @@ fun DealJourneyStickyBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shadowElevation = 8.dp,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
         Row(
             Modifier
@@ -172,7 +212,7 @@ fun DealContractsTabContent(
                     Text(
                         text = item.statusLabel,
                         style = AppTypography.bodyDescription,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                     if (item.parties.isNotEmpty()) {
                         Text(
@@ -183,7 +223,7 @@ fun DealContractsTabContent(
                     Text(
                         text = "امضا: ${item.signatureStatus} · تحویل: ${item.handoverStatus}",
                         style = AppTypography.bodyDescription,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                     val cta = when (item.cta) {
                         "continue_wizard" -> "ادامه قرارداد"
@@ -224,7 +264,7 @@ fun DuplicateDealBottomSheetContent(
             Column(Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(propertyTitle, fontWeight = FontWeight.SemiBold)
                 Text(customerName, style = AppTypography.bodyDescription)
-                Text(stage, style = AppTypography.bodyDescription, color = DfColors.TextMuted)
+                Text(stage, style = AppTypography.bodyDescription, color = DfThemeColors.textMuted())
                 if (lastActivity.isNotBlank()) {
                     Text("آخرین فعالیت: $lastActivity", style = AppTypography.bodyDescription)
                 }
@@ -250,30 +290,80 @@ fun DealCommissionSplitsSummary(
     data: DealCommissionSplitsData,
     modifier: Modifier = Modifier,
 ) {
-    DfCard(modifier = modifier.fillMaxWidth()) {
-        Column(Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("تقسیم کمیسیون", style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold)
+    val alloc = data.allocatedPercent.coerceIn(0.0, 100.0)
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            Modifier.padding(AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "تقسیم کمیسیون",
+                    style = AppTypography.cardTitle,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.textPrimary(),
+                )
+                Text(
+                    FormatUtils.formatPriceToman(data.totalCommission),
+                    style = AppTypography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.primary(),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .background(DfThemeColors.surfaceVariant(), AppShapes.Chip),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(alloc.toFloat() / 100f)
+                        .height(6.dp)
+                        .background(
+                            if (data.isComplete) DfThemeColors.success() else DfThemeColors.primary(),
+                            AppShapes.Chip,
+                        ),
+                )
+            }
             Text(
-                "کمیسیون کل: ${FormatUtils.formatPriceToman(data.totalCommission)}",
-                style = AppTypography.bodyDescription,
-            )
-            val alloc = data.allocatedPercent
-            Text(
-                text = if (data.isComplete) "۱۰۰٪ تخصیص داده شده ✓" else "${(100 - alloc).toInt()}٪ هنوز تخصیص داده نشده",
-                style = AppTypography.bodyDescription,
-                color = if (data.isComplete) DfColors.Green else DfColors.TextMuted,
+                text = if (data.isComplete) "۱۰۰٪ بین اعضا تخصیص داده شده" else "${(100 - alloc).toInt()}٪ هنوز تخصیص نشده",
+                style = AppTypography.labelSmall,
+                color = if (data.isComplete) DfThemeColors.success() else DfThemeColors.textMuted(),
             )
             data.splits.forEach { row ->
-                Text(
-                    "${row.name} — ${row.percent.toInt()}٪ — ${FormatUtils.formatPriceToman(row.amount ?: 0L)}",
-                    style = AppTypography.bodyDescription,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        "${row.name} · ${row.percent.toInt()}٪",
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        FormatUtils.formatPriceToman(row.amount ?: 0L),
+                        style = AppTypography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DfThemeColors.textPrimary(),
+                    )
+                }
             }
             if (!data.canEdit && data.splits.isEmpty() && data.availableMembers.isNotEmpty()) {
                 Text(
                     "تقسیم بین اعضا از میزکار تیم قابل ویرایش است.",
-                    style = AppTypography.bodyDescription,
-                    color = DfColors.TextMuted,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
                 )
             }
         }

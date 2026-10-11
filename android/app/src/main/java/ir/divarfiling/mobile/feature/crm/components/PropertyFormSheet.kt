@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDropdown
@@ -104,8 +103,8 @@ fun PropertyFormSheet(
         title = if (mode == PropertyFormMode.Create) "فایل شخصی جدید" else "ویرایش فایل شخصی",
         subtitle = "ثبت کامل اطلاعات ملک — هم‌راستا با فرم CRM وب",
         icon = DfIcons.Building,
-        iconContainerColor = if (mode == PropertyFormMode.Create) DfColors.PurpleContainer else DfColors.BlueLight,
-        iconTint = if (mode == PropertyFormMode.Create) DfColors.Purple else DfColors.Blue,
+        iconContainerColor = if (mode == PropertyFormMode.Create) DfThemeColors.primaryContainer() else DfThemeColors.infoContainer(),
+        iconTint = if (mode == PropertyFormMode.Create) DfThemeColors.primary() else DfThemeColors.info(),
         bodyHeightFraction = 0.92f,
         scrollable = true,
         onClose = onDismiss,
@@ -134,13 +133,13 @@ fun PropertyFormSheet(
                 singleLine = true,
                 enabled = !isSubmitting,
             )
-            Text("نوع ملک", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+            Text("نوع ملک", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
             DfFilterChipRow(
                 options = PropertyConstants.PROPERTY_TYPES.map { DfFilterOption(it, it) },
                 selected = form.propertyType,
                 onSelect = { onFormChange(form.copy(propertyType = it)) },
             )
-            Text("نوع معامله", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+            Text("نوع معامله", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                 PropertyConstants.DEAL_MODES.forEach { modeOption ->
                     DfSheetOptionRow(
@@ -407,10 +406,10 @@ fun PropertyFormSheet(
             Text(
                 text = "امکانات پرکاربرد — بدون تکرار موارد مدیریت‌شده در بخش ویژگی‌ها",
                 style = MaterialTheme.typography.bodySmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             PropertyAmenityCatalog.checkboxGroups().forEach { group ->
-                Text(group.title, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                Text(group.title, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -448,7 +447,7 @@ fun PropertyFormSheet(
             Text(
                 text = profile.hint,
                 style = MaterialTheme.typography.bodySmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             profile.groups.forEach { group ->
                 Text(
@@ -560,7 +559,7 @@ fun PropertyFormSheet(
             Text(
                 text = "اولین تصویر به‌عنوان کاور نمایش داده می‌شود. از گالری یک یا چند عکس انتخاب کنید.",
                 style = AppTypography.labelSmall,
-                color = DfColors.TextMuted,
+                color = DfThemeColors.textMuted(),
             )
             PropertyFormImageThumbnailRow(
                 imageUrls = form.images,
@@ -666,7 +665,7 @@ private fun PropertyFeatureFieldEditor(
         FeatureWidget.Chips -> {
             val choices = ListingFeatureChoices.choicesFor(field.key, field.choices)
             if (choices.isNotEmpty()) {
-                Text(field.label, style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                Text(field.label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -746,8 +745,8 @@ private fun PropertyChoiceChip(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    selectedColor: Color = DfColors.Purple,
-    selectedBackground: Color = DfColors.PurpleContainer,
+    selectedColor: Color = DfThemeColors.primary(),
+    selectedBackground: Color = DfThemeColors.primaryContainer(),
 ) {
     Surface(
         onClick = onClick,
@@ -804,12 +803,12 @@ private fun PropertyAmenityTriRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = DfColors.Purple, modifier = Modifier.size(16.dp))
-            Text(label, style = AppTypography.labelSmall, fontWeight = FontWeight.SemiBold)
+            Icon(imageVector = icon, contentDescription = null, tint = DfThemeColors.primary(), modifier = Modifier.size(16.dp))
+            Text(label, style = AppTypography.labelSmall, fontWeight = FontWeight.SemiBold, color = DfThemeColors.textPrimary())
         }
         Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            PropertyChoiceChip("دارد", value == true, { onChange(true) }, Modifier.weight(1f), DfColors.Green, DfColors.GreenLight)
-            PropertyChoiceChip("ندارد", value == false, { onChange(false) }, Modifier.weight(1f), DfColors.Rose, DfColors.RoseLight)
+            PropertyChoiceChip("دارد", value == true, { onChange(true) }, Modifier.weight(1f), DfThemeColors.success(), DfThemeColors.successContainer())
+            PropertyChoiceChip("ندارد", value == false, { onChange(false) }, Modifier.weight(1f), DfThemeColors.error(), DfThemeColors.errorContainer())
             PropertyChoiceChip("نامشخص", value == null, { onChange(null) }, Modifier.weight(1f))
         }
     }

@@ -11,8 +11,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -95,7 +98,7 @@ fun teamHorizontalPadding(): Dp {
 @Composable
 fun TeamAmbientBackground(modifier: Modifier = Modifier) {
     val top = DfThemeColors.primary().copy(alpha = 0.08f)
-    val mid = DfColors.Blue.copy(alpha = 0.05f)
+    val mid = DfThemeColors.info().copy(alpha = 0.05f)
     val bottom = DfThemeColors.background()
     Box(
         modifier = modifier
@@ -126,7 +129,7 @@ fun TeamIdentityHero(
                 Brush.linearGradient(
                     listOf(
                         accent.copy(alpha = 0.18f),
-                        DfColors.Blue.copy(alpha = 0.08f),
+                        DfThemeColors.info().copy(alpha = 0.08f),
                         surface.copy(alpha = 0.96f),
                     ),
                 ),
@@ -167,8 +170,8 @@ fun TeamIdentityHero(
                     if (unreadTotal > 0) {
                         DfBadge(
                             text = "$unreadTotal خوانده‌نشده",
-                            color = DfColors.RoseLight,
-                            textColor = DfColors.Rose,
+                            color = DfThemeColors.errorContainer(),
+                            textColor = DfThemeColors.error(),
                         )
                     }
                 }
@@ -372,78 +375,109 @@ fun TeamThreadListCard(
 ) {
     val title = thread.participantsLabel.ifBlank { thread.subject }
     val unread = thread.unreadCount > 0
+    val accent = if (unread) DfThemeColors.info() else DfThemeColors.outlineSubtle()
     DfCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         containerColor = if (unread) {
-            DfColors.BlueLight.copy(alpha = 0.35f)
+            DfThemeColors.infoContainer().copy(alpha = 0.35f)
         } else {
             DfThemeColors.surface()
         },
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
         ) {
-            Box {
-                TeamAvatar(name = title)
-                if (unread) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(DfColors.Blue)
-                            .border(2.dp, DfThemeColors.surface(), CircleShape),
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(accent),
+            )
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(AppSpacing.cardPadding),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        title,
-                        style = AppTypography.cardTitle,
-                        fontWeight = if (unread) FontWeight.Bold else FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        DateUtils.formatRelativeFa(thread.updatedAt),
-                        style = AppTypography.labelSmall,
-                        color = DfThemeColors.textMuted(),
-                    )
-                }
-                Text(
-                    thread.lastMessage?.body?.ifBlank { "بدون متن" } ?: "مکالمه خالی",
-                    style = AppTypography.bodyDescription,
-                    color = DfThemeColors.textSecondary(),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                    if (thread.kind == "broadcast") {
-                        DfBadge(text = "گروهی", color = DfColors.AmberLight, textColor = DfColors.Amber)
-                    }
-                    if (thread.isStarred) {
-                        DfBadge(text = "ستاره", color = DfColors.PurpleLight, textColor = DfColors.PurpleDark)
-                    }
+                Box {
+                    TeamAvatar(name = title, accent = if (unread) DfThemeColors.info() else teamAccentFor(title))
                     if (unread) {
-                        DfBadge(
-                            text = thread.unreadCount.toString(),
-                            color = DfColors.BlueLight,
-                            textColor = DfColors.Blue,
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(DfThemeColors.info())
+                                .border(2.dp, DfThemeColors.surface(), CircleShape),
                         )
                     }
                 }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            title,
+                            style = AppTypography.cardTitle,
+                            fontWeight = if (unread) FontWeight.Bold else FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                            color = DfThemeColors.textPrimary(),
+                        )
+                        Text(
+                            DateUtils.formatRelativeFa(thread.updatedAt),
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                        )
+                    }
+                    Text(
+                        thread.lastMessage?.body?.ifBlank { "بدون متن" } ?: "مکالمه خالی",
+                        style = AppTypography.bodyDescription,
+                        color = if (unread) DfThemeColors.textPrimary() else DfThemeColors.textSecondary(),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = if (unread) FontWeight.Medium else FontWeight.Normal,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        if (thread.kind == "broadcast") {
+                            DfBadge(
+                                text = "گروهی",
+                                color = DfThemeColors.warningContainer(),
+                                textColor = DfThemeColors.warning(),
+                            )
+                        }
+                        if (thread.isStarred) {
+                            DfBadge(
+                                text = "ستاره",
+                                color = DfThemeColors.primaryContainer(),
+                                textColor = DfThemeColors.primary(),
+                            )
+                        }
+                        if (unread) {
+                            DfBadge(
+                                text = "${DateUtils.toPersianDigits(thread.unreadCount.toString())} خوانده‌نشده",
+                                color = DfThemeColors.infoContainer(),
+                                textColor = DfThemeColors.info(),
+                            )
+                        }
+                    }
+                }
+                Icon(
+                    imageVector = DfIcons.ChevronLeft,
+                    contentDescription = null,
+                    tint = DfThemeColors.textMuted(),
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }
@@ -594,16 +628,20 @@ fun TeamAnnouncementListCard(
     modifier: Modifier = Modifier,
 ) {
     val important = item.importance == "important" || item.importance == "urgent"
+    val unread = !item.isRead
     DfCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         containerColor = when {
-            !item.isRead && important -> DfColors.RoseLight.copy(alpha = 0.45f)
-            !item.isRead -> DfColors.AmberLight.copy(alpha = 0.4f)
+            unread && important -> DfThemeColors.errorContainer().copy(alpha = 0.4f)
+            unread -> DfThemeColors.warningContainer().copy(alpha = 0.35f)
             else -> DfThemeColors.surface()
         },
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -617,23 +655,35 @@ fun TeamAnnouncementListCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                if (!item.isRead) {
-                    DfBadge(text = "جدید", color = DfColors.AmberLight, textColor = DfColors.Amber)
+                if (unread) {
+                    DfBadge(
+                        text = "جدید",
+                        color = DfThemeColors.warningContainer(),
+                        textColor = DfThemeColors.warning(),
+                    )
                 }
             }
             Text(
                 item.bodyPreview.ifBlank { item.body },
                 style = AppTypography.bodyDescription,
-                color = DfThemeColors.textSecondary(),
-                maxLines = 2,
+                color = if (unread) DfThemeColors.textPrimary() else DfThemeColors.textSecondary(),
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                 if (important) {
-                    DfBadge(text = "مهم", color = DfColors.RoseLight, textColor = DfColors.Rose)
+                    DfBadge(
+                        text = "مهم",
+                        color = DfThemeColors.errorContainer(),
+                        textColor = DfThemeColors.error(),
+                    )
                 }
                 if (item.isPinned) {
-                    DfBadge(text = "سنجاق", color = DfColors.PurpleLight, textColor = DfColors.PurpleDark)
+                    DfBadge(
+                        text = "سنجاق",
+                        color = DfThemeColors.primaryContainer(),
+                        textColor = DfThemeColors.primary(),
+                    )
                 }
                 Text(
                     DateUtils.formatRelativeFa(item.publishedAt),
@@ -655,12 +705,21 @@ fun TeamLeadListCard(
     onAssign: (() -> Unit)? = null,
     onOpenContact: (() -> Unit)? = null,
 ) {
+    val displayName = lead.name.ifBlank { "بدون نام" }
+    val accent = teamAccentFor(displayName)
     DfCard(
         onClick = if (onAssign == null) onToggle else null,
         modifier = modifier.fillMaxWidth(),
-        containerColor = if (selected) DfColors.GreenLight.copy(alpha = 0.55f) else DfThemeColors.surface(),
+        containerColor = if (selected) {
+            DfThemeColors.successContainer().copy(alpha = 0.45f)
+        } else {
+            DfThemeColors.surface()
+        },
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
@@ -668,25 +727,52 @@ fun TeamLeadListCard(
             ) {
                 TeamAvatar(
                     name = lead.name.ifBlank { lead.phone.ifBlank { "س" } },
-                    accent = DfColors.Blue,
+                    accent = accent,
                 )
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
-                        lead.name.ifBlank { "بدون نام" },
+                        displayName,
                         style = AppTypography.cardTitle,
                         fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
                     )
-                    if (lead.needSummary.isNotBlank()) {
-                        Text(lead.needSummary, style = AppTypography.bodyDescription, maxLines = 2)
+                    if (lead.phone.isNotBlank()) {
+                        Text(
+                            lead.phone,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textSecondary(),
+                        )
                     }
-                    Text(
-                        listOfNotNull(
-                            lead.source.takeIf { it.isNotBlank() },
-                            DateUtils.formatRelativeFa(lead.createdAt).takeIf { it.isNotBlank() },
-                        ).joinToString(" · "),
-                        style = AppTypography.labelSmall,
-                        color = DfThemeColors.textMuted(),
-                    )
+                    if (lead.needSummary.isNotBlank()) {
+                        Text(
+                            lead.needSummary,
+                            style = AppTypography.bodyDescription,
+                            color = DfThemeColors.textSecondary(),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        lead.source.takeIf { it.isNotBlank() }?.let { src ->
+                            DfBadge(
+                                text = src,
+                                color = DfThemeColors.surfaceVariant(),
+                                textColor = DfThemeColors.textSecondary(),
+                            )
+                        }
+                        if (lead.status.isNotBlank()) {
+                            DfBadge(
+                                text = lead.status,
+                                color = DfThemeColors.warningContainer(),
+                                textColor = DfThemeColors.warning(),
+                            )
+                        }
+                        Text(
+                            DateUtils.formatRelativeFa(lead.createdAt),
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                        )
+                    }
                 }
             }
             if (onAssign != null || onOpenContact != null) {
@@ -717,6 +803,7 @@ fun TeamChatBubble(
     modifier: Modifier = Modifier,
 ) {
     val mine = message.isMine
+    val bubbleAccent = if (mine) DfThemeColors.primary() else DfThemeColors.info()
     val shape = if (mine) {
         RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 6.dp)
     } else {
@@ -739,7 +826,7 @@ fun TeamChatBubble(
                         Modifier.liquidGlassSurface(
                             shape = shape,
                             variant = DfGlassButtonVariant.Accent,
-                            accent = DfColors.Blue,
+                            accent = bubbleAccent,
                             elevation = AppElevations.none,
                         )
                     } else {
@@ -756,7 +843,7 @@ fun TeamChatBubble(
                     message.senderName,
                     style = AppTypography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = DfColors.Blue,
+                    color = bubbleAccent,
                 )
             }
             Text(
@@ -787,6 +874,7 @@ fun TeamComposerBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .imePadding()
             .liquidGlassSurface(
                 shape = AppShapes.Hero,
                 variant = DfGlassButtonVariant.Secondary,
@@ -844,7 +932,7 @@ fun TeamAttentionCard(
     modifier: Modifier = Modifier,
 ) {
     val warning = item.level == "warning" || item.level == "danger"
-    val tint = if (warning) DfColors.Amber else DfColors.Blue
+    val tint = if (warning) DfThemeColors.warning() else DfThemeColors.info()
     DfCard(
         modifier = modifier.fillMaxWidth(),
         containerColor = tint.copy(alpha = 0.08f),
@@ -951,34 +1039,77 @@ fun TeamAdvisorCompactCard(
 ) {
     val displayName = PresentationLabels.memberDisplayName(advisor.name, advisor.phone)
     val accent = roleAccent(advisor.role)
+    val active = advisor.isActive
     DfCard(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(AppSpacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
+                .height(IntrinsicSize.Min),
         ) {
-            TeamAvatar(name = displayName, accent = accent, size = 44.dp)
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(displayName, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    "${advisor.roleLabel.ifBlank { "مشاور" }} · ${PresentationLabels.seatLabel(advisor.hasSeat)}",
-                    style = AppTypography.bodyDescription,
-                    color = DfThemeColors.textSecondary(),
-                    maxLines = 1,
-                )
-                Text(
-                    "سرنخ ${DateUtils.toPersianDigits(advisor.activeLeads.toString())} · معامله ${DateUtils.toPersianDigits(advisor.activeDeals.toString())}",
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textMuted(),
-                )
-            }
-            DfBadge(
-                text = PresentationLabels.memberActiveLabel(advisor.isActive),
-                color = if (advisor.isActive) DfColors.GreenLight else DfColors.RoseLight,
-                textColor = if (advisor.isActive) DfColors.Green else DfColors.Rose,
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(accent),
             )
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(AppSpacing.cardPadding),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TeamAvatar(name = displayName, accent = accent, size = 48.dp)
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        displayName,
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = DfThemeColors.textPrimary(),
+                    )
+                    if (advisor.phone.isNotBlank() && advisor.name.isNotBlank()) {
+                        Text(
+                            advisor.phone,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textSecondary(),
+                            maxLines = 1,
+                        )
+                    }
+                    Text(
+                        "${advisor.roleLabel.ifBlank { "مشاور" }} · ${PresentationLabels.seatLabel(advisor.hasSeat)}",
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textSecondary(),
+                        maxLines = 1,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        DfBadge(
+                            text = "سرنخ ${DateUtils.toPersianDigits(advisor.activeLeads.toString())}",
+                            color = DfThemeColors.infoContainer(),
+                            textColor = DfThemeColors.info(),
+                        )
+                        DfBadge(
+                            text = "معامله ${DateUtils.toPersianDigits(advisor.activeDeals.toString())}",
+                            color = DfThemeColors.primaryContainer(),
+                            textColor = DfThemeColors.primary(),
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    DfBadge(
+                        text = PresentationLabels.memberActiveLabel(active),
+                        color = if (active) DfThemeColors.successContainer() else DfThemeColors.errorContainer(),
+                        textColor = if (active) DfThemeColors.success() else DfThemeColors.error(),
+                    )
+                    Icon(
+                        imageVector = DfIcons.ChevronLeft,
+                        contentDescription = null,
+                        tint = DfThemeColors.textMuted(),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
     }
 }
@@ -991,40 +1122,55 @@ fun TeamInvitationCompactCard(
     modifier: Modifier = Modifier,
 ) {
     val statusLabel = PresentationLabels.invitationStatus(invitation.status)
+    val pending = invitation.status == "pending"
+    val accent = DfThemeColors.warning()
     DfCard(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppSpacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(AppSpacing.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            TeamAvatar(name = invitation.phone.ifBlank { "د" }, accent = DfColors.Amber, size = 44.dp)
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    invitation.phone.ifBlank { "بدون شماره" },
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                )
-                Text("دعوت", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
-            }
-            DfBadge(
-                text = statusLabel,
-                color = DfColors.AmberLight,
-                textColor = DfColors.Amber,
-            )
-        }
-        if (invitation.status == "pending") {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppSpacing.sm)
-                    .padding(bottom = AppSpacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                DfSecondaryButton(text = "ارسال مجدد", onClick = onResend, modifier = Modifier.weight(1f))
-                DfSecondaryButton(text = "لغو", onClick = onCancel, modifier = Modifier.weight(1f))
+                TeamAvatar(name = invitation.phone.ifBlank { "د" }, accent = accent, size = 44.dp)
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        invitation.phone.ifBlank { "بدون شماره" },
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        color = DfThemeColors.textPrimary(),
+                    )
+                    Text(
+                        "دعوت به آژانس",
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textMuted(),
+                    )
+                }
+                DfBadge(
+                    text = statusLabel,
+                    color = DfThemeColors.warningContainer(),
+                    textColor = accent,
+                )
+            }
+            if (pending) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                ) {
+                    DfPrimaryButton(
+                        text = "ارسال مجدد",
+                        onClick = onResend,
+                        modifier = Modifier.weight(1f),
+                    )
+                    DfSecondaryButton(
+                        text = "لغو دعوت",
+                        onClick = onCancel,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }

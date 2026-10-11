@@ -56,19 +56,19 @@ fun DealNextActionCard(
 ) {
     val overdue = nextAction?.isOverdue == true
     val accent = when {
-        overdue -> DfColors.Amber
-        nextAction != null -> DfColors.Purple
-        else -> DfColors.TextMuted
+        overdue -> DfThemeColors.warning()
+        nextAction != null -> DfThemeColors.primary()
+        else -> DfThemeColors.textMuted()
     }
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
         color = when {
-            overdue -> DfColors.AmberLight.copy(alpha = 0.45f)
-            nextAction != null -> DfColors.PurpleContainer.copy(alpha = 0.35f)
+            overdue -> DfThemeColors.warningContainer().copy(alpha = 0.55f)
+            nextAction != null -> DfThemeColors.primaryContainer().copy(alpha = 0.4f)
             else -> DfThemeColors.surface()
         },
-        tonalElevation = 1.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
         Column(
             modifier = Modifier.padding(AppSpacing.md),
@@ -94,32 +94,32 @@ fun DealNextActionCard(
                     )
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("اقدام بعدی", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                    Text("اقدام بعدی", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                     if (nextAction != null) {
                         Text(
                             text = nextAction.label ?: "اقدام",
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
-                            color = DfColors.TextPrimary,
+                            color = DfThemeColors.textPrimary(),
                         )
                     } else {
                         Text(
                             text = "هنوز اقدامی تعیین نشده",
                             style = AppTypography.bodyDescription,
-                            color = DfColors.TextMuted,
+                            color = DfThemeColors.textMuted(),
                         )
                     }
                 }
             }
             if (nextAction != null) {
                 if (overdue) {
-                    Surface(shape = AppShapes.Chip, color = DfColors.AmberLight) {
+                    Surface(shape = AppShapes.Chip, color = DfThemeColors.warningContainer()) {
                         Text(
                             text = "پیگیری عقب‌افتاده",
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             style = AppTypography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = DfColors.Amber,
+                            color = DfThemeColors.warning(),
                         )
                     }
                 }
@@ -131,13 +131,13 @@ fun DealNextActionCard(
                         Icon(
                             imageVector = DfIcons.Clock,
                             contentDescription = null,
-                            tint = if (overdue) DfColors.Amber else DfColors.TextSecondary,
+                            tint = if (overdue) DfThemeColors.warning() else DfThemeColors.textSecondary(),
                             modifier = Modifier.size(14.dp),
                         )
                         Text(
                             text = schedule,
                             style = AppTypography.bodyDescription,
-                            color = if (overdue) DfColors.Amber else DfColors.TextSecondary,
+                            color = if (overdue) DfThemeColors.warning() else DfThemeColors.textSecondary(),
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -152,7 +152,7 @@ fun DealNextActionCard(
                             text = note,
                             modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
                             style = AppTypography.labelSmall,
-                            color = DfColors.TextSecondary,
+                            color = DfThemeColors.textSecondary(),
                         )
                     }
                 }
@@ -241,7 +241,7 @@ fun DealTimelineSection(
                     Text(
                         "با ثبت پیگیری یا تغییر مرحله، تاریخچه اینجا ساخته می‌شود.",
                         style = AppTypography.bodyDescription,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                 }
             }
@@ -331,19 +331,19 @@ private fun DealTimelineRow(
                         text = item.title.orEmpty(),
                         style = AppTypography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.TextPrimary,
+                        color = DfThemeColors.textPrimary(),
                     )
                     Text(
                         text = listOfNotNull(item.dayLabel, item.timeLabel).joinToString(" · "),
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                 }
                 item.typeLabel?.takeIf { it.isNotBlank() && it != item.title }?.let { type ->
                     Text(type, style = AppTypography.labelSmall, color = accent, fontWeight = FontWeight.SemiBold)
                 }
                 item.body?.takeIf { it.isNotBlank() }?.let { body ->
-                    Text(body, style = AppTypography.bodyDescription, color = DfColors.TextSecondary)
+                    Text(body, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
                 }
             }
         }
@@ -373,6 +373,8 @@ fun DealFollowUpSheet(
         title = "ثبت پیگیری",
         subtitle = "نتیجه کار انجام‌شده و اقدام بعدی را ثبت کنید",
         icon = DfIcons.MessageCircle,
+        iconContainerColor = DfThemeColors.infoContainer(),
+        iconTint = DfThemeColors.info(),
         onClose = onDismiss,
         bodyHeightFraction = 0.92f,
         footer = {
@@ -450,6 +452,8 @@ fun DealNextActionSheet(
         title = "اقدام بعدی",
         subtitle = "چه کاری باید انجام شود؟",
         icon = DfIcons.Phone,
+        iconContainerColor = DfThemeColors.primaryContainer(),
+        iconTint = DfThemeColors.primary(),
         onClose = onDismiss,
         bodyHeightFraction = 0.88f,
         footer = {
@@ -500,8 +504,8 @@ fun DealLostReasonSheet(
         title = "دلیل از دست رفتن",
         subtitle = "چرا این معامله بسته نشد؟",
         icon = DfIcons.CircleAlert,
-        iconContainerColor = DfColors.RoseLight,
-        iconTint = DfColors.OverdueAccent,
+        iconContainerColor = DfThemeColors.errorContainer(),
+        iconTint = DfThemeColors.error(),
         onClose = onDismiss,
         bodyHeightFraction = 0.72f,
         footer = {

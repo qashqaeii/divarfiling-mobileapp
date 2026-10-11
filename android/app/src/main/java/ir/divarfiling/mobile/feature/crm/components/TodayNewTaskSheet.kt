@@ -6,8 +6,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.components.DfDateTimeSelector
 import ir.divarfiling.mobile.core.design.components.DfDropdown
@@ -53,7 +53,7 @@ fun TodayNewTaskSheet(
                 Text(
                     text = "ابتدا یک مخاطب در CRM ثبت کنید",
                     style = AppTypography.labelSmall,
-                    color = DfColors.Amber,
+                    color = DfThemeColors.warning(),
                 )
             } else {
                 DfDropdown(

@@ -24,7 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
@@ -85,11 +86,19 @@ fun TeamThreadDetailScreen(
                             TextButton(onClick = viewModel::toggleStar) {
                                 Text(
                                     if (thread?.isStarred == true) "حذف ستاره" else "ستاره‌دار",
-                                    color = DfColors.Amber,
+                                    color = DfThemeColors.warning(),
                                 )
                             }
                         },
                     )
+                    state.error?.let { err ->
+                        if (!state.isLoading) {
+                            DfErrorBanner(
+                                message = err,
+                                modifier = Modifier.padding(horizontal = pad, vertical = AppSpacing.xs),
+                            )
+                        }
+                    }
                     when {
                         state.isLoading -> DfCardListSkeleton(
                             modifier = Modifier.padding(horizontal = pad),

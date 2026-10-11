@@ -34,8 +34,8 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
@@ -88,6 +88,8 @@ fun DealStagesEditorSheet(
         title = "طراحی قیف فروش",
         subtitle = "مراحل، رنگ، احتمال بستن و مهلت پیگیری را مثل میزکار وب تنظیم کنید",
         icon = DfIcons.SlidersHorizontal,
+        iconContainerColor = DfThemeColors.primaryContainer(),
+        iconTint = DfThemeColors.primary(),
         onClose = onDismiss,
         bodyHeightFraction = 0.92f,
         footer = {
@@ -113,19 +115,19 @@ fun DealStagesEditorSheet(
                             onClick = { onPreset(preset.id) },
                             enabled = !isSaving,
                             shape = AppShapes.Chip,
-                            color = DfColors.PurpleContainer.copy(alpha = 0.55f),
+                            color = DfThemeColors.primaryContainer().copy(alpha = 0.55f),
                         ) {
                             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                                 Text(
                                     text = preset.name,
                                     style = AppTypography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = DfColors.Purple,
+                                    color = DfThemeColors.primary(),
                                 )
                                 Text(
                                     text = "${preset.stageNames.ifEmpty { preset.definitions.map { it.name } }.size} مرحله",
                                     style = AppTypography.labelSmall,
-                                    color = DfColors.TextMuted,
+                                    color = DfThemeColors.textMuted(),
                                 )
                             }
                         }
@@ -221,11 +223,11 @@ private fun DealStageEditorCard(
     onRemove: () -> Unit,
 ) {
     val accent = DealUiUtils.hexColor(def.color)
-    val bg = DealUiUtils.hexColor(def.bg, DfColors.SurfaceVariant)
+    val bg = DealUiUtils.hexColor(def.bg, DfThemeColors.surfaceVariant())
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = AppShapes.Card,
-        color = if (expanded) bg.copy(alpha = 0.45f) else DfColors.Surface,
+        color = if (expanded) bg.copy(alpha = 0.45f) else DfThemeColors.surface(),
         border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
     ) {
         Column(
@@ -257,7 +259,7 @@ private fun DealStageEditorCard(
                             text = def.name,
                             style = AppTypography.bodyDescription,
                             fontWeight = FontWeight.Bold,
-                            color = DfColors.TextPrimary,
+                            color = DfThemeColors.textPrimary(),
                         )
                     } else {
                         OutlinedTextField(
@@ -273,7 +275,7 @@ private fun DealStageEditorCard(
                         text = "$count معامله · احتمال ${def.probability}٪" +
                             if (def.rotDays > 0) " · کهنگی ${def.rotDays} روز" else "",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -282,7 +284,7 @@ private fun DealStageEditorCard(
                     Icon(
                         imageVector = if (expanded) DfIcons.ChevronUp else DfIcons.ChevronDown,
                         contentDescription = "جزئیات",
-                        tint = DfColors.TextSecondary,
+                        tint = DfThemeColors.textSecondary(),
                     )
                 }
             }
@@ -295,7 +297,7 @@ private fun DealStageEditorCard(
                         Icon(DfIcons.ChevronDown, contentDescription = "پایین")
                     }
                     IconButton(onClick = onRemove, enabled = enabled) {
-                        Icon(DfIcons.Trash, contentDescription = "حذف", tint = DfColors.OverdueAccent)
+                        Icon(DfIcons.Trash, contentDescription = "حذف", tint = DfThemeColors.error())
                     }
                 }
             }
@@ -312,7 +314,7 @@ private fun DealStageEditorCard(
                     Text(
                         text = "احتمال بستن ${def.probability}٪",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextSecondary,
+                        color = DfThemeColors.textSecondary(),
                     )
                     Slider(
                         value = def.probability.toFloat(),
@@ -329,7 +331,7 @@ private fun DealStageEditorCard(
                         singleLine = true,
                     )
                 }
-                Text("رنگ", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                Text("رنگ", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     palette.forEach { hex ->
                         val selected = hex.equals(def.color, ignoreCase = true)
@@ -346,7 +348,7 @@ private fun DealStageEditorCard(
                         )
                     }
                 }
-                Text("آیکون", style = AppTypography.labelSmall, color = DfColors.TextMuted)
+                Text("آیکون", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     icons.forEach { icon ->
                         val selected = icon == def.icon
@@ -354,12 +356,12 @@ private fun DealStageEditorCard(
                             onClick = { onIconChange(icon) },
                             enabled = enabled,
                             shape = AppShapes.Chip,
-                            color = if (selected) bg else DfColors.SurfaceVariant,
+                            color = if (selected) bg else DfThemeColors.surfaceVariant(),
                         ) {
                             Icon(
                                 imageVector = DealUiUtils.stageIconVector(icon),
                                 contentDescription = icon,
-                                tint = if (selected) accent else DfColors.TextSecondary,
+                                tint = if (selected) accent else DfThemeColors.textSecondary(),
                                 modifier = Modifier
                                     .padding(8.dp)
                                     .size(18.dp),

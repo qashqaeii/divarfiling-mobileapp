@@ -49,8 +49,8 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
@@ -104,8 +104,8 @@ fun PropertyContactMatchesSheet(
             title = "مخاطب‌های پیشنهادی",
             subtitle = "مشتریانی که با این فایل شخصی هم‌خوانی دارند — انتخاب کنید و ارسال کنید",
             icon = DfIcons.Users,
-            iconContainerColor = DfColors.BlueLight,
-            iconTint = DfColors.Blue,
+            iconContainerColor = DfThemeColors.primaryContainer(),
+            iconTint = DfThemeColors.primary(),
             onClose = onDismiss,
             bodyHeightFraction = 0.84f,
             footer = if (!isLoading && matches?.eligible != false && matches?.forbidden != true && allMatches.isNotEmpty()) {
@@ -140,11 +140,11 @@ fun PropertyContactMatchesSheet(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
                     ) {
-                        CircularProgressIndicator(color = DfColors.Purple, strokeWidth = 3.dp)
+                        CircularProgressIndicator(color = DfThemeColors.primary(), strokeWidth = 3.dp)
                         Text(
                             "در حال یافتن مشتریان مناسب…",
                             style = AppTypography.bodyDescription,
-                            color = DfColors.TextSecondary,
+                            color = DfThemeColors.textSecondary(),
                         )
                     }
                 }
@@ -218,7 +218,7 @@ private fun PropertyMatchSuggestFooter(
                     },
                     style = AppTypography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (selectedCount > 0) DfColors.Blue else DfColors.TextSecondary,
+                    color = if (selectedCount > 0) DfThemeColors.info() else DfThemeColors.textSecondary(),
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -238,8 +238,8 @@ private fun PropertyMatchSuggestFooter(
                     .fillMaxWidth()
                     .height(3.dp)
                     .clip(AppShapes.Chip),
-                color = DfColors.Blue,
-                trackColor = DfColors.BlueLight.copy(alpha = 0.45f),
+                color = DfThemeColors.info(),
+                trackColor = DfThemeColors.infoContainer().copy(alpha = 0.45f),
             )
         }
 
@@ -264,7 +264,7 @@ private fun PropertyMatchSuggestFooter(
                     "ثبت و ارسال در",
                     style = AppTypography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
                 Row(
                     modifier = Modifier
@@ -295,8 +295,8 @@ private fun PropertyMatchInsightStrip(total: Int, topScore: Int, selectedCount: 
             .background(
                 Brush.horizontalGradient(
                     listOf(
-                        DfColors.Blue.copy(alpha = 0.06f),
-                        DfColors.Purple.copy(alpha = 0.04f),
+                        DfThemeColors.info().copy(alpha = 0.06f),
+                        DfThemeColors.primary().copy(alpha = 0.04f),
                         Color.Transparent,
                     ),
                 ),
@@ -318,13 +318,13 @@ private fun PropertyMatchInsightStrip(total: Int, topScore: Int, selectedCount: 
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(DfColors.Blue.copy(alpha = 0.1f)),
+                        .background(DfThemeColors.info().copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         DfIcons.WandSparkles,
                         contentDescription = null,
-                        tint = DfColors.Blue,
+                        tint = DfThemeColors.info(),
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -333,23 +333,23 @@ private fun PropertyMatchInsightStrip(total: Int, topScore: Int, selectedCount: 
                         "تحلیل هوشمند مخاطبان",
                         style = AppTypography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.TextPrimary,
+                        color = DfThemeColors.textPrimary(),
                     )
                     Text(
                         "بر اساس بودجه، محله و نیاز مشتری",
                         style = AppTypography.labelSmall,
-                        color = DfColors.TextMuted,
+                        color = DfThemeColors.textMuted(),
                     )
                 }
             }
             if (selectedCount > 0) {
-                Surface(shape = AppShapes.Chip, color = DfColors.Blue.copy(alpha = 0.12f)) {
+                Surface(shape = AppShapes.Chip, color = DfThemeColors.info().copy(alpha = 0.12f)) {
                     Text(
                         "${DateUtils.toPersianDigits(selectedCount.toString())} انتخاب",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = AppTypography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = DfColors.Blue,
+                        color = DfThemeColors.info(),
                     )
                 }
             }
@@ -361,7 +361,7 @@ private fun PropertyMatchInsightStrip(total: Int, topScore: Int, selectedCount: 
             PropertyInsightStat(
                 label = "مشتری",
                 value = DateUtils.toPersianDigits(total.toString()),
-                accent = DfColors.Blue,
+                accent = DfThemeColors.info(),
                 modifier = Modifier.weight(1f),
             )
             PropertyInsightStat(
@@ -384,7 +384,7 @@ private fun PropertyInsightStat(
     Column(
         modifier = modifier
             .clip(AppShapes.CardSmall)
-            .background(DfColors.SurfaceVariant.copy(alpha = 0.35f))
+            .background(DfThemeColors.surfaceVariant().copy(alpha = 0.35f))
             .padding(horizontal = AppSpacing.xs, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -398,7 +398,7 @@ private fun PropertyInsightStat(
         Text(
             label,
             style = AppTypography.labelSmall,
-            color = DfColors.TextMuted,
+            color = DfThemeColors.textMuted(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -413,14 +413,18 @@ private fun PropertySmartMatchCard(
     onToggle: () -> Unit,
 ) {
     val borderColor by animateColorAsState(
-        targetValue = if (selected) DfColors.Blue else DfColors.Outline.copy(alpha = 0.25f),
+        targetValue = if (selected) DfThemeColors.primary() else DfThemeColors.outlineSubtle(),
         label = "contactMatchBorder",
     )
     val bg by animateColorAsState(
-        targetValue = if (selected) DfColors.BlueLight.copy(alpha = 0.55f) else DfColors.Surface,
+        targetValue = if (selected) {
+            DfThemeColors.primaryContainer().copy(alpha = 0.45f)
+        } else {
+            DfThemeColors.surface()
+        },
         label = "contactMatchBg",
     )
-    val scoreColor = propertyScoreAccent(match.score)
+    val scoreColor = if (match.score > 0) propertyScoreAccent(match.score) else DfThemeColors.textMuted()
 
     Surface(
         modifier = Modifier
@@ -438,7 +442,7 @@ private fun PropertySmartMatchCard(
                 modifier = Modifier
                     .width(3.dp)
                     .fillMaxHeight()
-                    .background(if (selected) DfColors.Blue else scoreColor.copy(alpha = 0.45f)),
+                    .background(if (selected) DfThemeColors.primary() else scoreColor.copy(alpha = 0.45f)),
             )
             Row(
                 modifier = Modifier
@@ -466,7 +470,7 @@ private fun PropertySmartMatchCard(
                             modifier = Modifier.weight(1f),
                         )
                         match.customerType?.takeIf { it.isNotBlank() }?.let { type ->
-                            PropertyMatchChip(text = type, accent = DfColors.Blue)
+                            PropertyMatchChip(text = type, accent = DfThemeColors.info())
                         }
                     }
 
@@ -479,13 +483,13 @@ private fun PropertySmartMatchCard(
                                 budget,
                                 style = AppTypography.labelLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = DfColors.Green,
+                                color = DfThemeColors.success(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
                         match.intentLabel?.takeIf { it.isNotBlank() }?.let { intent ->
-                            PropertyMatchChip(text = intent, accent = DfColors.Purple, filled = false)
+                            PropertyMatchChip(text = intent, accent = DfThemeColors.primary(), filled = false)
                         }
                     }
 
@@ -501,13 +505,13 @@ private fun PropertySmartMatchCard(
                             Icon(
                                 DfIcons.MapPin,
                                 contentDescription = null,
-                                tint = DfColors.TextMuted,
+                                tint = DfThemeColors.textMuted(),
                                 modifier = Modifier.size(13.dp),
                             )
                             Text(
                                 meta,
                                 style = AppTypography.labelSmall,
-                                color = DfColors.TextSecondary,
+                                color = DfThemeColors.textSecondary(),
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -519,14 +523,14 @@ private fun PropertySmartMatchCard(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         match.propertyType?.takeIf { it.isNotBlank() }?.let { type ->
-                            PropertyMatchChip(text = type, accent = DfColors.TextSecondary)
+                            PropertyMatchChip(text = type, accent = DfThemeColors.textSecondary())
                         }
                         match.status?.takeIf { it.isNotBlank() }?.let { status ->
-                            PropertyMatchChip(text = status, accent = DfColors.Amber, filled = false)
+                            PropertyMatchChip(text = status, accent = DfThemeColors.warning(), filled = false)
                         }
                     }
 
-                    if (match.reasons.isNotEmpty()) {
+                    if (match.score > 0 && match.reasons.isNotEmpty()) {
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -549,7 +553,7 @@ private fun PropertySelectionMark(selected: Boolean) {
         modifier = Modifier
             .size(22.dp)
             .clip(CircleShape)
-            .background(if (selected) DfColors.Blue else DfColors.SurfaceVariant),
+            .background(if (selected) DfThemeColors.primary() else DfThemeColors.surfaceVariant()),
         contentAlignment = Alignment.Center,
     ) {
         if (selected) {
@@ -573,7 +577,7 @@ private fun PropertyMatchChip(
             text,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
             style = AppTypography.labelSmall,
-            color = if (filled) accent else DfColors.TextSecondary,
+            color = if (filled) accent else DfThemeColors.textSecondary(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -582,8 +586,10 @@ private fun PropertyMatchChip(
 
 @Composable
 private fun PropertyMatchScoreRing(score: Int, accent: Color) {
+    val hasScore = score > 0
+    val displayAccent = if (hasScore) accent else DfThemeColors.textMuted()
     val progress by animateFloatAsState(
-        targetValue = (score.coerceIn(0, 100) / 100f),
+        targetValue = if (hasScore) (score.coerceIn(0, 100) / 100f) else 0f,
         label = "contactScoreProgress",
     )
     Box(
@@ -592,20 +598,22 @@ private fun PropertyMatchScoreRing(score: Int, accent: Color) {
     ) {
         Canvas(modifier = Modifier.size(52.dp)) {
             val stroke = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
-            drawCircle(color = accent.copy(alpha = 0.15f), style = stroke)
-            drawArc(
-                color = accent,
-                startAngle = -90f,
-                sweepAngle = 360f * progress,
-                useCenter = false,
-                style = stroke,
-            )
+            drawCircle(color = displayAccent.copy(alpha = 0.15f), style = stroke)
+            if (hasScore) {
+                drawArc(
+                    color = displayAccent,
+                    startAngle = -90f,
+                    sweepAngle = 360f * progress,
+                    useCenter = false,
+                    style = stroke,
+                )
+            }
         }
         Text(
-            DateUtils.toPersianDigits(score.toString()),
+            text = if (hasScore) DateUtils.toPersianDigits(score.toString()) else "—",
             style = AppTypography.labelLarge.copy(fontSize = 14.sp),
             fontWeight = FontWeight.Bold,
-            color = accent,
+            color = displayAccent,
         )
     }
 }
@@ -655,14 +663,15 @@ internal fun PropertySocialShareButton(
         Text(
             channel.label,
             style = AppTypography.labelSmall,
-            color = if (enabled) DfColors.TextSecondary else DfColors.TextMuted,
+            color = if (enabled) DfThemeColors.textSecondary() else DfThemeColors.textMuted(),
             maxLines = 1,
         )
     }
 }
 
+@Composable
 private fun propertyScoreAccent(score: Int): Color = when {
-    score >= 75 -> DfColors.Green
-    score >= 50 -> DfColors.Amber
-    else -> DfColors.TextMuted
+    score >= 75 -> DfThemeColors.success()
+    score >= 50 -> DfThemeColors.warning()
+    else -> DfThemeColors.textMuted()
 }

@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import androidx.compose.foundation.BorderStroke
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,12 +41,18 @@ fun DealsPipelineBar(
 ) {
     if (columns.isEmpty()) return
     val total = columns.sumOf { it.count }.coerceAtLeast(1)
-    Column(
+        Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = AppSpacing.screenHorizontal),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
+        Text(
+            text = "مراحل فروش",
+            style = AppTypography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = DfThemeColors.textPrimary(),
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -74,7 +81,19 @@ fun DealsPipelineBar(
                 Surface(
                     onClick = { onStageClick(column.stage) },
                     shape = AppShapes.Chip,
-                    color = if (selected) columnStageColor(column, definitions).copy(alpha = 0.14f) else DfColors.Surface,
+                    color = if (selected) {
+                        columnStageColor(column, definitions).copy(alpha = 0.14f)
+                    } else {
+                        DfThemeColors.surfaceVariant()
+                    },
+                    border = BorderStroke(
+                        1.dp,
+                        if (selected) {
+                            columnStageColor(column, definitions).copy(alpha = 0.45f)
+                        } else {
+                            DfThemeColors.outlineSubtle()
+                        },
+                    ),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -90,7 +109,11 @@ fun DealsPipelineBar(
                         Text(
                             text = "${column.stage} ${column.count}",
                             style = AppTypography.labelSmall,
-                            color = if (selected) columnStageColor(column, definitions) else DfColors.TextSecondary,
+                            color = if (selected) {
+                                columnStageColor(column, definitions)
+                            } else {
+                                DfThemeColors.textSecondary()
+                            },
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         )
                     }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -45,6 +46,7 @@ import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
+import ir.divarfiling.mobile.core.design.DfComponentSpec
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
@@ -613,8 +615,8 @@ fun PropertyDetailQuickActions(
         PropertyQuickAction(
             label = "اشتراک",
             icon = DfIcons.Share2,
-            bg = DfColors.PurpleContainer,
-            tint = DfColors.Purple,
+            bg = DfThemeColors.primaryContainer(),
+            tint = DfThemeColors.primary(),
             onClick = onShare,
             modifier = Modifier.weight(1f),
         )
@@ -622,16 +624,16 @@ fun PropertyDetailQuickActions(
             label = "واتساپ",
             iconRes = R.drawable.ic_whatsapp,
             tintIconRes = true,
-            bg = DfColors.SurfaceVariant,
-            tint = DfColors.Green,
+            bg = DfThemeColors.surfaceVariant(),
+            tint = DfThemeColors.success(),
             onClick = onWhatsApp,
             modifier = Modifier.weight(1f),
         )
         PropertyQuickAction(
             label = "بیشتر",
             icon = DfIcons.MoreVertical,
-            bg = DfColors.SurfaceVariant,
-            tint = DfColors.TextSecondary,
+            bg = DfThemeColors.surfaceVariant(),
+            tint = DfThemeColors.textSecondary(),
             onClick = { showMore = true },
             modifier = Modifier.weight(1f),
         )
@@ -657,14 +659,15 @@ private fun PropertyQuickAction(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.defaultMinSize(minHeight = DfComponentSpec.MinTouchTargetDp.dp),
         shape = AppShapes.Card,
-        color = bg.copy(alpha = 0.65f),
+        color = bg.copy(alpha = 0.72f),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
+                .padding(vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {

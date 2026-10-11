@@ -24,6 +24,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -168,11 +171,16 @@ fun TeamInboxScreen(
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
     }
 
+    val assignLead = state.leads.firstOrNull { it.id == state.assignLeadId }
+
     if (state.showAssign) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissAssign) {
             DfSheetScaffold(
                 title = "تخصیص سرنخ",
-                subtitle = "${state.leads.size} سرنخ",
+                subtitle = assignLead?.name?.ifBlank { assignLead.phone } ?: "انتخاب مشاور مقصد",
+                icon = DfIcons.UserPlus,
+                iconContainerColor = DfThemeColors.successContainer(),
+                iconTint = DfThemeColors.success(),
                 onClose = viewModel::dismissAssign,
                 footer = {
                     DfSheetActions(
@@ -240,11 +248,21 @@ fun TeamInboxScreen(
                             }
                         }
                     }
+                    state.error?.let { err ->
+                        if (!state.isLoading) {
+                            item {
+                                DfErrorBanner(
+                                    message = err,
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                        }
+                    }
                     when {
                         state.isLoading -> item {
                             DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
                         }
-                        state.leads.isEmpty() -> item {
+                        state.leads.isEmpty() && state.error == null -> item {
                             DfEmptyState(
                                 title = "سرنخ جدیدی وجود ندارد",
                                 subtitle = "صف تخصیص تیم خالی است.",

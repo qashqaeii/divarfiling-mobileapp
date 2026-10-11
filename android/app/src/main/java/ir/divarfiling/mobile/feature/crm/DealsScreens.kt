@@ -528,6 +528,27 @@ fun DealDetailScreen(
                             )
                         }
                         item {
+                            DealDetailHeroCard(
+                                deal = deal,
+                                stageDef = DealUiUtils.defFor(deal.stage, state.stageDefs),
+                                onContactClick = { deal.customerId?.let(onContactClick) },
+                                onPropertyClick = deal.propertyId?.let { { onPropertyClick(it) } },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
+                        if (!DealsFilters.isTerminalStage(deal.stage, state.stageDefs)) {
+                            item {
+                                DealNextActionCard(
+                                    nextAction = deal.nextAction,
+                                    onComplete = viewModel::completeNextAction,
+                                    onEdit = { viewModel.toggleNextActionSheet(true) },
+                                    onSet = { viewModel.toggleNextActionSheet(true) },
+                                    isSubmitting = state.isSubmitting,
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                )
+                            }
+                        }
+                        item {
                             DealJourneyHeroCard(
                                 journey = state.journey,
                                 isSubmitting = state.isSubmitting,
@@ -544,31 +565,28 @@ fun DealDetailScreen(
                         when (tab) {
                             DealJourneyTab.OVERVIEW -> {
                                 item {
-                                    DealDetailHeroCard(
-                                        deal = deal,
-                                        stageDef = DealUiUtils.defFor(deal.stage, state.stageDefs),
-                                        onContactClick = { deal.customerId?.let(onContactClick) },
-                                        onPropertyClick = deal.propertyId?.let { { onPropertyClick(it) } },
-                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                                    )
-                                }
-                                item {
-                                    DealNextActionCard(
-                                        nextAction = deal.nextAction,
-                                        onComplete = viewModel::completeNextAction,
-                                        onEdit = { viewModel.toggleNextActionSheet(true) },
-                                        onSet = { viewModel.toggleNextActionSheet(true) },
-                                        isSubmitting = state.isSubmitting,
-                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-                                    )
-                                }
-                                item {
                                     DealStageSection(
                                         stages = state.stages,
                                         stageDefs = state.stageDefs,
                                         currentStage = deal.stage,
                                         isSubmitting = state.isSubmitting,
                                         onStageSelect = viewModel::requestStageChange,
+                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    )
+                                }
+                                item {
+                                    DealFinanceCard(
+                                        deal = deal,
+                                        onEdit = { viewModel.toggleFinanceSheet(true) },
+                                        compact = true,
+                                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                                    )
+                                }
+                                item {
+                                    DealDetailQuickActions(
+                                        onEdit = { viewModel.toggleEditSheet(true) },
+                                        onFinance = { viewModel.toggleFinanceSheet(true) },
+                                        onDelete = { viewModel.toggleDeleteDialog(true) },
                                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                                     )
                                 }

@@ -33,8 +33,8 @@ import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import java.text.NumberFormat
 import java.util.Locale
@@ -55,7 +55,7 @@ fun TodayStatsRow(
         TodayStatCell(
             label = "معوق",
             value = numberFormat.format(overdueCount),
-            color = DfColors.OverdueAccent,
+            color = DfThemeColors.error(),
             icon = DfIcons.Clock,
             tab = TodayFilterTab.Overdue,
             onClick = onOverdueClick,
@@ -63,7 +63,7 @@ fun TodayStatsRow(
         TodayStatCell(
             label = "انجام‌شده",
             value = numberFormat.format(doneCount),
-            color = DfColors.Green,
+            color = DfThemeColors.success(),
             icon = DfIcons.CircleCheck,
             tab = TodayFilterTab.Done,
             onClick = onDoneClick,
@@ -71,7 +71,7 @@ fun TodayStatsRow(
         TodayStatCell(
             label = "امروز",
             value = numberFormat.format(todayCount),
-            color = DfColors.Purple,
+            color = DfThemeColors.primary(),
             icon = DfIcons.ListTodo,
             tab = TodayFilterTab.All,
             onClick = onTodayClick,
@@ -83,7 +83,8 @@ fun TodayStatsRow(
             .fillMaxWidth()
             .padding(horizontal = AppSpacing.screenHorizontal),
         shape = AppShapes.Field,
-        color = DfColors.Surface,
+        color = DfThemeColors.surface(),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
         shadowElevation = AppElevations.subtle,
     ) {
         Row(
@@ -100,7 +101,7 @@ fun TodayStatsRow(
                             .width(1.dp)
                             .fillMaxHeight()
                             .padding(vertical = 6.dp)
-                            .background(DfColors.Outline.copy(alpha = 0.45f)),
+                            .background(DfThemeColors.outlineSubtle()),
                     )
                 }
                 TodayMiniStatCell(
@@ -153,13 +154,13 @@ private fun TodayMiniStatCell(
             modifier = Modifier
                 .size(22.dp)
                 .clip(CircleShape)
-                .background(if (selected) color.copy(alpha = 0.14f) else DfColors.SurfaceVariant),
+                .background(if (selected) color.copy(alpha = 0.14f) else DfThemeColors.surfaceVariant()),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) color else DfColors.TextMuted,
+                tint = if (selected) color else DfThemeColors.textMuted(),
                 modifier = Modifier.size(12.dp),
             )
         }
@@ -167,14 +168,14 @@ private fun TodayMiniStatCell(
             text = value,
             style = AppTypography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = if (selected) color else DfColors.TextPrimary,
+            color = if (selected) color else DfThemeColors.textPrimary(),
             maxLines = 1,
             textAlign = TextAlign.Center,
         )
         Text(
             text = label,
             style = AppTypography.labelSmall,
-            color = if (selected) color else DfColors.TextMuted,
+            color = if (selected) color else DfThemeColors.textMuted(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

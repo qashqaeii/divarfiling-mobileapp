@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.network.DealDto
 import ir.divarfiling.mobile.core.network.DealStageDefDto
 import kotlin.math.absoluteValue
 
@@ -123,3 +124,14 @@ object DealUiUtils {
         else -> DfColors.TextMuted
     }
 }
+
+/** مبلغ قابل‌نمایش کمیسیون — بدون تغییر فرمول سرور؛ جمع اجزا وقتی total صفر است. */
+fun DealDto.displayCommissionTotal(): Long {
+    val explicit = commissionAmount ?: 0L
+    if (explicit > 0L) return explicit
+    val split = (advisorCommission ?: 0L) + (agencyCommission ?: 0L)
+    if (split > 0L) return split
+    return (buyerCommissionAmount ?: 0L) + (sellerCommissionAmount ?: 0L)
+}
+
+fun DealDto.hasCommissionDisplay(): Boolean = displayCommissionTotal() > 0L

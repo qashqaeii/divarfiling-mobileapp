@@ -13,8 +13,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
 import ir.divarfiling.mobile.core.design.components.DfMoneyField
 import ir.divarfiling.mobile.core.design.components.DfSearchField
@@ -74,8 +74,8 @@ fun DealEditSheet(
         title = "ویرایش معامله",
         subtitle = "عنوان، مبلغ، ملک، مرحله و جزئیات پرونده را به‌روز کنید",
         icon = DfIcons.Handshake,
-        iconContainerColor = DfColors.PurpleContainer,
-        iconTint = DfColors.Purple,
+        iconContainerColor = DfThemeColors.primaryContainer(),
+        iconTint = DfThemeColors.primary(),
         onClose = onDismiss,
         bodyHeightFraction = 0.92f,
         footer = {
@@ -114,7 +114,7 @@ fun DealEditSheet(
                 Text(
                     text = "فایل شخصی برای اتصال موجود نیست",
                     style = AppTypography.labelSmall,
-                    color = DfColors.TextMuted,
+                    color = DfThemeColors.textMuted(),
                 )
             } else {
                 DealSearchablePropertyField(
