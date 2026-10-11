@@ -348,6 +348,7 @@ private fun contractStatusColors(statusLabel: String): Pair<androidx.compose.ui.
 fun ContractDetailScreen(
     onBack: () -> Unit,
     onNavigateWebBridge: (String) -> Unit,
+    onNavigateWizard: (Long) -> Unit = {},
     onOpenPdf: (Long, String) -> Unit,
     onNavigateDeal: (Long) -> Unit,
     hybridRefreshPending: Boolean = false,
@@ -369,6 +370,12 @@ fun ContractDetailScreen(
     }
     LaunchedEffect(state.webBridgeUrl) {
         state.webBridgeUrl?.let { onNavigateWebBridge(it); viewModel.consumeWebBridge() }
+    }
+    LaunchedEffect(state.openNativeWizard, detail?.id) {
+        if (state.openNativeWizard && detail != null) {
+            onNavigateWizard(detail.id)
+            viewModel.consumeOpenNativeWizard()
+        }
     }
     LaunchedEffect(state.openPdf) {
         if (state.openPdf && detail != null) {
@@ -626,13 +633,19 @@ private fun AttachmentRow(att: ContractAttachmentDto, busy: Boolean, onOpen: () 
 @Composable
 fun ContractCreateScreen(
     onBack: () -> Unit,
-    onCreatedNavigateDetail: (Long) -> Unit,
+    onCreatedNavigateWizard: (Long) -> Unit,
     onNavigateWebBridge: (String) -> Unit,
     viewModel: ContractCreateViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state.webBridgeUrl) {
         state.webBridgeUrl?.let { onNavigateWebBridge(it); viewModel.consumeWebBridge() }
+    }
+    LaunchedEffect(state.navigateWizardContractId) {
+        state.navigateWizardContractId?.let { id ->
+            onCreatedNavigateWizard(id)
+            viewModel.consumeNavigateWizard()
+        }
     }
     Scaffold(containerColor = DfScreenContainerColor, snackbarHost = { SnackbarHost(remember { SnackbarHostState() }) }) { padding ->
         LazyColumn(
@@ -657,9 +670,9 @@ fun ContractCreateScreen(
             }
             item {
                 DfStatusBanner(
-                    message = "پس از انتخاب نوع، تکمیل جزئیات، طرفین و بندها در میزکار وب باز می‌شود. پس از اتمام، به جزئیات قرارداد در اپ برمی‌گردید.",
+                    message = "پس از انتخاب نوع، ویزارد تکمیل قرارداد در اپ باز می‌شود. در صورت نیاز می‌توانید از داخل ویزارد به نسخه وب بروید.",
                     tone = DfStatusTone.Info,
-                    title = "ادامه در میزکار",
+                    title = "تکمیل در اپ",
                     icon = DfIcons.File,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )

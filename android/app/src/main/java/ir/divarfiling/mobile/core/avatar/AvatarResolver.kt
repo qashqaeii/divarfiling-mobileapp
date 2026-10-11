@@ -23,18 +23,25 @@ object AvatarResolver {
         return presetOnly(key)
     }
 
-    fun resolveContact(contact: ContactDto): ResolvedAvatar {
-        if (!contact.photoUrl.isNullOrBlank()) {
-            return ResolvedAvatar(remoteUrl = contact.photoUrl)
+    fun resolveContact(contact: ContactDto): ResolvedAvatar =
+        resolveContact(contact.fullName, contact.photoUrl, contact.avatarKey)
+
+    fun resolveContact(name: String?, photoUrl: String?, avatarKey: String? = null): ResolvedAvatar {
+        val presetFallback = contactPresetFallback(avatarKey)
+        if (!photoUrl.isNullOrBlank()) {
+            return ResolvedAvatar(
+                remoteUrl = photoUrl,
+                presetDrawable = presetFallback.presetDrawable,
+                presetKey = presetFallback.presetKey,
+                usePreset = false,
+            )
         }
-        return ResolvedAvatar()
+        return presetFallback
     }
 
-    fun resolveContact(name: String?, photoUrl: String?): ResolvedAvatar {
-        if (!photoUrl.isNullOrBlank()) {
-            return ResolvedAvatar(remoteUrl = photoUrl)
-        }
-        return ResolvedAvatar()
+    private fun contactPresetFallback(avatarKey: String?): ResolvedAvatar {
+        val key = avatarKey?.takeIf { it.isNotBlank() } ?: AvatarCatalog.DEFAULT_KEY
+        return presetOnly(key)
     }
 
     fun initialsFromName(name: String?): String {

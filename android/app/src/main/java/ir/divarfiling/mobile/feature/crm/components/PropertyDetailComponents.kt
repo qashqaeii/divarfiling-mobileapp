@@ -55,11 +55,299 @@ import ir.divarfiling.mobile.core.design.components.DfDropdown
 import ir.divarfiling.mobile.core.design.components.DfMoreAction
 import ir.divarfiling.mobile.core.design.components.DfMoreActionsSheet
 import ir.divarfiling.mobile.core.design.FormatUtils
-import ir.divarfiling.mobile.core.design.components.DfAsyncImage
+import ir.divarfiling.mobile.core.design.components.DfImageGallery
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfSheetOptionRow
+import ir.divarfiling.mobile.core.network.PropertyDetailData
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.feature.crm.CrmConstants
+
+@Composable
+fun PropertyFileAccessPanel(
+    detail: PropertyDetailData,
+    onTeamShare: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val property = detail.property
+    val publicShare = detail.publicShare
+    val agencyCopy = detail.agencySpaceProvenance
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(DfIcons.Lock, null, tint = DfThemeColors.primary(), modifier = Modifier.size(18.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "دسترسی و انتشار",
+                        style = AppTypography.cardTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                    )
+                    Text(
+                        "مالکیت فایل، سطح اشتراک و عملیات مجاز",
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textMuted(),
+                    )
+                }
+            }
+            PropertyAccessRow(
+                label = "مالکیت",
+                value = if (detail.canEdit) "شما — ویرایش و مدیریت" else "فقط مشاهده",
+                accent = if (detail.canEdit) DfThemeColors.success() else DfThemeColors.textSecondary(),
+            )
+            PropertyAccessRow(
+                label = "انتشار شخصی",
+                value = property.publishStatus?.takeIf { it.isNotBlank() } ?: "ثبت نشده",
+                accent = PropertyFilters.publishDotColor(property.publishStatus),
+            )
+            if (detail.maskSensitive) {
+                PropertyAccessRow(
+                    label = "حالت محرمانه",
+                    value = "یادداشت و مدارک در اشتراک مخفی می‌مانند",
+                    accent = DfThemeColors.warning(),
+                )
+            }
+            publicShare?.let { share ->
+                val active = share.isActive && share.shareUrl.isNotBlank()
+                PropertyAccessRow(
+                    label = "لینک عمومی",
+                    value = if (active) {
+                        "فعال · ${share.viewCount} بازدید"
+                    } else {
+                        "غیرفعال"
+                    },
+                    accent = if (active) DfThemeColors.info() else DfThemeColors.textMuted(),
+                )
+            }
+            agencyCopy?.takeIf { it.label.isNotBlank() || it.publisherName.isNotBlank() }?.let { provenance ->
+                PropertyAccessRow(
+                    label = "منبع آژانس",
+                    value = listOfNotNull(
+                        provenance.label.takeIf { it.isNotBlank() },
+                        provenance.publisherName.takeIf { it.isNotBlank() }?.let { "ناشر: $it" },
+                    ).joinToString(" · "),
+                    accent = DfThemeColors.primary(),
+                )
+            }
+            if (detail.canEdit && onTeamShare != null) {
+                TextButton(onClick = onTeamShare, modifier = Modifier.align(Alignment.End)) {
+                    Text("مدیریت اشتراک با تیم", color = DfThemeColors.primary(), fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PropertyAccessRow(
+    label: String,
+    value: String,
+    accent: Color,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            label,
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textMuted(),
+            modifier = Modifier.weight(0.38f),
+        )
+        Text(
+            value,
+            style = AppTypography.labelLarge,
+            fontWeight = FontWeight.Medium,
+            color = accent,
+            modifier = Modifier.weight(0.62f),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+fun propertyDetailImageUrls(property: PropertyDto): List<String> {
+    val thumb = property.thumbnailUrl?.takeIf { it.isNotBlank() }
+    val images = property.images.filter { it.isNotBlank() }
+    return buildList {
+        thumb?.let { add(it) }
+        images.forEach { url -> if (url !in this) add(url) }
+    }
+}
+
+@Composable
+fun PropertyDetailMediaHeader(
+    property: PropertyDto,
+    contactCount: Int,
+    dealAccent: Color,
+    statusColor: Color,
+    statusBg: Color,
+    txStatus: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val imageUrls = propertyDetailImageUrls(property)
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            if (imageUrls.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(dealAccent.copy(alpha = 0.25f), DfThemeColors.primaryContainer()),
+                            ),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = PropertyFilters.propertyTypeIcon(property.propertyType),
+                        contentDescription = null,
+                        tint = dealAccent,
+                        modifier = Modifier.size(56.dp),
+                    )
+                }
+            } else {
+                DfImageGallery(
+                    images = imageUrls,
+                    modifier = Modifier.fillMaxWidth(),
+                    heroHeight = 220.dp,
+                )
+            }
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = AppSpacing.sm, end = AppSpacing.screenHorizontal)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.35f)),
+            ) {
+                Icon(DfIcons.ChevronLeft, contentDescription = "بازگشت", tint = Color.White)
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.screenHorizontal),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Text(
+                text = property.title,
+                style = AppTypography.sectionTitle,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val location = PropertyFilters.locationLabel(property)
+            if (location != "—") {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(DfIcons.MapPin, null, tint = DfThemeColors.textMuted(), modifier = Modifier.size(14.dp))
+                    Text(location, style = AppTypography.labelLarge, color = DfThemeColors.textSecondary())
+                }
+            }
+            PropertyDetailPriceBoard(property = property, accent = dealAccent)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                property.area?.let {
+                    PropertyDetailMediaKpi(
+                        label = PropertyFilters.formatArea(it).orEmpty(),
+                        icon = DfIcons.Ruler,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                property.rooms?.takeIf { it.isNotBlank() }?.let {
+                    PropertyDetailMediaKpi(label = "$it اتاق", icon = DfIcons.Bed, modifier = Modifier.weight(1f))
+                }
+                PropertyDetailMediaKpi(
+                    label = "$contactCount مخاطب",
+                    icon = DfIcons.Users,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                property.dealMode?.let { PropertyDetailStatusChip(it, dealAccent) }
+                PropertyDetailStatusChip(txStatus, statusColor)
+                property.publishStatus?.takeIf { it.isNotBlank() }?.let {
+                    PropertyDetailStatusChip(it, PropertyFilters.publishDotColor(it))
+                }
+                property.propertyType?.takeIf { it.isNotBlank() }?.let {
+                    PropertyDetailStatusChip(it, DfThemeColors.textSecondary())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PropertyDetailMediaKpi(
+    label: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = AppShapes.CardSmall,
+        color = DfThemeColors.surfaceVariant().copy(alpha = 0.55f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, null, tint = DfThemeColors.textMuted(), modifier = Modifier.size(12.dp))
+            Text(
+                text = label,
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textPrimary(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PropertyDetailStatusChip(text: String, accent: Color) {
+    Surface(shape = AppShapes.Chip, color = accent.copy(alpha = 0.1f)) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            style = AppTypography.labelSmall,
+            color = accent,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
 
 @Composable
 fun PropertyDetailContent(
@@ -77,8 +365,6 @@ fun PropertyDetailContent(
     val dealAccent = PropertyFilters.dealModeAccent(property)
     val txStatus = property.transactionStatus ?: "فعال"
     val (statusColor, statusBg) = PropertyFilters.txStatusColors(txStatus)
-    val cover = property.thumbnailUrl?.takeIf { it.isNotBlank() }
-        ?: property.images.firstOrNull()?.takeIf { it.isNotBlank() }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -86,31 +372,14 @@ fun PropertyDetailContent(
         verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
     ) {
         item {
-            PropertyDetailGallery(
-                cover = cover,
-                images = property.images,
+            PropertyDetailMediaHeader(
                 property = property,
+                contactCount = 0,
                 dealAccent = dealAccent,
                 statusColor = statusColor,
                 statusBg = statusBg,
                 txStatus = txStatus,
                 onBack = onBack,
-            )
-        }
-
-        item {
-            PropertyDetailSummaryCard(
-                property = property,
-                dealAccent = dealAccent,
-                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-            )
-        }
-
-        item {
-            PropertyDetailPriceBoard(
-                property = property,
-                accent = dealAccent,
-                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
         }
 
@@ -189,102 +458,6 @@ fun PropertyDetailContent(
                 enabled = !isSubmitting,
             ) {
                 Text("حذف فایل شخصی", color = DfThemeColors.error())
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PropertyDetailGallery(
-    cover: String?,
-    images: List<String>,
-    property: PropertyDto,
-    dealAccent: Color,
-    statusColor: Color,
-    statusBg: Color,
-    txStatus: String,
-    onBack: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(240.dp),
-    ) {
-        DfListingImage(
-            thumbnailUrl = cover,
-            images = images,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-        )
-        if (cover.isNullOrBlank()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.linearGradient(
-                            listOf(dealAccent.copy(alpha = 0.25f), DfThemeColors.primaryContainer()),
-                        ),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = PropertyFilters.propertyTypeIcon(property.propertyType),
-                    contentDescription = null,
-                    tint = dealAccent,
-                    modifier = Modifier.size(56.dp),
-                )
-            }
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Black.copy(alpha = 0.15f), Color.Black.copy(alpha = 0.6f)),
-                    ),
-                ),
-        )
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = AppSpacing.sm, end = AppSpacing.screenHorizontal)
-                .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.35f)),
-        ) {
-            Icon(DfIcons.ChevronLeft, contentDescription = "بازگشت", tint = Color.White)
-        }
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(
-                text = property.title,
-                style = AppTypography.sectionTitle,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val location = PropertyFilters.locationLabel(property)
-            if (location != "—") {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(DfIcons.MapPin, null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(14.dp))
-                    Text(location, style = AppTypography.labelSmall, color = Color.White.copy(alpha = 0.9f))
-                }
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                property.dealMode?.let { PropertyDetailBadge(it, dealAccent, dealAccent.copy(alpha = 0.25f)) }
-                PropertyDetailBadge(txStatus, statusColor, statusBg.copy(alpha = 0.85f))
-                property.propertyType?.let {
-                    PropertyDetailBadge(it, Color.White, Color.White.copy(alpha = 0.2f))
-                }
             }
         }
     }

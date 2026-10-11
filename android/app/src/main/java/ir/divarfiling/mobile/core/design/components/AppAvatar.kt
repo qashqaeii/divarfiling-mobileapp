@@ -30,6 +30,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import ir.divarfiling.mobile.core.avatar.AvatarCatalog
 import ir.divarfiling.mobile.core.avatar.AvatarResolver
 import ir.divarfiling.mobile.core.avatar.ResolvedAvatar
@@ -136,12 +139,22 @@ fun AppAvatar(
         ) {
             when {
                 !resolved.remoteUrl.isNullOrBlank() -> {
-                    DfAsyncImage(
-                        url = resolved.remoteUrl,
-                        modifier = Modifier.fillMaxSize(),
-                        shape = CircleShape,
+                    SubcomposeAsyncImage(
+                        model = resolved.remoteUrl,
                         contentDescription = null,
-                    )
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                    ) {
+                        when (painter.state) {
+                            is AsyncImagePainter.State.Error -> ContactAvatarFallbackContent(
+                                resolved = resolved,
+                                placeholderInitials = placeholderInitials,
+                            )
+                            else -> SubcomposeAsyncImageContent()
+                        }
+                    }
                 }
                 resolved.presetDrawable != null -> {
                     Image(
@@ -209,6 +222,45 @@ fun AppAvatar(
                         .background(DfThemeColors.success()),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ContactAvatarFallbackContent(
+    resolved: ResolvedAvatar,
+    placeholderInitials: String?,
+) {
+    when {
+        resolved.presetDrawable != null -> {
+            Image(
+                painter = painterResource(resolved.presetDrawable),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+            )
+        }
+        !placeholderInitials.isNullOrBlank() -> {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Text(
+                    placeholderInitials,
+                    style = AppTypography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = DfThemeColors.onPrimaryContainer(),
+                )
+            }
+        }
+        else -> {
+            Image(
+                painter = painterResource(AvatarCatalog.drawableForKey(AvatarCatalog.DEFAULT_KEY)),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+            )
         }
     }
 }

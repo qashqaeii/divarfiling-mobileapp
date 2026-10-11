@@ -117,6 +117,7 @@ fun ContactPickerSheet(
                                 status = contact.status,
                                 customerType = contact.customerType,
                                 photoUrl = contact.photoUrl,
+                                avatarKey = contact.avatarKey,
                                 onClick = { onContactSelected(contact) },
                             )
                         }

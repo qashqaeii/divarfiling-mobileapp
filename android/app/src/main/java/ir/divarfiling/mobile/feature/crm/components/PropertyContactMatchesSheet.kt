@@ -1,6 +1,12 @@
 package ir.divarfiling.mobile.feature.crm.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -85,6 +91,7 @@ fun PropertyContactMatchesSheet(
     val allSelected = allMatches.isNotEmpty() && selectedCount == allMatches.size
     val canSubmit = selectedCount > 0 && !isSubmitting
     val topMatches = remember(allMatches) { allMatches.take(3) }
+    var shareExpanded by remember { mutableStateOf(false) }
 
     val shareChannels = remember(selectedMatches) {
         if (selectedMatches.size == 1) {
@@ -107,7 +114,7 @@ fun PropertyContactMatchesSheet(
             iconContainerColor = DfThemeColors.primaryContainer(),
             iconTint = DfThemeColors.primary(),
             onClose = onDismiss,
-            bodyHeightFraction = 0.84f,
+            bodyHeightFraction = 0.88f,
             footer = if (!isLoading && matches?.eligible != false && matches?.forbidden != true && allMatches.isNotEmpty()) {
                 {
                     PropertyMatchSuggestFooter(
@@ -117,6 +124,8 @@ fun PropertyContactMatchesSheet(
                         canSubmit = canSubmit,
                         isSubmitting = isSubmitting,
                         shareChannels = shareChannels,
+                        shareExpanded = shareExpanded,
+                        onToggleShareExpanded = { shareExpanded = !shareExpanded },
                         onToggleSelectAll = {
                             selected = if (allSelected) emptySet() else allMatches.map { it.customerId }.toSet()
                         },
@@ -195,6 +204,8 @@ private fun PropertyMatchSuggestFooter(
     canSubmit: Boolean,
     isSubmitting: Boolean,
     shareChannels: List<ContactShareChannel>,
+    shareExpanded: Boolean,
+    onToggleShareExpanded: () -> Unit,
     onToggleSelectAll: () -> Unit,
     onSelectTop: () -> Unit,
     onSuggest: () -> Unit,
@@ -202,45 +213,34 @@ private fun PropertyMatchSuggestFooter(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (selectedCount == 0) {
-                        "مشتریان مناسب را انتخاب کنید"
-                    } else {
-                        "${DateUtils.toPersianDigits(selectedCount.toString())} مشتری از ${DateUtils.toPersianDigits(totalCount.toString())}"
-                    },
-                    style = AppTypography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (selectedCount > 0) DfThemeColors.info() else DfThemeColors.textSecondary(),
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = if (selectedCount > 0) {
+                    "${DateUtils.toPersianDigits(selectedCount.toString())} از ${DateUtils.toPersianDigits(totalCount.toString())} انتخاب"
+                } else {
+                    "مشتری مناسب را انتخاب کنید"
+                },
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (selectedCount > 0) DfThemeColors.info() else DfThemeColors.textSecondary(),
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 DfGlassTextButton(text = "۳ برتر", onClick = onSelectTop, compact = true)
                 DfGlassTextButton(
-                    text = if (allSelected) "لغو انتخاب" else "انتخاب همه",
+                    text = if (allSelected) "لغو" else "همه",
                     onClick = onToggleSelectAll,
                     compact = true,
                 )
             }
-        }
-
-        if (selectedCount > 0) {
-            LinearProgressIndicator(
-                progress = { selectedCount.toFloat() / totalCount.coerceAtLeast(1) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(AppShapes.Chip),
-                color = DfThemeColors.info(),
-                trackColor = DfThemeColors.infoContainer().copy(alpha = 0.45f),
-            )
         }
 
         DfPrimaryButton(
@@ -256,21 +256,37 @@ private fun PropertyMatchSuggestFooter(
         )
 
         if (shareChannels.isNotEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = canSubmit, onClick = onToggleShareExpanded)
+                    .padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "ثبت و ارسال در",
+                    "ثبت و ارسال در پیام‌رسان",
                     style = AppTypography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
                     color = DfThemeColors.textMuted(),
                 )
+                Icon(
+                    if (shareExpanded) DfIcons.ChevronUp else DfIcons.ChevronDown,
+                    contentDescription = null,
+                    tint = DfThemeColors.textMuted(),
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            AnimatedVisibility(
+                visible = shareExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        .horizontalScroll(rememberScrollState())
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     shareChannels.forEach { channel ->

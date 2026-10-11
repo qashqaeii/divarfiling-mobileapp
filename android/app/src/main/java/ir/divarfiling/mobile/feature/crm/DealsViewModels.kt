@@ -702,6 +702,7 @@ data class DealDetailUiState(
     val showMoreSheet: Boolean = false,
     val showCommissionSheet: Boolean = false,
     val pendingContractDetailId: Long? = null,
+    val pendingContractWizardId: Long? = null,
     val editContractNumber: String = "",
     val editContractAmount: String = "",
     val editContractDate: String = "",
@@ -1118,15 +1119,9 @@ class DealDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isSubmitting = true) }
             when (val result = repository.createDealContract(dealId, recommended)) {
                 is ApiResult.Success -> {
-                    val path = result.data.workspacePaths.wizard.ifBlank { result.data.workspacePaths.manage }
                     loadJourneyAndContracts()
-                    when (val bridge = repository.createWorkspaceBridge(path)) {
-                        is ApiResult.Success -> _uiState.update {
-                            it.copy(isSubmitting = false, webBridgeUrl = bridge.data.bridgeUrl)
-                        }
-                        is ApiResult.Error -> _uiState.update {
-                            it.copy(isSubmitting = false, error = bridge.message)
-                        }
+                    _uiState.update {
+                        it.copy(isSubmitting = false, pendingContractWizardId = result.data.id)
                     }
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -1138,6 +1133,10 @@ class DealDetailViewModel @Inject constructor(
 
     fun openContractItem(item: ir.divarfiling.mobile.core.network.DealContractItemDto) {
         _uiState.update { it.copy(pendingContractDetailId = item.id) }
+    }
+
+    fun consumeContractWizardNavigation() {
+        _uiState.update { it.copy(pendingContractWizardId = null) }
     }
 
     fun consumeContractDetailNavigation() {

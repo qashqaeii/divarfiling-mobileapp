@@ -3003,6 +3003,83 @@ data class ContractTimelineData(
 )
 
 @Serializable
+data class ContractWizardStepDto(
+    val key: String = "",
+    val label: String = "",
+)
+
+@Serializable
+data class ContractWizardGetDto(
+    @SerialName("contract_id") val contractId: Long = 0,
+    @SerialName("contract_type") val contractType: String = "",
+    @SerialName("contract_type_label") val contractTypeLabel: String = "",
+    val status: String = "",
+    @SerialName("status_label") val statusLabel: String = "",
+    @SerialName("internal_number") val internalNumber: String = "",
+    @SerialName("wizard_step") val wizardStep: String = "",
+    @SerialName("current_step") val currentStep: String = "",
+    @SerialName("step_index") val stepIndex: Int = 0,
+    @SerialName("step_total") val stepTotal: Int = 0,
+    @SerialName("display_steps") val displaySteps: List<ContractWizardStepDto> = emptyList(),
+    @SerialName("wizard_data") val wizardData: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    @SerialName("can_edit") val canEdit: Boolean = false,
+    @SerialName("picker_enabled") val pickerEnabled: Boolean = true,
+    @SerialName("validation_errors") val validationErrors: List<String> = emptyList(),
+    @SerialName("validation_count") val validationCount: Int = 0,
+    val choices: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    @SerialName("clause_ui") val clauseUi: kotlinx.serialization.json.JsonObject? = null,
+    @SerialName("workspace_paths") val workspacePaths: DealContractWorkspacePathsDto = DealContractWorkspacePathsDto(),
+    @SerialName("updated_at") val updatedAt: String? = null,
+)
+
+@Serializable
+data class ContractWizardPatchRequest(
+    val step: String,
+    val data: kotlinx.serialization.json.JsonElement,
+    @SerialName("if_match_updated_at") val ifMatchUpdatedAt: String? = null,
+)
+
+@Serializable
+data class ContractWizardPatchDto(
+    @SerialName("contract_id") val contractId: Long = 0,
+    @SerialName("wizard_step") val wizardStep: String = "",
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("wizard_data") val wizardData: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+    @SerialName("validation_errors") val validationErrors: List<String> = emptyList(),
+    @SerialName("validation_count") val validationCount: Int = 0,
+)
+
+@Serializable
+data class ContractWizardPickerItemDto(
+    val id: Long = 0,
+    val name: String = "",
+    val title: String = "",
+    val phone: String? = null,
+    @SerialName("phone_masked") val phoneMasked: String? = null,
+    val meta: String = "",
+    val subtitle: String = "",
+    val location: String = "",
+    @SerialName("price_hint") val priceHint: String = "",
+) {
+    fun displayTitle(): String = name.ifBlank { title }
+    fun displaySubtitle(): String = subtitle.ifBlank {
+        listOfNotNull(
+            meta.takeIf { it.isNotBlank() },
+            location.takeIf { it.isNotBlank() },
+            priceHint.takeIf { it.isNotBlank() },
+            phoneMasked ?: phone,
+        ).joinToString(" · ")
+    }
+}
+
+@Serializable
+data class ContractWizardPickerPageDto(
+    val results: List<ContractWizardPickerItemDto> = emptyList(),
+    @SerialName("has_more") val hasMore: Boolean = false,
+    @SerialName("next_offset") val nextOffset: Int = 0,
+)
+
+@Serializable
 data class GlobalSearchDestinationDto(
     val kind: String = "",
     @SerialName("contact_id") val contactId: Long? = null,

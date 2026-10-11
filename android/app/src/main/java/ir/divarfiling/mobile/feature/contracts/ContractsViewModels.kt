@@ -164,6 +164,7 @@ data class ContractDetailUiState(
     val snackbarMessage: String? = null,
     val snackbarError: String? = null,
     val webBridgeUrl: String? = null,
+    val openNativeWizard: Boolean = false,
     val openPdf: Boolean = false,
     val isUploadingAttachment: Boolean = false,
     val attachmentBusyId: Long? = null,
@@ -240,13 +241,25 @@ class ContractDetailViewModel @Inject constructor(
         val action = detail.nextAction
         when (action.nativeTarget) {
             "pdf" -> _uiState.update { it.copy(openPdf = true) }
+            "wizard" -> _uiState.update { it.copy(openNativeWizard = true) }
             "bridge" -> openBridge(action.webPath.ifBlank { detail.workspacePaths.wizard })
-            else -> openBridge(detail.workspacePaths.manage)
+            else -> {
+                if (action.action == "OPEN_WIZARD") {
+                    _uiState.update { it.copy(openNativeWizard = true) }
+                } else {
+                    openBridge(detail.workspacePaths.manage)
+                }
+            }
         }
     }
 
     fun openClausesEditor() {
-        val path = _uiState.value.detail?.clausesEditPath ?: _uiState.value.detail?.workspacePaths?.wizard ?: return
+        val detail = _uiState.value.detail ?: return
+        if (detail.status == "draft" && detail.canEditClauses) {
+            _uiState.update { it.copy(openNativeWizard = true) }
+            return
+        }
+        val path = detail.clausesEditPath.ifBlank { detail.workspacePaths.wizard }
         openBridge(path)
     }
 
@@ -261,6 +274,8 @@ class ContractDetailViewModel @Inject constructor(
     }
 
     fun consumeWebBridge() = _uiState.update { it.copy(webBridgeUrl = null) }
+
+    fun consumeOpenNativeWizard() = _uiState.update { it.copy(openNativeWizard = false) }
 
     fun consumeOpenPdf() = _uiState.update { it.copy(openPdf = false) }
 
@@ -300,7 +315,7 @@ data class ContractCreateUiState(
     val isSubmitting: Boolean = false,
     val error: String? = null,
     val webBridgeUrl: String? = null,
-    val createdContractId: Long? = null,
+    val navigateWizardContractId: Long? = null,
 )
 
 @HiltViewModel
@@ -319,18 +334,11 @@ class ContractCreateViewModel @Inject constructor(
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             when (val created = repository.createContract(_uiState.value.contractType, dealId)) {
                 is ApiResult.Success -> {
-                    val path = created.data.workspacePaths.wizard.ifBlank { created.data.workspacePaths.manage }
-                    when (val bridge = repository.createWorkspaceBridge(path)) {
-                        is ApiResult.Success -> _uiState.update {
-                            it.copy(
-                                isSubmitting = false,
-                                webBridgeUrl = bridge.data.bridgeUrl,
-                                createdContractId = created.data.id,
-                            )
-                        }
-                        is ApiResult.Error -> _uiState.update {
-                            it.copy(isSubmitting = false, error = bridge.message, createdContractId = created.data.id)
-                        }
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            navigateWizardContractId = created.data.id,
+                        )
                     }
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -341,6 +349,8 @@ class ContractCreateViewModel @Inject constructor(
     }
 
     fun consumeWebBridge() = _uiState.update { it.copy(webBridgeUrl = null) }
+
+    fun consumeNavigateWizard() = _uiState.update { it.copy(navigateWizardContractId = null) }
 }
 
 data class ContractPdfUiState(

@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.HorizontalDivider
 import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
@@ -438,50 +439,68 @@ fun ListingAiSummarySection(
             modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f),
                 ) {
-                    Icon(
-                        DfIcons.Sparkles,
-                        contentDescription = null,
-                        tint = DfThemeColors.textMuted(),
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text = title,
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.SemiBold,
-                        color = DfThemeColors.textPrimary(),
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            DfIcons.Sparkles,
+                            contentDescription = null,
+                            tint = DfThemeColors.primary(),
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            text = title,
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = DfThemeColors.textPrimary(),
+                        )
+                    }
+                    val badgeLabel = modelLabel?.takeIf { it.isNotBlank() }
+                        ?: if (isFallback && summary.isNotBlank()) "مدل داخلی" else null
+                    badgeLabel?.let {
+                        DfBadge(text = it, color = DfThemeColors.surfaceVariant(), textColor = DfThemeColors.textMuted())
+                    }
                 }
-                val badgeLabel = modelLabel?.takeIf { it.isNotBlank() }
-                    ?: if (isFallback && summary.isNotBlank()) "مدل داخلی سیستم" else null
-                badgeLabel?.let {
-                    DfBadge(text = it, color = DfThemeColors.surfaceVariant(), textColor = DfThemeColors.textMuted())
-                }
+                Text(
+                    text = "خلاصه حرفه‌ای برای تماس، پیشنهاد و مذاکره",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
             }
 
             when {
                 isLoading -> {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(14.dp),
-                            color = DfThemeColors.textMuted(),
-                            strokeWidth = 2.dp,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = DfThemeColors.primary(),
+                                strokeWidth = 2.dp,
+                            )
+                            Text(
+                                text = "در حال تولید خلاصه…",
+                                style = AppTypography.labelLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = DfThemeColors.textSecondary(),
+                            )
+                        }
                         Text(
-                            text = "در حال تهیه خلاصه…",
-                            style = AppTypography.bodyDescription,
+                            text = "چند لحظه — نتیجه بر اساس مشخصات واقعی فایل تهیه می‌شود",
+                            style = AppTypography.labelSmall,
                             color = DfThemeColors.textMuted(),
                         )
                     }
@@ -490,9 +509,13 @@ fun ListingAiSummarySection(
                     Text(
                         text = emptyHint,
                         style = AppTypography.bodyDescription,
-                        color = DfThemeColors.textMuted(),
+                        color = DfThemeColors.textSecondary(),
                     )
-                    TextButton(onClick = onGenerate) { Text("تولید خلاصه") }
+                    DfPrimaryButton(
+                        text = "تولید خلاصه هوشمند",
+                        onClick = onGenerate,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
                 else -> {
                     AiSummaryStructuredBody(

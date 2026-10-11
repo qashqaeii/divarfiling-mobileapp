@@ -784,6 +784,7 @@ fun DfContactRow(
     status: String?,
     customerType: String?,
     photoUrl: String? = null,
+    avatarKey: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     DfCard(onClick = onClick) {
@@ -793,7 +794,7 @@ fun DfContactRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             AppAvatar(
-                resolved = ir.divarfiling.mobile.core.avatar.AvatarResolver.resolveContact(name, photoUrl),
+                resolved = ir.divarfiling.mobile.core.avatar.AvatarResolver.resolveContact(name, photoUrl, avatarKey),
                 placeholderInitials = ir.divarfiling.mobile.core.avatar.AvatarResolver.initialsFromName(name),
                 size = AppAvatarSize.Medium,
             )

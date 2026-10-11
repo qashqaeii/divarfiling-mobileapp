@@ -33,6 +33,7 @@ import ir.divarfiling.mobile.feature.crm.DealDetailScreen
 import ir.divarfiling.mobile.feature.contracts.ContractCreateScreen
 import ir.divarfiling.mobile.feature.contracts.ContractDetailScreen
 import ir.divarfiling.mobile.feature.contracts.ContractPdfScreen
+import ir.divarfiling.mobile.feature.contracts.ContractWizardScreen
 import ir.divarfiling.mobile.feature.contracts.ContractsHomeScreen
 import ir.divarfiling.mobile.feature.crm.WorkspaceWebScreen
 import ir.divarfiling.mobile.feature.crm.DealFinanceDashboardScreen
@@ -113,6 +114,7 @@ object Routes {
     const val CRM_CONTRACT_DETAIL = "crm/contracts/{contractId}"
     const val CRM_CONTRACT_CREATE = "crm/contracts/create?dealId={dealId}"
     const val CRM_CONTRACT_PDF = "crm/contracts/{contractId}/pdf?title={title}"
+    const val CRM_CONTRACT_WIZARD = "crm/contracts/{contractId}/wizard"
     const val WORKSPACE_WEB = "workspace/web?bridgeUrl={bridgeUrl}&webTitle={webTitle}"
 
     fun workspaceWeb(bridgeUrl: String, webTitle: String = "میزکار") =
@@ -156,6 +158,7 @@ object Routes {
     fun contractCreate(dealId: Long = 0) = "crm/contracts/create?dealId=$dealId"
     fun contractPdf(contractId: Long, title: String = "") =
         "crm/contracts/$contractId/pdf?title=${Uri.encode(title)}"
+    fun contractWizard(contractId: Long) = "crm/contracts/$contractId/wizard"
     fun deals(
         customerId: Long? = null,
         propertyId: Long? = null,
@@ -416,6 +419,9 @@ fun DivarFilingNavHost(
                             onOpenContractDetail = { contractId ->
                                 navController.navigate(Routes.contractDetail(contractId))
                             },
+                            onOpenContractWizard = { contractId ->
+                                navController.navigate(Routes.contractWizard(contractId))
+                            },
                         )
                     }
                     composable(Routes.CRM_CONTRACTS) {
@@ -435,10 +441,33 @@ fun DivarFilingNavHost(
                         ContractDetailScreen(
                             onBack = { navController.popBackStack() },
                             onNavigateWebBridge = { url -> navController.navigate(Routes.workspaceWeb(url, "قرارداد")) },
+                            onNavigateWizard = { id -> navController.navigate(Routes.contractWizard(id)) },
                             onOpenPdf = { id, title -> navController.navigate(Routes.contractPdf(id, title)) },
                             onNavigateDeal = { dealId -> navController.navigate(Routes.dealDetail(dealId)) },
                             hybridRefreshPending = hybridRefresh,
                             onHybridRefreshConsumed = { entry.savedStateHandle["refresh_contract"] = false },
+                        )
+                    }
+                    composable(
+                        route = Routes.CRM_CONTRACT_WIZARD,
+                        arguments = listOf(navArgument("contractId") { type = NavType.LongType }),
+                    ) { entry ->
+                        ContractWizardScreen(
+                            onBack = { navController.popBackStack() },
+                            onNavigateWebBridge = { url ->
+                                navController.navigate(Routes.workspaceWeb(url, "قرارداد"))
+                            },
+                            onFinished = {
+                                val contractId = entry.arguments?.getLong("contractId") ?: 0L
+                                navController.previousBackStackEntry?.savedStateHandle?.set("refresh_contract", true)
+                                if (contractId > 0) {
+                                    navController.navigate(Routes.contractDetail(contractId)) {
+                                        popUpTo(Routes.CRM_CONTRACT_WIZARD) { inclusive = true }
+                                    }
+                                } else {
+                                    navController.popBackStack()
+                                }
+                            },
                         )
                     }
                     composable(
@@ -452,9 +481,9 @@ fun DivarFilingNavHost(
                     ) {
                         ContractCreateScreen(
                             onBack = { navController.popBackStack() },
-                            onCreatedNavigateDetail = { id ->
-                                navController.navigate(Routes.contractDetail(id)) {
-                                    popUpTo(Routes.CRM_CONTRACTS)
+                            onCreatedNavigateWizard = { id ->
+                                navController.navigate(Routes.contractWizard(id)) {
+                                    popUpTo(Routes.CRM_CONTRACT_CREATE) { inclusive = true }
                                 }
                             },
                             onNavigateWebBridge = { url -> navController.navigate(Routes.workspaceWeb(url, "قرارداد")) },

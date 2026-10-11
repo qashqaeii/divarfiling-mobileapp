@@ -359,6 +359,32 @@ interface MobileApi {
     @GET("contracts/{id}")
     suspend fun getContractDetail(@Path("id") contractId: Long): ApiEnvelope
 
+    @GET("contracts/{id}/wizard")
+    suspend fun getContractWizard(
+        @Path("id") contractId: Long,
+        @Query("step") step: String? = null,
+    ): ApiEnvelope
+
+    @PATCH("contracts/{id}/wizard")
+    suspend fun patchContractWizard(
+        @Path("id") contractId: Long,
+        @Body body: ContractWizardPatchRequest,
+    ): ApiEnvelope
+
+    @GET("contracts/wizard/customers")
+    suspend fun searchContractWizardCustomers(
+        @Query("q") query: String? = null,
+        @Query("offset") offset: Int = 0,
+        @Query("limit") limit: Int = 20,
+    ): ApiEnvelope
+
+    @GET("contracts/wizard/properties")
+    suspend fun searchContractWizardProperties(
+        @Query("q") query: String? = null,
+        @Query("offset") offset: Int = 0,
+        @Query("limit") limit: Int = 20,
+    ): ApiEnvelope
+
     @GET("contracts/{id}/timeline")
     suspend fun getContractTimeline(@Path("id") contractId: Long): ApiEnvelope
 

@@ -114,7 +114,8 @@ fun ContactMatchesSheet(
     }
     var selected by remember(allMatches) { mutableStateOf(emptySet<String>()) }
     var activeFilter by remember { mutableStateOf(MatchFilter.ALL) }
-    var messageExpanded by remember { mutableStateOf(true) }
+    var messageExpanded by remember { mutableStateOf(false) }
+    var shareExpanded by remember { mutableStateOf(false) }
 
     fun matchKey(m: PropertyMatchDto): String =
         if (m.source == "crm") "crm:${m.propertyId}" else "divar:${m.token}"
@@ -148,7 +149,7 @@ fun ContactMatchesSheet(
             iconContainerColor = DfThemeColors.primaryContainer(),
             iconTint = DfThemeColors.primary(),
             onClose = onDismiss,
-            bodyHeightFraction = 0.78f,
+            bodyHeightFraction = 0.88f,
             footer = if (!isLoading && matches?.eligible != false && allMatches.isNotEmpty()) {
                 {
                     MatchSuggestFooter(
@@ -159,6 +160,8 @@ fun ContactMatchesSheet(
                         canSubmit = canSubmit,
                         isSubmitting = isSubmitting,
                         shareChannels = shareChannels,
+                        shareExpanded = shareExpanded,
+                        onToggleShareExpanded = { shareExpanded = !shareExpanded },
                         onToggleSelectAll = {
                             selected = if (allSelected) {
                                 selected - filteredMatches.map { matchKey(it) }.toSet()
@@ -439,6 +442,8 @@ private fun MatchSuggestFooter(
     canSubmit: Boolean,
     isSubmitting: Boolean,
     shareChannels: List<ContactShareChannel>,
+    shareExpanded: Boolean,
+    onToggleShareExpanded: () -> Unit,
     onToggleSelectAll: () -> Unit,
     onSelectTop: () -> Unit,
     onSuggest: () -> Unit,
@@ -446,59 +451,43 @@ private fun MatchSuggestFooter(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (selectedCount == 0) {
-                        "ملک‌های مناسب را انتخاب کنید"
-                    } else {
-                        "${DateUtils.toPersianDigits(selectedCount.toString())} فایل انتخاب‌شده از ${DateUtils.toPersianDigits(totalCount.toString())}"
-                    },
-                    style = AppTypography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (selectedCount > 0) DfThemeColors.primary() else DfThemeColors.textSecondary(),
-                )
-                if (filteredCount < totalCount && selectedCount == 0) {
-                    Text(
-                        "${DateUtils.toPersianDigits(filteredCount.toString())} مورد در فیلتر فعلی",
-                        style = AppTypography.labelSmall,
-                        color = DfThemeColors.textMuted(),
-                    )
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = when {
+                    selectedCount > 0 ->
+                        "${DateUtils.toPersianDigits(selectedCount.toString())} از ${DateUtils.toPersianDigits(totalCount.toString())} انتخاب"
+                    filteredCount < totalCount ->
+                        "${DateUtils.toPersianDigits(filteredCount.toString())} در فیلتر · ${DateUtils.toPersianDigits(totalCount.toString())} کل"
+                    else -> "فایل مناسب را انتخاب کنید"
+                },
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (selectedCount > 0) DfThemeColors.primary() else DfThemeColors.textSecondary(),
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 DfGlassTextButton(text = "۳ برتر", onClick = onSelectTop, compact = true)
                 DfGlassTextButton(
-                    text = if (allSelected) "لغو انتخاب" else "انتخاب همه",
+                    text = if (allSelected) "لغو" else "همه",
                     onClick = onToggleSelectAll,
                     compact = true,
                 )
             }
         }
 
-        if (selectedCount > 0) {
-            LinearProgressIndicator(
-                progress = { selectedCount.toFloat() / totalCount.coerceAtLeast(1) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(AppShapes.Chip),
-                color = DfThemeColors.primary(),
-                trackColor = DfThemeColors.primaryContainer().copy(alpha = 0.45f),
-            )
-        }
-
         DfPrimaryButton(
             text = if (selectedCount > 0) {
                 "ثبت پیشنهاد (${DateUtils.toPersianDigits(selectedCount.toString())})"
             } else {
-                "ثبت پیشنهاد برای مخاطب"
+                "ثبت پیشنهاد"
             },
             onClick = onSuggest,
             enabled = canSubmit,
@@ -507,21 +496,37 @@ private fun MatchSuggestFooter(
         )
 
         if (shareChannels.isNotEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = canSubmit, onClick = onToggleShareExpanded)
+                    .padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "ثبت و ارسال در",
+                    "ثبت و ارسال در پیام‌رسان",
                     style = AppTypography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
                     color = DfThemeColors.textMuted(),
                 )
+                Icon(
+                    if (shareExpanded) DfIcons.ChevronUp else DfIcons.ChevronDown,
+                    contentDescription = null,
+                    tint = DfThemeColors.textMuted(),
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            AnimatedVisibility(
+                visible = shareExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        .horizontalScroll(rememberScrollState())
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     shareChannels.forEach { channel ->

@@ -58,10 +58,8 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfNbaAction
 import ir.divarfiling.mobile.core.design.components.DfNbaCard
 import ir.divarfiling.mobile.core.design.components.DfDecorImage
-import ir.divarfiling.mobile.core.design.components.DfAsyncImage
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
-import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfPremiumCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
@@ -127,7 +125,7 @@ fun PropertyDetailTabbedContent(
         verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
     ) {
         item {
-            PropertyDetailHero(
+            PropertyDetailMediaHeader(
                 property = property,
                 contactCount = detail.contactCount,
                 dealAccent = dealAccent,
@@ -287,6 +285,13 @@ fun PropertyDetailTabbedContent(
                 )
             }
             item {
+                PropertyFileAccessPanel(
+                    detail = detail,
+                    onTeamShare = onTeamShare,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+            item {
                 ListingAiSummarySection(
                     title = "خلاصه هوشمند فایل",
                     summary = aiSummary,
@@ -418,177 +423,6 @@ private fun SmartMatchEntryCard(
                     modifier = Modifier.size(20.dp),
                 )
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PropertyDetailHero(
-    property: PropertyDto,
-    contactCount: Int,
-    dealAccent: Color,
-    statusColor: Color,
-    statusBg: Color,
-    txStatus: String,
-    onBack: () -> Unit,
-) {
-    val cover = property.thumbnailUrl?.takeIf { it.isNotBlank() }
-        ?: property.images.firstOrNull()?.takeIf { it.isNotBlank() }
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(176.dp),
-        ) {
-            DfListingImage(
-                thumbnailUrl = cover,
-                images = property.images,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-            if (cover.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.linearGradient(
-                                listOf(dealAccent.copy(alpha = 0.25f), DfThemeColors.primaryContainer()),
-                            ),
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = PropertyFilters.propertyTypeIcon(property.propertyType),
-                        contentDescription = null,
-                        tint = dealAccent,
-                        modifier = Modifier.size(56.dp),
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.Black.copy(alpha = 0.1f), Color.Black.copy(alpha = 0.72f)),
-                        ),
-                    ),
-            )
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = AppSpacing.sm, end = AppSpacing.screenHorizontal)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.35f)),
-            ) {
-                Icon(DfIcons.ChevronLeft, contentDescription = "بازگشت", tint = Color.White)
-            }
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = property.title,
-                    style = AppTypography.sectionTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val location = PropertyFilters.locationLabel(property)
-                if (location != "—") {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(DfIcons.MapPin, null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(14.dp))
-                        Text(location, style = AppTypography.labelSmall, color = Color.White.copy(alpha = 0.9f))
-                    }
-                }
-                val priceLine = when {
-                    property.salePrice != null -> FormatUtils.formatPriceToman(property.salePrice)
-                    property.deposit != null && property.rent != null ->
-                        "${FormatUtils.formatPriceShort(property.deposit)} / ${FormatUtils.formatPriceShort(property.rent)}"
-                    property.deposit != null -> FormatUtils.formatPriceToman(property.deposit)
-                    property.rent != null -> FormatUtils.formatPriceToman(property.rent)
-                    else -> null
-                }
-                priceLine?.let {
-                    Text(
-                        text = it,
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                ) {
-                    property.area?.let {
-                        PropertyHeroKpi(
-                            label = PropertyFilters.formatArea(it).orEmpty(),
-                            icon = DfIcons.Ruler,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    property.rooms?.takeIf { it.isNotBlank() }?.let {
-                        PropertyHeroKpi(label = "$it اتاق", icon = DfIcons.Bed, modifier = Modifier.weight(1f))
-                    }
-                    PropertyHeroKpi(
-                        label = "$contactCount مخاطب",
-                        icon = DfIcons.Users,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    property.dealMode?.let { PropertyDetailBadge(it, dealAccent, dealAccent.copy(alpha = 0.25f)) }
-                    PropertyDetailBadge(txStatus, statusColor, statusBg.copy(alpha = 0.85f))
-                    property.publishStatus?.let {
-                        PropertyDetailBadge(it, Color.White, Color.White.copy(alpha = 0.2f))
-                    }
-                    property.propertyType?.let {
-                        PropertyDetailBadge(it, Color.White, Color.White.copy(alpha = 0.2f))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PropertyHeroKpi(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        shape = AppShapes.CardSmall,
-        color = Color.White.copy(alpha = 0.12f),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(icon, null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
-            Text(
-                text = label,
-                style = AppTypography.labelSmall,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }

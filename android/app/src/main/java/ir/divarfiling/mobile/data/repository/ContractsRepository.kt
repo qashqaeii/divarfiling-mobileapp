@@ -12,7 +12,12 @@ import ir.divarfiling.mobile.core.network.ContractDetailDto
 import ir.divarfiling.mobile.core.network.ContractListItemDto
 import ir.divarfiling.mobile.core.network.ContractTimelineData
 import ir.divarfiling.mobile.core.network.ContractTimelineItemDto
+import ir.divarfiling.mobile.core.network.ContractWizardGetDto
+import ir.divarfiling.mobile.core.network.ContractWizardPatchDto
+import ir.divarfiling.mobile.core.network.ContractWizardPatchRequest
+import ir.divarfiling.mobile.core.network.ContractWizardPickerPageDto
 import ir.divarfiling.mobile.core.network.ContractsListData
+import kotlinx.serialization.json.JsonElement
 import ir.divarfiling.mobile.core.network.DealContractItemDto
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
@@ -81,6 +86,34 @@ class ContractsRepository @Inject constructor(
 
     suspend fun getDetail(contractId: Long): ApiResult<ContractDetailDto> = single {
         api.getContractDetail(contractId)
+    }
+
+    suspend fun getWizard(contractId: Long, step: String? = null): ApiResult<ContractWizardGetDto> = single {
+        api.getContractWizard(contractId, step)
+    }
+
+    suspend fun patchWizard(
+        contractId: Long,
+        step: String,
+        data: JsonElement,
+        ifMatchUpdatedAt: String? = null,
+    ): ApiResult<ContractWizardPatchDto> = single {
+        api.patchContractWizard(
+            contractId,
+            ContractWizardPatchRequest(
+                step = step,
+                data = data,
+                ifMatchUpdatedAt = ifMatchUpdatedAt,
+            ),
+        )
+    }
+
+    suspend fun searchWizardCustomers(query: String): ApiResult<ContractWizardPickerPageDto> = single {
+        api.searchContractWizardCustomers(query = query.ifBlank { null })
+    }
+
+    suspend fun searchWizardProperties(query: String): ApiResult<ContractWizardPickerPageDto> = single {
+        api.searchContractWizardProperties(query = query.ifBlank { null })
     }
 
     suspend fun getTimeline(contractId: Long): ApiResult<List<ContractTimelineItemDto>> = try {

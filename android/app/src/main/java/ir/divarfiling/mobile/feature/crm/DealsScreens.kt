@@ -456,6 +456,7 @@ fun DealDetailScreen(
     onPropertyClick: (Long) -> Unit = {},
     onNavigateWebBridge: (String) -> Unit = {},
     onOpenContractDetail: (Long) -> Unit = {},
+    onOpenContractWizard: (Long) -> Unit = {},
     viewModel: DealDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -478,6 +479,13 @@ fun DealDetailScreen(
         state.pendingContractDetailId?.let { id ->
             onOpenContractDetail(id)
             viewModel.consumeContractDetailNavigation()
+        }
+    }
+
+    LaunchedEffect(state.pendingContractWizardId) {
+        state.pendingContractWizardId?.let { id ->
+            onOpenContractWizard(id)
+            viewModel.consumeContractWizardNavigation()
         }
     }
 
