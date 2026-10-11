@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import androidx.compose.foundation.BorderStroke
 import ir.divarfiling.mobile.core.network.DealPipelineColumnDto

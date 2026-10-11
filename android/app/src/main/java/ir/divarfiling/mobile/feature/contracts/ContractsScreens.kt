@@ -660,7 +660,7 @@ fun ContractCreateScreen(
                     message = "پس از انتخاب نوع، تکمیل جزئیات، طرفین و بندها در میزکار وب باز می‌شود. پس از اتمام، به جزئیات قرارداد در اپ برمی‌گردید.",
                     tone = DfStatusTone.Info,
                     title = "ادامه در میزکار",
-                    icon = DfIcons.FileText,
+                    icon = DfIcons.File,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
             }
