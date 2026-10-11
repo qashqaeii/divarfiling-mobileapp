@@ -42,7 +42,7 @@ fun DealsPipelineBar(
 ) {
     if (columns.isEmpty()) return
     val total = columns.sumOf { it.count }.coerceAtLeast(1)
-        Column(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = AppSpacing.screenHorizontal),
