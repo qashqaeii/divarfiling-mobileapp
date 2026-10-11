@@ -95,11 +95,11 @@ fun ContactQuickLeadSheet(
 
     DfSheetScaffold(
         title = "مخاطب جدید",
-        subtitle = "ثبت کامل مخاطب با نقش، مالی، ترجیحات و کانال پیام",
+        subtitle = "نقش، تماس، بودجه و ترجیحات",
         icon = typeVisual.icon,
         iconContainerColor = typeVisual.container,
         iconTint = typeVisual.accent,
-        bodyHeightFraction = 0.92f,
+        bodyHeightFraction = 0.88f,
         onClose = onDismiss,
         footer = {
             DfSheetActions(

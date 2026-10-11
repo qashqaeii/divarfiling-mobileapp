@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -205,13 +207,20 @@ fun PropertiesScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            DfExtendedFab(
-                text = "فایل جدید",
-                icon = DfIcons.Plus,
-                onClick = { viewModel.toggleCreate(true) },
-            )
+            Box(
+                Modifier
+                    .navigationBarsPadding()
+                    .padding(end = AppSpacing.xs, bottom = AppSpacing.xxs),
+            ) {
+                DfExtendedFab(
+                    text = "فایل جدید",
+                    icon = DfIcons.Plus,
+                    onClick = { viewModel.toggleCreate(true) },
+                )
+            }
         },
     ) { padding ->
+        val listBottomPad = maxOf(padding.calculateBottomPadding(), AppSpacing.fabClearance) + AppSpacing.md
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
@@ -223,7 +232,7 @@ fun PropertiesScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = AppSpacing.fabClearance + AppSpacing.xl),
+                contentPadding = PaddingValues(bottom = listBottomPad),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {

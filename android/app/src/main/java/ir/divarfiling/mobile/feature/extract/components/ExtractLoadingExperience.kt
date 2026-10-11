@@ -72,7 +72,13 @@ fun ExtractLoadingExperience(
         phaseProgress.toInt().coerceIn(0, 100)
     }
     val percentLabel = "${DateUtils.toPersianDigits(percentInt.toString())}٪"
-    val remainingSeconds = estimateRemainingSeconds(phase, itemProgress, elapsedSeconds)
+    val remainingSeconds = estimateRemainingSeconds(phase, itemProgress, elapsedSeconds, progressTotal)
+    val remainingLabel = when {
+        elapsedSeconds < 3L -> "در حال محاسبه…"
+        remainingSeconds <= 0L && itemProgress < 0.08f -> "در حال محاسبه…"
+        remainingSeconds <= 0L -> "چند لحظه"
+        else -> formatDuration(remainingSeconds)
+    }
 
     val pulse by rememberInfiniteTransition(label = "extractPulse").animateFloat(
         initialValue = 0.96f,
@@ -157,7 +163,7 @@ fun ExtractLoadingExperience(
             }
 
             Text(
-                "زمان باقی‌مانده تقریبی: ${formatDuration(remainingSeconds)}",
+                "زمان باقی‌مانده تقریبی: $remainingLabel",
                 style = AppTypography.labelSmall,
                 color = DfThemeColors.textMuted(),
             )
@@ -282,9 +288,17 @@ private fun phaseProgressValue(phase: ExtractPhase, itemProgress: Float): Float 
     return (base + inner).coerceIn(0f, 100f)
 }
 
-private fun estimateRemainingSeconds(phase: ExtractPhase, itemProgress: Float, elapsed: Long): Long {
-    val overall = phaseProgressValue(phase, itemProgress) / 100f
-    if (overall <= 0.05f) return 0
+private fun estimateRemainingSeconds(
+    phase: ExtractPhase,
+    itemProgress: Float,
+    elapsed: Long,
+    progressTotal: Int,
+): Long {
+    if (elapsed < 3L) return -1L
+    val overall = when {
+        progressTotal > 0 -> itemProgress.coerceIn(0.02f, 1f)
+        else -> (phaseProgressValue(phase, itemProgress) / 100f).coerceIn(0.08f, 1f)
+    }
     val totalEstimate = (elapsed / overall).toLong()
     return (totalEstimate - elapsed).coerceAtLeast(0)
 }

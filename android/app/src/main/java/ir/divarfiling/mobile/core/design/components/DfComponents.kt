@@ -177,7 +177,7 @@ fun DfPrimaryButton(
                 text,
                 style = AppTypography.button,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+                color = Color.White.copy(alpha = if (enabled) 1f else 0.78f),
             )
         }
     }

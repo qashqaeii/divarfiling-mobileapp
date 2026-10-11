@@ -52,48 +52,7 @@ fun ContactTypeSelectorSection(
     val type = selectedType.ifBlank { "سرنخ" }
     val selectedVisual = ContactTypeVisuals.visualFor(type)
 
-    DfSheetSection(title = "نوع مخاطب") {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = AppShapes.Card,
-            color = selectedVisual.container.copy(alpha = 0.65f),
-            border = BorderStroke(1.dp, selectedVisual.accent.copy(alpha = 0.35f)),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = selectedVisual.icon,
-                    contentDescription = null,
-                    tint = selectedVisual.accent,
-                    modifier = Modifier.size(22.dp),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "نقش انتخاب‌شده",
-                        style = AppTypography.labelSmall,
-                        color = DfThemeColors.textMuted(),
-                    )
-                    Text(
-                        text = type,
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = selectedVisual.accent,
-                    )
-                }
-            }
-        }
-
-        Text(
-            text = "برای تغییر نقش، یکی از گزینه‌های زیر را انتخاب کنید",
-            style = MaterialTheme.typography.bodySmall,
-            color = DfThemeColors.textMuted(),
-        )
-
+    DfSheetSection(title = "نوع مخاطب · $type") {
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -113,7 +72,7 @@ fun ContactTypeSelectorSection(
                     ),
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

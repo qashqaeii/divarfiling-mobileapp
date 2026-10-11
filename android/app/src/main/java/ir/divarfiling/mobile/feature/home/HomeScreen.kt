@@ -169,6 +169,9 @@ fun HomeScreen(
 
             if (state.isLoading) {
                 item {
+                    StatsSection(stats = state.stats, isLoading = true)
+                }
+                item {
                     HomePrioritySection(
                         stats = state.stats,
                         tasks = emptyList(),
@@ -180,9 +183,6 @@ fun HomeScreen(
                         onContacts = onNavigateContacts,
                         onNotificationDeepLink = onNotificationDeepLink,
                     )
-                }
-                item {
-                    StatsSection(stats = state.stats, isLoading = true)
                 }
                 item {
                     Column(
@@ -204,19 +204,6 @@ fun HomeScreen(
                 item { RecentListingsSection(files = emptyList(), isLoading = true, onFileClick = {}) }
             } else {
                 item {
-                    HomePrioritySection(
-                        stats = state.stats,
-                        tasks = state.todayTasks,
-                        notifications = state.notifications,
-                        recentFilesCount = state.recentFiles.size,
-                        onToday = onNavigateToday,
-                        onNotifications = onNavigateNotifications,
-                        onFiling = onNavigateFiling,
-                        onContacts = onNavigateContacts,
-                        onNotificationDeepLink = onNotificationDeepLink,
-                    )
-                }
-                item {
                     StatsSection(stats = state.stats, isLoading = false)
                 }
                 item {
@@ -235,6 +222,19 @@ fun HomeScreen(
                             modifier = Modifier.padding(horizontal = 0.dp),
                         )
                     }
+                }
+                item {
+                    HomePrioritySection(
+                        stats = state.stats,
+                        tasks = state.todayTasks,
+                        notifications = state.notifications,
+                        recentFilesCount = state.recentFiles.size,
+                        onToday = onNavigateToday,
+                        onNotifications = onNavigateNotifications,
+                        onFiling = onNavigateFiling,
+                        onContacts = onNavigateContacts,
+                        onNotificationDeepLink = onNotificationDeepLink,
+                    )
                 }
                 if (state.todayTasks.isNotEmpty()) {
                     item {

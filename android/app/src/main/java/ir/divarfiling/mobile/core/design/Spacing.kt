@@ -21,6 +21,8 @@ object AppSpacing {
     val listRowMinHeight = 64.dp
     val bottomNavHeight = 72.dp
     val fabClearance = 88.dp
+    /** حداقل فاصله اسکرول لیست وقتی FAB extended روی همان Scaffold است */
+    val listScrollBelowExtendedFab = fabClearance + md
     /** فاصله پایین لیست وقتی Sticky Action Bar ثابت روی محتوا قرار دارد */
     val stickyBarClearance = 96.dp
     val sheetFooterInset = 24.dp

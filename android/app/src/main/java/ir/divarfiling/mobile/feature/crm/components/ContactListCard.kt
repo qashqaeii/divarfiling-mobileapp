@@ -179,8 +179,8 @@ fun ContactListCard(
                         ContactActionButton(
                             label = "پیامک",
                             icon = DfIcons.MessageSquare,
-                            tint = DfThemeColors.info(),
-                            container = DfThemeColors.infoContainer(),
+                            tint = DfThemeColors.textSecondary(),
+                            container = DfThemeColors.surfaceVariant(),
                             onClick = onSmsClick,
                             modifier = Modifier.weight(1f),
                         )
@@ -188,8 +188,8 @@ fun ContactListCard(
                     ContactActionButton(
                         label = "واتساپ",
                         icon = DfIcons.MessageCircle,
-                        tint = DfThemeColors.success(),
-                        container = DfThemeColors.successContainer(),
+                        tint = DfThemeColors.textSecondary(),
+                        container = DfThemeColors.surfaceVariant(),
                         onClick = onWhatsAppClick,
                         modifier = Modifier.weight(1f),
                     )

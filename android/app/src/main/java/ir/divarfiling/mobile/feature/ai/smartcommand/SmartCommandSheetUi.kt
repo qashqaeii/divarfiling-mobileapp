@@ -101,17 +101,17 @@ fun SmartCommandEntryHero(
             .clip(HeroShape)
             .background(SmartAssistantBrushes.heroGlow)
             .border(1.dp, DfColors.Purple.copy(alpha = 0.12f), HeroShape)
-            .padding(AppSpacing.md),
+            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(52.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
                         .background(SmartAssistantBrushes.iconOrb),
                     contentAlignment = Alignment.Center,
@@ -120,10 +120,10 @@ fun SmartCommandEntryHero(
                         DfIcons.Sparkles,
                         contentDescription = null,
                         tint = DfColors.Purple,
-                        modifier = Modifier.size(26.dp),
+                        modifier = Modifier.size(22.dp),
                     )
                 }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         "دستیار هوشمند",
                         style = AppTypography.labelSmall,
@@ -140,9 +140,9 @@ fun SmartCommandEntryHero(
                     )
                     Text(
                         subtitle,
-                        style = AppTypography.bodyDescription,
+                        style = AppTypography.labelSmall,
                         color = DfColors.TextSecondary,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -150,9 +150,9 @@ fun SmartCommandEntryHero(
             SmartCommandInsetPanel {
                 Text(
                     placeholder,
-                    style = AppTypography.bodyDescription,
+                    style = AppTypography.labelSmall,
                     color = DfColors.TextMuted,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

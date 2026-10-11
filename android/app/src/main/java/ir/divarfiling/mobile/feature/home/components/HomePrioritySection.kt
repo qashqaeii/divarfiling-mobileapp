@@ -58,7 +58,7 @@ fun HomePrioritySection(
         } else {
             actions.forEachIndexed { index, item ->
                 DfNbaCard(
-                    compact = index > 0,
+                    compact = true,
                     action = DfNbaAction(
                         title = item.title,
                         subtitle = item.subtitle,

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,47 +32,45 @@ import androidx.compose.foundation.layout.defaultMinSize
 @Composable
 fun ListingDetailGallerySection(
     images: List<String>,
-    title: String,
     isFavorite: Boolean,
     onBack: () -> Unit,
     onFavoriteToggle: () -> Unit,
-    onEdit: () -> Unit,
-    onSaveAsPersonal: () -> Unit,
-    onOpenDivar: (() -> Unit)?,
-    onNavigate: (() -> Unit)?,
-    isAddedToPersonal: Boolean = false,
-    onViewPersonalProperty: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
-    quickActions: @Composable () -> Unit = {},
 ) {
-    Column(
+    Box(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        ListingDetailToolbar(
-            title = title,
-            isFavorite = isFavorite,
-            onBack = onBack,
-            onFavoriteToggle = onFavoriteToggle,
-            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-        )
-
-        ListingGalleryActionsRow(
-            onEdit = onEdit,
-            onSaveAsPersonal = onSaveAsPersonal,
-            onOpenDivar = onOpenDivar,
-            onNavigate = onNavigate,
-            isAddedToPersonal = isAddedToPersonal,
-            onViewPersonalProperty = onViewPersonalProperty,
-            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
-        )
-
-        quickActions()
-
         ListingMosaicGallery(
             images = images,
-            modifier = Modifier.padding(top = AppSpacing.xxs),
+            modifier = Modifier.fillMaxWidth(),
         )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.sm)
+                .align(Alignment.TopCenter),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ListingDetailBackButton(onClick = onBack)
+            Surface(
+                onClick = onFavoriteToggle,
+                shape = AppShapes.IconContainer,
+                color = DfThemeColors.surface().copy(alpha = 0.92f),
+                border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+                shadowElevation = AppElevations.subtle,
+                modifier = Modifier.size(DfComponentSpec.MinTouchTargetDp.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = DfIcons.Heart,
+                        contentDescription = if (isFavorite) "حذف از علاقه‌مندی" else "افزودن به علاقه‌مندی",
+                        tint = if (isFavorite) DfThemeColors.error() else DfThemeColors.textMuted(),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -155,7 +152,7 @@ private fun ListingDetailBackButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun ListingGalleryActionsRow(
+fun ListingGalleryActionsRow(
     onEdit: () -> Unit,
     onSaveAsPersonal: () -> Unit,
     onOpenDivar: (() -> Unit)?,
@@ -174,7 +171,7 @@ private fun ListingGalleryActionsRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xs),
+                .padding(horizontal = AppSpacing.xxs, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         ) {
             GalleryActionChip(

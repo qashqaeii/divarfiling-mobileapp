@@ -83,14 +83,14 @@ fun FilingListingCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(156.dp)
+                    .height(112.dp)
                     .clip(AppShapes.Card),
             ) {
                 DfListingImage(
                     thumbnailUrl = listing.thumbnailUrl,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(156.dp),
+                        .height(112.dp),
                     contentScale = ContentScale.Crop,
                 )
                 Box(
@@ -113,45 +113,37 @@ fun FilingListingCard(
                         .align(Alignment.TopStart),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
+                    maxItemsInEachRow = 3,
                 ) {
-                    ListingGlassTag(
-                        text = advertiserBadge.label,
-                        accent = advertiserBadge.color,
-                    )
-                    ListingGlassTag(
-                        text = txLabel,
-                        accent = txColor,
-                    )
-                    datasetLabel?.takeIf { it.isNotBlank() }?.let {
-                        ListingGlassTag(
-                            text = it,
-                            accent = DfThemeColors.onPrimaryContainer(),
-                        )
-                    }
-                    valuePresentation?.let { value ->
-                        ListingGlassTag(
-                            text = value.shortLabel,
-                            accent = valueTierAccent(value.tier),
-                        )
-                    }
-                    if (listing.isAddedToPersonal) {
-                        ListingGlassTag(
-                            text = "به فایل‌های شخصی اضافه شده",
-                            accent = DfThemeColors.success(),
-                        )
-                    }
-                    if (ListingRetentionUtils.isWarning(listing.retention)) {
-                        ListingGlassTag(
-                            text = ListingRetentionUtils.badgeText(listing.retention?.daysRemaining),
-                            accent = DfThemeColors.warning(),
-                        )
+                    buildList {
+                        add(ListingGlassTagData(advertiserBadge.label, advertiserBadge.color))
+                        add(ListingGlassTagData(txLabel, txColor))
+                        datasetLabel?.takeIf { it.isNotBlank() }?.let {
+                            add(ListingGlassTagData(it, DfThemeColors.onPrimaryContainer()))
+                        }
+                        valuePresentation?.let { value ->
+                            add(ListingGlassTagData(value.shortLabel, valueTierAccent(value.tier)))
+                        }
+                        if (listing.isAddedToPersonal) {
+                            add(ListingGlassTagData("فایل شخصی", DfThemeColors.success()))
+                        }
+                        if (ListingRetentionUtils.isWarning(listing.retention)) {
+                            add(
+                                ListingGlassTagData(
+                                    ListingRetentionUtils.badgeText(listing.retention?.daysRemaining),
+                                    DfThemeColors.warning(),
+                                ),
+                            )
+                        }
+                    }.take(4).forEach { tag ->
+                        ListingGlassTag(text = tag.text, accent = tag.accent)
                     }
                 }
             }
 
             Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = listing.title?.takeIf { it.isNotBlank() } ?: "بدون عنوان",
@@ -189,7 +181,7 @@ fun FilingListingCard(
                             .fillMaxWidth()
                             .clip(AppShapes.CardSmall)
                             .background(DfThemeColors.surfaceVariant().copy(alpha = 0.55f))
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         valuePresentation?.let { value ->
@@ -222,7 +214,7 @@ fun FilingListingCard(
                                 )
                             }
                         }
-                        secondaryPrices.forEach { line ->
+                        secondaryPrices.take(1).forEach { line ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -251,8 +243,9 @@ fun FilingListingCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
+                        maxItemsInEachRow = 4,
                     ) {
-                        amenities.forEach { amenity ->
+                        amenities.take(4).forEach { amenity ->
                             ListingAmenityChip(
                                 label = amenity.label,
                                 icon = amenity.icon,
@@ -301,6 +294,8 @@ fun FilingListingCard(
         }
     }
 }
+
+private data class ListingGlassTagData(val text: String, val accent: Color)
 
 @Composable
 private fun valueTierAccent(tier: ListingMarketTier): Color = when (tier) {

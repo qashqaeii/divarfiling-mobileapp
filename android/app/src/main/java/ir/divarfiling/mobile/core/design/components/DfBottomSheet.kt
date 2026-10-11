@@ -3,6 +3,8 @@ package ir.divarfiling.mobile.core.design.components
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -48,6 +50,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
+import ir.divarfiling.mobile.core.design.DfThemeColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -183,8 +186,9 @@ fun DfSheetScaffold(
                     Modifier.wrapContentHeight()
                 },
             )
+            .imePadding()
             .padding(horizontal = AppSpacing.lg)
-            .padding(bottom = if (footer == null) AppSpacing.xl else AppSpacing.sm)
+            .padding(bottom = if (footer == null) AppSpacing.xl else AppSpacing.stickyBarClearance)
         Column(
             modifier = bodyModifier,
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
@@ -377,9 +381,11 @@ fun DfSheetFooter(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(DfColors.SurfaceVariant.copy(alpha = 0.35f))
+                .navigationBarsPadding()
+                .imePadding()
+                .background(DfThemeColors.surface().copy(alpha = 0.98f))
                 .padding(horizontal = AppSpacing.lg)
-                .padding(top = AppSpacing.md, bottom = AppSpacing.xl),
+                .padding(top = AppSpacing.sm, bottom = AppSpacing.md),
         ) {
             content()
         }

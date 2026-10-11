@@ -30,6 +30,7 @@ import ir.divarfiling.mobile.core.network.ListingMarketBenchmarkDto
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
 import kotlin.math.abs
 import kotlin.math.min
+import kotlin.math.sign
 
 @Composable
 fun ListingMarketBenchmarkCard(
@@ -38,6 +39,7 @@ fun ListingMarketBenchmarkCard(
 ) {
     val presentation = ListingValueUtils.presentationFor(market) ?: return
     val data = market ?: return
+    val metricsTrustworthy = benchmarkMetricsTrustworthy(data)
     val accent = when (presentation.tier) {
         ListingMarketTier.Under -> DfThemeColors.success()
         ListingMarketTier.Over -> DfThemeColors.error()
@@ -104,65 +106,75 @@ fun ListingMarketBenchmarkCard(
                         )
                     }
                 }
-                Surface(shape = AppShapes.Chip, color = container) {
-                    Text(
-                        text = presentation.detailLabel,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        style = AppTypography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = accent,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = AppShapes.CardSmall,
-                color = container,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column {
+                if (metricsTrustworthy) {
+                    Surface(shape = AppShapes.Chip, color = container) {
                         Text(
-                            text = percentHero,
-                            style = AppTypography.statNumber,
+                            text = presentation.detailLabel,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            style = AppTypography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = accent,
-                        )
-                        Text(
-                            text = statusWord,
-                            style = AppTypography.bodyDescription,
-                            fontWeight = FontWeight.SemiBold,
-                            color = accent,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    Text(
-                        text = when (presentation.tier) {
-                            ListingMarketTier.Over -> "گران‌تر از میانه بازار"
-                            ListingMarketTier.Under -> "ارزان‌تر از میانه بازار"
-                            else -> "نزدیک به میانه بازار"
-                        },
-                        style = AppTypography.labelSmall,
-                        color = accent,
-                        modifier = Modifier.padding(start = AppSpacing.sm),
-                    )
                 }
             }
 
-            LinearProgressIndicator(
-                progress = { barProgress },
-                modifier = Modifier.fillMaxWidth(),
-                color = accent,
-                trackColor = container,
-                strokeCap = StrokeCap.Round,
-            )
+            if (metricsTrustworthy) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.CardSmall,
+                    color = container,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column {
+                            Text(
+                                text = percentHero,
+                                style = AppTypography.statNumber,
+                                fontWeight = FontWeight.Bold,
+                                color = accent,
+                            )
+                            Text(
+                                text = statusWord,
+                                style = AppTypography.bodyDescription,
+                                fontWeight = FontWeight.SemiBold,
+                                color = accent,
+                            )
+                        }
+                        Text(
+                            text = when (presentation.tier) {
+                                ListingMarketTier.Over -> "گران‌تر از میانه بازار"
+                                ListingMarketTier.Under -> "ارزان‌تر از میانه بازار"
+                                else -> "نزدیک به میانه بازار"
+                            },
+                            style = AppTypography.labelSmall,
+                            color = accent,
+                            modifier = Modifier.padding(start = AppSpacing.sm),
+                        )
+                    }
+                }
+
+                LinearProgressIndicator(
+                    progress = { barProgress },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = accent,
+                    trackColor = container,
+                    strokeCap = StrokeCap.Round,
+                )
+            } else {
+                Text(
+                    text = "درصد نسبت به بازار با اعداد «${listingFmt ?: "—"}» و «${medianFmt ?: "—"}» هم‌خوان نیست؛ فقط مبنای «$metricLabel» را ملاک بگیرید.",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -201,6 +213,16 @@ fun ListingMarketBenchmarkCard(
             }
         }
     }
+}
+
+private fun benchmarkMetricsTrustworthy(data: ListingMarketBenchmarkDto): Boolean {
+    val listing = data.listingMetric
+    val median = data.marketMedian
+    val score = data.valueScore ?: data.diffPct
+    if (listing == null || median == null || median == 0.0 || score == null) return true
+    val implied = (listing - median) / median * 100.0
+    if (sign(implied) != sign(score) && abs(implied - score) > 8.0) return false
+    return true
 }
 
 @Composable

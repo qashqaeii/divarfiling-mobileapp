@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -257,13 +259,20 @@ fun ContactsScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            DfExtendedFab(
-                text = if (ownerMode) "مالک جدید" else "مخاطب جدید",
-                icon = DfIcons.UserPlus,
-                onClick = { showCreateMenu = true },
-            )
+            Box(
+                Modifier
+                    .navigationBarsPadding()
+                    .padding(end = AppSpacing.xs, bottom = AppSpacing.xxs),
+            ) {
+                DfExtendedFab(
+                    text = if (ownerMode) "مالک جدید" else "مخاطب جدید",
+                    icon = DfIcons.UserPlus,
+                    onClick = { showCreateMenu = true },
+                )
+            }
         },
     ) { padding ->
+        val listBottomPad = maxOf(padding.calculateBottomPadding(), AppSpacing.fabClearance) + AppSpacing.md
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
@@ -275,7 +284,7 @@ fun ContactsScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                contentPadding = PaddingValues(bottom = listBottomPad),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
@@ -749,7 +758,7 @@ fun TodayScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = AppSpacing.xxxl + 72.dp),
+                contentPadding = PaddingValues(bottom = AppSpacing.listScrollBelowExtendedFab),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {

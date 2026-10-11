@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -158,9 +159,16 @@ fun DatasetsScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            FilingExtractFab(onClick = onNavigateExtract)
+            Box(
+                Modifier
+                    .navigationBarsPadding()
+                    .padding(end = AppSpacing.xs, bottom = AppSpacing.xxs),
+            ) {
+                FilingExtractFab(onClick = onNavigateExtract)
+            }
         },
     ) { padding ->
+        val listBottomPad = maxOf(padding.calculateBottomPadding(), AppSpacing.fabClearance) + AppSpacing.md
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
@@ -171,7 +179,7 @@ fun DatasetsScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = AppSpacing.fabClearance + AppSpacing.xl),
+                contentPadding = PaddingValues(bottom = listBottomPad),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {

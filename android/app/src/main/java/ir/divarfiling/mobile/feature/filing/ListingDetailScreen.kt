@@ -52,6 +52,7 @@ import ir.divarfiling.mobile.core.filing.ListingImageUtils
 import ir.divarfiling.mobile.feature.share.PublicShareSettingsSheet
 import ir.divarfiling.mobile.feature.filing.components.AdvertiserAnalysisSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailGallerySection
+import ir.divarfiling.mobile.feature.filing.components.ListingGalleryActionsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailHeader
 import ir.divarfiling.mobile.feature.filing.components.ListingEditSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingLocationSection
@@ -500,30 +501,9 @@ private fun ListingDetailContent(
             item {
                 ListingDetailGallerySection(
                     images = galleryImages,
-                    title = listing.title.orEmpty(),
                     isFavorite = isFavorite,
                     onBack = onBack,
                     onFavoriteToggle = onFavoriteToggle,
-                    onEdit = onEdit,
-                    onSaveAsPersonal = onSaveAsPersonal,
-                    onOpenDivar = if (canOpenDivar) onOpenDivar else null,
-                    onNavigate = if (canNavigate) onNavigate else null,
-                    isAddedToPersonal = listing.isAddedToPersonal,
-                    onViewPersonalProperty = onViewPersonalProperty,
-                    quickActions = {
-                        ListingQuickActionsRow(
-                            onSendToContact = onSendToContact,
-                            onShare = onShare,
-                            onOwnerPhone = onOwnerPhone,
-                            onWhatsAppShare = onWhatsAppShare,
-                            onOpenDivar = onOpenDivar,
-                            onSetReminder = onSetReminder,
-                            onSaveAsPersonal = onSaveAsPersonal,
-                            onOpenAi = onOpenAi,
-                            onDelete = onDelete,
-                            showSaveAsPersonal = !listing.isAddedToPersonal,
-                        )
-                    },
                 )
             }
 
@@ -532,6 +512,33 @@ private fun ListingDetailContent(
                     listing = listing,
                     onCopyAdCode = onCopyAdCode,
                     onAdvertiserAnalysisClick = onAdvertiserAnalysisClick,
+                )
+            }
+
+            item {
+                ListingGalleryActionsRow(
+                    onEdit = onEdit,
+                    onSaveAsPersonal = onSaveAsPersonal,
+                    onOpenDivar = if (canOpenDivar) onOpenDivar else null,
+                    onNavigate = if (canNavigate) onNavigate else null,
+                    isAddedToPersonal = listing.isAddedToPersonal,
+                    onViewPersonalProperty = onViewPersonalProperty,
+                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                )
+            }
+
+            item {
+                ListingQuickActionsRow(
+                    onSendToContact = onSendToContact,
+                    onShare = onShare,
+                    onOwnerPhone = onOwnerPhone,
+                    onWhatsAppShare = onWhatsAppShare,
+                    onOpenDivar = onOpenDivar,
+                    onSetReminder = onSetReminder,
+                    onSaveAsPersonal = onSaveAsPersonal,
+                    onOpenAi = onOpenAi,
+                    onDelete = onDelete,
+                    showSaveAsPersonal = !listing.isAddedToPersonal,
                 )
             }
 

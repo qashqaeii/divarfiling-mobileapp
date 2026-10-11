@@ -122,7 +122,7 @@ fun FilingDatasetCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(128.dp)
+                    .height(if (coverUrls.isEmpty()) 72.dp else 100.dp)
                     .clip(coverShape),
             ) {
                 if (coverUrls.isEmpty()) {
@@ -268,23 +268,20 @@ private fun FilingDatasetCoverPlaceholder(
         ),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(72.dp)
-                .clip(AppShapes.GlassSmall)
-                .background(DfThemeColors.surface().copy(alpha = if (DfThemeColors.isDark()) 0.35f else 0.55f)),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             DfDecorImage(
                 resId = DfDecorIcons.Folder,
-                size = 34.dp,
+                size = 28.dp,
                 contentDescription = null,
             )
-        }
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(AppSpacing.sm),
+            Column(
+                modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
@@ -298,6 +295,7 @@ private fun FilingDatasetCoverPlaceholder(
                 style = AppTypography.labelSmall,
                 color = DfThemeColors.textSecondary(),
             )
+            }
         }
     }
 }
