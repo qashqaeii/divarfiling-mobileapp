@@ -517,7 +517,7 @@ fun AgencySpaceHubScreen(
                                             title = "فایل‌ها",
                                             subtitle = kpis?.let {
                                                 "${DateUtils.toPersianDigits(it.activeProperties.toString())} فعال"
-                                            },
+                                            } ?: "فایل‌های اشتراکی",
                                             icon = DfIcons.Building,
                                             onClick = { onOpenBrowse(AgencySpaceTab.PROPERTIES) },
                                             modifier = Modifier.weight(1f),
@@ -526,7 +526,7 @@ fun AgencySpaceHubScreen(
                                             title = "مخاطبین",
                                             subtitle = kpis?.let {
                                                 "${DateUtils.toPersianDigits(it.activeContacts.toString())} فعال"
-                                            },
+                                            } ?: "مخاطبین اشتراکی",
                                             icon = DfIcons.Users,
                                             onClick = { onOpenBrowse(AgencySpaceTab.CONTACTS) },
                                             modifier = Modifier.weight(1f),
