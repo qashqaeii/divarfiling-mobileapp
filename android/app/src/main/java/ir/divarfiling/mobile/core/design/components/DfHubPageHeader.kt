@@ -470,7 +470,7 @@ private fun DfHubBrandLogo(
 }
 
 @Composable
-private fun DfHubBackButton(onClick: () -> Unit, compact: Boolean = false) {
+fun DfHubBackButton(onClick: () -> Unit, compact: Boolean = false) {
     IconButton(
         onClick = onClick,
         modifier = Modifier.size(if (compact) 36.dp else DfHeaderMetrics.actionTouchSize),

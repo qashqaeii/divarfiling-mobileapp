@@ -158,7 +158,7 @@ fun AgencyPerformanceGoalsPanel(
         Text("اهداف تیم", fontWeight = FontWeight.Bold)
         goals.forEach { goal ->
             Text(
-                "${goal.memberName} · ${goalMetricLabel(goal.metric)}",
+                "${goal.memberName} · ${AgencyPerformancePresentation.goalMetricLabel(goal.metric)}",
                 style = AppTypography.labelSmall,
                 color = DfThemeColors.textSecondary(),
             )
