@@ -679,19 +679,22 @@ fun AgencyAdvisorDetailScreen(
                     )
                     item {
                         TeamAgencyScreenHeader(
-                            title = "Advisor 360",
-                            subtitle = d.member.name,
+                            title = AGENCY_ADVISOR_WORKSPACE_TITLE,
+                            subtitle = "فعالیت، پرونده و صندلی",
+                            icon = DfIcons.User,
+                            accent = AgencyHeaderAccent.Detail,
                             onBack = onBack,
                             modifier = Modifier.padding(bottom = AppSpacing.xs),
                         )
                     }
                     item {
-                        TeamAdvisorProfileHeader(
+                        AgencyAdvisorProfileHero(
                             name = d.member.name,
                             phone = d.member.phone,
                             roleLabel = d.member.roleLabel.ifBlank { d.member.role },
                             isActive = d.member.isActive,
-                            seatLabel = d.seat.seatSummaryLabel(),
+                            seatSummary = d.seat.seatSummaryLabel(),
+                            seatExpiry = d.seat.seatExpiryLabel(),
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
@@ -869,6 +872,8 @@ fun AgencyPerformanceScreen(
                     TeamAgencyScreenHeader(
                         title = "عملکرد تیم",
                         subtitle = "خلاصه تصمیم‌یار",
+                        icon = DfIcons.BarChart,
+                        accent = AgencyHeaderAccent.Management,
                         onBack = onBack,
                     )
                 }
@@ -1094,6 +1099,8 @@ fun AgencySeatsScreen(
                         subtitle = state.payload?.seats?.let {
                             "${DateUtils.toPersianDigits(it.assigned.toString())} از ${DateUtils.toPersianDigits(it.total.toString())} تخصیص"
                         } ?: "",
+                        icon = DfIcons.Lock,
+                        accent = AgencyHeaderAccent.Management,
                         onBack = onBack,
                     )
                 }
@@ -1191,6 +1198,8 @@ fun AgencyAdvancedSettingsScreen(
                 TeamAgencyScreenHeader(
                     title = "تنظیمات آژانس",
                     subtitle = "مدیریت در اپ و میزکار",
+                    icon = DfIcons.Settings,
+                    accent = AgencyHeaderAccent.Management,
                     onBack = onBack,
                 )
             }

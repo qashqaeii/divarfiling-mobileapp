@@ -7,6 +7,7 @@ import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.AuthRepository
 import ir.divarfiling.mobile.data.repository.DashboardRepository
+import ir.divarfiling.mobile.feature.team.hasActiveAgencySubscription
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +19,10 @@ data class MoreHubUiState(
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
     val teamUnreadCount: Int = 0,
+    val agencyFeaturedName: String? = null,
+    val agencyFeaturedSubtitle: String = "",
+    val showAgencyFeatured: Boolean = false,
+    val showAgencyInToolsSection: Boolean = true,
     val isRefreshing: Boolean = false,
     val isLoggingOut: Boolean = false,
 )
@@ -53,17 +58,36 @@ class MoreHubViewModel @Inject constructor(
                 is ApiResult.Success -> unread.data.total
                 is ApiResult.Error -> 0
             }
+            val agencyHome = when (val home = teamRepository.getAgencyHome()) {
+                is ApiResult.Success -> home.data
+                is ApiResult.Error -> null
+            }
+            val featured = agencyHome?.hasActiveAgencySubscription() == true
+            val agencyName = agencyHome?.agency?.name?.takeIf { it.isNotBlank() }
+            val agencySubtitle = agencyHome?.membership?.roleLabel?.takeIf { it.isNotBlank() }
+                ?: if (featured) "میزکار آژانس" else ""
             when (dashboard) {
                 is ApiResult.Success ->
                     _uiState.update {
                         it.copy(
                             notificationBadgeCount = dashboard.data.notificationsUnread,
                             teamUnreadCount = teamUnread,
+                            showAgencyFeatured = featured,
+                            agencyFeaturedName = if (featured) agencyName else null,
+                            agencyFeaturedSubtitle = agencySubtitle,
+                            showAgencyInToolsSection = !featured && agencyHome?.hasAgency == true,
                             isRefreshing = false,
                         )
                     }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(teamUnreadCount = teamUnread, isRefreshing = false)
+                    it.copy(
+                        teamUnreadCount = teamUnread,
+                        showAgencyFeatured = featured,
+                        agencyFeaturedName = if (featured) agencyName else null,
+                        agencyFeaturedSubtitle = agencySubtitle,
+                        showAgencyInToolsSection = !featured && agencyHome?.hasAgency == true,
+                        isRefreshing = false,
+                    )
                 }
             }
         }

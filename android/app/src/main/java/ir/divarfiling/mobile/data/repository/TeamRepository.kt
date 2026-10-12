@@ -101,6 +101,26 @@ class TeamRepository @Inject constructor(
         ApiResult.Error(e.toUserMessage("خطای شبکه"))
     }
 
+    suspend fun createAnnouncement(
+        title: String,
+        body: String,
+        importance: String = "normal",
+        isPinned: Boolean = false,
+    ): ApiResult<Unit> = try {
+        val response = api.createTeamAnnouncement(
+            ir.divarfiling.mobile.core.network.TeamCreateAnnouncementRequest(
+                title = title.trim(),
+                body = body.trim(),
+                importance = importance,
+                isPinned = isPinned,
+            ),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "ثبت اطلاعیه ناموفق بود")
+        else ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
     suspend fun markAllAnnouncementsRead(): ApiResult<Int> {
         return when (val unread = getAnnouncements(unreadOnly = true)) {
             is ApiResult.Error -> unread

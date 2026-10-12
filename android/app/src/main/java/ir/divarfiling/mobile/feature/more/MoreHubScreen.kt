@@ -110,6 +110,27 @@ fun MoreHubScreen(
     val usesInAppApkUpdate = UpdateDistribution.usesInAppApkUpdate
     var showLogoutConfirm by remember { mutableStateOf(false) }
 
+    val agencyToolsItems = buildList {
+        if (state.showAgencyInToolsSection) {
+            add(
+                MoreHubItem(
+                    "آژانس",
+                    if (state.teamUnreadCount > 0) {
+                        "${state.teamUnreadCount} مورد خوانده‌نشده"
+                    } else {
+                        "اعضا، پیام‌ها و اعلامیه‌ها"
+                    },
+                    DfIcons.Users,
+                    MoreHubAction.Navigate("team"),
+                    badgeCount = state.teamUnreadCount,
+                    featured = true,
+                ),
+            )
+        }
+        add(MoreHubItem("ابزارها", "محاسبه‌گرها و ابزار مشاور", DfIcons.Calculator, MoreHubAction.Navigate("tools"), featured = true))
+        add(MoreHubItem("دستیار AI", "پیش‌نویس پیام و خلاصه آگهی", DfIcons.Sparkles, MoreHubAction.Navigate("ai")))
+    }
+
     val sections = listOf(
         MoreHubSection(
             "پیگیری و پرونده",
@@ -128,21 +149,7 @@ fun MoreHubScreen(
                 MoreHubItem("استخراج حرفه‌ای", "استخراج کامل آگهی‌های دیوار", DfIcons.Download, MoreHubAction.Navigate("extract"), featured = true),
             ),
         ),
-        MoreHubSection(
-            "آژانس و ابزار",
-            listOf(
-                MoreHubItem(
-                    "آژانس",
-                    if (state.teamUnreadCount > 0) "${state.teamUnreadCount} مورد خوانده‌نشده" else "اعضا، پیام‌ها و اعلامیه‌ها",
-                    DfIcons.Users,
-                    MoreHubAction.Navigate("team"),
-                    badgeCount = state.teamUnreadCount,
-                    featured = true,
-                ),
-                MoreHubItem("ابزارها", "محاسبه‌گرها و ابزار مشاور", DfIcons.Calculator, MoreHubAction.Navigate("tools"), featured = true),
-                MoreHubItem("دستیار AI", "پیش‌نویس پیام و خلاصه آگهی", DfIcons.Sparkles, MoreHubAction.Navigate("ai")),
-            ),
-        ),
+        MoreHubSection("آژانس و ابزار", agencyToolsItems),
         MoreHubSection(
             "حساب و پشتیبانی",
             listOf(
@@ -221,6 +228,22 @@ fun MoreHubScreen(
                         onMenuClick = onNavigateSettings,
                         onBack = onBack,
                     )
+                }
+                if (state.showAgencyFeatured && !state.agencyFeaturedName.isNullOrBlank()) {
+                    item {
+                        MoreHubRow(
+                            item = MoreHubItem(
+                                title = state.agencyFeaturedName.orEmpty(),
+                                subtitle = state.agencyFeaturedSubtitle.ifBlank { "میزکار آژانس" },
+                                icon = DfIcons.Building,
+                                action = MoreHubAction.Navigate("team"),
+                                badgeCount = state.teamUnreadCount,
+                                featured = true,
+                            ),
+                            onClick = onNavigateTeam,
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 if (usesInAppApkUpdate && updateState.visible && updateState.phase != AppUpdatePhase.UpToDate) {
                     item {

@@ -104,37 +104,19 @@ fun TeamAgencyScreenHeader(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    icon: ImageVector = DfIcons.Users,
+    accent: AgencyHeaderAccent = AgencyHeaderAccent.Management,
     actions: @Composable () -> Unit = {},
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = teamHorizontalPadding(), vertical = AppSpacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-    ) {
-        DfHubBackButton(onClick = onBack, compact = true)
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                title,
-                style = AppTypography.cardTitle,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    subtitle,
-                    style = AppTypography.labelSmall,
-                    color = DfThemeColors.textMuted(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        actions()
-    }
+    AgencyManagementHeader(
+        title = title,
+        subtitle = subtitle,
+        onBack = onBack,
+        modifier = modifier,
+        icon = icon,
+        accent = accent,
+        actions = actions,
+    )
 }
 
 @Composable
@@ -1699,7 +1681,17 @@ fun TeamActivityTimelineRow(
     actorName: String,
     timeLabel: String,
     modifier: Modifier = Modifier,
+    eventType: String = "",
+    isLast: Boolean = false,
 ) {
+    val visual = activityEventVisual(eventType)
+    val tint = when (visual.tintKey) {
+        AgencyActivityTint.Primary -> DfThemeColors.primary()
+        AgencyActivityTint.Info -> DfThemeColors.info()
+        AgencyActivityTint.Success -> DfThemeColors.success()
+        AgencyActivityTint.Warning -> DfThemeColors.warning()
+        AgencyActivityTint.Error -> DfThemeColors.error()
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -1707,20 +1699,58 @@ fun TeamActivityTimelineRow(
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         verticalAlignment = Alignment.Top,
     ) {
-        Box(
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.width(36.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(AppShapes.IconContainer)
+                    .background(tint.copy(alpha = 0.12f))
+                    .border(BorderStroke(1.dp, tint.copy(alpha = 0.22f)), AppShapes.IconContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(visual.icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+            }
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(28.dp)
+                        .padding(top = 4.dp)
+                        .clip(RoundedCornerShape(1.dp))
+                        .background(DfThemeColors.outlineSubtle()),
+                )
+            }
+        }
+        Column(
             modifier = Modifier
-                .padding(top = 4.dp)
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(DfThemeColors.primary().copy(alpha = 0.55f)),
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                .weight(1f)
+                .padding(bottom = if (isLast) 0.dp else AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                title,
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textPrimary(),
+                maxLines = 2,
+            )
             if (actorName.isNotBlank()) {
-                Text(actorName, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                Text(
+                    actorName,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textSecondary(),
+                    maxLines = 2,
+                )
             }
             if (timeLabel.isNotBlank()) {
-                Text(timeLabel, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                Text(
+                    timeLabel,
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
             }
         }
     }
@@ -1798,27 +1828,3 @@ fun teamListContentPadding(bottomExtra: Dp = 0.dp): PaddingValues {
     return PaddingValues(bottom = AppSpacing.xxxl + AppSpacing.sheetFooterInset + bottomExtra)
 }
 
-fun AgencyActivityDto.displayTitle(): String {
-    val label = eventLabel.trim()
-    val titled = title.trim()
-    if (label.isNotBlank() && label != titled) return label
-    if (titled.isNotBlank() && !titled.contains('_')) {
-        val duplicate = titled.split(Regex("\\s+")).filter { it.isNotBlank() }
-        if (duplicate.size >= 2 && duplicate.distinct().size == 1) {
-            return duplicate.first()
-        }
-        return titled
-    }
-    val fromType = eventType.replace('_', ' ').trim()
-    return fromType.ifBlank { titled }.ifBlank { "رویداد آژانس" }
-}
-
-fun AgencyActivityDto.displaySubtitle(): String {
-    val actor = actorName.trim()
-    return when {
-        actor.isNotBlank() && eventType.isNotBlank() -> "$actor · ${eventType.replace('_', ' ')}"
-        actor.isNotBlank() -> actor
-        eventType.isNotBlank() -> eventType.replace('_', ' ')
-        else -> ""
-    }
-}

@@ -20,6 +20,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -40,8 +41,29 @@ import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
 import ir.divarfiling.mobile.core.design.components.DfTextField
+import ir.divarfiling.mobile.core.image.ImageUrlFormatter
 import ir.divarfiling.mobile.core.network.AgencySpaceItemDto
 import ir.divarfiling.mobile.core.network.TeamMemberDto
+
+@Composable
+fun AgencySpaceContactAvatar(
+    name: String,
+    avatarUrl: String?,
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 48.dp,
+) {
+    val resolved = remember(avatarUrl) { ImageUrlFormatter.normalize(avatarUrl) }
+    if (resolved != null) {
+        DfAsyncImage(
+            url = resolved,
+            contentDescription = name,
+            modifier = modifier.size(size),
+            shape = RoundedCornerShape(AppSpacing.sm),
+        )
+    } else {
+        TeamAvatar(name = name, size = size, accent = teamAccentFor(name), modifier = modifier)
+    }
+}
 
 @Composable
 fun AgencySpaceTabRow(
@@ -213,17 +235,11 @@ private fun AgencySpaceContactCard(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.Top,
             ) {
-                if (cust.avatarUrl.isNotBlank()) {
-                    DfAsyncImage(
-                        url = cust.avatarUrl,
-                        contentDescription = title,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(AppSpacing.sm)),
-                    )
-                } else {
-                    TeamAvatar(name = title, size = 48.dp, accent = accentName)
-                }
+                AgencySpaceContactAvatar(
+                    name = title,
+                    avatarUrl = cust.avatarUrl,
+                    size = 48.dp,
+                )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(3.dp),

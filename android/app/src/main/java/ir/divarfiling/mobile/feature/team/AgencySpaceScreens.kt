@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -35,6 +36,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import ir.divarfiling.mobile.core.design.AppShapes
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -433,9 +436,14 @@ fun AgencySpaceHubScreen(
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                 ) {
                     item {
-                        TeamAgencyScreenHeader(
+                        AgencyDashboardHeader(
                             title = agencyName,
-                            subtitle = subtitle,
+                            roleLabel = roleLabel.ifBlank { subtitle },
+                            logoUrl = home?.agency?.logoUrl?.takeIf { it.isNotBlank() },
+                            statusChips = buildList {
+                                if (canAccess) add("دسترسی فعال")
+                                if (caps?.canPublishAgencySpace == true) add("انتشار")
+                            },
                             onBack = onBack,
                         )
                     }
@@ -791,6 +799,8 @@ fun AgencySpaceListScreen(
                         } else {
                             "اشتراک فایل و مخاطب با تیم"
                         },
+                        icon = DfIcons.Layers,
+                        accent = AgencyHeaderAccent.Management,
                         onBack = onBack,
                     )
                 }
@@ -1011,8 +1021,10 @@ fun AgencySpaceDetailScreen(
             TeamAmbientBackground()
             Column(modifier = Modifier.fillMaxSize()) {
             TeamAgencyScreenHeader(
-                title = state.item?.property?.title ?: state.item?.customer?.name ?: "فضای آژانس",
-                subtitle = state.item?.publishedAtDisplay?.takeIf { it.isNotBlank() } ?: "جزئیات انتشار",
+                title = if (state.item?.property != null) "جزئیات ملک" else "جزئیات مخاطب",
+                subtitle = state.item?.visibilityLabel?.takeIf { it.isNotBlank() } ?: "اشتراک آژانس",
+                icon = if (state.item?.property != null) DfIcons.Building else DfIcons.Users,
+                accent = AgencyHeaderAccent.Detail,
                 onBack = onBack,
             )
             when {
@@ -1040,6 +1052,9 @@ fun AgencySpaceDetailScreen(
                                     ?: item.customer?.budgetLabel
                                     ?: item.property?.region
                                     ?: item.customer?.region.orEmpty(),
+                                avatarUrl = item.customer?.avatarUrl,
+                                statusLabel = item.statusLabel.ifBlank { item.visibilityLabel },
+                                publisherName = item.publisher.name,
                                 modifier = Modifier.padding(horizontal = pad),
                             )
                         }
@@ -1274,39 +1289,78 @@ private fun AgencySpaceDetailHero(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
+    avatarUrl: String? = null,
+    statusLabel: String = "",
+    publisherName: String = "",
 ) {
     val typeLabel = if (isProperty) "ملک اشتراکی" else "مخاطب اشتراکی"
     val accent = if (isProperty) DfThemeColors.info() else DfThemeColors.primary()
+    val resolvedAvatar = remember(avatarUrl) { ir.divarfiling.mobile.core.image.ImageUrlFormatter.normalize(avatarUrl) }
     DfCard(modifier = modifier.fillMaxWidth()) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+                .padding(AppSpacing.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(accent),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(AppSpacing.cardPadding),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                DfBadge(text = typeLabel, color = accent.copy(alpha = 0.12f), textColor = accent)
-                Text(
-                    title,
-                    style = AppTypography.pageTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = DfThemeColors.textPrimary(),
-                )
-                if (subtitle.isNotBlank()) {
+                if (!isProperty) {
+                    AgencySpaceContactAvatar(
+                        name = title,
+                        avatarUrl = resolvedAvatar,
+                        size = 52.dp,
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(AppShapes.IconContainer)
+                            .background(accent.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(DfIcons.Building, contentDescription = null, tint = accent, modifier = Modifier.size(24.dp))
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    DfBadge(text = typeLabel, color = accent.copy(alpha = 0.12f), textColor = accent)
                     Text(
-                        subtitle,
-                        style = AppTypography.bodyDescription,
-                        color = DfThemeColors.textSecondary(),
+                        title,
+                        style = AppTypography.pageTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = DfThemeColors.textPrimary(),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (subtitle.isNotBlank()) {
+                        Text(
+                            subtitle,
+                            style = AppTypography.bodyDescription,
+                            color = DfThemeColors.primary(),
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                        )
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                if (statusLabel.isNotBlank()) {
+                    DfBadge(
+                        text = statusLabel,
+                        color = DfThemeColors.surfaceVariant(),
+                        textColor = DfThemeColors.textSecondary(),
+                    )
+                }
+                if (publisherName.isNotBlank()) {
+                    DfBadge(
+                        text = "منتشرکننده: $publisherName",
+                        color = DfThemeColors.primaryContainer(),
+                        textColor = DfThemeColors.primary(),
                     )
                 }
             }

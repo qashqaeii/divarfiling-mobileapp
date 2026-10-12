@@ -1,12 +1,18 @@
 package ir.divarfiling.mobile.feature.team
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Divider
@@ -33,11 +39,9 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
-import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
-import ir.divarfiling.mobile.core.design.components.DfSheetActions
-import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,42 +60,7 @@ fun TeamMessagesScreen(
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
     }
 
-    if (state.showCompose) {
-        DfModalBottomSheet(onDismissRequest = { viewModel.toggleCompose(false) }) {
-            DfSheetScaffold(
-                modifier = Modifier.navigationBarsPadding().imePadding(),
-                bodyHeightFraction = 0.55f,
-                title = "پیام جدید",
-                subtitle = "ارسال مستقیم به همکار",
-                icon = DfIcons.MessageCircle,
-                iconContainerColor = DfThemeColors.primaryContainer(),
-                iconTint = DfThemeColors.primary(),
-                onClose = { viewModel.toggleCompose(false) },
-                footer = {
-                    DfSheetActions(
-                        primaryText = if (state.isSubmitting) "در حال ارسال…" else "ارسال پیام",
-                        onPrimary = viewModel::sendDirect,
-                        primaryEnabled = !state.isSubmitting &&
-                            state.selectedMemberId != null &&
-                            state.composeBody.isNotBlank(),
-                        isSubmitting = state.isSubmitting,
-                        onSecondary = { viewModel.toggleCompose(false) },
-                    )
-                },
-            ) {
-                TeamMessagesComposeSheetContent(
-                    members = state.members,
-                    query = state.composeMemberQuery,
-                    onQueryChange = viewModel::onComposeMemberQueryChange,
-                    selectedMemberId = state.selectedMemberId,
-                    onMemberSelect = viewModel::onMemberSelect,
-                    body = state.composeBody,
-                    onBodyChange = viewModel::onComposeBodyChange,
-                )
-            }
-        }
-    }
-
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
@@ -114,6 +83,8 @@ fun TeamMessagesScreen(
             Column(modifier = Modifier.fillMaxSize()) {
                 TeamAgencyScreenHeader(
                     title = "صندوق پیام",
+                    icon = DfIcons.MessageCircle,
+                    accent = AgencyHeaderAccent.Conversation,
                     subtitle = if (unreadThreads > 0) {
                         "${DateUtils.toPersianDigits(unreadThreads.toString())} پیام خوانده‌نشده"
                     } else {
@@ -167,6 +138,55 @@ fun TeamMessagesScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+        if (state.showCompose) {
+            BackHandler { viewModel.toggleCompose(false) }
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DfScreenContainerColor),
+                color = DfScreenContainerColor,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding()
+                        .navigationBarsPadding(),
+                ) {
+                    AgencyConversationHeader(
+                        title = "پیام جدید",
+                        subtitle = "ارسال مستقیم به همکار",
+                        onBack = { viewModel.toggleCompose(false) },
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = pad),
+                    ) {
+                        TeamMessagesComposeSheetContent(
+                            members = state.members,
+                            query = state.composeMemberQuery,
+                            onQueryChange = viewModel::onComposeMemberQueryChange,
+                            selectedMemberId = state.selectedMemberId,
+                            onMemberSelect = viewModel::onMemberSelect,
+                            body = state.composeBody,
+                            onBodyChange = viewModel::onComposeBodyChange,
+                        )
+                    }
+                    DfPrimaryButton(
+                        text = if (state.isSubmitting) "در حال ارسال…" else "ارسال پیام",
+                        onClick = viewModel::sendDirect,
+                        enabled = !state.isSubmitting &&
+                            state.selectedMemberId != null &&
+                            state.composeBody.isNotBlank(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = pad, vertical = AppSpacing.sm),
+                    )
                 }
             }
         }

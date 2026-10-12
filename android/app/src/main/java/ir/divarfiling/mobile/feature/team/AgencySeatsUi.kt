@@ -1,14 +1,18 @@
 package ir.divarfiling.mobile.feature.team
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,21 +82,42 @@ fun AgencySeatFreeRow(
     onAssign: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AgencySeatRowShell(modifier = modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.CardSmall,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.sm, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(DfThemeColors.primaryContainer(), AppShapes.CardSmall),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = DfIcons.Building,
+                    contentDescription = null,
+                    tint = DfThemeColors.primary(),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
             AgencySeatNumberBadge(sequence = license.sequence)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     license.plan.ifBlank { "پلن آژانس" },
-                    style = AppTypography.bodyDescription,
-                    fontWeight = FontWeight.Medium,
+                    style = AppTypography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
                 )
                 Text(
-                    "آماده تخصیص",
+                    "صندلی آزاد",
                     style = AppTypography.labelSmall,
                     color = DfThemeColors.textMuted(),
                 )
@@ -102,7 +127,9 @@ fun AgencySeatFreeRow(
                 color = DfThemeColors.primaryContainer(),
                 textColor = DfThemeColors.primary(),
             )
-            DfSecondaryButton(text = "تخصیص", onClick = onAssign)
+            TextButton(onClick = onAssign) {
+                Text("تخصیص", color = DfThemeColors.primary(), fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }

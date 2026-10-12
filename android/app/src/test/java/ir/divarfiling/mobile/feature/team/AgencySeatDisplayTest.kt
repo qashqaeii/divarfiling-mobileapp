@@ -41,4 +41,24 @@ class AgencySeatDisplayTest {
         val seat = AgencyAdvisorSeatDto(hasSeat = true, licenseId = 1L)
         assertTrue(seat.resolvedHasSeat())
     }
+
+    @Test
+    fun seatSummaryLabel_doesNotEmbedRawIsoExpiry() {
+        val seat = AgencyAdvisorSeatDto(
+            hasSeat = true,
+            licenseId = 1L,
+            status = "active",
+            sequence = 2,
+            expiresAt = "2026-12-01T00:00:00Z",
+        )
+        val summary = seat.seatSummaryLabel()
+        assertFalse(summary.contains('T'))
+        assertFalse(summary.contains('Z'))
+    }
+
+    @Test
+    fun seatExpiryLabel_isPersianPrefix() {
+        val label = formatAgencySeatExpiry("2026-12-01T00:00:00Z")
+        assertTrue(label?.startsWith("اعتبار تا") == true)
+    }
 }

@@ -146,11 +146,11 @@ fun AgencyInviteAcceptScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            DfHubPageHeader(
+            TeamAgencyScreenHeader(
                 title = "دعوت به آژانس",
                 subtitle = "عضویت در تیم",
-                sectionLabel = DfHeaderSections.TEAM,
-                titleIconRes = DfDecorIcons.Users,
+                icon = ir.divarfiling.mobile.core.design.DfIcons.UserPlus,
+                accent = AgencyHeaderAccent.Conversation,
                 onBack = onBack,
             )
             when {

@@ -17,6 +17,14 @@ enum class AgencySeatAssignmentState {
 
 private fun normalizeSeatStatus(status: String): String = status.trim().lowercase()
 
+fun formatAgencySeatExpiry(expiresAt: String): String? {
+    val raw = expiresAt.trim()
+    if (raw.isBlank()) return null
+    val jalali = DateUtils.formatJalaliDate(raw)
+        ?: DateUtils.parseInstantMillis(raw)?.let { DateUtils.formatJalaliDateFromMillis(it) }
+    return jalali?.let { "اعتبار تا $it" }
+}
+
 fun AgencyAdvisorDto.seatAssignmentState(): AgencySeatAssignmentState {
     val assigned = hasSeat || (licenseId != null && licenseId > 0L)
     if (!assigned) return AgencySeatAssignmentState.Unassigned
@@ -64,10 +72,11 @@ fun AgencyAdvisorDto.seatSummaryLabel(): String = when (seatAssignmentState()) {
         val base = sequence?.let { "صندلی #${DateUtils.toPersianDigits(it.toString())}" }
             ?: PresentationLabels.seatLabel(true)
         val planPart = plan.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
-        val expiry = expiresAt.takeIf { it.isNotBlank() }?.let { " · تا $it" } ?: ""
-        "$base$planPart$expiry"
+        "$base$planPart"
     }
 }
+
+fun AgencyAdvisorDto.seatExpiryLabel(): String? = formatAgencySeatExpiry(expiresAt)
 
 fun AgencyAdvisorSeatDto.seatSummaryLabel(): String = when (seatAssignmentState()) {
     AgencySeatAssignmentState.Unassigned -> "بدون صندلی"
@@ -79,7 +88,8 @@ fun AgencyAdvisorSeatDto.seatSummaryLabel(): String = when (seatAssignmentState(
         val base = sequence?.let { "صندلی #${DateUtils.toPersianDigits(it.toString())}" }
             ?: PresentationLabels.seatLabel(true)
         val planPart = plan.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
-        val expiry = expiresAt.takeIf { it.isNotBlank() }?.let { " · تا $it" } ?: ""
-        "$base$planPart$expiry"
+        "$base$planPart"
     }
 }
+
+fun AgencyAdvisorSeatDto.seatExpiryLabel(): String? = formatAgencySeatExpiry(expiresAt)

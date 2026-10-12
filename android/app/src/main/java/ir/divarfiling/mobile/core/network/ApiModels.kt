@@ -3101,6 +3101,14 @@ data class ContactTeamTransferRequest(
 )
 
 @Serializable
+data class TeamCreateAnnouncementRequest(
+    val title: String,
+    val body: String,
+    val importance: String = "normal",
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+    @SerialName("target_roles") val targetRoles: List<String> = emptyList(),
+)
+
 data class TeamActionRequest(
     val action: String = "read",
     @SerialName("notification_id") val notificationId: Long? = null,
@@ -3572,6 +3580,7 @@ data class AgencySpaceCustomerPreviewDto(
     @SerialName("amenity_tags") val amenityTags: List<String> = emptyList(),
     @SerialName("budget_rows") val budgetRows: List<AgencySpaceLabelValueDto> = emptyList(),
     @SerialName("avatar_url") val avatarUrl: String = "",
+    @SerialName("avatar_key") val avatarKey: String = "",
     val phone: String = "",
     @SerialName("phone_alt") val phoneAlt: String = "",
     val email: String = "",

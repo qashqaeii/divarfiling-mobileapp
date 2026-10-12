@@ -83,6 +83,8 @@ fun TeamThreadDetailScreen(
                 TeamAgencyScreenHeader(
                     title = title,
                     subtitle = if (thread?.kind == "broadcast") "پیام گروهی" else "گفت‌وگوی مستقیم",
+                    icon = DfIcons.MessageCircle,
+                    accent = AgencyHeaderAccent.Conversation,
                     onBack = onBack,
                     actions = {
                         IconButton(onClick = viewModel::toggleStar) {

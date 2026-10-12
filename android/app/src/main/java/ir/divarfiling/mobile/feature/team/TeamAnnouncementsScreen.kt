@@ -1,10 +1,21 @@
 package ir.divarfiling.mobile.feature.team
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -43,8 +55,10 @@ import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
+import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.network.TeamAnnouncementDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.TeamRepository
@@ -61,6 +75,12 @@ data class TeamAnnouncementsUiState(
     val items: List<TeamAnnouncementDto> = emptyList(),
     val unread: Int = 0,
     val selected: TeamAnnouncementDto? = null,
+    val canCreate: Boolean = false,
+    val showCreate: Boolean = false,
+    val createTitle: String = "",
+    val createBody: String = "",
+    val createImportant: Boolean = false,
+    val isCreating: Boolean = false,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val isMarkingAll: Boolean = false,
@@ -76,7 +96,20 @@ class TeamAnnouncementsViewModel @Inject constructor(
     val uiState: StateFlow<TeamAnnouncementsUiState> = _uiState.asStateFlow()
     private var filter: AnnouncementFilter = AnnouncementFilter.All
 
-    init { refresh(true) }
+    init {
+        refresh(true)
+        viewModelScope.launch {
+            when (val home = repository.getAgencyHome()) {
+                is ApiResult.Success -> {
+                    val perms = home.data.permissions
+                    _uiState.update {
+                        it.copy(canCreate = perms.canManage || perms.canManageAgency)
+                    }
+                }
+                is ApiResult.Error -> Unit
+            }
+        }
+    }
 
     fun setFilter(value: AnnouncementFilter) {
         filter = value
@@ -161,6 +194,47 @@ class TeamAnnouncementsViewModel @Inject constructor(
     }
 
     fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
+
+    fun toggleCreate(show: Boolean) = _uiState.update {
+        it.copy(
+            showCreate = show,
+            createTitle = if (show) it.createTitle else "",
+            createBody = if (show) it.createBody else "",
+            createImportant = if (show) it.createImportant else false,
+        )
+    }
+
+    fun onCreateTitleChange(v: String) = _uiState.update { it.copy(createTitle = v) }
+    fun onCreateBodyChange(v: String) = _uiState.update { it.copy(createBody = v) }
+    fun onCreateImportantToggle() = _uiState.update { it.copy(createImportant = !it.createImportant) }
+
+    fun submitCreate() {
+        val state = _uiState.value
+        if (state.isCreating) return
+        if (state.createTitle.isBlank() || state.createBody.isBlank()) {
+            _uiState.update { it.copy(error = "عنوان و متن اطلاعیه الزامی است") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCreating = true, error = null) }
+            val importance = if (state.createImportant) "important" else "normal"
+            when (val result = repository.createAnnouncement(state.createTitle, state.createBody, importance)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isCreating = false,
+                        showCreate = false,
+                        createTitle = "",
+                        createBody = "",
+                        successMessage = "اطلاعیه ثبت شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isCreating = false, error = result.message)
+                }
+            }
+            refresh(true)
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -224,6 +298,7 @@ fun TeamAnnouncementsScreen(
         }
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
@@ -247,8 +322,20 @@ fun TeamAnnouncementsScreen(
                             } else {
                                 "تابلو اطلاع‌رسانی تیم"
                             },
+                            icon = DfIcons.Sparkles,
+                            accent = AgencyHeaderAccent.Management,
                             onBack = onBack,
                             actions = {
+                                if (state.canCreate) {
+                                    androidx.compose.material3.TextButton(onClick = { viewModel.toggleCreate(true) }) {
+                                        Text(
+                                            "اطلاعیه جدید",
+                                            style = AppTypography.labelSmall,
+                                            color = DfThemeColors.primary(),
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                }
                                 if (state.unread > 0) {
                                     androidx.compose.material3.TextButton(
                                         onClick = viewModel::markAllRead,
@@ -306,6 +393,77 @@ fun TeamAnnouncementsScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+        if (state.showCreate) {
+            BackHandler { viewModel.toggleCreate(false) }
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DfScreenContainerColor),
+                color = DfScreenContainerColor,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding()
+                        .navigationBarsPadding(),
+                ) {
+                    AgencyConversationHeader(
+                        title = "اطلاعیه جدید",
+                        subtitle = "انتشار برای تیم آژانس",
+                        onBack = { viewModel.toggleCreate(false) },
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = pad, vertical = AppSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    ) {
+                        DfTextField(
+                            value = state.createTitle,
+                            onValueChange = viewModel::onCreateTitleChange,
+                            label = "عنوان",
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        DfTextField(
+                            value = state.createBody,
+                            onValueChange = viewModel::onCreateBodyChange,
+                            label = "متن اطلاعیه",
+                            singleLine = false,
+                            minLines = 6,
+                            maxLines = 12,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            Checkbox(
+                                checked = state.createImportant,
+                                onCheckedChange = { viewModel.onCreateImportantToggle() },
+                            )
+                            Text(
+                                "اولویت مهم",
+                                style = AppTypography.bodyDescription,
+                                color = DfThemeColors.textPrimary(),
+                            )
+                        }
+                    }
+                    DfPrimaryButton(
+                        text = if (state.isCreating) "در حال ثبت…" else "ثبت اطلاعیه",
+                        onClick = viewModel::submitCreate,
+                        enabled = !state.isCreating &&
+                            state.createTitle.isNotBlank() &&
+                            state.createBody.isNotBlank(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = pad, vertical = AppSpacing.sm),
+                    )
                 }
             }
         }

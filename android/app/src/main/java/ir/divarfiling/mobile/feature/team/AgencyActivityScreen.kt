@@ -27,6 +27,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
@@ -149,6 +150,8 @@ fun AgencyActivityScreen(
                     TeamAgencyScreenHeader(
                         title = "فعالیت آژانس",
                         subtitle = "رویدادهای تیم",
+                        icon = DfIcons.Clock,
+                        accent = AgencyHeaderAccent.Management,
                         onBack = onBack,
                     )
                 }
@@ -156,7 +159,7 @@ fun AgencyActivityScreen(
                     state.eventTypes.map {
                         ir.divarfiling.mobile.core.network.AgencyEventTypeOptionDto(
                             value = it,
-                            label = it.replace('_', ' '),
+                            label = "",
                         )
                     }
                 }
@@ -175,7 +178,7 @@ fun AgencyActivityScreen(
                             }
                             items(eventFilters, key = { it.value }) { option ->
                                 DfSoftChip(
-                                    text = option.label.ifBlank { option.value },
+                                    text = option.localizedLabel(),
                                     selected = state.eventType == option.value,
                                     onClick = { viewModel.setEventTypeFilter(option.value) },
                                 )
@@ -224,13 +227,19 @@ fun AgencyActivityScreen(
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
-                    else -> items(state.events, key = { it.id }) { event ->
-                        TeamActivityTimelineRow(
-                            title = event.displayTitle(),
-                            actorName = event.displaySubtitle(),
-                            timeLabel = DateUtils.formatRelativeFa(event.createdAt),
-                            modifier = Modifier.padding(horizontal = pad),
-                        )
+                    else -> {
+                        val events = state.events
+                        items(events.size, key = { events[it].id }) { index ->
+                            val event = events[index]
+                            TeamActivityTimelineRow(
+                                title = event.displayTitle(),
+                                actorName = event.displaySubtitle(),
+                                timeLabel = DateUtils.formatRelativeFa(event.createdAt),
+                                eventType = event.eventType,
+                                isLast = index == events.lastIndex,
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
+                        }
                     }
                 }
             }

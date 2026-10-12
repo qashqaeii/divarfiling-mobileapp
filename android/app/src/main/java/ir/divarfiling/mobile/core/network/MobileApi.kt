@@ -859,6 +859,9 @@ interface MobileApi {
         @Query("important") important: Int? = null,
     ): ApiEnvelope
 
+    @POST("crm/team/announcements")
+    suspend fun createTeamAnnouncement(@Body body: TeamCreateAnnouncementRequest): ApiEnvelope
+
     @GET("crm/team/announcements/{id}")
     suspend fun getTeamAnnouncement(@Path("id") announcementId: Long): ApiEnvelope
 

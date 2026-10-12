@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
@@ -140,6 +141,8 @@ fun AgencyProfileScreen(
                 TeamAgencyScreenHeader(
                     title = "پروفایل آژانس",
                     subtitle = "نام و مسیریابی سرنخ",
+                    icon = DfIcons.Building,
+                    accent = AgencyHeaderAccent.Detail,
                     onBack = onBack,
                 )
             }
@@ -270,11 +273,11 @@ fun AgencyAuditScreen(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
             item {
-                DfHubPageHeader(
+                TeamAgencyScreenHeader(
                     title = "گزارش ممیزی",
                     subtitle = "رویدادهای حساس (بدون Secret)",
-                    sectionLabel = DfHeaderSections.TEAM,
-                    titleIconRes = DfDecorIcons.Users,
+                    icon = DfIcons.ListTodo,
+                    accent = AgencyHeaderAccent.Management,
                     onBack = onBack,
                 )
             }

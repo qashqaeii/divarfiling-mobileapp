@@ -355,6 +355,8 @@ fun TeamInboxScreen(
                         TeamAgencyScreenHeader(
                             title = "صندوق سرنخ",
                             subtitle = "${DateUtils.toPersianDigits(state.leads.size.toString())} سرنخ در صف",
+                            icon = DfIcons.UserPlus,
+                            accent = AgencyHeaderAccent.Management,
                             onBack = onBack,
                         )
                     }

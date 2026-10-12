@@ -150,6 +150,8 @@ fun TeamMembersScreen(
                         TeamAgencyScreenHeader(
                             title = "مشاوران",
                             subtitle = "${DateUtils.toPersianDigits(state.advisors.size.toString())} عضو",
+                            icon = DfIcons.Users,
+                            accent = AgencyHeaderAccent.Management,
                             onBack = onBack,
                         )
                     }

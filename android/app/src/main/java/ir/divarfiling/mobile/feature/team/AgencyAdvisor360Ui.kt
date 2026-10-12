@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,8 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.PresentationLabels
 import ir.divarfiling.mobile.core.design.AppShapes
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -40,6 +44,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import ir.divarfiling.mobile.core.design.components.DfTextField
+import androidx.compose.material3.Surface
 import ir.divarfiling.mobile.core.network.AgencyAdvisorDetailPayload
 import ir.divarfiling.mobile.core.network.AgencyAdvisorOverviewDto
 import ir.divarfiling.mobile.core.network.AgencyAdvisorPeriodMetricDto
@@ -47,6 +52,93 @@ import ir.divarfiling.mobile.core.network.AgencyAdvisorWorkspaceDatasetDto
 import ir.divarfiling.mobile.core.network.AgencyAdvisorWorkspaceItemDto
 import ir.divarfiling.mobile.core.network.AgencyAdvisorWorkspaceListingDto
 import ir.divarfiling.mobile.core.network.AgencyAdvisorWorkspacePayload
+
+/** عنوان صفحهٔ میزکار مشاور در اپ (معادل فارسی Advisor 360 در میزکار وب). */
+const val AGENCY_ADVISOR_WORKSPACE_TITLE = "پروفایل کامل مشاور"
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun AgencyAdvisorProfileHero(
+    name: String,
+    phone: String,
+    roleLabel: String,
+    isActive: Boolean,
+    seatSummary: String,
+    seatExpiry: String?,
+    modifier: Modifier = Modifier,
+) {
+    val displayName = PresentationLabels.memberDisplayName(name, phone)
+    val accent = teamAccentFor(displayName)
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Hero,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TeamAvatar(name = displayName, size = 56.dp, accent = accent)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        displayName,
+                        style = AppTypography.pageTitle,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (phone.isNotBlank()) {
+                        Text(
+                            phone,
+                            style = AppTypography.labelSmall.copy(textDirection = TextDirection.Ltr),
+                            color = DfThemeColors.textSecondary(),
+                            maxLines = 1,
+                        )
+                    }
+                    Text(
+                        roleLabel.ifBlank { "مشاور" },
+                        style = AppTypography.bodyDescription,
+                        color = DfThemeColors.textMuted(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                DfBadge(
+                    text = PresentationLabels.memberActiveLabel(isActive),
+                    color = if (isActive) DfThemeColors.successContainer() else DfThemeColors.errorContainer(),
+                    textColor = if (isActive) DfThemeColors.success() else DfThemeColors.error(),
+                )
+                if (seatSummary.isNotBlank()) {
+                    DfBadge(
+                        text = seatSummary,
+                        color = DfThemeColors.primaryContainer(),
+                        textColor = DfThemeColors.primary(),
+                    )
+                }
+                seatExpiry?.let {
+                    DfBadge(
+                        text = it,
+                        color = DfThemeColors.surfaceVariant(),
+                        textColor = DfThemeColors.textSecondary(),
+                    )
+                }
+            }
+        }
+    }
+}
 
 enum class Advisor360Tab(val apiValue: String, val label: String) {
     OVERVIEW("overview", "نمای کلی"),
@@ -158,7 +250,7 @@ fun AgencyAdvisor360WorkspaceBody(
             workspaceLoading && workspace == null -> DfCardListSkeleton()
             !detail.canViewWorkspace -> DfEmptyState(
                 title = "داده مشاور در دسترس نیست",
-                subtitle = "برای مشاهده Advisor 360، رضایت‌نامه دیداری داده و اشتراک آژانس لازم است.",
+                subtitle = "برای مشاهده $AGENCY_ADVISOR_WORKSPACE_TITLE، رضایت‌نامه دیداری داده و اشتراک آژانس لازم است.",
                 variant = DfEmptyVariant.Empty,
             )
             tab == Advisor360Tab.OVERVIEW -> {

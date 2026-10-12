@@ -9,6 +9,7 @@ object ImageUrlFormatter {
         return when {
             value.startsWith("//") -> "https:$value"
             value.startsWith("/media/") -> "$SITE_ORIGIN$value"
+            value.startsWith("/static/") -> "$SITE_ORIGIN$value"
             value.startsWith("http://") || value.startsWith("https://") -> value
             else -> "https://${value.trimStart('/')}"
         }
