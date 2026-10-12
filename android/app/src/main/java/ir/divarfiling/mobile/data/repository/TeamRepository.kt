@@ -160,6 +160,12 @@ class TeamRepository @Inject constructor(
     ): ApiResult<ir.divarfiling.mobile.core.network.AgencyAdvisorDetailPayload> =
         single { api.getAgencyAdvisorDetail(memberId) }
 
+    suspend fun getAgencyAdvisorWorkspace(
+        memberId: Long,
+        params: Map<String, String>,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencyAdvisorWorkspacePayload> =
+        single { api.getAgencyAdvisorWorkspace(memberId, params) }
+
     suspend fun createInvitation(phone: String, role: String = "advisor"): ApiResult<Unit> = try {
         val response = api.createAgencyInvitation(
             ir.divarfiling.mobile.core.network.AgencyInviteRequest(phone = phone, role = role),

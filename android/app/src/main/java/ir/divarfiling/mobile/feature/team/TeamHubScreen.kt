@@ -60,6 +60,7 @@ private data class AgencyHubDestination(
     val subtitle: String,
     val icon: ImageVector,
     val metric: String? = null,
+    val highlighted: Boolean = false,
     val onClick: (() -> Unit)?,
 )
 
@@ -169,31 +170,12 @@ fun TeamHubScreen(
                             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                         ) {
                             item {
-                                DfHubPageHeader(
-                                    title = "آژانس",
-                                    subtitle = "میزکار تیم و همکاری",
-                                    sectionLabel = DfHeaderSections.TEAM,
-                                    titleIconRes = DfDecorIcons.Users,
-                                    userName = state.userName,
-                                    onBack = onBack,
-                                )
-                            }
-                            item {
-                                TeamIdentityHero(
+                                AgencyHubHeader(
                                     agencyName = agency?.name ?: "میزکار آژانس",
+                                    logoUrl = agency?.logoUrl,
                                     roleLabel = membership?.roleLabel.orEmpty(),
-                                    title = buildString {
-                                        seats?.let { s ->
-                                            if (s.total > 0) {
-                                                append(DateUtils.toPersianDigits(s.assigned.toString()))
-                                                append("/")
-                                                append(DateUtils.toPersianDigits(s.total.toString()))
-                                                append(" صندلی")
-                                            }
-                                        }
-                                    },
                                     unreadTotal = unread.messages + unread.announcements + unread.notifications,
-                                    modifier = Modifier.padding(horizontal = pad),
+                                    onBack = onBack,
                                 )
                             }
                             item {
@@ -231,6 +213,7 @@ fun TeamHubScreen(
                                                 subtitle = "فایل‌ها و مخاطبین منتشرشده",
                                                 icon = DfIcons.Layers,
                                                 metric = spaceKpi,
+                                                highlighted = true,
                                                 onClick = onOpenAgencySpace,
                                             ),
                                         )
@@ -337,6 +320,7 @@ fun TeamHubScreen(
                                                             subtitle = dest.subtitle,
                                                             icon = dest.icon,
                                                             metric = dest.metric,
+                                                            highlighted = dest.highlighted,
                                                             enabled = dest.onClick != null,
                                                             onClick = dest.onClick,
                                                             modifier = Modifier.weight(1f),
@@ -354,6 +338,7 @@ fun TeamHubScreen(
                                                     subtitle = dest.subtitle,
                                                     icon = dest.icon,
                                                     metric = dest.metric,
+                                                    highlighted = dest.highlighted,
                                                     enabled = dest.onClick != null,
                                                     onClick = dest.onClick,
                                                 )
@@ -429,7 +414,7 @@ fun TeamHubScreen(
                                                     }
                                                 } ?: ""
                                                 TeamActivityTimelineRow(
-                                                    title = ev.title.ifBlank { ev.eventType },
+                                                    title = ev.displayTitle(),
                                                     actorName = ev.actorName,
                                                     timeLabel = time,
                                                 )

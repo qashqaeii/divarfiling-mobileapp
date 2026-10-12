@@ -53,6 +53,7 @@ data class AgencyActivityUiState(
     val events: List<AgencyActivityDto> = emptyList(),
     val advisors: List<TeamMemberDto> = emptyList(),
     val eventTypes: List<String> = emptyList(),
+    val eventTypeOptions: List<ir.divarfiling.mobile.core.network.AgencyEventTypeOptionDto> = emptyList(),
     val canFilterAdvisor: Boolean = false,
     val advisorMemberId: Long? = null,
     val eventType: String? = null,
@@ -103,6 +104,7 @@ class AgencyActivityViewModel @Inject constructor(
                         events = result.data.events,
                         advisors = result.data.advisors,
                         eventTypes = result.data.eventTypes,
+                        eventTypeOptions = result.data.eventTypeOptions,
                         canFilterAdvisor = result.data.canFilterAdvisor,
                         isLoading = false,
                         isRefreshing = false,
@@ -144,15 +146,21 @@ fun AgencyActivityScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfHubPageHeader(
+                    TeamAgencyScreenHeader(
                         title = "فعالیت آژانس",
                         subtitle = "رویدادهای تیم",
-                        sectionLabel = DfHeaderSections.TEAM,
-                        titleIconRes = DfDecorIcons.Users,
                         onBack = onBack,
                     )
                 }
-                if (state.eventTypes.isNotEmpty()) {
+                val eventFilters = state.eventTypeOptions.ifEmpty {
+                    state.eventTypes.map {
+                        ir.divarfiling.mobile.core.network.AgencyEventTypeOptionDto(
+                            value = it,
+                            label = it.replace('_', ' '),
+                        )
+                    }
+                }
+                if (eventFilters.isNotEmpty()) {
                     item {
                         LazyRow(
                             modifier = Modifier.padding(horizontal = pad),
@@ -165,11 +173,11 @@ fun AgencyActivityScreen(
                                     onClick = { viewModel.setEventTypeFilter(null) },
                                 )
                             }
-                            items(state.eventTypes, key = { it }) { type ->
+                            items(eventFilters, key = { it.value }) { option ->
                                 DfSoftChip(
-                                    text = type.replace(".", " · "),
-                                    selected = state.eventType == type,
-                                    onClick = { viewModel.setEventTypeFilter(type) },
+                                    text = option.label.ifBlank { option.value },
+                                    selected = state.eventType == option.value,
+                                    onClick = { viewModel.setEventTypeFilter(option.value) },
                                 )
                             }
                         }
@@ -221,7 +229,7 @@ fun AgencyActivityScreen(
                             Column(modifier = Modifier.padding(AppSpacing.sm)) {
                                 state.events.forEach { event ->
                                     TeamActivityTimelineRow(
-                                        title = event.title.ifBlank { event.eventType },
+                                        title = event.displayTitle(),
                                         actorName = event.actorName,
                                         timeLabel = DateUtils.formatRelativeFa(event.createdAt),
                                     )

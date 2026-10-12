@@ -30,10 +30,16 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfListingImage
+import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfSheetActions
+import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
+import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
+import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.network.AgencySpaceItemDto
+import ir.divarfiling.mobile.core.network.TeamMemberDto
 
 @Composable
 fun AgencySpaceTabRow(
@@ -210,6 +216,227 @@ fun AgencySpaceItemCard(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AgencySpaceFilterSheet(
+    tab: String,
+    filters: AgencySpaceFilters,
+    publishers: List<TeamMemberDto> = emptyList(),
+    onDismiss: () -> Unit,
+    onFiltersChange: (AgencySpaceFilters) -> Unit,
+    onApply: () -> Unit,
+    onClear: () -> Unit,
+) {
+    val showProperty = tab == AgencySpaceTab.ALL || tab == AgencySpaceTab.PROPERTIES
+    val showContact = tab == AgencySpaceTab.ALL || tab == AgencySpaceTab.CONTACTS
+    DfModalBottomSheet(onDismissRequest = onDismiss) {
+        DfSheetScaffold(
+            title = "فیلتر پیشرفته",
+            subtitle = "مطابق پارامترهای میزکار وب",
+            onClose = onDismiss,
+            footer = {
+                DfSheetActions(
+                    primaryText = "اعمال فیلتر",
+                    onPrimary = onApply,
+                    secondaryText = "پاک‌کردن",
+                    onSecondary = onClear,
+                )
+            },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                Text("ترتیب نمایش", style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    items(
+                        listOf(
+                            "newest" to "جدیدترین",
+                            "oldest" to "قدیمی‌ترین",
+                            "price_asc" to "ارزان‌تر",
+                            "price_desc" to "گران‌تر",
+                            "area_asc" to "کوچک‌تر",
+                            "area_desc" to "بزرگ‌تر",
+                            "most_copied" to "بیشترین کپی",
+                        ),
+                    ) { (key, label) ->
+                        DfSoftChip(
+                            text = label,
+                            selected = filters.ordering == key,
+                            onClick = { onFiltersChange(filters.copy(ordering = key)) },
+                        )
+                    }
+                }
+                if (showProperty) {
+                    Text("فیلتر فایل", style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    DfTextField(
+                        value = filters.dealMode,
+                        onValueChange = { onFiltersChange(filters.copy(dealMode = it)) },
+                        label = "نوع معامله",
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    DfTextField(
+                        value = filters.propertyType,
+                        onValueChange = { onFiltersChange(filters.copy(propertyType = it)) },
+                        label = "نوع ملک",
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        DfTextField(
+                            value = filters.city,
+                            onValueChange = { onFiltersChange(filters.copy(city = it)) },
+                            label = "شهر",
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                        DfTextField(
+                            value = filters.district,
+                            onValueChange = { onFiltersChange(filters.copy(district = it)) },
+                            label = "منطقه",
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        DfTextField(
+                            value = filters.minPrice,
+                            onValueChange = { onFiltersChange(filters.copy(minPrice = it)) },
+                            label = "حداقل قیمت",
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                        DfTextField(
+                            value = filters.maxPrice,
+                            onValueChange = { onFiltersChange(filters.copy(maxPrice = it)) },
+                            label = "حداکثر قیمت",
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        DfTextField(
+                            value = filters.minArea,
+                            onValueChange = { onFiltersChange(filters.copy(minArea = it)) },
+                            label = "حداقل متراژ",
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                        DfTextField(
+                            value = filters.maxArea,
+                            onValueChange = { onFiltersChange(filters.copy(maxArea = it)) },
+                            label = "حداکثر متراژ",
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    DfTextField(
+                        value = filters.rooms,
+                        onValueChange = { onFiltersChange(filters.copy(rooms = it)) },
+                        label = "تعداد خواب",
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (showContact) {
+                    Text("فیلتر مخاطب", style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    DfTextField(
+                        value = filters.customerType,
+                        onValueChange = { onFiltersChange(filters.copy(customerType = it)) },
+                        label = "نوع مشتری",
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    DfTextField(
+                        value = filters.region,
+                        onValueChange = { onFiltersChange(filters.copy(region = it)) },
+                        label = "محدوده",
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        DfTextField(
+                            value = filters.minBudget,
+                            onValueChange = { onFiltersChange(filters.copy(minBudget = it)) },
+                            label = "حداقل بودجه",
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                        DfTextField(
+                            value = filters.maxBudget,
+                            onValueChange = { onFiltersChange(filters.copy(maxBudget = it)) },
+                            label = "حداکثر بودجه",
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                if (publishers.isNotEmpty()) {
+                    Text("منتشرکننده", style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        item {
+                            DfSoftChip(
+                                text = "همه",
+                                selected = filters.publisherId == null,
+                                onClick = { onFiltersChange(filters.copy(publisherId = null)) },
+                            )
+                        }
+                        items(publishers, key = { it.userId }) { pub ->
+                            DfSoftChip(
+                                text = pub.name.ifBlank { pub.phone },
+                                selected = filters.publisherId == pub.userId,
+                                onClick = {
+                                    onFiltersChange(filters.copy(publisherId = pub.userId))
+                                },
+                            )
+                        }
+                    }
+                }
+                Text("تاریخ انتشار", style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold)
+                DfJalaliDateField(
+                    value = filters.publishedAfter,
+                    onValueChange = { onFiltersChange(filters.copy(publishedAfter = it)) },
+                    label = "از تاریخ",
+                )
+                DfJalaliDateField(
+                    value = filters.publishedBefore,
+                    onValueChange = { onFiltersChange(filters.copy(publishedBefore = it)) },
+                    label = "تا تاریخ",
+                )
+                Text("دسترسی و CRM", style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    items(
+                        listOf(
+                            "" to "همه سطوح",
+                            "agency_public" to "عمومی آژانس",
+                            "selected_members" to "اعضای منتخب",
+                        ),
+                    ) { (key, label) ->
+                        DfSoftChip(
+                            text = label,
+                            selected = filters.visibility == key,
+                            onClick = { onFiltersChange(filters.copy(visibility = key)) },
+                        )
+                    }
+                }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    items(
+                        listOf(
+                            "" to "کپی CRM",
+                            "copied" to "کپی شده",
+                            "not_copied" to "کپی نشده",
+                        ),
+                    ) { (key, label) ->
+                        DfSoftChip(
+                            text = label,
+                            selected = filters.crmCopy == key,
+                            onClick = { onFiltersChange(filters.copy(crmCopy = key)) },
+                        )
                     }
                 }
             }

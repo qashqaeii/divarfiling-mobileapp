@@ -16,7 +16,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -24,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
@@ -113,7 +116,7 @@ class TeamInboxViewModel @Inject constructor(
                         showAssign = true,
                         assignLeadId = leadId,
                         members = members.data.members,
-                        assigneeId = members.data.members.firstOrNull()?.id,
+                        assigneeId = null,
                     )
                 }
                 is ApiResult.Error -> _uiState.update { it.copy(error = members.message) }
@@ -192,6 +195,8 @@ fun TeamInboxScreen(
         )
     }
 
+    var assignMemberQuery by remember { mutableStateOf("") }
+
     if (state.showAssign) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissAssign) {
             DfSheetScaffold(
@@ -211,14 +216,17 @@ fun TeamInboxScreen(
                     )
                 },
             ) {
-                DfSheetSection(title = "مشاور مقصد") {
-                    TeamMemberSelectList(
-                        members = state.members,
-                        selectedId = state.assigneeId,
-                        onSelect = viewModel::onAssigneeSelect,
-                        emptyLabel = "عضوی برای تخصیص نیست",
-                    )
-                }
+                TeamMessagesComposeSheetContent(
+                    members = state.members,
+                    query = assignMemberQuery,
+                    onQueryChange = { assignMemberQuery = it },
+                    selectedMemberId = state.assigneeId,
+                    onMemberSelect = viewModel::onAssigneeSelect,
+                    body = "",
+                    onBodyChange = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    showMessageField = false,
+                )
             }
         }
     }
@@ -239,11 +247,9 @@ fun TeamInboxScreen(
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                 ) {
                     item {
-                        DfHubPageHeader(
+                        TeamAgencyScreenHeader(
                             title = "صندوق سرنخ",
-                            subtitle = "${state.leads.size} سرنخ در صف تخصیص",
-                            sectionLabel = DfHeaderSections.TEAM,
-                            titleIconRes = DfDecorIcons.Users,
+                            subtitle = "${DateUtils.toPersianDigits(state.leads.size.toString())} سرنخ در صف",
                             onBack = onBack,
                         )
                     }

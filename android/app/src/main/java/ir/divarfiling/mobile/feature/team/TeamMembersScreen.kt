@@ -20,13 +20,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
+import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
@@ -79,8 +83,8 @@ fun TeamMembersScreen(
     if (state.showInvite) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissInvite) {
             DfSheetScaffold(
-                title = "دعوت مشاور",
-                subtitle = "پیامک دعوت برای عضو جدید",
+                title = "دعوت مشاور جدید",
+                subtitle = "دعوت با پیامک ارسال می‌شود",
                 icon = DfIcons.UserPlus,
                 iconContainerColor = DfThemeColors.primaryContainer(),
                 iconTint = DfThemeColors.primary(),
@@ -89,19 +93,36 @@ fun TeamMembersScreen(
                     DfSheetActions(
                         primaryText = if (state.inviteSubmitting) "در حال ارسال…" else "ارسال دعوت",
                         onPrimary = viewModel::submitInvite,
-                        primaryEnabled = !state.inviteSubmitting,
+                        primaryEnabled = !state.inviteSubmitting &&
+                            PhoneNormalizer.isValidIranMobile(PhoneNormalizer.normalize(state.invitePhone)),
                         isSubmitting = state.inviteSubmitting,
                         onSecondary = viewModel::dismissInvite,
                     )
                 },
             ) {
+                Text(
+                    "۱. شماره موبایل مشاور را وارد کنید.\n۲. پیامک دعوت ارسال می‌شود.\n۳. پس از پذیرش، عضو در بخش «اعضای فعال» ظاهر می‌شود.",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
                 DfTextField(
                     value = state.invitePhone,
                     onValueChange = viewModel::onInvitePhoneChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = "موبایل",
+                    label = "موبایل مشاور",
+                    placeholder = "مثلاً ۰۹۱۲۱۲۳۴۵۶۷",
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 )
+                if (state.invitePhone.isNotBlank() &&
+                    !PhoneNormalizer.isValidIranMobile(PhoneNormalizer.normalize(state.invitePhone))
+                ) {
+                    Text(
+                        "شماره باید ۱۱ رقم و با ۰۹ شروع شود.",
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.error(),
+                    )
+                }
             }
         }
     }
@@ -122,11 +143,9 @@ fun TeamMembersScreen(
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                 ) {
                     item {
-                        DfHubPageHeader(
+                        TeamAgencyScreenHeader(
                             title = "مشاوران",
                             subtitle = "${DateUtils.toPersianDigits(state.advisors.size.toString())} عضو",
-                            sectionLabel = DfHeaderSections.TEAM,
-                            titleIconRes = DfDecorIcons.Users,
                             onBack = onBack,
                         )
                     }
@@ -190,8 +209,27 @@ fun TeamMembersScreen(
                             )
                         }
                         else -> {
+                            val showMembers = state.statusFilter != AgencyAdvisorFilter.INVITED
                             val showInvites = state.statusFilter == AgencyAdvisorFilter.INVITED ||
                                 state.statusFilter == AgencyAdvisorFilter.ALL
+                            if (showMembers && state.advisors.isNotEmpty()) {
+                                if (state.statusFilter == AgencyAdvisorFilter.ALL) {
+                                    item {
+                                        TeamSectionLabel(
+                                            title = "اعضای فعال",
+                                            subtitle = "${DateUtils.toPersianDigits(state.advisors.size.toString())} مشاور",
+                                            modifier = Modifier.padding(horizontal = pad),
+                                        )
+                                    }
+                                }
+                                items(state.advisors, key = { it.id }) { advisor ->
+                                    TeamAdvisorCompactCard(
+                                        advisor = advisor,
+                                        onClick = { onAdvisorClick(advisor.id) },
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
                             if (showInvites && state.invitations.isNotEmpty()) {
                                 if (state.statusFilter == AgencyAdvisorFilter.ALL) {
                                     item {
@@ -210,25 +248,6 @@ fun TeamMembersScreen(
                                         modifier = Modifier.padding(horizontal = pad),
                                     )
                                 }
-                            }
-                            if (state.statusFilter != AgencyAdvisorFilter.INVITED) {
-                                if (state.statusFilter == AgencyAdvisorFilter.ALL && state.advisors.isNotEmpty()) {
-                                    item {
-                                        TeamSectionLabel(
-                                            title = "اعضای فعال",
-                                            modifier = Modifier.padding(horizontal = pad),
-                                        )
-                                    }
-                                }
-                            }
-                            if (state.statusFilter != AgencyAdvisorFilter.INVITED) {
-                            items(state.advisors, key = { it.id }) { advisor ->
-                                TeamAdvisorCompactCard(
-                                    advisor = advisor,
-                                    onClick = { onAdvisorClick(advisor.id) },
-                                    modifier = Modifier.padding(horizontal = pad),
-                                )
-                            }
                             }
                         }
                     }

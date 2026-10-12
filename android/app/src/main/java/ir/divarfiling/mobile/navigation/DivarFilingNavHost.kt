@@ -814,6 +814,11 @@ fun DivarFilingNavHost(
                             onBack = { navController.popBackStack() },
                             onOpenPerformance = { navController.navigate(Routes.TEAM_PERFORMANCE) },
                             onOpenSeats = { navController.navigate(Routes.TEAM_SEATS) },
+                            onOpenContact = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onOpenProperty = { id -> navController.navigate(Routes.propertyDetail(id)) },
+                            onOpenDeal = { id -> navController.navigate(Routes.dealDetail(id)) },
+                            onOpenContract = { id -> navController.navigate(Routes.contractDetail(id)) },
+                            onOpenListing = { token -> navController.navigate(Routes.listingDetail(token)) },
                         )
                     }
                     composable(Routes.TEAM_PERFORMANCE) {

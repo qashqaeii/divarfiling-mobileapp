@@ -30,6 +30,7 @@ data class TeamMessagesUiState(
     val isSubmitting: Boolean = false,
     val showCompose: Boolean = false,
     val composeBody: String = "",
+    val composeMemberQuery: String = "",
     val selectedMemberId: Long? = null,
     val error: String? = null,
     val successMessage: String? = null,
@@ -83,8 +84,9 @@ class TeamMessagesViewModel @Inject constructor(
                         it.copy(
                             showCompose = true,
                             members = members.data.members,
-                            selectedMemberId = members.data.members.firstOrNull()?.id,
+                            selectedMemberId = null,
                             composeBody = "",
+                            composeMemberQuery = "",
                         )
                     }
                     is ApiResult.Error -> _uiState.update { it.copy(error = members.message) }
@@ -96,6 +98,7 @@ class TeamMessagesViewModel @Inject constructor(
     }
 
     fun onComposeBodyChange(value: String) = _uiState.update { it.copy(composeBody = value) }
+    fun onComposeMemberQueryChange(value: String) = _uiState.update { it.copy(composeMemberQuery = value) }
     fun onMemberSelect(id: Long) = _uiState.update { it.copy(selectedMemberId = id) }
 
     fun sendDirect() {

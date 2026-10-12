@@ -904,6 +904,12 @@ interface MobileApi {
     @GET("agency/advisors/{id}")
     suspend fun getAgencyAdvisorDetail(@Path("id") memberId: Long): ApiEnvelope
 
+    @GET("agency/advisors/{id}/workspace")
+    suspend fun getAgencyAdvisorWorkspace(
+        @Path("id") memberId: Long,
+        @QueryMap params: Map<String, String>,
+    ): ApiEnvelope
+
     @POST("agency/advisors/{id}/actions")
     suspend fun agencyAdvisorAction(
         @Path("id") memberId: Long,

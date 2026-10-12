@@ -2446,6 +2446,7 @@ data class TeamAgencyDto(
     val id: Long = 0,
     val name: String = "",
     val slug: String = "",
+    @SerialName("logo_url") val logoUrl: String = "",
 )
 
 @Serializable
@@ -2725,6 +2726,97 @@ data class AgencyAdvisorDetailPayload(
     @SerialName("assignable_roles") val assignableRoles: List<AgencyAssignableRoleDto> = emptyList(),
     @SerialName("recent_activity") val recentActivity: List<AgencyActivityDto> = emptyList(),
     val permissions: AgencyAdvisorPermissionsDto = AgencyAdvisorPermissionsDto(),
+    @SerialName("section_counts") val sectionCounts: AgencyAdvisorSectionCountsDto = AgencyAdvisorSectionCountsDto(),
+    @SerialName("can_view_workspace") val canViewWorkspace: Boolean = false,
+)
+
+@Serializable
+data class AgencyAdvisorSectionCountsDto(
+    val contacts: Int = 0,
+    val properties: Int = 0,
+    val datasets: Int = 0,
+    val deals: Int = 0,
+    val contracts: Int = 0,
+)
+
+@Serializable
+data class AgencyAdvisorPeriodMetricDto(
+    val total: Int = 0,
+    val period: Int = 0,
+    @SerialName("delta_pct") val deltaPct: Double? = null,
+)
+
+@Serializable
+data class AgencyAdvisorOverviewDto(
+    @SerialName("period_days") val periodDays: Int = 30,
+    val contacts: AgencyAdvisorPeriodMetricDto = AgencyAdvisorPeriodMetricDto(),
+    val properties: AgencyAdvisorPeriodMetricDto = AgencyAdvisorPeriodMetricDto(),
+    val datasets: AgencyAdvisorPeriodMetricDto = AgencyAdvisorPeriodMetricDto(),
+    @SerialName("deals_active") val dealsActive: Int = 0,
+    @SerialName("deals_closed") val dealsClosed: Int = 0,
+    val contracts: Int = 0,
+    @SerialName("open_tasks") val openTasks: Int = 0,
+    @SerialName("last_activity") val lastActivity: String = "",
+    @SerialName("last_activity_display") val lastActivityDisplay: String = "",
+)
+
+@Serializable
+data class AgencyAdvisorWorkspacePayload(
+    val tab: String = "",
+    @SerialName("member_id") val memberId: Long = 0,
+    @SerialName("period_days") val periodDays: Int = 30,
+    val overview: AgencyAdvisorOverviewDto? = null,
+    val counts: AgencyAdvisorSectionCountsDto? = null,
+    val items: List<AgencyAdvisorWorkspaceItemDto> = emptyList(),
+    val datasets: List<AgencyAdvisorWorkspaceDatasetDto> = emptyList(),
+    val listings: List<AgencyAdvisorWorkspaceListingDto> = emptyList(),
+    val total: Int = 0,
+    val page: Int = 1,
+    @SerialName("num_pages") val numPages: Int = 1,
+    @SerialName("dataset_id") val datasetId: String = "",
+)
+
+@Serializable
+data class AgencyAdvisorWorkspaceItemDto(
+    val id: Long = 0,
+    val name: String = "",
+    val phone: String = "",
+    val status: String = "",
+    val title: String = "",
+    val region: String = "",
+    @SerialName("transaction_status") val transactionStatus: String = "",
+    @SerialName("deal_mode") val dealMode: String = "",
+    @SerialName("property_type") val propertyType: String = "",
+    val stage: String = "",
+    @SerialName("customer_name") val customerName: String = "",
+    @SerialName("property_title") val propertyTitle: String = "",
+    @SerialName("internal_number") val internalNumber: String = "",
+    @SerialName("next_follow_up_display") val nextFollowUpDisplay: String = "",
+    @SerialName("created_at_display") val createdAtDisplay: String = "",
+    @SerialName("updated_at_display") val updatedAtDisplay: String = "",
+    val label: String = "",
+    val detail: String = "",
+    val type: String = "",
+)
+
+@Serializable
+data class AgencyAdvisorWorkspaceDatasetDto(
+    val id: Long = 0,
+    val name: String = "",
+    @SerialName("listing_count") val listingCount: Int = 0,
+    @SerialName("updated_at_display") val updatedAtDisplay: String = "",
+)
+
+@Serializable
+data class AgencyAdvisorWorkspaceListingDto(
+    val id: Long = 0,
+    val token: String = "",
+    val title: String = "",
+    val district: String = "",
+    @SerialName("price_label") val priceLabel: String = "",
+    @SerialName("created_at_display") val createdAtDisplay: String = "",
+    @SerialName("dataset_id") val datasetId: Long = 0,
+    @SerialName("dataset_name") val datasetName: String = "",
 )
 
 @Serializable
@@ -2746,6 +2838,7 @@ data class AgencyActivityFeedPayload(
     @SerialName("can_filter_advisor") val canFilterAdvisor: Boolean = false,
     @SerialName("event_type") val eventType: String = "",
     @SerialName("event_types") val eventTypes: List<String> = emptyList(),
+    @SerialName("event_type_options") val eventTypeOptions: List<AgencyEventTypeOptionDto> = emptyList(),
 )
 
 @Serializable
@@ -2887,9 +2980,16 @@ data class AgencyAdvisorPermissionsDto(
 data class AgencyActivityDto(
     val id: Long,
     @SerialName("event_type") val eventType: String = "",
+    @SerialName("event_label") val eventLabel: String = "",
     val title: String = "",
     @SerialName("created_at") val createdAt: String = "",
     @SerialName("actor_name") val actorName: String = "",
+)
+
+@Serializable
+data class AgencyEventTypeOptionDto(
+    val value: String = "",
+    val label: String = "",
 )
 
 @Serializable
@@ -3404,14 +3504,50 @@ data class AgencySpacePublisherDto(
 )
 
 @Serializable
+data class AgencySpaceLabelValueDto(
+    val label: String = "",
+    val value: String = "",
+)
+
+@Serializable
+data class AgencySpaceAmenityFlagDto(
+    val label: String = "",
+    val icon: String = "",
+)
+
+@Serializable
 data class AgencySpacePropertyPreviewDto(
     val id: Long = 0,
     val title: String = "",
     @SerialName("thumbnail_url") val thumbnailUrl: String = "",
+    val images: List<String> = emptyList(),
     @SerialName("price_label") val priceLabel: String = "",
+    @SerialName("area_label") val areaLabel: String = "",
     val region: String = "",
     @SerialName("property_type") val propertyType: String = "",
     @SerialName("deal_mode") val dealMode: String = "",
+    @SerialName("transaction_status") val transactionStatus: String = "",
+    val rooms: String = "",
+    val floor: Int? = null,
+    @SerialName("total_floors") val totalFloors: Int? = null,
+    @SerialName("build_year") val buildYear: Int? = null,
+    val city: String = "",
+    val district: String = "",
+    val neighborhood: String = "",
+    @SerialName("price_per_meter_label") val pricePerMeterLabel: String = "",
+    @SerialName("land_area_label") val landAreaLabel: String = "",
+    val address: String = "",
+    val phone: String = "",
+    @SerialName("tenant_phone") val tenantPhone: String = "",
+    @SerialName("owner_name") val ownerName: String = "",
+    val notes: String = "",
+    val amenities: String = "",
+    @SerialName("price_rows") val priceRows: List<AgencySpaceLabelValueDto> = emptyList(),
+    @SerialName("amenity_flags") val amenityFlags: List<AgencySpaceAmenityFlagDto> = emptyList(),
+    @SerialName("feature_data_rows") val featureDataRows: List<AgencySpaceLabelValueDto> = emptyList(),
+    @SerialName("has_map") val hasMap: Boolean = false,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 @Serializable
@@ -3421,7 +3557,23 @@ data class AgencySpaceCustomerPreviewDto(
     @SerialName("customer_type") val customerType: String = "",
     @SerialName("need_summary") val needSummary: String = "",
     @SerialName("budget_label") val budgetLabel: String = "",
+    @SerialName("rent_deposit_label") val rentDepositLabel: String = "",
+    @SerialName("finance_label") val financeLabel: String = "",
     val region: String = "",
+    val status: String = "",
+    val priority: String = "",
+    @SerialName("property_type") val propertyType: String = "",
+    @SerialName("area_label") val areaLabel: String = "",
+    @SerialName("rooms_label") val roomsLabel: String = "",
+    @SerialName("areas_display") val areasDisplay: String = "",
+    @SerialName("amenity_tags") val amenityTags: List<String> = emptyList(),
+    @SerialName("budget_rows") val budgetRows: List<AgencySpaceLabelValueDto> = emptyList(),
+    @SerialName("avatar_url") val avatarUrl: String = "",
+    val phone: String = "",
+    @SerialName("phone_alt") val phoneAlt: String = "",
+    val email: String = "",
+    val notes: String = "",
+    @SerialName("has_phone") val hasPhone: Boolean = false,
 )
 
 @Serializable

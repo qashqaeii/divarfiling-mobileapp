@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.feature.team
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -53,6 +54,7 @@ import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import ir.divarfiling.mobile.core.network.AgencyAdvisorDetailPayload
+import ir.divarfiling.mobile.core.network.TeamMemberDto
 import ir.divarfiling.mobile.core.network.AgencyAdvisorDto
 import ir.divarfiling.mobile.core.network.AgencyInvitationDto
 import ir.divarfiling.mobile.core.network.AgencyPerformanceMemberDto
@@ -159,9 +161,10 @@ class AgencyAdvisorsViewModel @Inject constructor(
     fun onInvitePhoneChange(v: String) = _uiState.update { it.copy(invitePhone = v) }
 
     fun submitInvite() {
-        val phone = _uiState.value.invitePhone.trim()
-        if (phone.isBlank()) {
-            _uiState.update { it.copy(error = "شماره موبایل الزامی است") }
+        if (_uiState.value.inviteSubmitting) return
+        val phone = ir.divarfiling.mobile.core.util.PhoneNormalizer.normalize(_uiState.value.invitePhone)
+        if (!ir.divarfiling.mobile.core.util.PhoneNormalizer.isValidIranMobile(phone)) {
+            _uiState.update { it.copy(error = "شماره موبایل ایران معتبر وارد کنید (مثلاً ۰۹۱۲۱۲۳۴۵۶۷)") }
             return
         }
         viewModelScope.launch {
@@ -215,6 +218,14 @@ data class AgencyAdvisorDetailUiState(
     val pendingRole: String? = null,
     val error: String? = null,
     val successMessage: String? = null,
+    val workspaceTab: Advisor360Tab = Advisor360Tab.OVERVIEW,
+    val workspace: ir.divarfiling.mobile.core.network.AgencyAdvisorWorkspacePayload? = null,
+    val workspaceLoading: Boolean = false,
+    val workspaceQuery: String = "",
+    val workspacePage: Int = 1,
+    val periodDays: Int = 30,
+    val filingDatasetId: String? = null,
+    val memberId: Long = 0L,
 )
 
 @HiltViewModel
@@ -223,16 +234,102 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AgencyAdvisorDetailUiState())
     val uiState: StateFlow<AgencyAdvisorDetailUiState> = _uiState.asStateFlow()
+    private var workspaceSearchJob: kotlinx.coroutines.Job? = null
 
     fun load(memberId: Long) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = it.detail == null, error = null) }
+            _uiState.update {
+                it.copy(
+                    isLoading = it.detail == null,
+                    error = null,
+                    memberId = memberId,
+                    workspacePage = 1,
+                    workspaceTab = Advisor360Tab.OVERVIEW,
+                    filingDatasetId = null,
+                    workspace = null,
+                )
+            }
             when (val result = repository.getAgencyAdvisorDetail(memberId)) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(detail = result.data, isLoading = false)
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoading = false, error = result.message)
+                }
+            }
+            loadWorkspace(memberId, reset = true)
+        }
+    }
+
+    fun selectWorkspaceTab(tab: Advisor360Tab) {
+        _uiState.update {
+            it.copy(
+                workspaceTab = tab,
+                workspacePage = 1,
+                filingDatasetId = if (tab == Advisor360Tab.FILING) it.filingDatasetId else null,
+            )
+        }
+        loadWorkspace(_uiState.value.memberId, reset = true)
+    }
+
+    fun onWorkspaceQueryChange(query: String) {
+        _uiState.update { it.copy(workspaceQuery = query, workspacePage = 1) }
+        workspaceSearchJob?.cancel()
+        workspaceSearchJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(350)
+            loadWorkspace(_uiState.value.memberId, reset = true)
+        }
+    }
+
+    fun setPeriodDays(days: Int) {
+        _uiState.update { it.copy(periodDays = days, workspacePage = 1) }
+        loadWorkspace(_uiState.value.memberId, reset = true)
+    }
+
+    fun openFilingDataset(id: Long) {
+        _uiState.update { it.copy(filingDatasetId = id.toString(), workspacePage = 1) }
+        loadWorkspace(_uiState.value.memberId, reset = true)
+    }
+
+    fun closeFilingDataset() {
+        _uiState.update { it.copy(filingDatasetId = null, workspacePage = 1) }
+        loadWorkspace(_uiState.value.memberId, reset = true)
+    }
+
+    fun loadMoreWorkspace() {
+        val state = _uiState.value
+        if (state.workspacePage >= (state.workspace?.numPages ?: 1)) return
+        _uiState.update { it.copy(workspacePage = it.workspacePage + 1) }
+        loadWorkspace(state.memberId, reset = false)
+    }
+
+    private fun loadWorkspace(memberId: Long, reset: Boolean) {
+        val state = _uiState.value
+        if (state.detail?.canViewWorkspace != true) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(workspaceLoading = true) }
+            val params = buildMap {
+                put("tab", state.workspaceTab.apiValue)
+                put("page", state.workspacePage.coerceAtLeast(1).toString())
+                put("period", state.periodDays.toString())
+                if (state.workspaceQuery.isNotBlank()) put("q", state.workspaceQuery.trim())
+                state.filingDatasetId?.let { put("dataset_id", it) }
+            }
+            when (val result = repository.getAgencyAdvisorWorkspace(memberId, params)) {
+                is ApiResult.Success -> {
+                    val merged = if (reset || state.workspace == null) {
+                        result.data
+                    } else {
+                        result.data.copy(
+                            items = state.workspace.items + result.data.items,
+                            datasets = state.workspace.datasets + result.data.datasets,
+                            listings = state.workspace.listings + result.data.listings,
+                        )
+                    }
+                    _uiState.update { it.copy(workspace = merged, workspaceLoading = false) }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(workspaceLoading = false, error = result.message)
                 }
             }
         }
@@ -347,8 +444,13 @@ data class AgencySeatsUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
-    val assignTarget: AgencyAdvisorDto? = null,
+    /** تخصیص: عضو انتخاب‌شده → انتخاب صندلی */
+    val assignMember: AgencyAdvisorDto? = null,
+    /** تخصیص: صندلی آزاد انتخاب‌شده → انتخاب عضو */
+    val assignLicense: ir.divarfiling.mobile.core.network.AgencyAvailableLicenseDto? = null,
     val showAssign: Boolean = false,
+    val releaseTarget: AgencyAdvisorDto? = null,
+    val showReleaseConfirm: Boolean = false,
     val isSubmitting: Boolean = false,
 )
 
@@ -381,19 +483,35 @@ class AgencySeatsViewModel @Inject constructor(
         }
     }
 
-    fun openAssign(member: AgencyAdvisorDto) = _uiState.update {
-        it.copy(showAssign = true, assignTarget = member)
+    fun openAssignForMember(member: AgencyAdvisorDto) = _uiState.update {
+        it.copy(showAssign = true, assignMember = member, assignLicense = null)
     }
 
-    fun dismissAssign() = _uiState.update { it.copy(showAssign = false, assignTarget = null) }
+    fun openAssignForLicense(license: ir.divarfiling.mobile.core.network.AgencyAvailableLicenseDto) =
+        _uiState.update {
+            it.copy(showAssign = true, assignLicense = license, assignMember = null)
+        }
 
-    fun assignSeat(licenseId: Long) {
-        val target = _uiState.value.assignTarget ?: return
+    fun dismissAssign() = _uiState.update {
+        it.copy(showAssign = false, assignMember = null, assignLicense = null)
+    }
+
+    fun assignSeat(licenseId: Long, memberUserId: Long) {
+        if (licenseId <= 0L || memberUserId <= 0L) {
+            _uiState.update { it.copy(error = "صندلی و مشاور باید مشخص باشند") }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (val result = repository.mutateAgencySeat(licenseId, "assign", target.userId)) {
+            when (val result = repository.mutateAgencySeat(licenseId, "assign", memberUserId)) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(isSubmitting = false, showAssign = false, successMessage = "صندلی تخصیص یافت")
+                    it.copy(
+                        isSubmitting = false,
+                        showAssign = false,
+                        assignMember = null,
+                        assignLicense = null,
+                        successMessage = "صندلی تخصیص یافت",
+                    )
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmitting = false, error = result.message)
@@ -403,11 +521,30 @@ class AgencySeatsViewModel @Inject constructor(
         }
     }
 
-    fun releaseSeat(licenseId: Long) {
+    fun openReleaseConfirm(member: AgencyAdvisorDto) {
+        val licenseId = member.licenseId
+        if (licenseId == null || licenseId <= 0L) {
+            _uiState.update { it.copy(error = "شناسه صندلی این عضو در دسترس نیست") }
+            return
+        }
+        _uiState.update { it.copy(showReleaseConfirm = true, releaseTarget = member) }
+    }
+
+    fun dismissReleaseConfirm() {
+        _uiState.update { it.copy(showReleaseConfirm = false, releaseTarget = null) }
+    }
+
+    fun confirmReleaseSeat() {
+        val licenseId = _uiState.value.releaseTarget?.licenseId ?: return
         viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, showReleaseConfirm = false) }
             when (val result = repository.mutateAgencySeat(licenseId, "unassign")) {
-                is ApiResult.Success -> _uiState.update { it.copy(successMessage = "صندلی آزاد شد") }
-                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(isSubmitting = false, successMessage = "صندلی آزاد شد", releaseTarget = null)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message, releaseTarget = null)
+                }
             }
             refresh()
         }
@@ -437,6 +574,11 @@ fun AgencyAdvisorDetailScreen(
     onBack: () -> Unit,
     onOpenPerformance: () -> Unit = {},
     onOpenSeats: () -> Unit = {},
+    onOpenContact: (Long) -> Unit = {},
+    onOpenProperty: (Long) -> Unit = {},
+    onOpenDeal: (Long) -> Unit = {},
+    onOpenContract: (Long) -> Unit = {},
+    onOpenListing: (String) -> Unit = {},
     viewModel: AgencyAdvisorDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -460,15 +602,6 @@ fun AgencyAdvisorDetailScreen(
             contentPadding = teamListContentPadding(),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
-            item {
-                DfHubPageHeader(
-                    title = state.detail?.member?.name ?: "مشاور",
-                    subtitle = state.detail?.member?.roleLabel.orEmpty(),
-                    sectionLabel = DfHeaderSections.TEAM,
-                    titleIconRes = DfDecorIcons.Users,
-                    onBack = onBack,
-                )
-            }
             when {
                 state.isLoading -> item { DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad)) }
                 state.error != null -> item {
@@ -483,6 +616,21 @@ fun AgencyAdvisorDetailScreen(
                 }
                 state.detail != null -> {
                     val d = state.detail!!
+                    val tabCounts = mapOf(
+                        Advisor360Tab.CONTACTS to d.sectionCounts.contacts,
+                        Advisor360Tab.PROPERTIES to d.sectionCounts.properties,
+                        Advisor360Tab.FILING to d.sectionCounts.datasets,
+                        Advisor360Tab.DEALS to d.sectionCounts.deals,
+                        Advisor360Tab.CONTRACTS to d.sectionCounts.contracts,
+                    )
+                    item {
+                        TeamAgencyScreenHeader(
+                            title = "Advisor 360",
+                            subtitle = d.member.name,
+                            onBack = onBack,
+                            modifier = Modifier.padding(bottom = AppSpacing.xs),
+                        )
+                    }
                     item {
                         TeamAdvisorProfileHeader(
                             name = d.member.name,
@@ -494,84 +642,57 @@ fun AgencyAdvisorDetailScreen(
                         )
                     }
                     item {
-                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                Text("عضویت", fontWeight = FontWeight.Bold)
-                                if (d.email.isNotBlank()) Text("ایمیل: ${d.email}")
-                                if (d.seat.expiresAt.isNotBlank()) {
-                                    Text("انقضای صندلی: ${d.seat.expiresAt}")
-                                }
-                                if (d.seat.status.isNotBlank()) {
-                                    Text("وضعیت لایسنس: ${d.seat.status}")
-                                }
+                        AgencyAdvisor360Tabs(
+                            selected = state.workspaceTab,
+                            counts = tabCounts,
+                            onSelect = viewModel::selectWorkspaceTab,
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
+                    }
+                    item {
+                        AgencyAdvisor360WorkspaceBody(
+                            tab = state.workspaceTab,
+                            detail = d,
+                            workspace = state.workspace,
+                            workspaceLoading = state.workspaceLoading,
+                            workspaceQuery = state.workspaceQuery,
+                            periodDays = state.periodDays,
+                            filingDatasetId = state.filingDatasetId,
+                            onQueryChange = viewModel::onWorkspaceQueryChange,
+                            onPeriodChange = viewModel::setPeriodDays,
+                            onOpenDataset = viewModel::openFilingDataset,
+                            onBackFromDataset = viewModel::closeFilingDataset,
+                            onLoadMore = viewModel::loadMoreWorkspace,
+                            onOpenContact = onOpenContact,
+                            onOpenProperty = onOpenProperty,
+                            onOpenDeal = onOpenDeal,
+                            onOpenContract = onOpenContract,
+                            onOpenListing = onOpenListing,
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
+                    }
+                    if (d.permissions.canSetRole || d.permissions.canManageSeat) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = pad),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                            ) {
                                 if (d.permissions.canSetRole) {
                                     DfSecondaryButton(
                                         text = "تغییر نقش",
                                         onClick = viewModel::openRoleSheet,
                                         enabled = !state.isSubmitting,
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier.weight(1f),
                                     )
                                 }
-                            }
-                        }
-                    }
-                    item {
-                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                Text("دامنه کاری", fontWeight = FontWeight.Bold)
-                                Text("سرنخ فعال: ${DateUtils.toPersianDigits(d.stats.activeLeads.toString())}")
-                                Text("معامله فعال: ${DateUtils.toPersianDigits(d.stats.activeDeals.toString())}")
-                            }
-                        }
-                    }
-                    item {
-                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                Text("عملکرد (۳۰ روز)", fontWeight = FontWeight.Bold)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text("تماس: ${DateUtils.toPersianDigits(d.performance.calls.toString())}")
-                                    Text("بازدید: ${DateUtils.toPersianDigits(d.performance.visits.toString())}")
-                                }
-                                Text("مخاطب/سرنخ: ${DateUtils.toPersianDigits(d.performance.contacts.toString())}")
-                                Text("معاملات فعال: ${DateUtils.toPersianDigits(d.performance.activeDeals.toString())}")
-                                Text("بسته‌شده: ${DateUtils.toPersianDigits(d.performance.dealsClosed.toString())}")
-                                d.performance.rank?.let { rank ->
-                                    Text("رتبه تیم: ${DateUtils.toPersianDigits(rank.toString())}")
-                                }
-                                LinearProgressIndicator(
-                                    progress = { d.performance.scorePct / 100f },
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                                Text(
-                                    "امتیاز: ${DateUtils.toPersianDigits(d.performance.scorePct.toString())}٪",
-                                    style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
-                                )
-                                DfSecondaryButton(text = "عملکرد تیم", onClick = onOpenPerformance)
                                 if (d.permissions.canManageSeat) {
-                                    DfSecondaryButton(text = "مدیریت صندلی", onClick = onOpenSeats)
-                                }
-                            }
-                        }
-                    }
-                    if (d.goals.isNotEmpty()) {
-                        item {
-                            DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                    Text("اهداف", fontWeight = FontWeight.Bold)
-                                    d.goals.forEach { goal ->
-                                        Text("${goal.metric} · ${goal.periodLabel}")
-                                        LinearProgressIndicator(
-                                            progress = { goal.pct / 100f },
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                        Text(
-                                            "${DateUtils.toPersianDigits(goal.actual.toString())} / ${DateUtils.toPersianDigits(goal.target.toString())}",
-                                            style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
-                                        )
-                                    }
+                                    DfSecondaryButton(
+                                        text = "صندلی‌ها",
+                                        onClick = onOpenSeats,
+                                        modifier = Modifier.weight(1f),
+                                    )
                                 }
                             }
                         }
@@ -588,20 +709,14 @@ fun AgencyAdvisorDetailScreen(
                             )
                         }
                     }
-                    if (d.recentActivity.isNotEmpty()) {
-                        item {
-                            DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                    Text("فعالیت اخیر", fontWeight = FontWeight.Bold)
-                                    d.recentActivity.take(5).forEach { act ->
-                                        Text(
-                                            "${act.title} · ${DateUtils.formatRelativeFa(act.createdAt)}",
-                                            style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                    item {
+                        DfSecondaryButton(
+                            text = "مقایسه در عملکرد تیم",
+                            onClick = onOpenPerformance,
+                            modifier = Modifier
+                                .padding(horizontal = pad)
+                                .fillMaxWidth(),
+                        )
                     }
                 }
             }
@@ -677,11 +792,9 @@ fun AgencyPerformanceScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfHubPageHeader(
+                    TeamAgencyScreenHeader(
                         title = "عملکرد تیم",
                         subtitle = "خلاصه تصمیم‌یار",
-                        sectionLabel = DfHeaderSections.TEAM,
-                        titleIconRes = DfDecorIcons.Users,
                         onBack = onBack,
                     )
                 }
@@ -699,24 +812,46 @@ fun AgencyPerformanceScreen(
                         }
                     }
                 }
+                item {
+                    val rangeLabel = when (state.rangeKey) {
+                        "today" -> "امروز"
+                        "month" -> "این ماه"
+                        else -> "این هفته"
+                    }
+                    AgencyPerformanceHero(
+                        rangeLabel = rangeLabel,
+                        totals = state.totals,
+                        memberCount = state.members.size,
+                        modifier = Modifier.padding(horizontal = pad),
+                    )
+                }
+                if (state.members.size >= 2) {
+                    item {
+                        AgencyPerformanceScoreChart(
+                            members = state.members,
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
+                    }
+                }
                 if (state.totals.isNotEmpty()) {
                     item {
-                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(AppSpacing.sm),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                            ) {
-                                state.totals.entries.take(4).forEach { (key, value) ->
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(
-                                            DateUtils.toPersianDigits(value.toString()),
-                                            fontWeight = FontWeight.Bold,
-                                            color = DfThemeColors.primary(),
+                        Column(
+                            modifier = Modifier.padding(horizontal = pad),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            state.totals.entries.chunked(2).forEach { row ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                ) {
+                                    row.forEach { (key, value) ->
+                                        AgencyPerformanceMetricCard(
+                                            label = AgencyPerformancePresentation.totalLabel(key),
+                                            value = DateUtils.toPersianDigits(value.toString()),
+                                            modifier = Modifier.weight(1f),
                                         )
-                                        Text(key, style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall)
                                     }
+                                    if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }
@@ -724,22 +859,10 @@ fun AgencyPerformanceScreen(
                 }
                 if (state.goals.isNotEmpty()) {
                     item {
-                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                Text("اهداف تیم", fontWeight = FontWeight.Bold)
-                                state.goals.forEach { goal ->
-                                    Text("${goal.memberName} · ${goal.metric}")
-                                    LinearProgressIndicator(
-                                        progress = { goal.pct / 100f },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                    Text(
-                                        "${DateUtils.toPersianDigits(goal.actual.toString())} / ${DateUtils.toPersianDigits(goal.target.toString())}",
-                                        style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
-                                    )
-                                }
-                            }
-                        }
+                        AgencyPerformanceGoalsPanel(
+                            goals = state.goals,
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
                     }
                 }
                 when {
@@ -787,35 +910,89 @@ fun AgencySeatsScreen(
         viewModel.refresh()
         onPauseOrDispose { }
     }
-    if (state.showAssign && state.assignTarget != null) {
+    if (state.showAssign) {
         val licenses = state.payload?.availableLicenses.orEmpty()
+        val unassigned = state.payload?.members.orEmpty().filter { !it.resolvedHasSeat() }
         DfModalBottomSheet(onDismissRequest = viewModel::dismissAssign) {
-            DfSheetScaffold(
-                title = "تخصیص صندلی",
-                subtitle = state.assignTarget!!.name,
-                onClose = viewModel::dismissAssign,
-                footer = {
-                    DfSheetActions(
-                        primaryText = "بستن",
-                        onPrimary = viewModel::dismissAssign,
-                        onSecondary = viewModel::dismissAssign,
-                        secondaryText = "انصراف",
-                    )
-                },
-            ) {
-                licenses.forEach { lic ->
-                    DfPrimaryButton(
-                        text = "صندلی #${lic.sequence} · ${lic.plan}",
-                        onClick = { viewModel.assignSeat(lic.id) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.isSubmitting,
-                    )
+            when {
+                state.assignMember != null -> {
+                    val target = state.assignMember!!
+                    DfSheetScaffold(
+                        title = "انتخاب صندلی",
+                        subtitle = "تخصیص به ${target.name}",
+                        onClose = viewModel::dismissAssign,
+                    ) {
+                        Text(
+                            "یک صندلی آزاد را برای این مشاور انتخاب کنید.",
+                            style = ir.divarfiling.mobile.core.design.AppTypography.bodyDescription,
+                            color = DfThemeColors.textSecondary(),
+                        )
+                        licenses.forEach { lic ->
+                            DfPrimaryButton(
+                                text = "صندلی ${DateUtils.toPersianDigits(lic.sequence.toString())} · ${lic.plan}",
+                                onClick = { viewModel.assignSeat(lic.id, target.userId) },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !state.isSubmitting,
+                            )
+                        }
+                        if (licenses.isEmpty()) {
+                            DfEmptyState(
+                                title = "صندلی آزاد نیست",
+                                subtitle = "ابتدا صندلی آزاد کنید یا لایسنس جدید بخرید.",
+                                variant = DfEmptyVariant.Empty,
+                            )
+                        }
+                    }
                 }
-                if (licenses.isEmpty()) {
-                    Text("صندلی آزاد وجود ندارد")
+                state.assignLicense != null -> {
+                    val license = state.assignLicense!!
+                    DfSheetScaffold(
+                        title = "انتخاب مشاور",
+                        subtitle = "صندلی ${DateUtils.toPersianDigits(license.sequence.toString())}",
+                        onClose = viewModel::dismissAssign,
+                    ) {
+                        Text(
+                            "مشاور بدون صندلی را برای این لایسنس انتخاب کنید.",
+                            style = ir.divarfiling.mobile.core.design.AppTypography.bodyDescription,
+                            color = DfThemeColors.textSecondary(),
+                        )
+                        unassigned.forEach { member ->
+                            TeamMemberSelectRow(
+                                member = TeamMemberDto(
+                                    id = member.id,
+                                    userId = member.userId,
+                                    name = member.name,
+                                    phone = member.phone,
+                                    role = member.role,
+                                    roleLabel = member.roleLabel,
+                                    title = member.title,
+                                ),
+                                selected = false,
+                                onClick = { viewModel.assignSeat(license.id, member.userId) },
+                            )
+                        }
+                        if (unassigned.isEmpty()) {
+                            DfEmptyState(
+                                title = "عضو بدون صندلی نیست",
+                                subtitle = "ابتدا مشاور جدید دعوت کنید یا صندلی آزاد کنید.",
+                                variant = DfEmptyVariant.Empty,
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+    if (state.showReleaseConfirm && state.releaseTarget != null) {
+        val target = state.releaseTarget!!
+        DfConfirmBottomSheet(
+            title = "آزادسازی صندلی",
+            message = "صندلی ${target.seatSummaryLabel()} از ${target.name} آزاد می‌شود. ادامه می‌دهید؟",
+            onConfirm = viewModel::confirmReleaseSeat,
+            onDismiss = viewModel::dismissReleaseConfirm,
+            destructive = true,
+            isSubmitting = state.isSubmitting,
+        )
     }
     Scaffold(containerColor = DfScreenContainerColor, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         DfPullRefresh(
@@ -828,13 +1005,11 @@ fun AgencySeatsScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfHubPageHeader(
+                    TeamAgencyScreenHeader(
                         title = "لایسنس‌ها و صندلی‌ها",
                         subtitle = state.payload?.seats?.let {
                             "${DateUtils.toPersianDigits(it.assigned.toString())} از ${DateUtils.toPersianDigits(it.total.toString())} تخصیص"
                         } ?: "",
-                        sectionLabel = DfHeaderSections.TEAM,
-                        titleIconRes = DfDecorIcons.Users,
                         onBack = onBack,
                     )
                 }
@@ -854,35 +1029,48 @@ fun AgencySeatsScreen(
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
-                    else -> items(state.payload?.members.orEmpty(), key = { it.id }) { member ->
-                        val hasSeat = member.resolvedHasSeat()
-                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(AppSpacing.sm),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(member.name, fontWeight = FontWeight.SemiBold)
-                                    Text(
-                                        member.seatSummaryLabel(),
-                                        style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
-                                        color = DfThemeColors.textMuted(),
-                                    )
-                                }
-                                if (!hasSeat) {
-                                    DfPrimaryButton(
-                                        text = "تخصیص",
-                                        onClick = { viewModel.openAssign(member) },
-                                    )
-                                } else if (member.licenseId != null) {
-                                    DfSecondaryButton(
-                                        text = "آزادسازی",
-                                        onClick = { viewModel.releaseSeat(member.licenseId!!) },
-                                    )
-                                }
+                    else -> {
+                        val assigned = state.payload?.members.orEmpty().filter { it.resolvedHasSeat() }
+                        val unassigned = state.payload?.members.orEmpty().filter { !it.resolvedHasSeat() }
+                        if (assigned.isNotEmpty()) {
+                            item {
+                                TeamSectionLabel(title = "صندلی‌های تخصیص‌یافته", modifier = Modifier.padding(horizontal = pad))
+                            }
+                            items(assigned, key = { "seat-${it.id}" }) { member ->
+                                AgencySeatOccupiedRow(
+                                    member = member,
+                                    onRelease = { viewModel.openReleaseConfirm(member) },
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                        }
+                        val freeLicenses = state.payload?.availableLicenses.orEmpty()
+                        if (freeLicenses.isNotEmpty()) {
+                            item {
+                                TeamSectionLabel(
+                                    title = "صندلی‌های آزاد",
+                                    subtitle = "${DateUtils.toPersianDigits(freeLicenses.size.toString())} صندلی",
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                            items(freeLicenses, key = { "free-${it.id}" }) { lic ->
+                                AgencySeatFreeRow(
+                                    license = lic,
+                                    onAssign = { viewModel.openAssignForLicense(lic) },
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                        }
+                        if (unassigned.isNotEmpty()) {
+                            item {
+                                TeamSectionLabel(title = "اعضا بدون صندلی", modifier = Modifier.padding(horizontal = pad))
+                            }
+                            items(unassigned, key = { "no-seat-${it.id}" }) { member ->
+                                AgencyMemberWithoutSeatRow(
+                                    member = member,
+                                    onAssign = { viewModel.openAssignForMember(member) },
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
                             }
                         }
                     }

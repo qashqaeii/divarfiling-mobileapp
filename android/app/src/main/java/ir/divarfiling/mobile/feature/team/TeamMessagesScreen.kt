@@ -2,12 +2,15 @@ package ir.divarfiling.mobile.feature.team
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -16,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,22 +28,14 @@ import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
-import ir.divarfiling.mobile.core.design.components.DfExtendedFab
-import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
-import ir.divarfiling.mobile.core.design.components.DfFilterOption
-import ir.divarfiling.mobile.core.design.components.DfHeaderSections
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
-import ir.divarfiling.mobile.core.design.components.DfSheetSection
-import ir.divarfiling.mobile.core.design.components.DfTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,14 +58,14 @@ fun TeamMessagesScreen(
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleCompose(false) }) {
             DfSheetScaffold(
                 title = "پیام جدید",
-                subtitle = "ارسال مستقیم به یک عضو تیم",
+                subtitle = "ارسال مستقیم به همکار",
                 icon = DfIcons.MessageCircle,
-                iconContainerColor = DfThemeColors.infoContainer(),
-                iconTint = DfThemeColors.info(),
+                iconContainerColor = DfThemeColors.primaryContainer(),
+                iconTint = DfThemeColors.primary(),
                 onClose = { viewModel.toggleCompose(false) },
                 footer = {
                     DfSheetActions(
-                        primaryText = if (state.isSubmitting) "در حال ارسال…" else "ارسال",
+                        primaryText = if (state.isSubmitting) "در حال ارسال…" else "ارسال پیام",
                         onPrimary = viewModel::sendDirect,
                         primaryEnabled = !state.isSubmitting &&
                             state.selectedMemberId != null &&
@@ -79,23 +75,15 @@ fun TeamMessagesScreen(
                     )
                 },
             ) {
-                DfSheetSection(title = "گیرنده") {
-                    TeamMemberSelectList(
-                        members = state.members,
-                        selectedId = state.selectedMemberId,
-                        onSelect = viewModel::onMemberSelect,
-                        emptyLabel = "عضوی برای ارسال پیام نیست",
-                    )
-                }
-                DfSheetSection(title = "متن پیام") {
-                    DfTextField(
-                        value = state.composeBody,
-                        onValueChange = viewModel::onComposeBodyChange,
-                        label = "پیام",
-                        singleLine = false,
-                        minLines = 4,
-                    )
-                }
+                TeamMessagesComposeSheetContent(
+                    members = state.members,
+                    query = state.composeMemberQuery,
+                    onQueryChange = viewModel::onComposeMemberQueryChange,
+                    selectedMemberId = state.selectedMemberId,
+                    onMemberSelect = viewModel::onMemberSelect,
+                    body = state.composeBody,
+                    onBodyChange = viewModel::onComposeBodyChange,
+                )
             }
         }
     }
@@ -104,11 +92,13 @@ fun TeamMessagesScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            DfExtendedFab(
-                text = "پیام جدید",
-                icon = DfIcons.MessageCircle,
+            FloatingActionButton(
                 onClick = { viewModel.toggleCompose(true) },
-            )
+                containerColor = DfThemeColors.primary(),
+                contentColor = Color.White,
+            ) {
+                Icon(DfIcons.MessageCircle, contentDescription = "پیام جدید")
+            }
         },
     ) { padding ->
         Box(
@@ -117,61 +107,60 @@ fun TeamMessagesScreen(
                 .padding(padding),
         ) {
             TeamAmbientBackground()
-            DfPullRefresh(
-                isRefreshing = state.isRefreshing,
-                onRefresh = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                LazyColumn(
-                    contentPadding = teamListContentPadding(bottomExtra = 72.dp),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+            Column(modifier = Modifier.fillMaxSize()) {
+                TeamAgencyScreenHeader(
+                    title = "صندوق پیام",
+                    subtitle = if (unreadThreads > 0) {
+                        "${DateUtils.toPersianDigits(unreadThreads.toString())} پیام خوانده‌نشده"
+                    } else {
+                        "گفت‌وگوهای داخلی آژانس"
+                    },
+                    onBack = onBack,
+                )
+                DfPullRefresh(
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = { viewModel.refresh() },
+                    modifier = Modifier.fillMaxSize(),
                 ) {
-                    item {
-                        DfHubPageHeader(
-                            title = "صندوق پیام",
-                            subtitle = if (unreadThreads > 0) {
-                                "${DateUtils.toPersianDigits(unreadThreads.toString())} پیام خوانده‌نشده"
-                            } else {
-                                "گفت‌وگوهای داخلی آژانس"
-                            },
-                            sectionLabel = DfHeaderSections.TEAM,
-                            titleIconRes = DfDecorIcons.Users,
-                            onBack = onBack,
-                        )
-                    }
-                    item {
-                        DfFilterChipRow(
-                            options = TeamMessageFolder.entries.map { DfFilterOption(it, it.label) },
-                            selected = state.folder,
-                            onSelect = viewModel::setFolder,
-                            modifier = Modifier.padding(horizontal = pad),
-                        )
-                    }
-                    state.error?.let { err ->
-                        if (!state.isLoading && state.threads.isEmpty()) {
-                            item {
-                                DfErrorBanner(message = err, modifier = Modifier.padding(horizontal = pad))
+                    LazyColumn(
+                        contentPadding = teamListContentPadding(bottomExtra = 64.dp),
+                    ) {
+                        item {
+                            TeamMessageFolderBar(
+                                selected = state.folder,
+                                onSelect = viewModel::setFolder,
+                                modifier = Modifier.padding(horizontal = pad, vertical = AppSpacing.xs),
+                            )
+                        }
+                        state.error?.let { err ->
+                            if (!state.isLoading && state.threads.isEmpty()) {
+                                item {
+                                    DfErrorBanner(message = err, modifier = Modifier.padding(horizontal = pad))
+                                }
                             }
                         }
-                    }
-                    when {
-                        state.isLoading -> item {
-                            DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
-                        }
-                        state.threads.isEmpty() && state.error == null -> item {
-                            DfEmptyState(
-                                title = "هنوز پیامی ندارید",
-                                subtitle = "اولین پیام مستقیم به همکار را از دکمه پایین بفرستید.",
-                                variant = DfEmptyVariant.Empty,
-                                modifier = Modifier.padding(horizontal = pad),
-                            )
-                        }
-                        else -> items(state.threads, key = { it.id }) { thread ->
-                            TeamThreadListCard(
-                                thread = thread,
-                                onClick = { onOpenThread(thread.id) },
-                                modifier = Modifier.padding(horizontal = pad),
-                            )
+                        when {
+                            state.isLoading -> item {
+                                DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad, vertical = AppSpacing.sm))
+                            }
+                            state.threads.isEmpty() && state.error == null -> item {
+                                DfEmptyState(
+                                    title = "هنوز پیامی ندارید",
+                                    subtitle = "اولین پیام را با دکمه + بفرستید.",
+                                    variant = DfEmptyVariant.Empty,
+                                    modifier = Modifier.padding(horizontal = pad, vertical = AppSpacing.lg),
+                                )
+                            }
+                            else -> items(state.threads, key = { it.id }) { thread ->
+                                TeamThreadListCard(
+                                    thread = thread,
+                                    onClick = { onOpenThread(thread.id) },
+                                )
+                                Divider(
+                                    color = DfThemeColors.outlineSubtle().copy(alpha = 0.5f),
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
                         }
                     }
                 }

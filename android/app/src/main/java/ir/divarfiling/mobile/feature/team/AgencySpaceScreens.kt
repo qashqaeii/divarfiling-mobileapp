@@ -46,6 +46,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.components.DfImageGallery
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
@@ -82,6 +84,9 @@ data class AgencySpaceListUiState(
     val tab: String = AgencySpaceTab.ALL,
     val query: String = "",
     val publicationStatus: String = "active",
+    val filters: AgencySpaceFilters = AgencySpaceFilters(),
+    val draftFilters: AgencySpaceFilters = AgencySpaceFilters(),
+    val showFilterSheet: Boolean = false,
     val canModerateSpace: Boolean = false,
     val items: List<AgencySpaceItemDto> = emptyList(),
     val kpis: AgencySpaceHeaderKpisDto? = null,
@@ -99,6 +104,7 @@ data class AgencySpaceListUiState(
     val bulkSubmitting: Boolean = false,
     val pendingBulkAction: String? = null,
     val isLoadingMore: Boolean = false,
+    val publisherOptions: List<ir.divarfiling.mobile.core.network.TeamMemberDto> = emptyList(),
 )
 
 @HiltViewModel
@@ -121,6 +127,23 @@ class AgencySpaceListViewModel @Inject constructor(
                             kpis = home.data.spaceKpis,
                         )
                     }
+                }
+                is ApiResult.Error -> Unit
+            }
+            when (val advisors = repository.getAgencyAdvisors()) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(publisherOptions = advisors.data.advisors.map { a ->
+                        ir.divarfiling.mobile.core.network.TeamMemberDto(
+                            id = a.id,
+                            userId = a.userId,
+                            name = a.name,
+                            phone = a.phone,
+                            role = a.role,
+                            roleLabel = a.roleLabel,
+                            title = a.title,
+                            isActive = a.isActive,
+                        )
+                    })
                 }
                 is ApiResult.Error -> Unit
             }
@@ -147,6 +170,51 @@ class AgencySpaceListViewModel @Inject constructor(
         }
     }
 
+    fun openFilters() {
+        _uiState.update { it.copy(showFilterSheet = true, draftFilters = it.filters) }
+    }
+
+    fun dismissFilters() {
+        _uiState.update { it.copy(showFilterSheet = false) }
+    }
+
+    fun updateDraftFilters(transform: (AgencySpaceFilters) -> AgencySpaceFilters) {
+        _uiState.update { it.copy(draftFilters = transform(it.draftFilters)) }
+    }
+
+    fun applyFilters() {
+        _uiState.update {
+            it.copy(
+                filters = it.draftFilters,
+                showFilterSheet = false,
+                page = 1,
+            )
+        }
+        refresh(true)
+    }
+
+    fun clearFilters() {
+        _uiState.update {
+            it.copy(
+                filters = AgencySpaceFilters(),
+                draftFilters = AgencySpaceFilters(),
+                page = 1,
+            )
+        }
+        refresh(true)
+    }
+
+    private fun queryParamsFor(state: AgencySpaceListUiState, page: Int): Map<String, String> =
+        buildMap {
+            put("tab", state.tab)
+            if (state.query.isNotBlank()) put("q", state.query.trim())
+            put("page", page.coerceAtLeast(1).toString())
+            if (state.canModerateSpace && state.publicationStatus != "active") {
+                put("publication_status", state.publicationStatus)
+            }
+            state.filters.appendQueryParams(state.tab, this)
+        }
+
     fun refresh(initial: Boolean = false) {
         viewModelScope.launch {
             if (initial) {
@@ -160,14 +228,7 @@ class AgencySpaceListViewModel @Inject constructor(
                     error = null,
                 )
             }
-            val params = buildMap {
-                put("tab", state.tab)
-                if (state.query.isNotBlank()) put("q", state.query.trim())
-                put("page", state.page.coerceAtLeast(1).toString())
-                if (state.canModerateSpace && state.publicationStatus != "active") {
-                    put("publication_status", state.publicationStatus)
-                }
-            }
+            val params = queryParamsFor(state, state.page)
             when (val result = repository.getAgencySpaceItems(params)) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(
@@ -200,14 +261,7 @@ class AgencySpaceListViewModel @Inject constructor(
         viewModelScope.launch {
             val nextPage = state.page + 1
             _uiState.update { it.copy(isLoadingMore = true, error = null) }
-            val params = buildMap {
-                put("tab", state.tab)
-                if (state.query.isNotBlank()) put("q", state.query.trim())
-                put("page", nextPage.toString())
-                if (state.canModerateSpace && state.publicationStatus != "active") {
-                    put("publication_status", state.publicationStatus)
-                }
-            }
+            val params = queryParamsFor(state, nextPage)
             when (val result = repository.getAgencySpaceItems(params)) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(
@@ -471,15 +525,13 @@ fun AgencySpaceListScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
             ) {
                 item {
-                    DfHubPageHeader(
+                    TeamAgencyScreenHeader(
                         title = "فضای آژانس",
                         subtitle = if (state.total > 0) {
                             "${ir.divarfiling.mobile.core.design.DateUtils.toPersianDigits(state.total.toString())} انتشار"
                         } else {
                             "اشتراک فایل و مخاطب با تیم"
                         },
-                        sectionLabel = DfHeaderSections.TEAM,
-                        titleIconRes = DfDecorIcons.Layers,
                         onBack = onBack,
                     )
                 }
@@ -495,6 +547,32 @@ fun AgencySpaceListScreen(
                         placeholder = "جستجو در فضای آژانس",
                         modifier = Modifier.padding(horizontal = pad),
                     )
+                }
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = pad),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    ) {
+                        val filterCount = state.filters.activeCount()
+                        DfSecondaryButton(
+                            text = if (filterCount > 0) {
+                                "فیلتر (${DateUtils.toPersianDigits(filterCount.toString())})"
+                            } else {
+                                "فیلتر پیشرفته"
+                            },
+                            onClick = viewModel::openFilters,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (filterCount > 0) {
+                            DfSecondaryButton(
+                                text = "حذف فیلتر",
+                                onClick = viewModel::clearFilters,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
                 item {
                     AgencySpaceTabRow(
@@ -590,6 +668,21 @@ fun AgencySpaceListScreen(
         }
     }
 
+    if (state.showFilterSheet) {
+        AgencySpaceFilterSheet(
+            tab = state.tab,
+            filters = state.draftFilters,
+            publishers = state.publisherOptions,
+            onDismiss = viewModel::dismissFilters,
+            onFiltersChange = { next -> viewModel.updateDraftFilters { _ -> next } },
+            onApply = viewModel::applyFilters,
+            onClear = {
+                viewModel.updateDraftFilters { AgencySpaceFilters() }
+                viewModel.clearFilters()
+            },
+        )
+    }
+
     state.pendingBulkAction?.let { action ->
         val label = if (action == "hide") "مخفی‌سازی گروهی" else "بازگردانی گروهی"
         DfConfirmBottomSheet(
@@ -658,11 +751,9 @@ fun AgencySpaceDetailScreen(
         ) {
             TeamAmbientBackground()
             Column(modifier = Modifier.fillMaxSize()) {
-            DfHubPageHeader(
+            TeamAgencyScreenHeader(
                 title = state.item?.property?.title ?: state.item?.customer?.name ?: "فضای آژانس",
                 subtitle = state.item?.publishedAtDisplay?.takeIf { it.isNotBlank() } ?: "جزئیات انتشار",
-                sectionLabel = DfHeaderSections.TEAM,
-                titleIconRes = DfDecorIcons.Layers,
                 onBack = onBack,
             )
             when {
@@ -693,38 +784,95 @@ fun AgencySpaceDetailScreen(
                                 modifier = Modifier.padding(horizontal = pad),
                             )
                         }
-                        if (isProperty && !item.property?.thumbnailUrl.isNullOrBlank()) {
-                            item {
-                                DfListingImage(
-                                    thumbnailUrl = item.property?.thumbnailUrl,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = pad)
-                                        .height(180.dp),
-                                    shape = RoundedCornerShape(AppSpacing.md),
-                                    contentScale = ContentScale.Crop,
-                                    contentDescription = item.property?.title,
-                                )
+                        item.property?.let { prop ->
+                            val gallery = prop.images.ifEmpty {
+                                listOfNotNull(prop.thumbnailUrl.takeIf { it.isNotBlank() })
+                            }
+                            if (gallery.isNotEmpty()) {
+                                item {
+                                    DfImageGallery(
+                                        images = gallery,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = pad),
+                                        heroHeight = 220.dp,
+                                    )
+                                }
                             }
                         }
                         item {
                             AgencySpaceDetailSection(
-                                title = "اطلاعات کلیدی",
+                                title = if (isProperty) "مشخصات ملک" else "نیاز مشتری",
                                 modifier = Modifier.padding(horizontal = pad),
                             ) {
                                 item.property?.let { prop ->
+                                    prop.priceRows.forEach { row ->
+                                        if (row.label.isNotBlank() && row.value.isNotBlank()) {
+                                            detailRow(row.label, row.value)
+                                        }
+                                    }
+                                    if (prop.priceLabel.isNotBlank() && prop.priceRows.isEmpty()) {
+                                        detailRow("قیمت", prop.priceLabel)
+                                    }
+                                    if (prop.areaLabel.isNotBlank()) detailRow("متراژ", prop.areaLabel)
+                                    if (prop.landAreaLabel.isNotBlank()) detailRow("زمین", prop.landAreaLabel)
+                                    if (prop.rooms.isNotBlank()) detailRow("خواب", prop.rooms)
+                                    prop.floor?.let { detailRow("طبقه", it.toString()) }
+                                    prop.totalFloors?.let { detailRow("تعداد طبقات", it.toString()) }
+                                    prop.buildYear?.let { detailRow("سال ساخت", it.toString()) }
                                     if (prop.region.isNotBlank()) detailRow("منطقه", prop.region)
-                                    if (prop.priceLabel.isNotBlank()) detailRow("قیمت", prop.priceLabel)
                                     if (prop.propertyType.isNotBlank()) detailRow("نوع ملک", prop.propertyType)
                                     if (prop.dealMode.isNotBlank()) detailRow("معامله", prop.dealMode)
+                                    if (prop.transactionStatus.isNotBlank()) {
+                                        detailRow("وضعیت معامله", prop.transactionStatus)
+                                    }
+                                    if (prop.pricePerMeterLabel.isNotBlank()) {
+                                        detailRow("قیمت هر متر", prop.pricePerMeterLabel)
+                                    }
+                                    prop.featureDataRows.forEach { row ->
+                                        if (row.label.isNotBlank() && row.value.isNotBlank()) {
+                                            detailRow(row.label, row.value)
+                                        }
+                                    }
+                                    if (prop.amenityFlags.isNotEmpty()) {
+                                        detailRow(
+                                            "امکانات",
+                                            prop.amenityFlags.map { it.label }.filter { it.isNotBlank() }.joinToString(" · "),
+                                        )
+                                    }
+                                    if (prop.address.isNotBlank()) detailRow("آدرس", prop.address)
+                                    if (prop.ownerName.isNotBlank()) detailRow("مالک", prop.ownerName)
+                                    if (prop.phone.isNotBlank()) detailRow("تماس", prop.phone)
+                                    if (prop.notes.isNotBlank()) detailRow("یادداشت ملک", prop.notes)
                                 }
                                 item.customer?.let { cust ->
-                                    if (cust.customerType.isNotBlank()) detailRow("نوع نیاز", cust.customerType)
+                                    if (cust.customerType.isNotBlank()) detailRow("نوع مشتری", cust.customerType)
+                                    if (cust.status.isNotBlank()) detailRow("وضعیت", cust.status)
+                                    if (cust.priority.isNotBlank()) detailRow("اولویت", cust.priority)
                                     if (cust.needSummary.isNotBlank()) detailRow("نیاز", cust.needSummary)
-                                    if (cust.budgetLabel.isNotBlank()) detailRow("بودجه", cust.budgetLabel)
+                                    cust.budgetRows.forEach { row ->
+                                        if (row.label.isNotBlank() && row.value.isNotBlank()) {
+                                            detailRow(row.label, row.value)
+                                        }
+                                    }
+                                    if (cust.budgetLabel.isNotBlank() && cust.budgetRows.isEmpty()) {
+                                        detailRow("بودجه", cust.budgetLabel)
+                                    }
+                                    if (cust.rentDepositLabel.isNotBlank()) {
+                                        detailRow("رهن و اجاره", cust.rentDepositLabel)
+                                    }
+                                    if (cust.areaLabel.isNotBlank()) detailRow("متراژ موردنظر", cust.areaLabel)
+                                    if (cust.roomsLabel.isNotBlank()) detailRow("خواب", cust.roomsLabel)
+                                    if (cust.propertyType.isNotBlank()) detailRow("نوع ملک", cust.propertyType)
                                     if (cust.region.isNotBlank()) detailRow("محدوده", cust.region)
+                                    if (cust.areasDisplay.isNotBlank()) detailRow("مناطق", cust.areasDisplay)
+                                    if (cust.amenityTags.isNotEmpty()) {
+                                        detailRow("امکانات", cust.amenityTags.joinToString(" · "))
+                                    }
+                                    if (cust.phone.isNotBlank()) detailRow("تماس", cust.phone)
+                                    if (cust.notes.isNotBlank()) detailRow("یادداشت", cust.notes)
                                 }
-                                if (item.note.isNotBlank()) detailRow("یادداشت", item.note)
+                                if (item.note.isNotBlank()) detailRow("یادداشت انتشار", item.note)
                             }
                         }
                         item {

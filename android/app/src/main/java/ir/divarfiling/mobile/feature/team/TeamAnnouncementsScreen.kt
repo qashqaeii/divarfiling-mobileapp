@@ -210,15 +210,13 @@ fun TeamAnnouncementsScreen(
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                 ) {
                     item {
-                        DfHubPageHeader(
+                        TeamAgencyScreenHeader(
                             title = "اعلامیه‌ها",
                             subtitle = if (state.unread > 0) {
-                                "${state.unread} خوانده‌نشده"
+                                "${DateUtils.toPersianDigits(state.unread.toString())} خوانده‌نشده"
                             } else {
                                 "تابلو اطلاع‌رسانی تیم"
                             },
-                            sectionLabel = DfHeaderSections.TEAM,
-                            titleIconRes = DfDecorIcons.Sparkles,
                             onBack = onBack,
                         )
                     }
