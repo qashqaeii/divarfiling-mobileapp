@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import androidx.hilt.navigation.compose.hiltViewModel
