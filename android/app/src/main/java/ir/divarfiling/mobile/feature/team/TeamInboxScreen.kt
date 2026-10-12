@@ -33,6 +33,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -58,6 +59,7 @@ data class TeamInboxUiState(
     val assignLeadId: Long? = null,
     val assigneeId: Long? = null,
     val showAssign: Boolean = false,
+    val showAssignConfirm: Boolean = false,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val isSubmitting: Boolean = false,
@@ -119,8 +121,13 @@ class TeamInboxViewModel @Inject constructor(
         }
     }
 
-    fun dismissAssign() = _uiState.update { it.copy(showAssign = false, assignLeadId = null) }
+    fun dismissAssign() = _uiState.update {
+        it.copy(showAssign = false, showAssignConfirm = false, assignLeadId = null)
+    }
     fun onAssigneeSelect(id: Long) = _uiState.update { it.copy(assigneeId = id) }
+
+    fun requestAssignConfirm() = _uiState.update { it.copy(showAssignConfirm = true) }
+    fun dismissAssignConfirm() = _uiState.update { it.copy(showAssignConfirm = false) }
 
     fun confirmAssign() {
         val state = _uiState.value
@@ -139,6 +146,7 @@ class TeamInboxViewModel @Inject constructor(
                         it.copy(
                             isSubmitting = false,
                             showAssign = false,
+                            showAssignConfirm = false,
                             assignLeadId = null,
                             successMessage = "سرنخ به $memberName واگذار شد",
                         )
@@ -173,6 +181,17 @@ fun TeamInboxScreen(
 
     val assignLead = state.leads.firstOrNull { it.id == state.assignLeadId }
 
+    if (state.showAssignConfirm) {
+        val memberName = state.members.firstOrNull { it.id == state.assigneeId }?.name ?: "مشاور"
+        DfConfirmBottomSheet(
+            title = "تأیید واگذاری",
+            message = "سرنخ به $memberName واگذار شود؟",
+            onConfirm = viewModel::confirmAssign,
+            onDismiss = viewModel::dismissAssignConfirm,
+            isSubmitting = state.isSubmitting,
+        )
+    }
+
     if (state.showAssign) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissAssign) {
             DfSheetScaffold(
@@ -184,8 +203,8 @@ fun TeamInboxScreen(
                 onClose = viewModel::dismissAssign,
                 footer = {
                     DfSheetActions(
-                        primaryText = if (state.isSubmitting) "در حال تخصیص…" else "واگذاری",
-                        onPrimary = viewModel::confirmAssign,
+                        primaryText = "ادامه",
+                        onPrimary = viewModel::requestAssignConfirm,
                         primaryEnabled = !state.isSubmitting && state.assigneeId != null,
                         isSubmitting = state.isSubmitting,
                         onSecondary = viewModel::dismissAssign,
@@ -278,6 +297,7 @@ fun TeamInboxScreen(
                                 modifier = Modifier.padding(horizontal = pad),
                                 onAssign = { viewModel.openAssignLead(lead.id) },
                                 onOpenContact = { onOpenContact(lead.id) },
+                                assigneeHint = if (lead.assignedTo != null) "دارای مسئول" else null,
                             )
                         }
                     }

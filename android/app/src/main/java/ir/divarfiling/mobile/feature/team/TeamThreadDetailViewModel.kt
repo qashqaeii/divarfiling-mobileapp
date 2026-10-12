@@ -69,6 +69,7 @@ class TeamThreadDetailViewModel @Inject constructor(
     fun onReplyChange(value: String) = _uiState.update { it.copy(replyBody = value) }
 
     fun sendReply() {
+        if (_uiState.value.isSubmitting) return
         val body = _uiState.value.replyBody.trim()
         if (body.isBlank()) {
             _uiState.update { it.copy(error = "متن پاسخ خالی است") }

@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.feature.team
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -128,8 +129,10 @@ fun AgencyProfileScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            TeamAmbientBackground()
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = teamListContentPadding(),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
@@ -197,6 +200,7 @@ fun AgencyProfileScreen(
                 }
             }
         }
+        }
     }
 }
 
@@ -241,8 +245,10 @@ fun AgencyAuditScreen(
     val pad = teamHorizontalPadding()
 
     Scaffold(containerColor = DfScreenContainerColor) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            TeamAmbientBackground()
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = teamListContentPadding(),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
@@ -265,23 +271,21 @@ fun AgencyAuditScreen(
                         modifier = Modifier.padding(horizontal = pad),
                     )
                 }
-                else -> items(state.entries, key = { it.id }) { entry ->
+                else -> item {
                     DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                        Column(
-                            modifier = Modifier.padding(AppSpacing.cardPadding),
-                            verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-                        ) {
-                            Text(entry.title.ifBlank { "رویداد" }, fontWeight = FontWeight.SemiBold)
-                            Text(entry.summary, style = AppTypography.bodyDescription)
-                            Text(
-                                "${entry.actorName} · ${entry.timeLabel}",
-                                style = AppTypography.labelSmall,
-                                color = DfThemeColors.textMuted(),
-                            )
+                        Column(modifier = Modifier.padding(AppSpacing.sm)) {
+                            state.entries.forEach { entry ->
+                                TeamActivityTimelineRow(
+                                    title = entry.title.ifBlank { entry.summary },
+                                    actorName = entry.actorName,
+                                    timeLabel = entry.timeLabel,
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
         }
     }
 }

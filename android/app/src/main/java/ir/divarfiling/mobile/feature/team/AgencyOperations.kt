@@ -22,16 +22,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.AppLinks
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
@@ -437,6 +441,10 @@ fun AgencyAdvisorDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(memberId) { viewModel.load(memberId) }
+    LifecycleResumeEffect(memberId) {
+        viewModel.load(memberId)
+        onPauseOrDispose { }
+    }
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
@@ -475,13 +483,26 @@ fun AgencyAdvisorDetailScreen(
                 state.detail != null -> {
                     val d = state.detail!!
                     item {
+                        TeamAdvisorProfileHeader(
+                            name = d.member.name,
+                            phone = d.member.phone,
+                            roleLabel = d.member.roleLabel.ifBlank { d.member.role },
+                            isActive = d.member.isActive,
+                            seatLabel = d.seat.seatSummaryLabel(),
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
+                    }
+                    item {
                         DfCard(modifier = Modifier.padding(horizontal = pad)) {
                             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                Text("پروفایل و عضویت", fontWeight = FontWeight.Bold)
-                                Text("نقش: ${d.member.roleLabel.ifBlank { d.member.role }}")
-                                Text("موبایل: ${d.member.phone.ifBlank { "—" }}")
-                                Text("وضعیت: ${if (d.member.isActive) "فعال" else "غیرفعال"}")
+                                Text("عضویت", fontWeight = FontWeight.Bold)
                                 if (d.email.isNotBlank()) Text("ایمیل: ${d.email}")
+                                if (d.seat.expiresAt.isNotBlank()) {
+                                    Text("انقضای صندلی: ${d.seat.expiresAt}")
+                                }
+                                if (d.seat.status.isNotBlank()) {
+                                    Text("وضعیت لایسنس: ${d.seat.status}")
+                                }
                                 if (d.permissions.canSetRole) {
                                     DfSecondaryButton(
                                         text = "تغییر نقش",
@@ -499,20 +520,6 @@ fun AgencyAdvisorDetailScreen(
                                 Text("دامنه کاری", fontWeight = FontWeight.Bold)
                                 Text("سرنخ فعال: ${DateUtils.toPersianDigits(d.stats.activeLeads.toString())}")
                                 Text("معامله فعال: ${DateUtils.toPersianDigits(d.stats.activeDeals.toString())}")
-                            }
-                        }
-                    }
-                    item {
-                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                Text("لایسنس / صندلی", fontWeight = FontWeight.Bold)
-                                Text(
-                                    if (d.seat.hasSeat) {
-                                        "صندلی #${d.seat.sequence ?: ""} · ${d.seat.plan}"
-                                    } else {
-                                        "بدون صندلی فعال"
-                                    },
-                                )
                             }
                         }
                     }
@@ -691,6 +698,29 @@ fun AgencyPerformanceScreen(
                         }
                     }
                 }
+                if (state.totals.isNotEmpty()) {
+                    item {
+                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(AppSpacing.sm),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                            ) {
+                                state.totals.entries.take(4).forEach { (key, value) ->
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            DateUtils.toPersianDigits(value.toString()),
+                                            fontWeight = FontWeight.Bold,
+                                            color = DfThemeColors.primary(),
+                                        )
+                                        Text(key, style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 if (state.goals.isNotEmpty()) {
                     item {
                         DfCard(modifier = Modifier.padding(horizontal = pad)) {
@@ -752,6 +782,10 @@ fun AgencySeatsScreen(
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
     }
+    LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose { }
+    }
     if (state.showAssign && state.assignTarget != null) {
         val licenses = state.payload?.availableLicenses.orEmpty()
         DfModalBottomSheet(onDismissRequest = viewModel::dismissAssign) {
@@ -803,27 +837,50 @@ fun AgencySeatsScreen(
                         onBack = onBack,
                     )
                 }
+                item {
+                    TeamSeatsOverviewBar(
+                        seats = state.payload?.seats,
+                        modifier = Modifier.padding(horizontal = pad),
+                    )
+                }
                 when {
                     state.isLoading -> item { DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad)) }
+                    state.payload?.members.isNullOrEmpty() -> item {
+                        DfEmptyState(
+                            title = "عضوی برای مدیریت صندلی نیست",
+                            subtitle = "ابتدا مشاور را دعوت و فعال کنید.",
+                            variant = DfEmptyVariant.Empty,
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
+                    }
                     else -> items(state.payload?.members.orEmpty(), key = { it.id }) { member ->
+                        val hasSeat = member.resolvedHasSeat()
                         DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                Text(member.name, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    if (member.hasSeat) "صندلی #${member.sequence ?: ""}" else "بدون صندلی",
-                                )
-                                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                                    if (!member.hasSeat) {
-                                        DfPrimaryButton(
-                                            text = "تخصیص",
-                                            onClick = { viewModel.openAssign(member) },
-                                        )
-                                    } else if (member.licenseId != null) {
-                                        DfSecondaryButton(
-                                            text = "آزادسازی",
-                                            onClick = { viewModel.releaseSeat(member.licenseId!!) },
-                                        )
-                                    }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(AppSpacing.sm),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(member.name, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        member.seatSummaryLabel(),
+                                        style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
+                                        color = DfThemeColors.textMuted(),
+                                    )
+                                }
+                                if (!hasSeat) {
+                                    DfPrimaryButton(
+                                        text = "تخصیص",
+                                        onClick = { viewModel.openAssign(member) },
+                                    )
+                                } else if (member.licenseId != null) {
+                                    DfSecondaryButton(
+                                        text = "آزادسازی",
+                                        onClick = { viewModel.releaseSeat(member.licenseId!!) },
+                                    )
                                 }
                             }
                         }
@@ -865,29 +922,47 @@ fun AgencyAdvancedSettingsScreen(
                 )
             }
             item {
-                DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                        Text("Native", fontWeight = FontWeight.SemiBold)
-                        DfSecondaryButton(text = "فعالیت آژانس", onClick = onOpenActivity, modifier = Modifier.fillMaxWidth())
-                        DfSecondaryButton(text = "پروفایل آژانس", onClick = onOpenProfile, modifier = Modifier.fillMaxWidth())
-                        DfSecondaryButton(text = "گزارش ممیزی (خلاصه)", onClick = onOpenAudit, modifier = Modifier.fillMaxWidth())
-                    }
-                }
+                TeamSectionLabel(title = "در اپلیکیشن", modifier = Modifier.padding(horizontal = pad))
+            }
+            item {
+                TeamSettingsNavRow(
+                    title = "فعالیت آژانس",
+                    subtitle = "Timeline رویدادها و فیلتر مشاور",
+                    icon = DfIcons.Clock,
+                    onClick = onOpenActivity,
+                    modifier = Modifier.padding(horizontal = pad),
+                )
+            }
+            item {
+                TeamSettingsNavRow(
+                    title = "پروفایل آژانس",
+                    subtitle = "نام آژانس و مسیر سرنخ",
+                    icon = DfIcons.Building,
+                    onClick = onOpenProfile,
+                    modifier = Modifier.padding(horizontal = pad),
+                )
+            }
+            item {
+                TeamSettingsNavRow(
+                    title = "گزارش ممیزی",
+                    subtitle = "خلاصه فعالیت‌های حساس",
+                    icon = DfIcons.ListTodo,
+                    onClick = onOpenAudit,
+                    modifier = Modifier.padding(horizontal = pad),
+                )
+            }
+            item {
+                TeamSectionLabel(title = "ادامه در میزکار", modifier = Modifier.padding(horizontal = pad))
             }
             items(webRows.size) { index ->
                 val (title, subtitle, path) = webRows[index]
-                DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                        Text(title, fontWeight = FontWeight.SemiBold)
-                        Text(subtitle, style = ir.divarfiling.mobile.core.design.AppTypography.bodyDescription)
-                        DfPrimaryButton(
-                            text = "ادامه در میزکار",
-                            onClick = {
-                                viewModel.openWorkspace(path, onOpenBridge) { }
-                            },
-                        )
-                    }
-                }
+                TeamSettingsNavRow(
+                    title = title,
+                    subtitle = subtitle,
+                    icon = DfIcons.ExternalLink,
+                    onClick = { viewModel.openWorkspace(path, onOpenBridge) { } },
+                    modifier = Modifier.padding(horizontal = pad),
+                )
             }
         }
     }

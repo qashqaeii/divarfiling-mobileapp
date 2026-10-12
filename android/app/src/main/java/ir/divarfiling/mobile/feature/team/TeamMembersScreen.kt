@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DateUtils
@@ -63,6 +64,11 @@ fun TeamMembersScreen(
 
     LaunchedEffect(openInviteOnStart) {
         if (openInviteOnStart) viewModel.openInvite()
+    }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.load()
+        onPauseOrDispose { }
     }
 
     LaunchedEffect(state.successMessage, state.error) {
@@ -184,7 +190,18 @@ fun TeamMembersScreen(
                             )
                         }
                         else -> {
-                            if (state.statusFilter == AgencyAdvisorFilter.INVITED || state.invitations.isNotEmpty()) {
+                            val showInvites = state.statusFilter == AgencyAdvisorFilter.INVITED ||
+                                state.statusFilter == AgencyAdvisorFilter.ALL
+                            if (showInvites && state.invitations.isNotEmpty()) {
+                                if (state.statusFilter == AgencyAdvisorFilter.ALL) {
+                                    item {
+                                        TeamSectionLabel(
+                                            title = "دعوت‌های در انتظار",
+                                            subtitle = "${DateUtils.toPersianDigits(state.invitations.size.toString())} مورد",
+                                            modifier = Modifier.padding(horizontal = pad),
+                                        )
+                                    }
+                                }
                                 items(state.invitations, key = { "inv-${it.id}" }) { inv ->
                                     TeamInvitationCompactCard(
                                         invitation = inv,
@@ -194,12 +211,24 @@ fun TeamMembersScreen(
                                     )
                                 }
                             }
+                            if (state.statusFilter != AgencyAdvisorFilter.INVITED) {
+                                if (state.statusFilter == AgencyAdvisorFilter.ALL && state.advisors.isNotEmpty()) {
+                                    item {
+                                        TeamSectionLabel(
+                                            title = "اعضای فعال",
+                                            modifier = Modifier.padding(horizontal = pad),
+                                        )
+                                    }
+                                }
+                            }
+                            if (state.statusFilter != AgencyAdvisorFilter.INVITED) {
                             items(state.advisors, key = { it.id }) { advisor ->
                                 TeamAdvisorCompactCard(
                                     advisor = advisor,
                                     onClick = { onAdvisorClick(advisor.id) },
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
+                            }
                             }
                         }
                     }

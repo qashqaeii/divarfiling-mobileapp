@@ -216,25 +216,16 @@ fun AgencyActivityScreen(
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
-                    else -> items(state.events, key = { it.id }) { event ->
-                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Column(
-                                modifier = Modifier.padding(AppSpacing.cardPadding),
-                                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                            ) {
-                                Text(event.title, fontWeight = FontWeight.SemiBold)
-                                if (event.actorName.isNotBlank()) {
-                                    Text(
-                                        event.actorName,
-                                        style = AppTypography.bodyDescription,
-                                        color = DfThemeColors.textSecondary(),
+                    else -> item {
+                        DfCard(modifier = Modifier.padding(horizontal = pad).fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(AppSpacing.sm)) {
+                                state.events.forEach { event ->
+                                    TeamActivityTimelineRow(
+                                        title = event.title.ifBlank { event.eventType },
+                                        actorName = event.actorName,
+                                        timeLabel = DateUtils.formatRelativeFa(event.createdAt),
                                     )
                                 }
-                                Text(
-                                    DateUtils.formatRelativeFa(event.createdAt),
-                                    style = AppTypography.labelSmall,
-                                    color = DfThemeColors.textMuted(),
-                                )
                             }
                         }
                     }

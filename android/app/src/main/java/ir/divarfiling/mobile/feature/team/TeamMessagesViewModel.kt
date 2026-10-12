@@ -100,6 +100,7 @@ class TeamMessagesViewModel @Inject constructor(
 
     fun sendDirect() {
         val state = _uiState.value
+        if (state.isSubmitting) return
         val memberId = state.selectedMemberId
         if (memberId == null || state.composeBody.isBlank()) {
             _uiState.update { it.copy(error = "گیرنده و متن پیام الزامی است") }

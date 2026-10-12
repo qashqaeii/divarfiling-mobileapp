@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import ir.divarfiling.mobile.core.design.components.DfCard
@@ -31,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -50,6 +54,14 @@ import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.network.TeamPanelNotificationDto
+
+private data class AgencyHubDestination(
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val metric: String? = null,
+    val onClick: (() -> Unit)?,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +94,11 @@ fun TeamHubScreen(
             onNavigateWebBridge(it)
             viewModel.consumeWebBridge()
         }
+    }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose { }
     }
 
     Scaffold(
@@ -194,6 +211,165 @@ fun TeamHubScreen(
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
                             }
+                            item {
+                                TeamSectionLabel(
+                                    title = "میزکار آژانس",
+                                    subtitle = "مقاصد اصلی",
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                            item {
+                                val caps = home.capabilities
+                                val spaceKpi = home.spaceKpis?.activeProperties?.let {
+                                    "${DateUtils.toPersianDigits(it.toString())} فایل فعال"
+                                }
+                                val destinations = buildList {
+                                    when {
+                                        caps.canAccessAgencySpace -> add(
+                                            AgencyHubDestination(
+                                                title = "فضای آژانس",
+                                                subtitle = "فایل‌ها و مخاطبین منتشرشده",
+                                                icon = DfIcons.Layers,
+                                                metric = spaceKpi,
+                                                onClick = onOpenAgencySpace,
+                                            ),
+                                        )
+                                        caps.agencySpaceEnabled -> add(
+                                            AgencyHubDestination(
+                                                title = "فضای آژانس",
+                                                subtitle = "برای دسترسی، عضویت فعال و اشتراک آژانس لازم است",
+                                                icon = DfIcons.Layers,
+                                                onClick = null,
+                                            ),
+                                        )
+                                        perms.canManageAgency -> add(
+                                            AgencyHubDestination(
+                                                title = "فضای آژانس",
+                                                subtitle = "قابلیت در آژانس فعال نیست — از میزکار وب فعال کنید",
+                                                icon = DfIcons.Layers,
+                                                onClick = null,
+                                            ),
+                                        )
+                                    }
+                                    add(
+                                        AgencyHubDestination(
+                                            title = "مشاوران",
+                                            subtitle = "نقش، صندلی و دعوت‌ها",
+                                            icon = DfIcons.Users,
+                                            onClick = onOpenMembers,
+                                        ),
+                                    )
+                                    if (perms.canManageSeats) {
+                                        add(
+                                            AgencyHubDestination(
+                                                title = "صندلی‌ها",
+                                                subtitle = "تخصیص و آزادسازی لایسنس",
+                                                icon = DfIcons.Building,
+                                                onClick = onOpenSeats,
+                                            ),
+                                        )
+                                    }
+                                    if (perms.messagesEnabled) {
+                                        add(
+                                            AgencyHubDestination(
+                                                title = "صندوق پیام",
+                                                subtitle = "${DateUtils.toPersianDigits(unread.messages.toString())} خوانده‌نشده",
+                                                icon = DfIcons.MessageCircle,
+                                                onClick = onOpenMessages,
+                                            ),
+                                        )
+                                    }
+                                    if (perms.canOperateInbox) {
+                                        add(
+                                            AgencyHubDestination(
+                                                title = "صندوق سرنخ",
+                                                subtitle = "${DateUtils.toPersianDigits(home.inboxLeadsCount.toString())} در صف",
+                                                icon = DfIcons.ListTodo,
+                                                onClick = onOpenInbox,
+                                            ),
+                                        )
+                                    }
+                                    if (perms.announcementsEnabled) {
+                                        add(
+                                            AgencyHubDestination(
+                                                title = "اطلاعیه‌ها",
+                                                subtitle = "${DateUtils.toPersianDigits(unread.announcements.toString())} جدید",
+                                                icon = DfIcons.Sparkles,
+                                                onClick = onOpenAnnouncements,
+                                            ),
+                                        )
+                                    }
+                                    if (perms.canManage) {
+                                        add(
+                                            AgencyHubDestination(
+                                                title = "عملکرد تیم",
+                                                subtitle = "مقایسه مشاوران",
+                                                icon = DfIcons.BarChart,
+                                                onClick = onOpenPerformance,
+                                            ),
+                                        )
+                                        add(
+                                            AgencyHubDestination(
+                                                title = "فعالیت آژانس",
+                                                subtitle = "Timeline رویدادها",
+                                                icon = DfIcons.Clock,
+                                                onClick = onOpenActivity,
+                                            ),
+                                        )
+                                    }
+                                }
+                                BoxWithConstraints(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = pad),
+                                ) {
+                                    val twoCol = maxWidth >= 340.dp
+                                    if (twoCol) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                                            destinations.chunked(2).forEach { row ->
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                ) {
+                                                    row.forEach { dest ->
+                                                        TeamDestinationCompact(
+                                                            title = dest.title,
+                                                            subtitle = dest.subtitle,
+                                                            icon = dest.icon,
+                                                            metric = dest.metric,
+                                                            enabled = dest.onClick != null,
+                                                            onClick = dest.onClick,
+                                                            modifier = Modifier.weight(1f),
+                                                        )
+                                                    }
+                                                    if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                                            destinations.forEach { dest ->
+                                                TeamDestinationCompact(
+                                                    title = dest.title,
+                                                    subtitle = dest.subtitle,
+                                                    icon = dest.icon,
+                                                    metric = dest.metric,
+                                                    enabled = dest.onClick != null,
+                                                    onClick = dest.onClick,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (perms.canManageSeats && seats != null) {
+                                item {
+                                    TeamSeatsOverviewBar(
+                                        seats = seats,
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
                             if (home.attention.isNotEmpty()) {
                                 item {
                                     TeamSectionLabel(
@@ -209,167 +385,56 @@ fun TeamHubScreen(
                                     )
                                 }
                             }
-                            if (home.teamActivity.isNotEmpty()) {
+                            if (perms.canInvite || perms.canOperateInbox || perms.canManageSeats) {
                                 item {
                                     TeamSectionLabel(
-                                        title = "فعالیت اخیر تیم",
-                                        subtitle = "رویدادهای مدیریتی",
+                                        title = "اقدام سریع",
                                         modifier = Modifier.padding(horizontal = pad),
                                     )
                                 }
-                                items(home.teamActivity.take(6), key = { "act-${it.id}" }) { ev ->
+                                item {
+                                    TeamQuickActionGrid(
+                                        actions = buildList {
+                                            if (perms.canInvite) {
+                                                add(TeamQuickAction("دعوت مشاور", DfIcons.UserPlus, onOpenMembers))
+                                            }
+                                            if (perms.canOperateInbox) {
+                                                add(TeamQuickAction("تخصیص سرنخ", DfIcons.ListTodo, onOpenInbox))
+                                            }
+                                            if (perms.canManageSeats) {
+                                                add(TeamQuickAction("مدیریت صندلی", DfIcons.Building, onOpenSeats))
+                                            }
+                                            if (perms.canManage) {
+                                                add(TeamQuickAction("عملکرد", DfIcons.BarChart, onOpenPerformance))
+                                            }
+                                        },
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
+                            if (home.teamActivity.isNotEmpty() && perms.canManage) {
+                                item {
+                                    TeamSectionLabel(
+                                        title = "فعالیت اخیر",
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                                item {
                                     DfCard(modifier = Modifier.padding(horizontal = pad).fillMaxWidth()) {
-                                        Column(Modifier.padding(AppSpacing.sm), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Text(ev.title.ifBlank { ev.eventType }, fontWeight = FontWeight.SemiBold)
-                                            if (ev.actorName.isNotBlank()) {
-                                                Text(ev.actorName, style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
+                                        Column(Modifier.padding(AppSpacing.sm)) {
+                                            home.teamActivity.take(5).forEach { ev ->
+                                                val time = ev.createdAt.takeIf { it.isNotBlank() }?.let { iso ->
+                                                    DateUtils.parseInstantMillis(iso)?.let { ms ->
+                                                        DateUtils.formatJalaliDateTimeLatinFromMillis(ms)
+                                                    }
+                                                } ?: ""
+                                                TeamActivityTimelineRow(
+                                                    title = ev.title.ifBlank { ev.eventType },
+                                                    actorName = ev.actorName,
+                                                    timeLabel = time,
+                                                )
                                             }
-                                            ev.createdAt.takeIf { it.isNotBlank() }?.let { iso ->
-                                                DateUtils.parseInstantMillis(iso)?.let { ms ->
-                                                    Text(
-                                                        DateUtils.formatJalaliDateTimeLatinFromMillis(ms),
-                                                        style = AppTypography.labelSmall,
-                                                        color = DfThemeColors.textMuted(),
-                                                    )
-                                                }
-                                            }
                                         }
-                                    }
-                                }
-                            }
-                            item {
-                                TeamSectionLabel(
-                                    title = "اقدام سریع",
-                                    subtitle = "عملیات روزانه مدیر آژانس",
-                                    modifier = Modifier.padding(horizontal = pad),
-                                )
-                            }
-                            item {
-                                TeamQuickActionGrid(
-                                    actions = buildList {
-                                        if (perms.canInvite) {
-                                            add(TeamQuickAction("دعوت مشاور", DfIcons.UserPlus, onOpenMembers))
-                                        }
-                                        add(TeamQuickAction("اعضا", DfIcons.Users, onOpenMembers))
-                                        if (perms.canOperateInbox) {
-                                            add(TeamQuickAction("Inbox سرنخ", DfIcons.ListTodo, onOpenInbox))
-                                        }
-                                        if (perms.canManage) {
-                                            add(TeamQuickAction("عملکرد تیم", DfIcons.BarChart, onOpenPerformance))
-                                        }
-                                        if (perms.canManageSeats) {
-                                            add(TeamQuickAction("صندلی‌ها", DfIcons.Building, onOpenSeats))
-                                        }
-                                    },
-                                    modifier = Modifier.padding(horizontal = pad),
-                                )
-                            }
-                            item {
-                                TeamSectionLabel(
-                                    title = "مدیریت روزانه",
-                                    subtitle = "میانبرهای پرکاربرد تیم",
-                                    modifier = Modifier.padding(horizontal = pad),
-                                )
-                            }
-                            item {
-                                val primary = DfThemeColors.primary()
-                                val primaryWash = DfThemeColors.primaryContainer()
-                                val info = DfThemeColors.info()
-                                val infoWash = DfThemeColors.infoContainer()
-                                val warning = DfThemeColors.warning()
-                                val warningWash = DfThemeColors.warningContainer()
-                                val success = DfThemeColors.success()
-                                val successWash = DfThemeColors.successContainer()
-                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap)) {
-                                    if (home.capabilities.canAccessAgencySpace) {
-                                        TeamDestinationCard(
-                                            destination = TeamDestination(
-                                                title = "فضای آژانس",
-                                                subtitle = "فایل‌ها و مخاطبین منتشرشده تیم",
-                                                metricLabel = "فعال",
-                                                metricValue = home.spaceKpis?.activeProperties?.toString() ?: "—",
-                                                tint = primary,
-                                                wash = primaryWash,
-                                                icon = DfIcons.Layers,
-                                                onClick = onOpenAgencySpace,
-                                            ),
-                                            modifier = Modifier.padding(horizontal = pad),
-                                        )
-                                    }
-                                    if (perms.messagesEnabled) {
-                                        TeamDestinationCard(
-                                            destination = TeamDestination(
-                                                title = "صندوق پیام",
-                                                subtitle = "گفت‌وگوی داخلی و پیگیری سریع همکاران",
-                                                metricLabel = "خوانده‌نشده",
-                                                metricValue = DateUtils.toPersianDigits(unread.messages.toString()),
-                                                tint = info,
-                                                wash = infoWash,
-                                                icon = DfIcons.MessageCircle,
-                                                onClick = onOpenMessages,
-                                            ),
-                                            modifier = Modifier.padding(horizontal = pad),
-                                        )
-                                    }
-                                    if (perms.announcementsEnabled) {
-                                        TeamDestinationCard(
-                                            destination = TeamDestination(
-                                                title = "اعلامیه‌ها",
-                                                subtitle = "تابلو اطلاع‌رسانی و نکات مهم آژانس",
-                                                metricLabel = "جدید",
-                                                metricValue = DateUtils.toPersianDigits(unread.announcements.toString()),
-                                                tint = warning,
-                                                wash = warningWash,
-                                                icon = DfIcons.Sparkles,
-                                                onClick = onOpenAnnouncements,
-                                            ),
-                                            modifier = Modifier.padding(horizontal = pad),
-                                        )
-                                    }
-                                    TeamDestinationCard(
-                                        destination = TeamDestination(
-                                            title = "اعضا",
-                                            subtitle = "نقش‌ها، عنوان‌ها و دسترسی‌های تیم",
-                                            metricLabel = "نفر",
-                                            metricValue = home.membersCount.toString(),
-                                            tint = primary,
-                                            wash = primaryWash,
-                                            icon = DfIcons.Users,
-                                            onClick = onOpenMembers,
-                                        ),
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                    if (perms.canManage) {
-                                        TeamDestinationCard(
-                                            destination = TeamDestination(
-                                                title = "فعالیت آژانس",
-                                                subtitle = "فیلتر رویدادها بر اساس مشاور",
-                                                metricLabel = "اخیر",
-                                                metricValue = DateUtils.toPersianDigits(
-                                                    home.teamActivity.size.coerceAtMost(99).toString(),
-                                                ),
-                                                tint = info,
-                                                wash = infoWash,
-                                                icon = DfIcons.Clock,
-                                                onClick = onOpenActivity,
-                                            ),
-                                            modifier = Modifier.padding(horizontal = pad),
-                                        )
-                                    }
-                                    if (perms.canOperateInbox) {
-                                        TeamDestinationCard(
-                                            destination = TeamDestination(
-                                                title = "صندوق سرنخ",
-                                                subtitle = "تخصیص سریع لیدهای در صف",
-                                                metricLabel = "در صف",
-                                                metricValue = home.inboxLeadsCount.toString(),
-                                                tint = success,
-                                                wash = successWash,
-                                                icon = DfIcons.UserPlus,
-                                                onClick = onOpenInbox,
-                                            ),
-                                            modifier = Modifier.padding(horizontal = pad),
-                                        )
                                     }
                                 }
                             }

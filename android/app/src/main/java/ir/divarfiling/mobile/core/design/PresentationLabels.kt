@@ -19,6 +19,15 @@ object PresentationLabels {
     fun seatLabel(hasSeat: Boolean): String =
         if (hasSeat) "دارای صندلی" else "بدون صندلی"
 
+    fun seatStatusLabel(hasSeat: Boolean, sequence: Int? = null, plan: String = ""): String = when {
+        !hasSeat -> "بدون صندلی"
+        sequence != null -> {
+            val base = "صندلی #${sequence}"
+            if (plan.isNotBlank()) "$base · $plan" else base
+        }
+        else -> "دارای صندلی"
+    }
+
     /**
      * Prefer a human-readable name; fall back to labeled phone when name is missing or too weak.
      */

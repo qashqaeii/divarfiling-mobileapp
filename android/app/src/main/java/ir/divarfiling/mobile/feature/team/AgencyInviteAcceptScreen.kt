@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.team
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -138,10 +139,11 @@ fun AgencyInviteAcceptScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            TeamAmbientBackground()
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
             DfHubPageHeader(
@@ -211,6 +213,7 @@ fun AgencyInviteAcceptScreen(
                     }
                 }
             }
+        }
         }
     }
 }

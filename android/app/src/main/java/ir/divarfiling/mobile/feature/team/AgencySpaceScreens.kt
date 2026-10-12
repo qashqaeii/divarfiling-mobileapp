@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -97,6 +98,7 @@ data class AgencySpaceListUiState(
     val selectedIds: Set<Long> = emptySet(),
     val bulkSubmitting: Boolean = false,
     val pendingBulkAction: String? = null,
+    val isLoadingMore: Boolean = false,
 )
 
 @HiltViewModel
@@ -147,6 +149,9 @@ class AgencySpaceListViewModel @Inject constructor(
 
     fun refresh(initial: Boolean = false) {
         viewModelScope.launch {
+            if (initial) {
+                _uiState.update { it.copy(page = 1) }
+            }
             val state = _uiState.value
             _uiState.update {
                 it.copy(
@@ -158,7 +163,7 @@ class AgencySpaceListViewModel @Inject constructor(
             val params = buildMap {
                 put("tab", state.tab)
                 if (state.query.isNotBlank()) put("q", state.query.trim())
-                if (state.page > 1) put("page", state.page.toString())
+                put("page", state.page.coerceAtLeast(1).toString())
                 if (state.canModerateSpace && state.publicationStatus != "active") {
                     put("publication_status", state.publicationStatus)
                 }
@@ -172,10 +177,49 @@ class AgencySpaceListViewModel @Inject constructor(
                         numPages = result.data.numPages,
                         isLoading = false,
                         isRefreshing = false,
+                        isLoadingMore = false,
                     )
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        isLoadingMore = false,
+                        error = result.message,
+                    )
+                }
+            }
+        }
+    }
+
+    fun loadMore() {
+        val state = _uiState.value
+        if (state.isLoading || state.isRefreshing || state.isLoadingMore || state.page >= state.numPages) {
+            return
+        }
+        viewModelScope.launch {
+            val nextPage = state.page + 1
+            _uiState.update { it.copy(isLoadingMore = true, error = null) }
+            val params = buildMap {
+                put("tab", state.tab)
+                if (state.query.isNotBlank()) put("q", state.query.trim())
+                put("page", nextPage.toString())
+                if (state.canModerateSpace && state.publicationStatus != "active") {
+                    put("publication_status", state.publicationStatus)
+                }
+            }
+            when (val result = repository.getAgencySpaceItems(params)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        items = it.items + result.data.items,
+                        total = result.data.total,
+                        page = result.data.page,
+                        numPages = result.data.numPages,
+                        isLoadingMore = false,
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isLoadingMore = false, error = result.message)
                 }
             }
         }
@@ -380,6 +424,11 @@ fun AgencySpaceListScreen(
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
     }
 
+    LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose { }
+    }
+
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
@@ -410,11 +459,13 @@ fun AgencySpaceListScreen(
             }
         },
     ) { padding ->
-        DfPullRefresh(
-            isRefreshing = state.isRefreshing,
-            onRefresh = { viewModel.refresh() },
-            modifier = Modifier.fillMaxSize().padding(padding).statusBarsPadding(),
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            TeamAmbientBackground()
+            DfPullRefresh(
+                isRefreshing = state.isRefreshing,
+                onRefresh = { viewModel.refresh(initial = true) },
+                modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            ) {
             LazyColumn(
                 contentPadding = teamListContentPadding(),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
@@ -422,7 +473,11 @@ fun AgencySpaceListScreen(
                 item {
                     DfHubPageHeader(
                         title = "فضای آژانس",
-                        subtitle = "اشتراک فایل و مخاطب با تیم",
+                        subtitle = if (state.total > 0) {
+                            "${ir.divarfiling.mobile.core.design.DateUtils.toPersianDigits(state.total.toString())} انتشار"
+                        } else {
+                            "اشتراک فایل و مخاطب با تیم"
+                        },
                         sectionLabel = DfHeaderSections.TEAM,
                         titleIconRes = DfDecorIcons.Layers,
                         onBack = onBack,
@@ -442,19 +497,11 @@ fun AgencySpaceListScreen(
                     )
                 }
                 item {
-                    LazyRow(
+                    AgencySpaceTabRow(
+                        selectedTab = state.tab,
+                        onTabSelected = viewModel::setTab,
                         modifier = Modifier.padding(horizontal = pad),
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    ) {
-                        items(AgencySpaceTab.labels.size) { index ->
-                            val (key, label) = AgencySpaceTab.labels[index]
-                            DfSoftChip(
-                                text = label,
-                                selected = state.tab == key,
-                                onClick = { viewModel.setTab(key) },
-                            )
-                        }
-                    }
+                    )
                 }
                 if (state.canModerateSpace) {
                     item {
@@ -505,25 +552,40 @@ fun AgencySpaceListScreen(
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
-                    else -> items(state.items, key = { it.id }) { item ->
-                        val selectable = state.selectMode && item.canModerate
-                        AgencySpaceListCard(
-                            item = item,
-                            isSubmitting = state.isSubmitting,
-                            selectMode = selectable,
-                            selected = item.id in state.selectedIds,
-                            onOpen = {
-                                if (selectable) viewModel.toggleSelected(item.id)
-                                else onOpenItem(item.id)
-                            },
-                            onCopy = {
-                                viewModel.copyItem(item.id, onOpenCopiedTarget)
-                            },
-                            onViewCopied = onOpenCopiedTarget,
-                            modifier = Modifier.padding(horizontal = pad),
-                        )
+                    else -> {
+                        items(state.items, key = { it.id }) { item ->
+                            val selectable = state.selectMode && item.canModerate
+                            AgencySpaceItemCard(
+                                item = item,
+                                isSubmitting = state.isSubmitting,
+                                selectMode = selectable,
+                                selected = item.id in state.selectedIds,
+                                onOpen = {
+                                    if (selectable) viewModel.toggleSelected(item.id)
+                                    else onOpenItem(item.id)
+                                },
+                                onCopy = {
+                                    viewModel.copyItem(item.id, onOpenCopiedTarget)
+                                },
+                                onViewCopied = onOpenCopiedTarget,
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
+                        }
+                        if (state.page < state.numPages) {
+                            item {
+                                DfSecondaryButton(
+                                    text = if (state.isLoadingMore) "در حال بارگذاری…" else "نمایش بیشتر",
+                                    onClick = viewModel::loadMore,
+                                    enabled = !state.isLoadingMore,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = pad),
+                                )
+                            }
+                        }
                     }
                 }
+            }
             }
         }
     }
@@ -564,127 +626,6 @@ private fun agencySpaceEmptyCopy(tab: String): Pair<String, String> = when (tab)
     else -> "فضای آژانس خالی است" to "هنوز چیزی در فضای آژانس منتشر نشده."
 }
 
-@Composable
-private fun AgencySpaceListCard(
-    item: AgencySpaceItemDto,
-    isSubmitting: Boolean,
-    selectMode: Boolean = false,
-    selected: Boolean = false,
-    onOpen: () -> Unit,
-    onCopy: () -> Unit,
-    onViewCopied: (kind: String, targetId: Long) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isProperty = item.property != null
-    val title = item.property?.title ?: item.customer?.name ?: "—"
-    val region = item.property?.region ?: item.customer?.region.orEmpty()
-    val priceOrBudget = item.property?.priceLabel ?: item.customer?.budgetLabel.orEmpty()
-    val metaLine = listOfNotNull(
-        item.property?.dealMode?.takeIf { it.isNotBlank() },
-        item.customer?.needSummary?.takeIf { it.isNotBlank() },
-    ).joinToString(" · ")
-    val copyKind = if (isProperty) "property" else "customer"
-    val typeLabel = if (isProperty) "ملک" else "مخاطب"
-    val accent = if (isProperty) DfThemeColors.info() else DfThemeColors.primary()
-    DfCard(modifier = modifier, onClick = onOpen) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(accent),
-            )
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(AppSpacing.cardPadding),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            ) {
-            if (isProperty) {
-                DfListingImage(
-                    thumbnailUrl = item.property?.thumbnailUrl,
-                    modifier = Modifier.size(width = 88.dp, height = 72.dp),
-                    shape = RoundedCornerShape(AppSpacing.sm),
-                    contentDescription = title,
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (selectMode) {
-                        Checkbox(checked = selected, onCheckedChange = { onOpen() })
-                    }
-                    DfBadge(
-                        text = typeLabel,
-                        color = accent.copy(alpha = 0.12f),
-                        textColor = accent,
-                    )
-                    Text(
-                        title,
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                if (region.isNotBlank()) {
-                    Text(region, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
-                }
-                if (priceOrBudget.isNotBlank()) {
-                    Text(priceOrBudget, style = AppTypography.bodyDescription, fontWeight = FontWeight.Medium)
-                } else if (metaLine.isNotBlank()) {
-                    Text(metaLine, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
-                }
-                AgencySpacePublisherRow(
-                    name = item.publisher.name,
-                    roleLabel = item.publisher.roleLabel.ifBlank { "منتشرکننده" },
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AgencySpaceVisibilityBadge(visibility = item.visibility, label = item.visibilityLabel)
-                    if (item.alreadyCopied) {
-                        DfBadge(text = if (isProperty) "در فایل‌های من" else "در مخاطبین من")
-                    }
-                }
-                when {
-                    item.alreadyCopied && item.copyTargetId != null -> {
-                        DfSecondaryButton(
-                            text = if (isProperty) "مشاهده فایل" else "مشاهده مخاطب",
-                            onClick = { onViewCopied(copyKind, item.copyTargetId!!) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    item.canCopy && !item.alreadyCopied -> {
-                        DfPrimaryButton(
-                            text = when {
-                                isSubmitting -> "…"
-                                isProperty -> "افزودن به فایل‌های من"
-                                else -> "افزودن به مخاطبین من"
-                            },
-                            onClick = onCopy,
-                            enabled = !isSubmitting,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            }
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgencySpaceDetailScreen(
@@ -703,13 +644,20 @@ fun AgencySpaceDetailScreen(
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
     }
 
+    LifecycleResumeEffect(itemId) {
+        viewModel.load()
+        onPauseOrDispose { }
+    }
+
     Scaffold(containerColor = DfScreenContainerColor, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .statusBarsPadding(),
         ) {
+            TeamAmbientBackground()
+            Column(modifier = Modifier.fillMaxSize()) {
             DfHubPageHeader(
                 title = state.item?.property?.title ?: state.item?.customer?.name ?: "فضای آژانس",
                 subtitle = state.item?.publishedAtDisplay?.takeIf { it.isNotBlank() } ?: "جزئیات انتشار",
@@ -760,71 +708,63 @@ fun AgencySpaceDetailScreen(
                             }
                         }
                         item {
-                            DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                                Column(
-                                    modifier = Modifier.padding(AppSpacing.cardPadding),
-                                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                                ) {
-                                    Text("اطلاعات کلیدی", style = AppTypography.sectionTitle)
-                                    item.property?.let { prop ->
-                                        if (prop.region.isNotBlank()) detailRow("منطقه", prop.region)
-                                        if (prop.priceLabel.isNotBlank()) detailRow("قیمت", prop.priceLabel)
-                                        if (prop.propertyType.isNotBlank()) detailRow("نوع ملک", prop.propertyType)
-                                        if (prop.dealMode.isNotBlank()) detailRow("معامله", prop.dealMode)
-                                    }
-                                    item.customer?.let { cust ->
-                                        if (cust.customerType.isNotBlank()) detailRow("نوع نیاز", cust.customerType)
-                                        if (cust.needSummary.isNotBlank()) detailRow("نیاز", cust.needSummary)
-                                        if (cust.budgetLabel.isNotBlank()) detailRow("بودجه", cust.budgetLabel)
-                                        if (cust.region.isNotBlank()) detailRow("محدوده", cust.region)
-                                    }
-                                    if (item.note.isNotBlank()) {
-                                        detailRow("یادداشت", item.note)
-                                    }
+                            AgencySpaceDetailSection(
+                                title = "اطلاعات کلیدی",
+                                modifier = Modifier.padding(horizontal = pad),
+                            ) {
+                                item.property?.let { prop ->
+                                    if (prop.region.isNotBlank()) detailRow("منطقه", prop.region)
+                                    if (prop.priceLabel.isNotBlank()) detailRow("قیمت", prop.priceLabel)
+                                    if (prop.propertyType.isNotBlank()) detailRow("نوع ملک", prop.propertyType)
+                                    if (prop.dealMode.isNotBlank()) detailRow("معامله", prop.dealMode)
+                                }
+                                item.customer?.let { cust ->
+                                    if (cust.customerType.isNotBlank()) detailRow("نوع نیاز", cust.customerType)
+                                    if (cust.needSummary.isNotBlank()) detailRow("نیاز", cust.needSummary)
+                                    if (cust.budgetLabel.isNotBlank()) detailRow("بودجه", cust.budgetLabel)
+                                    if (cust.region.isNotBlank()) detailRow("محدوده", cust.region)
+                                }
+                                if (item.note.isNotBlank()) detailRow("یادداشت", item.note)
+                            }
+                        }
+                        item {
+                            AgencySpaceDetailSection(
+                                title = "ناشر و زمان",
+                                modifier = Modifier.padding(horizontal = pad),
+                            ) {
+                                AgencySpacePublisherRow(
+                                    name = item.publisher.name,
+                                    roleLabel = item.publisher.roleLabel.ifBlank { "منتشرکننده" },
+                                )
+                                if (item.publishedAtDisplay.isNotBlank()) {
+                                    detailRow("انتشار", item.publishedAtDisplay)
                                 }
                             }
                         }
                         item {
-                            DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                                Column(
-                                    modifier = Modifier.padding(AppSpacing.cardPadding),
-                                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                                ) {
-                                    Text("ناشر", style = AppTypography.sectionTitle)
-                                    AgencySpacePublisherRow(
-                                        name = item.publisher.name,
-                                        roleLabel = item.publisher.roleLabel.ifBlank { "منتشرکننده" },
+                            AgencySpaceDetailSection(
+                                title = "دسترسی و وضعیت",
+                                modifier = Modifier.padding(horizontal = pad),
+                            ) {
+                                AgencySpaceVisibilityBadge(
+                                    visibility = item.visibility,
+                                    label = item.visibilityLabel,
+                                )
+                                if (item.visibility == "selected_members" && item.audienceCount != null) {
+                                    detailRow(
+                                        "مخاطبان",
+                                        "${ir.divarfiling.mobile.core.design.DateUtils.toPersianDigits(item.audienceCount.toString())} عضو",
                                     )
                                 }
-                            }
-                        }
-                        item {
-                            DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                                Column(
-                                    modifier = Modifier.padding(AppSpacing.cardPadding),
-                                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                                ) {
-                                    Text("وضعیت اشتراک", style = AppTypography.sectionTitle)
-                                    AgencySpaceVisibilityBadge(
-                                        visibility = item.visibility,
-                                        label = item.visibilityLabel,
+                                if (item.contactShareLevelLabel.isNotBlank()) {
+                                    detailRow("اشتراک تماس", item.contactShareLevelLabel)
+                                }
+                                if (item.statusLabel.isNotBlank()) {
+                                    Text(
+                                        item.statusLabel,
+                                        style = AppTypography.bodyDescription,
+                                        color = DfThemeColors.textSecondary(),
                                     )
-                                    if (item.visibility == "selected_members" && item.audienceCount != null) {
-                                        detailRow(
-                                            "مخاطبان",
-                                            "${ir.divarfiling.mobile.core.design.DateUtils.toPersianDigits(item.audienceCount.toString())} عضو",
-                                        )
-                                    }
-                                    if (item.contactShareLevelLabel.isNotBlank()) {
-                                        detailRow("اشتراک تماس", item.contactShareLevelLabel)
-                                    }
-                                    if (item.statusLabel.isNotBlank()) {
-                                        Text(
-                                            item.statusLabel,
-                                            style = AppTypography.bodyDescription,
-                                            color = DfThemeColors.textSecondary(),
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -903,6 +843,7 @@ fun AgencySpaceDetailScreen(
                         }
                     }
                 }
+            }
             }
         }
     }
