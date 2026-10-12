@@ -42,6 +42,7 @@ enum class AgencyHeaderAccent {
     Conversation,
 }
 
+@Composable
 private fun AgencyHeaderAccent.tint(): Color = when (this) {
     AgencyHeaderAccent.Dashboard -> DfThemeColors.primary()
     AgencyHeaderAccent.Management -> DfThemeColors.info()
