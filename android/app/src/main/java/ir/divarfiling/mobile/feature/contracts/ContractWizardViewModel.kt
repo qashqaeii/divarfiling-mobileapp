@@ -287,7 +287,8 @@ class ContractWizardViewModel @Inject constructor(
     }
 
     fun clearPartyCustomer(index: Int) {
-        updateParty(index, _uiState.value.parties.getOrNull(index)?.copy(customerId = ""). ?: return)
+        val party = _uiState.value.parties.getOrNull(index) ?: return
+        updateParty(index, party.copy(customerId = ""))
     }
 
     fun updateProperty(property: WizardPropertyDraft) = _uiState.update { it.copy(property = property) }
