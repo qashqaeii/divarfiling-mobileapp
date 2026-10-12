@@ -137,11 +137,9 @@ fun AgencyProfileScreen(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
             item {
-                DfHubPageHeader(
+                TeamAgencyScreenHeader(
                     title = "پروفایل آژانس",
                     subtitle = "نام و مسیریابی سرنخ",
-                    sectionLabel = DfHeaderSections.TEAM,
-                    titleIconRes = DfDecorIcons.Users,
                     onBack = onBack,
                 )
             }
@@ -158,43 +156,62 @@ fun AgencyProfileScreen(
                 else -> {
                     val s = state.settings!!
                     item {
-                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                            Column(
-                                modifier = Modifier.padding(AppSpacing.cardPadding),
-                                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                            ) {
-                                DfTextField(
-                                    value = name,
-                                    onValueChange = { name = it },
-                                    label = "نام آژانس",
-                                    enabled = s.permissions.canEdit,
-                                    modifier = Modifier.fillMaxWidth(),
+                        TeamSectionLabel(
+                            title = "اطلاعات پایه",
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
+                    }
+                    item {
+                        DfTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = "نام آژانس",
+                            enabled = s.permissions.canEdit,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = pad),
+                        )
+                    }
+                    item {
+                        TeamSectionLabel(
+                            title = "مسیریابی سرنخ",
+                            subtitle = "نحوه توزیع سرنخ بین مشاوران",
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
+                    }
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = pad),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            s.leadRoutingOptions.forEach { opt ->
+                                DfSoftChip(
+                                    text = opt.label,
+                                    selected = routing == opt.value,
+                                    onClick = { if (s.permissions.canEdit) routing = opt.value },
                                 )
-                                Text("مسیریابی سرنخ", fontWeight = FontWeight.SemiBold)
-                                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                                    s.leadRoutingOptions.forEach { opt ->
-                                        DfSoftChip(
-                                            text = opt.label,
-                                            selected = routing == opt.value,
-                                            onClick = { if (s.permissions.canEdit) routing = opt.value },
-                                        )
-                                    }
-                                }
-                                if (!s.permissions.canEdit) {
-                                    Text(
-                                        "فقط مدیر می‌تواند تنظیمات را ویرایش کند.",
-                                        style = AppTypography.labelSmall,
-                                        color = DfThemeColors.textMuted(),
-                                    )
-                                } else {
-                                    DfPrimaryButton(
-                                        text = if (state.isSaving) "در حال ذخیره…" else "ذخیره",
-                                        onClick = { viewModel.save(name, routing) },
-                                        enabled = !state.isSaving && name.isNotBlank(),
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
                             }
+                        }
+                    }
+                    item {
+                        if (!s.permissions.canEdit) {
+                            Text(
+                                "فقط مدیر می‌تواند تنظیمات را ویرایش کند.",
+                                style = AppTypography.labelSmall,
+                                color = DfThemeColors.textMuted(),
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
+                        } else {
+                            DfPrimaryButton(
+                                text = if (state.isSaving) "در حال ذخیره…" else "ذخیره تغییرات",
+                                onClick = { viewModel.save(name, routing) },
+                                enabled = !state.isSaving && name.isNotBlank(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = pad),
+                            )
                         }
                     }
                 }

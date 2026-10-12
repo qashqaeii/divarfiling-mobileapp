@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -29,6 +30,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfAsyncImage
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -73,17 +75,42 @@ fun AgencySpaceItemCard(
     onViewCopied: (kind: String, targetId: Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isProperty = item.property != null
-    val title = item.property?.title ?: item.customer?.name ?: "—"
-    val region = item.property?.region ?: item.customer?.region.orEmpty()
-    val priceOrBudget = item.property?.priceLabel ?: item.customer?.budgetLabel.orEmpty()
-    val metaLine = listOfNotNull(
-        item.property?.dealMode?.takeIf { it.isNotBlank() },
-        item.customer?.needSummary?.takeIf { it.isNotBlank() },
+    if (item.property != null) {
+        AgencySpacePropertyCard(
+            item = item,
+            selectMode = selectMode,
+            selected = selected,
+            onOpen = onOpen,
+            modifier = modifier,
+        )
+    } else {
+        AgencySpaceContactCard(
+            item = item,
+            selectMode = selectMode,
+            selected = selected,
+            onOpen = onOpen,
+            modifier = modifier,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AgencySpacePropertyCard(
+    item: AgencySpaceItemDto,
+    selectMode: Boolean,
+    selected: Boolean,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val prop = item.property ?: return
+    val title = prop.title.ifBlank { "—" }
+    val accent = DfThemeColors.info()
+    val specs = listOfNotNull(
+        prop.areaLabel.takeIf { it.isNotBlank() },
+        prop.rooms.takeIf { it.isNotBlank() }?.let { "$it خواب" },
+        prop.propertyType.takeIf { it.isNotBlank() },
     ).joinToString(" · ")
-    val copyKind = if (isProperty) "property" else "customer"
-    val typeLabel = if (isProperty) "فایل" else "مخاطب"
-    val accent = if (isProperty) DfThemeColors.info() else DfThemeColors.primary()
     DfCard(modifier = modifier, onClick = onOpen) {
         Row(
             modifier = Modifier
@@ -103,122 +130,241 @@ fun AgencySpaceItemCard(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (isProperty) {
-                    DfListingImage(
-                        thumbnailUrl = item.property?.thumbnailUrl,
-                        modifier = Modifier.size(width = 72.dp, height = 64.dp),
-                        shape = RoundedCornerShape(AppSpacing.sm),
-                        contentDescription = title,
-                    )
-                }
+                DfListingImage(
+                    thumbnailUrl = prop.thumbnailUrl,
+                    modifier = Modifier.size(width = 72.dp, height = 64.dp),
+                    shape = RoundedCornerShape(AppSpacing.sm),
+                    contentDescription = title,
+                )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (selectMode) {
-                            Checkbox(checked = selected, onCheckedChange = { onOpen() })
-                        }
-                        DfBadge(
-                            text = typeLabel,
-                            color = accent.copy(alpha = 0.12f),
-                            textColor = accent,
-                        )
+                    AgencySpaceCardTitleRow(
+                        selectMode = selectMode,
+                        selected = selected,
+                        onOpen = onOpen,
+                        badge = "فایل",
+                        badgeColor = accent,
+                        title = title,
+                    )
+                    if (prop.priceLabel.isNotBlank()) {
                         Text(
-                            title,
-                            style = AppTypography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    if (priceOrBudget.isNotBlank()) {
-                        Text(
-                            priceOrBudget,
+                            prop.priceLabel,
                             style = AppTypography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = DfThemeColors.textPrimary(),
                         )
-                    } else if (metaLine.isNotBlank()) {
+                    }
+                    if (specs.isNotBlank()) {
                         Text(
-                            metaLine,
+                            specs,
                             style = AppTypography.labelSmall,
                             color = DfThemeColors.textSecondary(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    if (region.isNotBlank()) {
+                    val location = prop.region.ifBlank { prop.neighborhood }
+                    if (location.isNotBlank()) {
                         Text(
-                            region,
+                            location,
                             style = AppTypography.labelSmall,
                             color = DfThemeColors.textMuted(),
                             maxLines = 1,
                         )
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            item.publisher.name.ifBlank { "—" },
-                            style = AppTypography.labelSmall,
-                            color = DfThemeColors.textMuted(),
-                            maxLines = 1,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (item.publishedAtDisplay.isNotBlank()) {
-                            Text(
-                                item.publishedAtDisplay,
-                                style = AppTypography.labelSmall,
-                                color = DfThemeColors.textMuted(),
-                            )
-                        }
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AgencySpaceVisibilityBadge(
-                            visibility = item.visibility,
-                            label = item.visibilityLabel,
-                        )
-                        if (item.alreadyCopied) {
-                            DfBadge(
-                                text = if (isProperty) "در فایل‌های من" else "در CRM من",
-                                color = DfThemeColors.successContainer(),
-                                textColor = DfThemeColors.success(),
-                            )
-                        }
-                    }
-                    when {
-                        item.alreadyCopied && item.copyTargetId != null -> {
-                            DfSecondaryButton(
-                                text = if (isProperty) "مشاهده نسخه من" else "مشاهده مخاطب",
-                                onClick = { onViewCopied(copyKind, item.copyTargetId!!) },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                        item.canCopy && !item.alreadyCopied -> {
-                            DfPrimaryButton(
-                                text = when {
-                                    isSubmitting -> "…"
-                                    isProperty -> "کپی به فایل‌های من"
-                                    else -> "کپی به CRM من"
-                                },
-                                onClick = onCopy,
-                                enabled = !isSubmitting,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
+                    AgencySpaceCardFooter(item = item, isProperty = true)
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AgencySpaceContactCard(
+    item: AgencySpaceItemDto,
+    selectMode: Boolean,
+    selected: Boolean,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cust = item.customer ?: return
+    val title = cust.name.ifBlank { "—" }
+    val accent = DfThemeColors.primary()
+    val accentName = teamAccentFor(title)
+    DfCard(modifier = modifier, onClick = onOpen) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .background(accent),
+            )
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(AppSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.Top,
+            ) {
+                if (cust.avatarUrl.isNotBlank()) {
+                    DfAsyncImage(
+                        url = cust.avatarUrl,
+                        contentDescription = title,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(AppSpacing.sm)),
+                    )
+                } else {
+                    TeamAvatar(name = title, size = 48.dp, accent = accentName)
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    AgencySpaceCardTitleRow(
+                        selectMode = selectMode,
+                        selected = selected,
+                        onOpen = onOpen,
+                        badge = cust.customerType.ifBlank { "مخاطب" },
+                        badgeColor = accent,
+                        title = title,
+                    )
+                    if (cust.needSummary.isNotBlank()) {
+                        Text(
+                            cust.needSummary,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textSecondary(),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (cust.budgetLabel.isNotBlank()) {
+                        Text(
+                            cust.budgetLabel,
+                            style = AppTypography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DfThemeColors.textPrimary(),
+                        )
+                    }
+                    val statusLine = listOfNotNull(
+                        cust.status.takeIf { it.isNotBlank() },
+                        cust.priority.takeIf { it.isNotBlank() },
+                    ).joinToString(" · ")
+                    if (statusLine.isNotBlank()) {
+                        Text(
+                            statusLine,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                            maxLines = 1,
+                        )
+                    }
+                    if (cust.hasPhone && cust.phone.isNotBlank()) {
+                        Text(
+                            cust.phone,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textSecondary(),
+                        )
+                    }
+                    if (cust.region.isNotBlank()) {
+                        Text(
+                            cust.region,
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                            maxLines = 1,
+                        )
+                    }
+                    AgencySpaceCardFooter(item = item, isProperty = false)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgencySpaceCardTitleRow(
+    selectMode: Boolean,
+    selected: Boolean,
+    onOpen: () -> Unit,
+    badge: String,
+    badgeColor: androidx.compose.ui.graphics.Color,
+    title: String,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (selectMode) {
+            Checkbox(checked = selected, onCheckedChange = { onOpen() })
+        }
+        DfBadge(
+            text = badge,
+            color = badgeColor.copy(alpha = 0.12f),
+            textColor = badgeColor,
+        )
+        Text(
+            title,
+            style = AppTypography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun AgencySpaceCardFooter(
+    item: AgencySpaceItemDto,
+    isProperty: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            item.publisher.name.ifBlank { "—" },
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textMuted(),
+            maxLines = 1,
+            modifier = Modifier.weight(1f),
+        )
+        if (item.publishedAtDisplay.isNotBlank()) {
+            Text(
+                item.publishedAtDisplay,
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textMuted(),
+            )
+        }
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AgencySpaceVisibilityBadge(
+            visibility = item.visibility,
+            label = item.visibilityLabel,
+        )
+        if (item.statusLabel.isNotBlank()) {
+            DfBadge(
+                text = item.statusLabel,
+                color = DfThemeColors.surfaceVariant(),
+                textColor = DfThemeColors.textSecondary(),
+            )
+        }
+        if (item.alreadyCopied) {
+            DfBadge(
+                text = if (isProperty) "در فایل‌های من" else "در CRM من",
+                color = DfThemeColors.successContainer(),
+                textColor = DfThemeColors.success(),
+            )
         }
     }
 }
@@ -239,7 +385,7 @@ fun AgencySpaceFilterSheet(
     DfModalBottomSheet(onDismissRequest = onDismiss) {
         DfSheetScaffold(
             title = "فیلتر پیشرفته",
-            subtitle = "مطابق پارامترهای میزکار وب",
+            subtitle = "نوع ملک، منطقه، قیمت و دسترسی",
             onClose = onDismiss,
             footer = {
                 DfSheetActions(

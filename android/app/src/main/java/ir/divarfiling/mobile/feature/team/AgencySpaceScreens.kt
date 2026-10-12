@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,6 +66,7 @@ import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
+import ir.divarfiling.mobile.core.network.AgencyHomeDto
 import ir.divarfiling.mobile.core.network.AgencySpaceHeaderKpisDto
 import ir.divarfiling.mobile.core.network.AgencySpaceItemDto
 import ir.divarfiling.mobile.core.network.AgencySpacePublishRequest
@@ -110,8 +112,15 @@ data class AgencySpaceListUiState(
 @HiltViewModel
 class AgencySpaceListViewModel @Inject constructor(
     private val repository: TeamRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(AgencySpaceListUiState())
+    private val _uiState = MutableStateFlow(
+        AgencySpaceListUiState(
+            tab = savedStateHandle.get<String>("tab")
+                ?.takeIf { key -> AgencySpaceTab.labels.any { it.first == key } }
+                ?: AgencySpaceTab.ALL,
+        ),
+    )
     val uiState: StateFlow<AgencySpaceListUiState> = _uiState.asStateFlow()
     private var searchJob: Job? = null
 
@@ -339,6 +348,256 @@ class AgencySpaceListViewModel @Inject constructor(
     }
 }
 
+data class AgencySpaceHubUiState(
+    val home: AgencyHomeDto? = null,
+    val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
+    val error: String? = null,
+)
+
+@HiltViewModel
+class AgencySpaceHubViewModel @Inject constructor(
+    private val repository: TeamRepository,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(AgencySpaceHubUiState())
+    val uiState: StateFlow<AgencySpaceHubUiState> = _uiState.asStateFlow()
+
+    init {
+        refresh(initial = true)
+    }
+
+    fun refresh(initial: Boolean = false) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isLoading = initial && it.home == null,
+                    isRefreshing = !initial || it.home != null,
+                    error = null,
+                )
+            }
+            when (val result = repository.getAgencyHome()) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(home = result.data, isLoading = false, isRefreshing = false)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isLoading = false, isRefreshing = false, error = result.message)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AgencySpaceHubScreen(
+    onBack: () -> Unit,
+    onOpenBrowse: (tab: String) -> Unit,
+    viewModel: AgencySpaceHubViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val pad = teamHorizontalPadding()
+    val home = state.home
+    val caps = home?.capabilities
+    val canAccess = caps?.canAccessAgencySpace == true
+    val agencyName = home?.agency?.name?.ifBlank { "فضای آژانس" } ?: "فضای آژانس"
+    val roleLabel = home?.membership?.roleLabel?.ifBlank {
+        home.membership?.title.orEmpty()
+    }.orEmpty()
+    val subtitle = when {
+        roleLabel.isNotBlank() -> roleLabel
+        canAccess -> "اشتراک فایل و مخاطب با تیم"
+        caps?.agencySpaceEnabled == true -> "برای دسترسی، عضویت و اشتراک آژانس لازم است"
+        else -> "قابلیت فضای آژانس در آژانس شما فعال نیست"
+    }
+    val kpis = home?.spaceKpis
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose { }
+    }
+
+    Scaffold(containerColor = DfScreenContainerColor) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            TeamAmbientBackground()
+            DfPullRefresh(
+                isRefreshing = state.isRefreshing,
+                onRefresh = { viewModel.refresh(initial = false) },
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                LazyColumn(
+                    contentPadding = teamListContentPadding(),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
+                ) {
+                    item {
+                        TeamAgencyScreenHeader(
+                            title = agencyName,
+                            subtitle = subtitle,
+                            onBack = onBack,
+                        )
+                    }
+                    state.error?.let { err ->
+                        if (!state.isLoading && home == null) {
+                            item {
+                                DfErrorBanner(message = err, modifier = Modifier.padding(horizontal = pad))
+                            }
+                        }
+                    }
+                    when {
+                        state.isLoading -> item {
+                            DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
+                        }
+                        !canAccess -> item {
+                            DfEmptyState(
+                                title = "دسترسی به فضای آژانس",
+                                subtitle = subtitle,
+                                variant = DfEmptyVariant.Empty,
+                                modifier = Modifier.padding(horizontal = pad),
+                            )
+                        }
+                        else -> {
+                            if (kpis != null) {
+                                item {
+                                    TeamMetricsRow(
+                                        metrics = listOf(
+                                            TeamMetric(
+                                                "فایل‌های فعال",
+                                                kpis.activeProperties.toString(),
+                                                DfThemeColors.info(),
+                                                DfIcons.Building,
+                                                onClick = { onOpenBrowse(AgencySpaceTab.PROPERTIES) },
+                                            ),
+                                            TeamMetric(
+                                                "مخاطبین فعال",
+                                                kpis.activeContacts.toString(),
+                                                DfThemeColors.success(),
+                                                DfIcons.Users,
+                                                onClick = { onOpenBrowse(AgencySpaceTab.CONTACTS) },
+                                            ),
+                                        ),
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
+                            item {
+                                AgencySpaceAccessStrip(
+                                    canPublish = caps?.canPublishAgencySpace == true,
+                                    canModerate = caps?.canModerateAgencySpace == true,
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                            item {
+                                TeamSectionLabel(
+                                    title = "مرور سریع",
+                                    subtitle = "فیلترهای پرکاربرد",
+                                    modifier = Modifier.padding(horizontal = pad),
+                                )
+                            }
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = pad),
+                                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                ) {
+                                    TeamDestinationCompact(
+                                        title = "همه انتشارها",
+                                        subtitle = "فایل و مخاطب در یک فهرست",
+                                        icon = DfIcons.Layers,
+                                        onClick = { onOpenBrowse(AgencySpaceTab.ALL) },
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                    ) {
+                                        TeamDestinationCompact(
+                                            title = "فایل‌ها",
+                                            subtitle = kpis?.let {
+                                                "${DateUtils.toPersianDigits(it.activeProperties.toString())} فعال"
+                                            },
+                                            icon = DfIcons.Building,
+                                            onClick = { onOpenBrowse(AgencySpaceTab.PROPERTIES) },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        TeamDestinationCompact(
+                                            title = "مخاطبین",
+                                            subtitle = kpis?.let {
+                                                "${DateUtils.toPersianDigits(it.activeContacts.toString())} فعال"
+                                            },
+                                            icon = DfIcons.Users,
+                                            onClick = { onOpenBrowse(AgencySpaceTab.CONTACTS) },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                                    ) {
+                                        TeamDestinationCompact(
+                                            title = "منتشرشده من",
+                                            subtitle = "انتشارهای شما",
+                                            icon = DfIcons.Upload,
+                                            onClick = { onOpenBrowse(AgencySpaceTab.PUBLISHED_BY_ME) },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        TeamDestinationCompact(
+                                            title = "ذخیره‌های من",
+                                            subtitle = "کپی‌های CRM",
+                                            icon = DfIcons.Sparkles,
+                                            onClick = { onOpenBrowse(AgencySpaceTab.SAVED_BY_ME) },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                }
+                            }
+                            if (caps?.canViewSpaceAnalytics == true && kpis != null) {
+                                item {
+                                    TeamSectionLabel(
+                                        title = "آمار اشتراک",
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                                item {
+                                    AgencySpaceKpiRow(kpis = kpis, modifier = Modifier.padding(horizontal = pad))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgencySpaceAccessStrip(
+    canPublish: Boolean,
+    canModerate: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val parts = buildList {
+        add("دسترسی فعال")
+        if (canPublish) add("امکان انتشار")
+        if (canModerate) add("مدیریت فضا")
+    }
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        parts.forEach { label ->
+            DfBadge(
+                text = label,
+                color = DfThemeColors.primaryContainer(),
+                textColor = DfThemeColors.primary(),
+            )
+        }
+    }
+}
+
 data class AgencySpaceDetailUiState(
     val item: AgencySpaceItemDto? = null,
     val isLoading: Boolean = true,
@@ -526,7 +785,7 @@ fun AgencySpaceListScreen(
             ) {
                 item {
                     TeamAgencyScreenHeader(
-                        title = "فضای آژانس",
+                        title = "فهرست انتشار",
                         subtitle = if (state.total > 0) {
                             "${ir.divarfiling.mobile.core.design.DateUtils.toPersianDigits(state.total.toString())} انتشار"
                         } else {

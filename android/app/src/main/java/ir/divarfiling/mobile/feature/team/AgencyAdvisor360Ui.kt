@@ -101,14 +101,17 @@ fun AgencyAdvisor360WorkspaceBody(
     detail: AgencyAdvisorDetailPayload,
     workspace: AgencyAdvisorWorkspacePayload?,
     workspaceLoading: Boolean,
+    workspaceError: String? = null,
+    workspaceForbidden: Boolean = false,
     workspaceQuery: String,
     periodDays: Int,
     filingDatasetId: String?,
     onQueryChange: (String) -> Unit,
     onPeriodChange: (Int) -> Unit,
-    onOpenDataset: (Long) -> Unit,
+    onOpenDataset: (String) -> Unit,
     onBackFromDataset: () -> Unit,
     onLoadMore: () -> Unit,
+    onRetryWorkspace: () -> Unit = {},
     onOpenContact: (Long) -> Unit = {},
     onOpenProperty: (Long) -> Unit = {},
     onOpenDeal: (Long) -> Unit = {},
@@ -145,6 +148,13 @@ fun AgencyAdvisor360WorkspaceBody(
             DfSecondaryButton(text = "بازگشت به دیتاست‌ها", onClick = onBackFromDataset)
         }
         when {
+            workspaceError != null && workspace == null -> DfEmptyState(
+                title = if (workspaceForbidden) "دسترسی محدود" else "بارگذاری ناموفق",
+                subtitle = workspaceError,
+                variant = if (workspaceForbidden) DfEmptyVariant.Empty else DfEmptyVariant.Error,
+                actionLabel = if (workspaceForbidden) null else "تلاش مجدد",
+                onAction = if (workspaceForbidden) null else onRetryWorkspace,
+            )
             workspaceLoading && workspace == null -> DfCardListSkeleton()
             !detail.canViewWorkspace -> DfEmptyState(
                 title = "داده مشاور در دسترس نیست",

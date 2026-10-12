@@ -63,7 +63,9 @@ data class TeamAnnouncementsUiState(
     val selected: TeamAnnouncementDto? = null,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
+    val isMarkingAll: Boolean = false,
     val error: String? = null,
+    val successMessage: String? = null,
 )
 
 @HiltViewModel
@@ -132,6 +134,33 @@ class TeamAnnouncementsViewModel @Inject constructor(
     }
 
     fun dismissDetail() = _uiState.update { it.copy(selected = null) }
+
+    fun markAllRead() {
+        if (_uiState.value.isMarkingAll || _uiState.value.unread <= 0) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isMarkingAll = true, error = null) }
+            when (val result = repository.markAllAnnouncementsRead()) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isMarkingAll = false,
+                            successMessage = if (result.data > 0) {
+                                "${DateUtils.toPersianDigits(result.data.toString())} اعلامیه خوانده شد"
+                            } else {
+                                "همه اعلامیه‌ها قبلاً خوانده شده بودند"
+                            },
+                        )
+                    }
+                    refresh(true)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isMarkingAll = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,8 +174,9 @@ fun TeamAnnouncementsScreen(
     var filter by remember { mutableStateOf(AnnouncementFilter.All) }
     val pad = teamHorizontalPadding()
 
-    LaunchedEffect(state.error) {
-        state.error?.let { snackbar.showSnackbar(it) }
+    LaunchedEffect(state.error, state.successMessage) {
+        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
     }
 
     state.selected?.let { detail ->
@@ -218,6 +248,20 @@ fun TeamAnnouncementsScreen(
                                 "تابلو اطلاع‌رسانی تیم"
                             },
                             onBack = onBack,
+                            actions = {
+                                if (state.unread > 0) {
+                                    androidx.compose.material3.TextButton(
+                                        onClick = viewModel::markAllRead,
+                                        enabled = !state.isMarkingAll,
+                                    ) {
+                                        Text(
+                                            if (state.isMarkingAll) "…" else "همه خوانده شد",
+                                            style = AppTypography.labelSmall,
+                                            color = DfThemeColors.primary(),
+                                        )
+                                    }
+                                }
+                            },
                         )
                     }
                     item {

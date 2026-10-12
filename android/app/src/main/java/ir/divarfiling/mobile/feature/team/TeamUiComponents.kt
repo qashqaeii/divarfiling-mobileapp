@@ -84,6 +84,7 @@ data class TeamMetric(
     val value: String,
     val tint: Color,
     val icon: ImageVector,
+    val onClick: (() -> Unit)? = null,
 )
 
 data class TeamDestination(
@@ -237,17 +238,17 @@ fun TeamMetricsRow(
     modifier: Modifier = Modifier,
 ) {
     if (metrics.isEmpty()) return
-    val featured = metrics.first()
-    val rest = metrics.drop(1)
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-        TeamAgencyKpiFeatured(metric = featured)
-        if (rest.isNotEmpty()) {
+        metrics.chunked(2).forEach { rowMetrics ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
             ) {
-                rest.forEach { metric ->
+                rowMetrics.forEach { metric ->
                     TeamAgencyKpiCompact(metric = metric, modifier = Modifier.weight(1f))
+                }
+                if (rowMetrics.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -301,13 +302,19 @@ private fun TeamAgencyKpiFeatured(metric: TeamMetric) {
 
 @Composable
 private fun TeamAgencyKpiCompact(metric: TeamMetric, modifier: Modifier = Modifier) {
+    val shape = AppShapes.StatCard
+    val base = modifier
+        .height(68.dp)
+        .clip(shape)
+        .background(DfThemeColors.surface())
+        .border(BorderStroke(1.dp, DfThemeColors.outlineSubtle()), shape)
+    val sized = if (metric.onClick != null) {
+        base.then(Modifier.clickable(onClick = metric.onClick))
+    } else {
+        base
+    }
     Column(
-        modifier = modifier
-            .height(68.dp)
-            .clip(AppShapes.StatCard)
-            .background(DfThemeColors.surface())
-            .border(BorderStroke(1.dp, DfThemeColors.outlineSubtle()), AppShapes.StatCard)
-            .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xs),
+        modifier = sized.padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xs),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
@@ -348,11 +355,15 @@ fun TeamDestinationCard(
         shadowElevation = AppElevations.subtle,
         tonalElevation = 0.dp,
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+        ) {
             Box(
                 modifier = Modifier
-                    .width(5.dp)
-                    .height(108.dp)
+                    .width(4.dp)
+                    .fillMaxHeight()
                     .background(
                         Brush.verticalGradient(
                             listOf(destination.tint, destination.tint.copy(alpha = 0.35f)),
@@ -826,6 +837,7 @@ fun TeamLeadListCard(
     selected: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    selectable: Boolean = false,
     onAssign: (() -> Unit)? = null,
     onOpenContact: (() -> Unit)? = null,
     assigneeHint: String? = null,
@@ -836,7 +848,7 @@ fun TeamLeadListCard(
         modifier = modifier
             .fillMaxWidth()
             .then(
-                if (onAssign == null) Modifier.clickable(onClick = onToggle) else Modifier,
+                if (selectable || onAssign == null) Modifier.clickable(onClick = onToggle) else Modifier,
             ),
         shape = AppShapes.CardSmall,
         color = if (selected) {
@@ -855,6 +867,12 @@ fun TeamLeadListCard(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (selectable) {
+                    androidx.compose.material3.Checkbox(
+                        checked = selected,
+                        onCheckedChange = { onToggle() },
+                    )
+                }
                 TeamAvatar(
                     name = lead.name.ifBlank { lead.phone.ifBlank { "س" } },
                     accent = accent,
@@ -912,7 +930,7 @@ fun TeamLeadListCard(
                     }
                 }
             }
-            if (onAssign != null || onOpenContact != null) {
+            if (!selectable && (onAssign != null || onOpenContact != null)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                     onAssign?.let {
                         DfPrimaryButton(
@@ -1222,11 +1240,14 @@ fun TeamSectionLabel(
 fun TeamAttentionCard(
     item: AgencyAttentionDto,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     val warning = item.level == "warning" || item.level == "danger"
     val tint = if (warning) DfThemeColors.warning() else DfThemeColors.info()
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = AppShapes.CardSmall,
         color = DfThemeColors.surface(),
         border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
@@ -1392,19 +1413,15 @@ fun TeamAdvisorCompactCard(
                     }
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (advisor.resolvedHasSeat()) {
-                        DfBadge(
-                            text = "صندلی",
-                            color = DfThemeColors.primaryContainer(),
-                            textColor = DfThemeColors.primary(),
-                        )
-                    } else if (active) {
-                        DfBadge(
-                            text = "بدون صندلی",
-                            color = DfThemeColors.warningContainer(),
-                            textColor = DfThemeColors.warning(),
-                        )
+                    val seatBadge = advisor.seatStatusBadgeLabel()
+                    val (seatBg, seatFg) = when (advisor.seatAssignmentState()) {
+                        AgencySeatAssignmentState.Active,
+                        AgencySeatAssignmentState.Unknown,
+                        -> DfThemeColors.primaryContainer() to DfThemeColors.primary()
+                        AgencySeatAssignmentState.Expired -> DfThemeColors.errorContainer() to DfThemeColors.error()
+                        AgencySeatAssignmentState.Unassigned -> DfThemeColors.warningContainer() to DfThemeColors.warning()
                     }
+                    DfBadge(text = seatBadge, color = seatBg, textColor = seatFg)
                     DfBadge(
                         text = PresentationLabels.memberActiveLabel(active),
                         color = if (active) DfThemeColors.successContainer() else DfThemeColors.errorContainer(),
@@ -1782,7 +1799,26 @@ fun teamListContentPadding(bottomExtra: Dp = 0.dp): PaddingValues {
 }
 
 fun AgencyActivityDto.displayTitle(): String {
-    if (eventLabel.isNotBlank()) return eventLabel
-    if (title.isNotBlank() && !title.contains('_')) return title
-    return eventType.replace('_', ' ').ifBlank { title }
+    val label = eventLabel.trim()
+    val titled = title.trim()
+    if (label.isNotBlank() && label != titled) return label
+    if (titled.isNotBlank() && !titled.contains('_')) {
+        val duplicate = titled.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (duplicate.size >= 2 && duplicate.distinct().size == 1) {
+            return duplicate.first()
+        }
+        return titled
+    }
+    val fromType = eventType.replace('_', ' ').trim()
+    return fromType.ifBlank { titled }.ifBlank { "رویداد آژانس" }
+}
+
+fun AgencyActivityDto.displaySubtitle(): String {
+    val actor = actorName.trim()
+    return when {
+        actor.isNotBlank() && eventType.isNotBlank() -> "$actor · ${eventType.replace('_', ' ')}"
+        actor.isNotBlank() -> actor
+        eventType.isNotBlank() -> eventType.replace('_', ' ')
+        else -> ""
+    }
 }

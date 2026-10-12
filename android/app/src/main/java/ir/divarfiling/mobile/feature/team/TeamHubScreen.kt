@@ -185,10 +185,33 @@ fun TeamHubScreen(
                                 val info = DfThemeColors.info()
                                 TeamMetricsRow(
                                     metrics = listOf(
-                                        TeamMetric("اعضا", DateUtils.toPersianDigits(kpis.activeMembers.toString()), primary, DfIcons.Users),
-                                        TeamMetric("سرنخ", DateUtils.toPersianDigits(kpis.unassignedLeads.toString()), success, DfIcons.UserPlus),
-                                        TeamMetric("پیگیری", DateUtils.toPersianDigits(kpis.teamFollowupsToday.toString()), warning, DfIcons.Clock),
-                                        TeamMetric("معامله", DateUtils.toPersianDigits(kpis.activeDeals.toString()), info, DfIcons.Handshake),
+                                        TeamMetric(
+                                            "اعضا",
+                                            DateUtils.toPersianDigits(kpis.activeMembers.toString()),
+                                            primary,
+                                            DfIcons.Users,
+                                            onClick = onOpenMembers,
+                                        ),
+                                        TeamMetric(
+                                            "سرنخ",
+                                            DateUtils.toPersianDigits(kpis.unassignedLeads.toString()),
+                                            success,
+                                            DfIcons.UserPlus,
+                                            onClick = if (perms.canOperateInbox) onOpenInbox else null,
+                                        ),
+                                        TeamMetric(
+                                            "پیگیری",
+                                            DateUtils.toPersianDigits(kpis.teamFollowupsToday.toString()),
+                                            warning,
+                                            DfIcons.Clock,
+                                        ),
+                                        TeamMetric(
+                                            "معامله",
+                                            DateUtils.toPersianDigits(kpis.activeDeals.toString()),
+                                            info,
+                                            DfIcons.Handshake,
+                                            onClick = if (perms.canManage) onOpenPerformance else null,
+                                        ),
                                     ),
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
@@ -364,8 +387,15 @@ fun TeamHubScreen(
                                     )
                                 }
                                 items(home.attention.take(4), key = { it.kind + it.title }) { item ->
+                                    val action: (() -> Unit)? = when (item.kind) {
+                                        "pending_invites" -> onOpenMembers
+                                        "members_without_seat" -> if (perms.canManageSeats) onOpenSeats else onOpenMembers
+                                        "inbox_leads" -> if (perms.canOperateInbox) onOpenInbox else null
+                                        else -> null
+                                    }
                                     TeamAttentionCard(
                                         item = item,
+                                        onClick = action,
                                         modifier = Modifier.padding(horizontal = pad),
                                     )
                                 }
@@ -404,23 +434,18 @@ fun TeamHubScreen(
                                         modifier = Modifier.padding(horizontal = pad),
                                     )
                                 }
-                                item {
-                                    DfCard(modifier = Modifier.padding(horizontal = pad).fillMaxWidth()) {
-                                        Column(Modifier.padding(AppSpacing.sm)) {
-                                            home.teamActivity.take(5).forEach { ev ->
-                                                val time = ev.createdAt.takeIf { it.isNotBlank() }?.let { iso ->
-                                                    DateUtils.parseInstantMillis(iso)?.let { ms ->
-                                                        DateUtils.formatJalaliDateTimeLatinFromMillis(ms)
-                                                    }
-                                                } ?: ""
-                                                TeamActivityTimelineRow(
-                                                    title = ev.displayTitle(),
-                                                    actorName = ev.actorName,
-                                                    timeLabel = time,
-                                                )
-                                            }
+                                items(home.teamActivity.take(5), key = { it.id }) { ev ->
+                                    val time = ev.createdAt.takeIf { it.isNotBlank() }?.let { iso ->
+                                        DateUtils.parseInstantMillis(iso)?.let { ms ->
+                                            DateUtils.formatJalaliDateTimeLatinFromMillis(ms)
                                         }
-                                    }
+                                    } ?: ""
+                                    TeamActivityTimelineRow(
+                                        title = ev.displayTitle(),
+                                        actorName = ev.displaySubtitle(),
+                                        timeLabel = time,
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
                                 }
                             }
                             if (state.notifications.isNotEmpty()) {

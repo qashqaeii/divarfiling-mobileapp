@@ -1,28 +1,85 @@
 package ir.divarfiling.mobile.feature.team
 
+import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.PresentationLabels
 import ir.divarfiling.mobile.core.network.AgencyAdvisorDto
 import ir.divarfiling.mobile.core.network.AgencyAdvisorSeatDto
 
 /**
- * Single source for seat UI state on the client.
- * Uses API `has_seat` and corroborates with `license_id` when both are present.
+ * وضعیت تخصیص صندلی — منبع واحد UI بر پایه قرارداد API (`has_seat`, `license_id`, `status`).
  */
+enum class AgencySeatAssignmentState {
+    Unassigned,
+    Active,
+    Expired,
+    Unknown,
+}
+
+private fun normalizeSeatStatus(status: String): String = status.trim().lowercase()
+
+fun AgencyAdvisorDto.seatAssignmentState(): AgencySeatAssignmentState {
+    val assigned = hasSeat || (licenseId != null && licenseId > 0L)
+    if (!assigned) return AgencySeatAssignmentState.Unassigned
+    return when (normalizeSeatStatus(status)) {
+        "", "active", "valid", "assigned" -> AgencySeatAssignmentState.Active
+        "expired", "inactive", "cancelled", "canceled", "revoked" -> AgencySeatAssignmentState.Expired
+        else -> AgencySeatAssignmentState.Unknown
+    }
+}
+
+fun AgencyAdvisorSeatDto.seatAssignmentState(): AgencySeatAssignmentState {
+    if (!resolvedHasSeat()) return AgencySeatAssignmentState.Unassigned
+    return when (normalizeSeatStatus(status)) {
+        "", "active", "valid", "assigned" -> AgencySeatAssignmentState.Active
+        "expired", "inactive", "cancelled", "canceled", "revoked" -> AgencySeatAssignmentState.Expired
+        else -> AgencySeatAssignmentState.Unknown
+    }
+}
+
+/** صندلی فعال برای استفاده از امکانات لایسنس */
 fun AgencyAdvisorDto.resolvedHasSeat(): Boolean =
-    hasSeat || (licenseId != null && licenseId > 0L)
+    seatAssignmentState() == AgencySeatAssignmentState.Active ||
+        seatAssignmentState() == AgencySeatAssignmentState.Unknown
 
 fun AgencyAdvisorSeatDto.resolvedHasSeat(): Boolean =
     hasSeat || (licenseId != null && licenseId > 0L)
 
-fun AgencyAdvisorDto.seatSummaryLabel(): String = when {
-    resolvedHasSeat() && sequence != null ->
-        "صندلی #${sequence}${plan.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""}"
-    resolvedHasSeat() -> "دارای صندلی"
-    else -> "بدون صندلی"
+fun AgencyAdvisorDto.hasSeatAssignment(): Boolean =
+    seatAssignmentState() != AgencySeatAssignmentState.Unassigned
+
+fun AgencyAdvisorDto.seatStatusBadgeLabel(): String = when (seatAssignmentState()) {
+    AgencySeatAssignmentState.Unassigned -> "بدون صندلی"
+    AgencySeatAssignmentState.Active -> "صندلی فعال"
+    AgencySeatAssignmentState.Expired -> "صندلی منقضی"
+    AgencySeatAssignmentState.Unknown -> "صندلی"
 }
 
-fun AgencyAdvisorSeatDto.seatSummaryLabel(): String = when {
-    resolvedHasSeat() && sequence != null ->
-        "صندلی #${sequence}${plan.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""}"
-    resolvedHasSeat() -> "دارای صندلی"
-    else -> "بدون صندلی"
+fun AgencyAdvisorDto.seatSummaryLabel(): String = when (seatAssignmentState()) {
+    AgencySeatAssignmentState.Unassigned -> "بدون صندلی"
+    AgencySeatAssignmentState.Expired -> {
+        val base = sequence?.let { "صندلی #${DateUtils.toPersianDigits(it.toString())}" } ?: "صندلی"
+        "$base · منقضی"
+    }
+    else -> {
+        val base = sequence?.let { "صندلی #${DateUtils.toPersianDigits(it.toString())}" }
+            ?: PresentationLabels.seatLabel(true)
+        val planPart = plan.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
+        val expiry = expiresAt.takeIf { it.isNotBlank() }?.let { " · تا $it" } ?: ""
+        "$base$planPart$expiry"
+    }
+}
+
+fun AgencyAdvisorSeatDto.seatSummaryLabel(): String = when (seatAssignmentState()) {
+    AgencySeatAssignmentState.Unassigned -> "بدون صندلی"
+    AgencySeatAssignmentState.Expired -> {
+        val base = sequence?.let { "صندلی #${DateUtils.toPersianDigits(it.toString())}" } ?: "صندلی"
+        "$base · منقضی"
+    }
+    else -> {
+        val base = sequence?.let { "صندلی #${DateUtils.toPersianDigits(it.toString())}" }
+            ?: PresentationLabels.seatLabel(true)
+        val planPart = plan.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
+        val expiry = expiresAt.takeIf { it.isNotBlank() }?.let { " · تا $it" } ?: ""
+        "$base$planPart$expiry"
+    }
 }

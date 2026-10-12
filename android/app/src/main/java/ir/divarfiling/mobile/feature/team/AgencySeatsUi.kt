@@ -58,11 +58,15 @@ fun AgencySeatOccupiedRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            DfBadge(
-                text = "فعال",
-                color = DfThemeColors.successContainer(),
-                textColor = DfThemeColors.success(),
-            )
+            val seatLabel = member.seatStatusBadgeLabel()
+            val (seatBg, seatFg) = when (member.seatAssignmentState()) {
+                AgencySeatAssignmentState.Active,
+                AgencySeatAssignmentState.Unknown,
+                -> DfThemeColors.successContainer() to DfThemeColors.success()
+                AgencySeatAssignmentState.Expired -> DfThemeColors.errorContainer() to DfThemeColors.error()
+                AgencySeatAssignmentState.Unassigned -> DfThemeColors.warningContainer() to DfThemeColors.warning()
+            }
+            DfBadge(text = seatLabel, color = seatBg, textColor = seatFg)
             DfSecondaryButton(text = "آزادسازی", onClick = onRelease)
         }
     }
@@ -159,18 +163,15 @@ private fun AgencySeatRowShell(
             .fillMaxWidth()
             .background(DfThemeColors.surface(), AppShapes.CardSmall)
             .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = DfIcons.Layers,
             contentDescription = null,
             tint = DfThemeColors.textMuted(),
-            modifier = Modifier
-                .padding(end = AppSpacing.xs)
-                .size(16.dp),
+            modifier = Modifier.size(16.dp),
         )
-        Column(Modifier.weight(1f)) {
-            content()
-        }
+        content()
     }
 }

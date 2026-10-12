@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.team
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -113,16 +114,20 @@ class AgencyAdvisorsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AgencyAdvisorsUiState())
     val uiState: StateFlow<AgencyAdvisorsUiState> = _uiState.asStateFlow()
     private var searchJob: Job? = null
+    private var lastRosterVersion = 0
 
     init { load(initial = true) }
 
     fun load(initial: Boolean = false) {
         viewModelScope.launch {
+            val rosterChanged = lastRosterVersion != repository.agencyRosterInvalidation
+            lastRosterVersion = repository.agencyRosterInvalidation
             val state = _uiState.value
+            val forceRefresh = rosterChanged && !initial
             _uiState.update {
                 it.copy(
-                    isLoading = initial && it.advisors.isEmpty(),
-                    isRefreshing = !initial || it.advisors.isNotEmpty(),
+                    isLoading = (initial || forceRefresh) && it.advisors.isEmpty(),
+                    isRefreshing = forceRefresh || !initial || it.advisors.isNotEmpty(),
                     error = null,
                 )
             }
@@ -216,16 +221,22 @@ data class AgencyAdvisorDetailUiState(
     val showRoleSheet: Boolean = false,
     val showDeactivateConfirm: Boolean = false,
     val pendingRole: String? = null,
+    /** خطای بارگذاری پروفایل مشاور */
+    val detailError: String? = null,
+    /** خطای عملیات مدیریتی (نقش، غیرفعال‌سازی) */
     val error: String? = null,
     val successMessage: String? = null,
     val workspaceTab: Advisor360Tab = Advisor360Tab.OVERVIEW,
     val workspace: ir.divarfiling.mobile.core.network.AgencyAdvisorWorkspacePayload? = null,
     val workspaceLoading: Boolean = false,
+    val workspaceError: String? = null,
+    val workspaceForbidden: Boolean = false,
     val workspaceQuery: String = "",
     val workspacePage: Int = 1,
     val periodDays: Int = 30,
     val filingDatasetId: String? = null,
     val memberId: Long = 0L,
+    val showManageActions: Boolean = false,
 )
 
 @HiltViewModel
@@ -241,7 +252,9 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isLoading = it.detail == null,
-                    error = null,
+                    detailError = null,
+                    workspaceError = null,
+                    workspaceForbidden = false,
                     memberId = memberId,
                     workspacePage = 1,
                     workspaceTab = Advisor360Tab.OVERVIEW,
@@ -251,10 +264,10 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
             }
             when (val result = repository.getAgencyAdvisorDetail(memberId)) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(detail = result.data, isLoading = false)
+                    it.copy(detail = result.data, isLoading = false, detailError = null)
                 }
                 is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, error = result.message)
+                    it.copy(isLoading = false, detailError = result.message)
                 }
             }
             loadWorkspace(memberId, reset = true)
@@ -286,8 +299,11 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
         loadWorkspace(_uiState.value.memberId, reset = true)
     }
 
-    fun openFilingDataset(id: Long) {
-        _uiState.update { it.copy(filingDatasetId = id.toString(), workspacePage = 1) }
+    fun openFilingDataset(id: String) {
+        if (id.isBlank()) return
+        _uiState.update {
+            it.copy(filingDatasetId = id, workspacePage = 1, workspaceError = null, workspaceForbidden = false)
+        }
         loadWorkspace(_uiState.value.memberId, reset = true)
     }
 
@@ -307,7 +323,9 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
         val state = _uiState.value
         if (state.detail?.canViewWorkspace != true) return
         viewModelScope.launch {
-            _uiState.update { it.copy(workspaceLoading = true) }
+            _uiState.update {
+                it.copy(workspaceLoading = true, workspaceError = null, workspaceForbidden = false)
+            }
             val params = buildMap {
                 put("tab", state.workspaceTab.apiValue)
                 put("page", state.workspacePage.coerceAtLeast(1).toString())
@@ -326,14 +344,42 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
                             listings = state.workspace.listings + result.data.listings,
                         )
                     }
-                    _uiState.update { it.copy(workspace = merged, workspaceLoading = false) }
+                    _uiState.update {
+                        it.copy(
+                            workspace = merged,
+                            workspaceLoading = false,
+                            workspaceError = null,
+                            workspaceForbidden = false,
+                        )
+                    }
                 }
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(workspaceLoading = false, error = result.message)
+                is ApiResult.Error -> {
+                    val forbidden = result.code == "FORBIDDEN" ||
+                        (
+                            result.code != "PARSE_ERROR" &&
+                                result.code != "NETWORK_ERROR" &&
+                                result.message.contains("مجاز نیست")
+                            )
+                    val message = if (forbidden) {
+                        result.message.ifBlank {
+                            "دسترسی به داده این مشاور مجاز نیست. رضایت‌نامه دیداری داده یا اشتراک آژانس را بررسی کنید."
+                        }
+                    } else {
+                        result.message
+                    }
+                    _uiState.update {
+                        it.copy(
+                            workspaceLoading = false,
+                            workspaceError = message,
+                            workspaceForbidden = forbidden,
+                        )
+                    }
                 }
             }
         }
     }
+
+    fun retryWorkspace() = loadWorkspace(_uiState.value.memberId, reset = true)
 
     fun openRoleSheet() = _uiState.update { it.copy(showRoleSheet = true, pendingRole = null) }
 
@@ -356,6 +402,7 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
                         )
                     }
                     load(memberId)
+                    repository.invalidateAgencyRoster()
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmitting = false, error = result.message)
@@ -375,6 +422,7 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     _uiState.update { it.copy(isSubmitting = false, successMessage = "عضو غیرفعال شد") }
                     load(memberId)
+                    repository.invalidateAgencyRoster()
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmitting = false, error = result.message)
@@ -384,6 +432,10 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
     }
 
     fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
+
+    fun openManageActions() = _uiState.update { it.copy(showManageActions = true) }
+
+    fun dismissManageActions() = _uiState.update { it.copy(showManageActions = false) }
 }
 
 data class AgencyPerformanceUiState(
@@ -518,6 +570,7 @@ class AgencySeatsViewModel @Inject constructor(
                 }
             }
             refresh()
+            repository.invalidateAgencyRoster()
         }
     }
 
@@ -547,6 +600,7 @@ class AgencySeatsViewModel @Inject constructor(
                 }
             }
             refresh()
+            repository.invalidateAgencyRoster()
         }
     }
 
@@ -604,10 +658,10 @@ fun AgencyAdvisorDetailScreen(
         ) {
             when {
                 state.isLoading -> item { DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad)) }
-                state.error != null -> item {
+                state.detailError != null && state.detail == null -> item {
                     DfEmptyState(
                         title = "خطا",
-                        subtitle = state.error ?: "",
+                        subtitle = state.detailError ?: "",
                         variant = DfEmptyVariant.Error,
                         actionLabel = "تلاش مجدد",
                         onAction = { viewModel.load(memberId) },
@@ -655,6 +709,8 @@ fun AgencyAdvisorDetailScreen(
                             detail = d,
                             workspace = state.workspace,
                             workspaceLoading = state.workspaceLoading,
+                            workspaceError = state.workspaceError,
+                            workspaceForbidden = state.workspaceForbidden,
                             workspaceQuery = state.workspaceQuery,
                             periodDays = state.periodDays,
                             filingDatasetId = state.filingDatasetId,
@@ -663,6 +719,7 @@ fun AgencyAdvisorDetailScreen(
                             onOpenDataset = viewModel::openFilingDataset,
                             onBackFromDataset = viewModel::closeFilingDataset,
                             onLoadMore = viewModel::loadMoreWorkspace,
+                            onRetryWorkspace = viewModel::retryWorkspace,
                             onOpenContact = onOpenContact,
                             onOpenProperty = onOpenProperty,
                             onOpenDeal = onOpenDeal,
@@ -671,48 +728,11 @@ fun AgencyAdvisorDetailScreen(
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
-                    if (d.permissions.canSetRole || d.permissions.canManageSeat) {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = pad),
-                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                            ) {
-                                if (d.permissions.canSetRole) {
-                                    DfSecondaryButton(
-                                        text = "تغییر نقش",
-                                        onClick = viewModel::openRoleSheet,
-                                        enabled = !state.isSubmitting,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
-                                if (d.permissions.canManageSeat) {
-                                    DfSecondaryButton(
-                                        text = "صندلی‌ها",
-                                        onClick = onOpenSeats,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    if (d.permissions.canManageMember && d.member.isActive) {
-                        item {
-                            DfSecondaryButton(
-                                text = "غیرفعال کردن عضو",
-                                onClick = viewModel::openDeactivateConfirm,
-                                enabled = !state.isSubmitting,
-                                modifier = Modifier
-                                    .padding(horizontal = pad)
-                                    .fillMaxWidth(),
-                            )
-                        }
-                    }
                     item {
-                        DfSecondaryButton(
-                            text = "مقایسه در عملکرد تیم",
-                            onClick = onOpenPerformance,
+                        DfPrimaryButton(
+                            text = "مدیریت مشاور",
+                            onClick = viewModel::openManageActions,
+                            enabled = !state.isSubmitting,
                             modifier = Modifier
                                 .padding(horizontal = pad)
                                 .fillMaxWidth(),
@@ -769,6 +789,60 @@ fun AgencyAdvisorDetailScreen(
             destructive = true,
             isSubmitting = state.isSubmitting,
         )
+    }
+
+    if (state.showManageActions && state.detail != null) {
+        val d = state.detail!!
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissManageActions) {
+            DfSheetScaffold(
+                title = "مدیریت مشاور",
+                subtitle = d.member.name,
+                onClose = viewModel::dismissManageActions,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                    if (d.permissions.canSetRole) {
+                        DfSecondaryButton(
+                            text = "تغییر نقش",
+                            onClick = {
+                                viewModel.dismissManageActions()
+                                viewModel.openRoleSheet()
+                            },
+                            enabled = !state.isSubmitting,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (d.permissions.canManageSeat) {
+                        DfSecondaryButton(
+                            text = "مدیریت صندلی",
+                            onClick = {
+                                viewModel.dismissManageActions()
+                                onOpenSeats()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    DfSecondaryButton(
+                        text = "عملکرد در تیم",
+                        onClick = {
+                            viewModel.dismissManageActions()
+                            onOpenPerformance()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (d.permissions.canManageMember && d.member.isActive) {
+                        DfSecondaryButton(
+                            text = "غیرفعال کردن عضو",
+                            onClick = {
+                                viewModel.dismissManageActions()
+                                viewModel.openDeactivateConfirm()
+                            },
+                            enabled = !state.isSubmitting,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -867,6 +941,16 @@ fun AgencyPerformanceScreen(
                 }
                 when {
                     state.isLoading -> item { DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad)) }
+                    state.error != null && state.members.isEmpty() -> item {
+                        DfEmptyState(
+                            title = "بارگذاری ناموفق",
+                            subtitle = state.error ?: "",
+                            variant = DfEmptyVariant.Error,
+                            actionLabel = "تلاش مجدد",
+                            onAction = { viewModel.refresh() },
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
+                    }
                     state.members.isEmpty() -> item {
                         DfEmptyState(
                             title = "در این بازه داده‌ای ثبت نشده",
@@ -912,7 +996,7 @@ fun AgencySeatsScreen(
     }
     if (state.showAssign) {
         val licenses = state.payload?.availableLicenses.orEmpty()
-        val unassigned = state.payload?.members.orEmpty().filter { !it.resolvedHasSeat() }
+        val unassigned = state.payload?.members.orEmpty().filter { !it.hasSeatAssignment() }
         DfModalBottomSheet(onDismissRequest = viewModel::dismissAssign) {
             when {
                 state.assignMember != null -> {
@@ -1030,8 +1114,8 @@ fun AgencySeatsScreen(
                         )
                     }
                     else -> {
-                        val assigned = state.payload?.members.orEmpty().filter { it.resolvedHasSeat() }
-                        val unassigned = state.payload?.members.orEmpty().filter { !it.resolvedHasSeat() }
+                        val assigned = state.payload?.members.orEmpty().filter { it.hasSeatAssignment() }
+                        val unassigned = state.payload?.members.orEmpty().filter { !it.hasSeatAssignment() }
                         if (assigned.isNotEmpty()) {
                             item {
                                 TeamSectionLabel(title = "صندلی‌های تخصیص‌یافته", modifier = Modifier.padding(horizontal = pad))
@@ -1091,22 +1175,22 @@ fun AgencyAdvancedSettingsScreen(
 ) {
     val pad = teamHorizontalPadding()
     val webRows = listOf(
-        Triple("وب‌هوک‌ها", "مدیریت Secret و URL — فقط میزکار", AppLinks.WORKSPACE_AGENCY_WEBHOOKS),
-        Triple("همگام‌سازی / Transfers", "ورود/خروج CRM و انتقال داده — عملیات پرحجم", AppLinks.WORKSPACE_AGENCY_SYNC),
-        Triple("TV Wallboard", "نمایش زنده آژانس", "/workspace/crm/team/tv/"),
+        Triple("اتصال وب‌هوک", "تنظیم آدرس و کلید امنیتی", AppLinks.WORKSPACE_AGENCY_WEBHOOKS),
+        Triple("همگام‌سازی داده", "انتقال و یکپارچه‌سازی CRM", AppLinks.WORKSPACE_AGENCY_SYNC),
+        Triple("تابلوی نمایش", "نمای زنده عملکرد آژانس", "/workspace/crm/team/tv/"),
     )
     Scaffold(containerColor = DfScreenContainerColor) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            TeamAmbientBackground()
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = teamListContentPadding(),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
         ) {
             item {
-                DfHubPageHeader(
-                    title = "تنظیمات پیشرفته",
-                    subtitle = "ادامه در میزکار",
-                    sectionLabel = DfHeaderSections.TEAM,
-                    titleIconRes = DfDecorIcons.Users,
+                TeamAgencyScreenHeader(
+                    title = "تنظیمات آژانس",
+                    subtitle = "مدیریت در اپ و میزکار",
                     onBack = onBack,
                 )
             }
@@ -1153,6 +1237,7 @@ fun AgencyAdvancedSettingsScreen(
                     modifier = Modifier.padding(horizontal = pad),
                 )
             }
+        }
         }
     }
 }

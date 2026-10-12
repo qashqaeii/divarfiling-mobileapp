@@ -2680,6 +2680,9 @@ data class AgencyAdvisorDto(
     @SerialName("license_id") val licenseId: Long? = null,
     val sequence: Int? = null,
     val plan: String = "",
+    /** وضعیت لایسنس صندلی از API (مثلاً active) — فقط وقتی صندلی تخصیص‌یافته */
+    val status: String = "",
+    @SerialName("expires_at") val expiresAt: String = "",
     @SerialName("active_leads") val activeLeads: Int = 0,
     @SerialName("active_deals") val activeDeals: Int = 0,
     @SerialName("membership_status") val membershipStatus: String = "",
@@ -2801,7 +2804,7 @@ data class AgencyAdvisorWorkspaceItemDto(
 
 @Serializable
 data class AgencyAdvisorWorkspaceDatasetDto(
-    val id: Long = 0,
+    val id: String = "",
     val name: String = "",
     @SerialName("listing_count") val listingCount: Int = 0,
     @SerialName("updated_at_display") val updatedAtDisplay: String = "",
@@ -2815,7 +2818,7 @@ data class AgencyAdvisorWorkspaceListingDto(
     val district: String = "",
     @SerialName("price_label") val priceLabel: String = "",
     @SerialName("created_at_display") val createdAtDisplay: String = "",
-    @SerialName("dataset_id") val datasetId: Long = 0,
+    @SerialName("dataset_id") val datasetId: String = "",
     @SerialName("dataset_name") val datasetName: String = "",
 )
 

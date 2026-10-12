@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -57,6 +59,8 @@ fun TeamMessagesScreen(
     if (state.showCompose) {
         DfModalBottomSheet(onDismissRequest = { viewModel.toggleCompose(false) }) {
             DfSheetScaffold(
+                modifier = Modifier.navigationBarsPadding().imePadding(),
+                bodyHeightFraction = 0.55f,
                 title = "پیام جدید",
                 subtitle = "ارسال مستقیم به همکار",
                 icon = DfIcons.MessageCircle,

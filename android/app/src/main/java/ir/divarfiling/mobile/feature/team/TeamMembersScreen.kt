@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -83,8 +85,10 @@ fun TeamMembersScreen(
     if (state.showInvite) {
         DfModalBottomSheet(onDismissRequest = viewModel::dismissInvite) {
             DfSheetScaffold(
-                title = "دعوت مشاور جدید",
-                subtitle = "دعوت با پیامک ارسال می‌شود",
+                modifier = Modifier.navigationBarsPadding().imePadding(),
+                bodyHeightFraction = 0.4f,
+                title = "دعوت مشاور",
+                subtitle = "شماره موبایل مشاور را وارد کنید",
                 icon = DfIcons.UserPlus,
                 iconContainerColor = DfThemeColors.primaryContainer(),
                 iconTint = DfThemeColors.primary(),
@@ -101,9 +105,9 @@ fun TeamMembersScreen(
                 },
             ) {
                 Text(
-                    "۱. شماره موبایل مشاور را وارد کنید.\n۲. پیامک دعوت ارسال می‌شود.\n۳. پس از پذیرش، عضو در بخش «اعضای فعال» ظاهر می‌شود.",
-                    style = AppTypography.bodyDescription,
-                    color = DfThemeColors.textSecondary(),
+                    "پس از پذیرش دعوت، مشاور در فهرست اعضای فعال ظاهر می‌شود.",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
                 )
                 DfTextField(
                     value = state.invitePhone,

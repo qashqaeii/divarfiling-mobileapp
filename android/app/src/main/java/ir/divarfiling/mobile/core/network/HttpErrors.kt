@@ -24,7 +24,8 @@ fun Throwable.toApiFailure(default: String): ApiFailure {
     }
     val text = message.orEmpty()
     if (text.isBlank() || looksLikeRawException(text)) {
-        return ApiFailure(default, "ERROR")
+        val code = if (looksLikeRawException(text)) "PARSE_ERROR" else "ERROR"
+        return ApiFailure(default, code)
     }
     return ApiFailure(text)
 }
@@ -84,7 +85,11 @@ private fun looksLikeRawException(text: String): Boolean {
     return "exception" in lower ||
         "traceback" in lower ||
         "stacktrace" in lower ||
+        "failed to parse" in lower ||
+        "json input" in lower ||
+        "\$.id" in lower ||
         lower.startsWith("java.") ||
         lower.startsWith("kotlin.") ||
+        lower.startsWith("kotlinx.serialization") ||
         "errorcode=" in lower
 }

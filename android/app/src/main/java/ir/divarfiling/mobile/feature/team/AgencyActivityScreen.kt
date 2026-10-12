@@ -224,18 +224,13 @@ fun AgencyActivityScreen(
                             modifier = Modifier.padding(horizontal = pad),
                         )
                     }
-                    else -> item {
-                        DfCard(modifier = Modifier.padding(horizontal = pad).fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(AppSpacing.sm)) {
-                                state.events.forEach { event ->
-                                    TeamActivityTimelineRow(
-                                        title = event.displayTitle(),
-                                        actorName = event.actorName,
-                                        timeLabel = DateUtils.formatRelativeFa(event.createdAt),
-                                    )
-                                }
-                            }
-                        }
+                    else -> items(state.events, key = { it.id }) { event ->
+                        TeamActivityTimelineRow(
+                            title = event.displayTitle(),
+                            actorName = event.displaySubtitle(),
+                            timeLabel = DateUtils.formatRelativeFa(event.createdAt),
+                            modifier = Modifier.padding(horizontal = pad),
+                        )
                     }
                 }
             }

@@ -19,6 +19,7 @@ import ir.divarfiling.mobile.core.network.TeamThreadStateRequest
 import ir.divarfiling.mobile.core.network.TeamThreadsPayload
 import ir.divarfiling.mobile.core.network.TeamUnreadDto
 import ir.divarfiling.mobile.core.network.requireData
+import ir.divarfiling.mobile.core.network.toApiFailure
 import ir.divarfiling.mobile.core.network.toUserMessage
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -29,6 +30,12 @@ class TeamRepository @Inject constructor(
     private val api: MobileApi,
     private val json: Json,
 ) {
+    @Volatile
+    var agencyRosterInvalidation: Int = 0
+
+    fun invalidateAgencyRoster() {
+        agencyRosterInvalidation++
+    }
     suspend fun getOverview(): ApiResult<TeamOverviewDto> = single { api.getTeamOverview() }
 
     suspend fun getMembers(excludeSelf: Boolean = false): ApiResult<TeamMembersPayload> =
@@ -92,6 +99,24 @@ class TeamRepository @Inject constructor(
         else ApiResult.Success(Unit)
     } catch (e: Exception) {
         ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
+    suspend fun markAllAnnouncementsRead(): ApiResult<Int> {
+        return when (val unread = getAnnouncements(unreadOnly = true)) {
+            is ApiResult.Error -> unread
+            is ApiResult.Success -> {
+                var marked = 0
+                var lastError: String? = null
+                for (item in unread.data.announcements) {
+                    when (val result = markAnnouncementRead(item.id)) {
+                        is ApiResult.Success -> marked++
+                        is ApiResult.Error -> lastError = result.message
+                    }
+                }
+                if (marked == 0 && lastError != null) ApiResult.Error(lastError)
+                else ApiResult.Success(marked)
+            }
+        }
     }
 
     suspend fun getPanelNotifications(unreadOnly: Boolean = false): ApiResult<TeamPanelNotificationsPayload> =
@@ -364,9 +389,10 @@ class TeamRepository @Inject constructor(
         crossinline call: suspend () -> ir.divarfiling.mobile.core.network.ApiEnvelope,
     ): ApiResult<T> = try {
         val response = call()
-        if (!response.ok) ApiResult.Error(response.error ?: "خطا")
+        if (!response.ok) ApiResult.Error(response.error ?: "خطا", response.code)
         else ApiResult.Success(response.requireData(json))
     } catch (e: Exception) {
-        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+        val failure = e.toApiFailure("خطا در دریافت داده")
+        ApiResult.Error(failure.message, failure.code)
     }
 }

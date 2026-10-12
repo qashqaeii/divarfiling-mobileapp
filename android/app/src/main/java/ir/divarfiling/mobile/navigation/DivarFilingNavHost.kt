@@ -75,7 +75,9 @@ import ir.divarfiling.mobile.feature.team.AgencyProfileScreen
 import ir.divarfiling.mobile.feature.team.AgencyAdvisorDetailScreen
 import ir.divarfiling.mobile.feature.team.AgencyPerformanceScreen
 import ir.divarfiling.mobile.feature.team.AgencySpaceDetailScreen
+import ir.divarfiling.mobile.feature.team.AgencySpaceHubScreen
 import ir.divarfiling.mobile.feature.team.AgencySpaceListScreen
+import ir.divarfiling.mobile.feature.team.AgencySpaceTab
 import ir.divarfiling.mobile.feature.team.AgencySeatsScreen
 import ir.divarfiling.mobile.feature.team.TeamAnnouncementsScreen
 import ir.divarfiling.mobile.feature.team.TeamHubScreen
@@ -149,7 +151,10 @@ object Routes {
 
     fun agencyInvite(token: String) = "team/invite/${Uri.encode(token)}"
     const val TEAM_SPACE = "team/space"
+    const val TEAM_SPACE_BROWSE = "team/space/browse/{tab}"
     const val TEAM_SPACE_DETAIL = "team/space/{itemId}"
+
+    fun teamSpaceBrowse(tab: String = AgencySpaceTab.ALL) = "team/space/browse/$tab"
 
     fun teamSpaceDetail(itemId: Long) = "team/space/$itemId"
 
@@ -875,6 +880,22 @@ fun DivarFilingNavHost(
                         )
                     }
                     composable(Routes.TEAM_SPACE) {
+                        AgencySpaceHubScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenBrowse = { tab ->
+                                navController.navigate(Routes.teamSpaceBrowse(tab))
+                            },
+                        )
+                    }
+                    composable(
+                        route = Routes.TEAM_SPACE_BROWSE,
+                        arguments = listOf(
+                            navArgument("tab") {
+                                type = NavType.StringType
+                                defaultValue = AgencySpaceTab.ALL
+                            },
+                        ),
+                    ) {
                         AgencySpaceListScreen(
                             onBack = { navController.popBackStack() },
                             onOpenItem = { id -> navController.navigate(Routes.teamSpaceDetail(id)) },
