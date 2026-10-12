@@ -1306,7 +1306,6 @@ private fun AgencySpaceDetailHero(
 }
 
 @Composable
-@Composable
 private fun AgencySpacePropertySpecsBlock(
     prop: ir.divarfiling.mobile.core.network.AgencySpacePropertyPreviewDto,
 ) {
