@@ -28,5 +28,6 @@ fun NavHostController.navigateDeepLink(target: DeepLinkTarget) {
         DeepLinkTarget.Settings -> navigate(Routes.SETTINGS)
         DeepLinkTarget.Plans -> navigate(Routes.PLANS)
         is DeepLinkTarget.Payment -> navigate(Routes.PLANS)
+        is DeepLinkTarget.AgencyInvite -> navigate(Routes.agencyInvite(target.token))
     }
 }

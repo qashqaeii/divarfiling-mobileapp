@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -100,6 +101,7 @@ import java.io.File
 fun ContractsHomeScreen(
     onBack: () -> Unit,
     onContractClick: (Long) -> Unit,
+    onContinueWizard: (Long) -> Unit = onContractClick,
     onCreateContract: () -> Unit,
     onNavigatePlans: () -> Unit,
     viewModel: ContractsHomeViewModel = hiltViewModel(),
@@ -144,6 +146,23 @@ fun ContractsHomeScreen(
                         onBack = onBack,
                         showBottomDivider = true,
                     )
+                }
+                item {
+                    ContractsKpiRow(
+                        stats = state.stats,
+                        selectedTab = state.selectedTab,
+                        onTabSelected = viewModel::onTabSelected,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+                state.resumeContract?.let { resume ->
+                    item {
+                        ContractResumeBanner(
+                            item = resume,
+                            onContinue = { onContinueWizard(resume.id) },
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
                 item {
                     DfTextField(
@@ -219,7 +238,17 @@ fun ContractsHomeScreen(
                     }
                 }
                 items(state.items, key = { it.id }) { item ->
-                    ContractListCard(item = item, onClick = { onContractClick(item.id) }, modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal))
+                    ContractListCard(
+                        item = item,
+                        onClick = { onContractClick(item.id) },
+                        onPrimaryAction = {
+                            when (item.nextAction.nativeTarget) {
+                                "wizard" -> onContinueWizard(item.id)
+                                else -> onContractClick(item.id)
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
                 }
                 item {
                     DfPrimaryButton(
@@ -236,9 +265,77 @@ fun ContractsHomeScreen(
 }
 
 @Composable
+private fun ContractsKpiRow(
+    stats: ir.divarfiling.mobile.core.network.ContractListStatsDto,
+    selectedTab: ContractSummaryTab,
+    onTabSelected: (ContractSummaryTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+    ) {
+        listOf(
+            ContractSummaryTab.NEEDS_ACTION to ("نیازمند اقدام" to stats.needsAction),
+            ContractSummaryTab.DRAFT to ("پیش‌نویس" to stats.draft),
+            ContractSummaryTab.AWAITING to ("در انتظار" to stats.awaitingAcceptance),
+            ContractSummaryTab.FINALIZED to ("نهایی" to stats.finalized),
+        ).forEach { (tab, labelCount) ->
+            val (label, count) = labelCount
+            DfCard(
+                onClick = { onTabSelected(tab) },
+                modifier = Modifier.weight(1f),
+            ) {
+                Column(
+                    Modifier.padding(vertical = AppSpacing.sm, horizontal = AppSpacing.xs),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        DateUtils.toPersianDigits(count.toString()),
+                        style = AppTypography.sectionTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedTab == tab) DfThemeColors.primary() else DfThemeColors.textPrimary(),
+                    )
+                    Text(
+                        label,
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textMuted(),
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContractResumeBanner(
+    item: ContractListItemDto,
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DfCard(modifier = modifier.fillMaxWidth(), onClick = onContinue) {
+        Column(Modifier.padding(AppSpacing.md), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+            Text("ادامه قرارداد نیمه‌کاره", fontWeight = FontWeight.Bold, color = DfThemeColors.primary())
+            Text(
+                item.internalNumber.ifBlank { item.title }.ifBlank { item.contractTypeLabel },
+                style = AppTypography.cardTitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (item.wizardStep.isNotBlank()) {
+                Text("مرحله: ${item.wizardStep}", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
+            }
+            DfPrimaryButton(text = item.nextAction.label.ifBlank { "ادامه ویزارد" }, onClick = onContinue)
+        }
+    }
+}
+
+@Composable
 private fun ContractListCard(
     item: ContractListItemDto,
     onClick: () -> Unit,
+    onPrimaryAction: () -> Unit = onClick,
     modifier: Modifier = Modifier,
 ) {
     val statusColors = contractStatusColors(item.statusLabel)
@@ -292,6 +389,21 @@ private fun ContractListCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (item.currentVersionNumber > 0) {
+                    DfBadge(
+                        text = "نسخه ${DateUtils.toPersianDigits(item.currentVersionNumber.toString())}",
+                        color = DfThemeColors.primaryContainer(),
+                        textColor = DfThemeColors.primary(),
+                    )
+                }
+                if (item.signatureStatus.isNotBlank()) {
+                    Text(item.signatureStatus, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                }
+                if (item.handoverStatus.isNotBlank()) {
+                    Text("· ${item.handoverStatus}", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                }
+            }
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -318,13 +430,9 @@ private fun ContractListCard(
                     }
                 }
                 if (item.nextAction.label.isNotBlank()) {
-                    Text(
-                        item.nextAction.label,
-                        style = AppTypography.labelLarge,
-                        color = DfThemeColors.primary(),
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                    DfTextButton(
+                        text = item.nextAction.label,
+                        onClick = onPrimaryAction,
                     )
                 }
             }
@@ -349,6 +457,7 @@ fun ContractDetailScreen(
     onBack: () -> Unit,
     onNavigateWebBridge: (String) -> Unit,
     onNavigateWizard: (Long) -> Unit = {},
+    onNavigateHandover: (Long, Long) -> Unit = { _, _ -> },
     onOpenPdf: (Long, String) -> Unit,
     onNavigateDeal: (Long) -> Unit,
     hybridRefreshPending: Boolean = false,
@@ -383,6 +492,45 @@ fun ContractDetailScreen(
             viewModel.consumeOpenPdf()
         }
     }
+    LaunchedEffect(state.navigateCopiedContractId) {
+        state.navigateCopiedContractId?.let { id ->
+            onNavigateWizard(id)
+            viewModel.consumeNavigateCopied()
+        }
+    }
+    LaunchedEffect(state.openHandover) {
+        state.openHandover?.let { nav ->
+            onNavigateHandover(nav.contractId, nav.handoverId)
+            viewModel.consumeOpenHandover()
+        }
+    }
+    var cancelReason by remember { mutableStateOf("") }
+    if (state.showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissCancelDialog,
+            title = { Text("لغو قرارداد") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                    Text("دلیل لغو (اختیاری)")
+                    DfTextField(
+                        value = cancelReason,
+                        onValueChange = { cancelReason = it },
+                        label = "دلیل",
+                        singleLine = false,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.cancelContract(cancelReason); cancelReason = "" }) {
+                    Text("تأیید لغو")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissCancelDialog) { Text("انصراف") }
+            },
+        )
+    }
     LaunchedEffect(state.snackbarMessage, state.snackbarError) {
         state.snackbarMessage?.let { snackbar.showSnackbar(it); viewModel.consumeSnackbar() }
         state.snackbarError?.let { snackbar.showSnackbar(it); viewModel.consumeSnackbar() }
@@ -410,6 +558,7 @@ fun ContractDetailScreen(
                     var expandedAttach by remember { mutableStateOf(true) }
                     var expandedHandover by remember { mutableStateOf(false) }
                     var expandedTimeline by remember { mutableStateOf(false) }
+                    var expandedManage by remember { mutableStateOf(false) }
                     val finRows = remember(detail) { financialRows(detail) }
                     val propLine = remember(detail) { propertySummary(detail) }
                     LazyColumn(
@@ -503,11 +652,25 @@ fun ContractDetailScreen(
                                 onToggle = { expandedSign = !expandedSign },
                             ) {
                                 detail.signatures.forEach { row ->
-                                    Text(
-                                        "${row.roleLabel} · ${row.name} · ${row.statusLabel}",
-                                        style = AppTypography.labelSmall,
-                                        color = DfThemeColors.textSecondary(),
-                                    )
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            "${row.roleLabel} · ${row.name} · ${row.statusLabel}",
+                                            style = AppTypography.labelSmall,
+                                            color = DfThemeColors.textSecondary(),
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        if (row.canResend && row.invitationId != null) {
+                                            DfTextButton(
+                                                text = "ارسال مجدد",
+                                                onClick = { viewModel.resendInvitation(row.invitationId) },
+                                                compact = true,
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -574,9 +737,81 @@ fun ContractDetailScreen(
                             else Text("صورت‌جلسه ثبت نشده")
                             detail.handover.nextAction?.let { action ->
                                 if (action.label.isNotBlank()) {
-                                    TextButton(onClick = { viewModel.openBridge(action.webPath) }) { Text(action.label) }
+                                    DfSecondaryButton(
+                                        text = action.label,
+                                        onClick = { viewModel.onPrimaryAction() },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
                                 }
                             }
+                            }
+                        }
+                        if (detail.versions.isNotEmpty()) {
+                            item {
+                                ContractDetailExpandableSection(
+                                    title = "نسخه‌ها",
+                                    expanded = expandedManage,
+                                    onToggle = { expandedManage = !expandedManage },
+                                ) {
+                                    Text(
+                                        "نسخه فعلی: ${detail.currentVersionNumber}",
+                                        style = AppTypography.labelSmall,
+                                        color = DfThemeColors.textSecondary(),
+                                    )
+                                    detail.versions.forEach { ver ->
+                                        Text(
+                                            "v${ver.versionNumber} · ${ver.statusLabel}${if (ver.isCurrent) " (فعلی)" else ""}",
+                                            style = AppTypography.labelSmall,
+                                        )
+                                    }
+                                    if (detail.canNewVersion) {
+                                        DfSecondaryButton(
+                                            text = "ایجاد نسخه جدید",
+                                            onClick = viewModel::createNewVersion,
+                                            enabled = !state.isContractActionLoading,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        if (detail.canCopy || detail.canCancel || detail.canNewVersion) {
+                            item {
+                                ContractDetailExpandableSection(
+                                    title = "مدیریت",
+                                    expanded = expandedManage,
+                                    onToggle = { expandedManage = !expandedManage },
+                                ) {
+                                    if (state.isContractActionLoading) {
+                                        LinearProgressIndicator(
+                                            Modifier.fillMaxWidth(),
+                                            color = DfThemeColors.primary(),
+                                        )
+                                    }
+                                    if (detail.canNewVersion && detail.versions.isEmpty()) {
+                                        DfSecondaryButton(
+                                            text = "ایجاد نسخه جدید",
+                                            onClick = viewModel::createNewVersion,
+                                            enabled = !state.isContractActionLoading,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                    if (detail.canCopy) {
+                                        DfSecondaryButton(
+                                            text = "کپی قرارداد",
+                                            onClick = viewModel::copyContract,
+                                            enabled = !state.isContractActionLoading,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                    if (detail.canCancel) {
+                                        DfTextButton(
+                                            text = "لغو قرارداد",
+                                            onClick = viewModel::showCancelDialog,
+                                            compact = true,
+                                        )
+                                    }
+                                }
                             }
                         }
                         item {

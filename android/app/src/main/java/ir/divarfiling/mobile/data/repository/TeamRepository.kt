@@ -205,6 +205,68 @@ class TeamRepository @Inject constructor(
     suspend fun getAgencyPerformance(days: Int): ApiResult<ir.divarfiling.mobile.core.network.AgencyPerformancePayload> =
         single { api.getAgencyPerformance(days = days) }
 
+    suspend fun getAgencyActivity(
+        advisorMemberId: Long? = null,
+        eventType: String? = null,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencyActivityFeedPayload> =
+        single { api.getAgencyActivity(advisorMemberId = advisorMemberId, eventType = eventType) }
+
+    suspend fun getAgencyInvitePreview(
+        token: String,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencyInvitePreviewPayload> =
+        single { api.getAgencyInvitePreview(token) }
+
+    suspend fun respondAgencyInvite(
+        token: String,
+        action: String,
+        consentAcknowledged: Boolean = false,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencyInviteRespondPayload> =
+        single {
+            api.respondAgencyInvite(
+                ir.divarfiling.mobile.core.network.AgencyInviteRespondRequest(
+                    token = token,
+                    action = action,
+                    consentAcknowledged = consentAcknowledged,
+                ),
+            )
+        }
+
+    suspend fun getAgencySettings(): ApiResult<ir.divarfiling.mobile.core.network.AgencySettingsPayload> =
+        single { api.getAgencySettings() }
+
+    suspend fun patchAgencySettings(
+        name: String?,
+        leadRoutingPolicy: String?,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencySettingsPayload> =
+        single {
+            api.patchAgencySettings(
+                ir.divarfiling.mobile.core.network.AgencySettingsPatchRequest(
+                    name = name,
+                    leadRoutingPolicy = leadRoutingPolicy,
+                ),
+            )
+        }
+
+    suspend fun getAgencyAudit(
+        limit: Int = 50,
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencyAuditPayload> =
+        single { api.getAgencyAudit(limit = limit) }
+
+    suspend fun bulkModerateAgencySpace(
+        action: String,
+        itemIds: List<Long>,
+        reason: String = "",
+    ): ApiResult<ir.divarfiling.mobile.core.network.AgencySpaceBulkModeratePayload> =
+        single {
+            api.bulkModerateAgencySpace(
+                ir.divarfiling.mobile.core.network.AgencySpaceBulkModerateRequest(
+                    action = action,
+                    itemIds = itemIds,
+                    reason = reason,
+                ),
+            )
+        }
+
     suspend fun getAgencySpaceItems(
         params: Map<String, String>,
     ): ApiResult<ir.divarfiling.mobile.core.network.AgencySpaceListPayload> =

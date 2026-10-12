@@ -35,6 +35,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="divarfiling" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="divarfiling.ir" android:pathPrefix="/agency/invite" />
+                <data android:scheme="https" android:host="www.divarfiling.ir" android:pathPrefix="/agency/invite" />
+            </intent-filter>
         </activity>
 
         <service

@@ -18,7 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -201,7 +204,12 @@ class AgencyAdvisorsViewModel @Inject constructor(
 data class AgencyAdvisorDetailUiState(
     val detail: AgencyAdvisorDetailPayload? = null,
     val isLoading: Boolean = true,
+    val isSubmitting: Boolean = false,
+    val showRoleSheet: Boolean = false,
+    val showDeactivateConfirm: Boolean = false,
+    val pendingRole: String? = null,
     val error: String? = null,
+    val successMessage: String? = null,
 )
 
 @HiltViewModel
@@ -225,14 +233,55 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
         }
     }
 
-    fun deactivateMember(memberId: Long) {
+    fun openRoleSheet() = _uiState.update { it.copy(showRoleSheet = true, pendingRole = null) }
+
+    fun dismissRoleSheet() = _uiState.update { it.copy(showRoleSheet = false, pendingRole = null) }
+
+    fun selectPendingRole(role: String) = _uiState.update { it.copy(pendingRole = role) }
+
+    fun confirmSetRole(memberId: Long) {
+        val role = _uiState.value.pendingRole ?: return
         viewModelScope.launch {
-            when (val result = repository.advisorAction(memberId, "deactivate")) {
-                is ApiResult.Success -> load(memberId)
-                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = repository.advisorAction(memberId, "set_role", role)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showRoleSheet = false,
+                            pendingRole = null,
+                            successMessage = "نقش به‌روزرسانی شد",
+                        )
+                    }
+                    load(memberId)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
             }
         }
     }
+
+    fun openDeactivateConfirm() = _uiState.update { it.copy(showDeactivateConfirm = true) }
+
+    fun dismissDeactivateConfirm() = _uiState.update { it.copy(showDeactivateConfirm = false) }
+
+    fun deactivateMember(memberId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, showDeactivateConfirm = false) }
+            when (val result = repository.advisorAction(memberId, "deactivate")) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isSubmitting = false, successMessage = "عضو غیرفعال شد") }
+                    load(memberId)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
 }
 
 data class AgencyPerformanceUiState(
@@ -386,9 +435,17 @@ fun AgencyAdvisorDetailScreen(
     viewModel: AgencyAdvisorDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(memberId) { viewModel.load(memberId) }
+    LaunchedEffect(state.successMessage, state.error) {
+        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+    }
     val pad = teamHorizontalPadding()
-    Scaffold(containerColor = DfScreenContainerColor) { padding ->
+    Scaffold(
+        containerColor = DfScreenContainerColor,
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = teamListContentPadding(),
@@ -420,10 +477,28 @@ fun AgencyAdvisorDetailScreen(
                     item {
                         DfCard(modifier = Modifier.padding(horizontal = pad)) {
                             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                                Text("پروفایل", fontWeight = FontWeight.Bold)
+                                Text("پروفایل و عضویت", fontWeight = FontWeight.Bold)
+                                Text("نقش: ${d.member.roleLabel.ifBlank { d.member.role }}")
                                 Text("موبایل: ${d.member.phone.ifBlank { "—" }}")
-                                Text("وضعیت: ${d.membershipStatus}")
+                                Text("وضعیت: ${if (d.member.isActive) "فعال" else "غیرفعال"}")
                                 if (d.email.isNotBlank()) Text("ایمیل: ${d.email}")
+                                if (d.permissions.canSetRole) {
+                                    DfSecondaryButton(
+                                        text = "تغییر نقش",
+                                        onClick = viewModel::openRoleSheet,
+                                        enabled = !state.isSubmitting,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        DfCard(modifier = Modifier.padding(horizontal = pad)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                                Text("دامنه کاری", fontWeight = FontWeight.Bold)
+                                Text("سرنخ فعال: ${DateUtils.toPersianDigits(d.stats.activeLeads.toString())}")
+                                Text("معامله فعال: ${DateUtils.toPersianDigits(d.stats.activeDeals.toString())}")
                             }
                         }
                     }
@@ -445,12 +520,50 @@ fun AgencyAdvisorDetailScreen(
                         DfCard(modifier = Modifier.padding(horizontal = pad)) {
                             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                                 Text("عملکرد (۳۰ روز)", fontWeight = FontWeight.Bold)
-                                Text("سرنخ: ${DateUtils.toPersianDigits(d.performance.contacts.toString())}")
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text("تماس: ${DateUtils.toPersianDigits(d.performance.calls.toString())}")
+                                    Text("بازدید: ${DateUtils.toPersianDigits(d.performance.visits.toString())}")
+                                }
+                                Text("مخاطب/سرنخ: ${DateUtils.toPersianDigits(d.performance.contacts.toString())}")
                                 Text("معاملات فعال: ${DateUtils.toPersianDigits(d.performance.activeDeals.toString())}")
                                 Text("بسته‌شده: ${DateUtils.toPersianDigits(d.performance.dealsClosed.toString())}")
+                                d.performance.rank?.let { rank ->
+                                    Text("رتبه تیم: ${DateUtils.toPersianDigits(rank.toString())}")
+                                }
+                                LinearProgressIndicator(
+                                    progress = { d.performance.scorePct / 100f },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                Text(
+                                    "امتیاز: ${DateUtils.toPersianDigits(d.performance.scorePct.toString())}٪",
+                                    style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
+                                )
                                 DfSecondaryButton(text = "عملکرد تیم", onClick = onOpenPerformance)
                                 if (d.permissions.canManageSeat) {
                                     DfSecondaryButton(text = "مدیریت صندلی", onClick = onOpenSeats)
+                                }
+                            }
+                        }
+                    }
+                    if (d.goals.isNotEmpty()) {
+                        item {
+                            DfCard(modifier = Modifier.padding(horizontal = pad)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                                    Text("اهداف", fontWeight = FontWeight.Bold)
+                                    d.goals.forEach { goal ->
+                                        Text("${goal.metric} · ${goal.periodLabel}")
+                                        LinearProgressIndicator(
+                                            progress = { goal.pct / 100f },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                        Text(
+                                            "${DateUtils.toPersianDigits(goal.actual.toString())} / ${DateUtils.toPersianDigits(goal.target.toString())}",
+                                            style = ir.divarfiling.mobile.core.design.AppTypography.labelSmall,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -459,7 +572,8 @@ fun AgencyAdvisorDetailScreen(
                         item {
                             DfSecondaryButton(
                                 text = "غیرفعال کردن عضو",
-                                onClick = { viewModel.deactivateMember(memberId) },
+                                onClick = viewModel::openDeactivateConfirm,
+                                enabled = !state.isSubmitting,
                                 modifier = Modifier
                                     .padding(horizontal = pad)
                                     .fillMaxWidth(),
@@ -484,6 +598,54 @@ fun AgencyAdvisorDetailScreen(
                 }
             }
         }
+    }
+
+    if (state.showRoleSheet && state.detail != null) {
+        val d = state.detail!!
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissRoleSheet) {
+            DfSheetScaffold(
+                title = "تغییر نقش",
+                subtitle = "نقش فعلی: ${d.member.roleLabel.ifBlank { d.member.role }}",
+                onClose = viewModel::dismissRoleSheet,
+                footer = {
+                    DfSheetActions(
+                        primaryText = if (state.isSubmitting) "در حال ذخیره…" else "ذخیره نقش",
+                        onPrimary = { viewModel.confirmSetRole(memberId) },
+                        primaryEnabled = !state.isSubmitting && state.pendingRole != null &&
+                            state.pendingRole != d.member.role,
+                        isSubmitting = state.isSubmitting,
+                        secondaryText = "انصراف",
+                        onSecondary = viewModel::dismissRoleSheet,
+                    )
+                },
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                ) {
+                    d.assignableRoles.forEach { role ->
+                        DfSoftChip(
+                            text = role.label,
+                            selected = state.pendingRole == role.value || (
+                                state.pendingRole == null && d.member.role == role.value
+                                ),
+                            onClick = { viewModel.selectPendingRole(role.value) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (state.showDeactivateConfirm) {
+        DfConfirmBottomSheet(
+            title = "غیرفعال کردن عضو",
+            message = "انتشارهای فعال این عضو بایگانی می‌شود. ادامه می‌دهید؟",
+            onConfirm = { viewModel.deactivateMember(memberId) },
+            onDismiss = viewModel::dismissDeactivateConfirm,
+            destructive = true,
+            isSubmitting = state.isSubmitting,
+        )
     }
 }
 
@@ -675,14 +837,16 @@ fun AgencySeatsScreen(
 @Composable
 fun AgencyAdvancedSettingsScreen(
     onBack: () -> Unit,
+    onOpenActivity: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
+    onOpenAudit: () -> Unit = {},
     onOpenBridge: (String) -> Unit,
     viewModel: AgencyAdvancedSettingsViewModel = hiltViewModel(),
 ) {
     val pad = teamHorizontalPadding()
-    val rows = listOf(
-        Triple("وب‌هوک‌ها", "اتصال رویدادها به سرویس خارجی", AppLinks.WORKSPACE_AGENCY_WEBHOOKS),
-        Triple("گزارش ممیزی", "رویدادهای حساس تیم", AppLinks.WORKSPACE_AGENCY_AUDIT),
-        Triple("همگام‌سازی پیشرفته", "ورود/خروج CRM", AppLinks.WORKSPACE_AGENCY_SYNC),
+    val webRows = listOf(
+        Triple("وب‌هوک‌ها", "مدیریت Secret و URL — فقط میزکار", AppLinks.WORKSPACE_AGENCY_WEBHOOKS),
+        Triple("همگام‌سازی / Transfers", "ورود/خروج CRM و انتقال داده — عملیات پرحجم", AppLinks.WORKSPACE_AGENCY_SYNC),
         Triple("TV Wallboard", "نمایش زنده آژانس", "/workspace/crm/team/tv/"),
     )
     Scaffold(containerColor = DfScreenContainerColor) { padding ->
@@ -700,8 +864,18 @@ fun AgencyAdvancedSettingsScreen(
                     onBack = onBack,
                 )
             }
-            items(rows.size) { index ->
-                val (title, subtitle, path) = rows[index]
+            item {
+                DfCard(modifier = Modifier.padding(horizontal = pad)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                        Text("Native", fontWeight = FontWeight.SemiBold)
+                        DfSecondaryButton(text = "فعالیت آژانس", onClick = onOpenActivity, modifier = Modifier.fillMaxWidth())
+                        DfSecondaryButton(text = "پروفایل آژانس", onClick = onOpenProfile, modifier = Modifier.fillMaxWidth())
+                        DfSecondaryButton(text = "گزارش ممیزی (خلاصه)", onClick = onOpenAudit, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+            items(webRows.size) { index ->
+                val (title, subtitle, path) = webRows[index]
                 DfCard(modifier = Modifier.padding(horizontal = pad)) {
                     Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                         Text(title, fontWeight = FontWeight.SemiBold)

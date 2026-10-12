@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -58,6 +59,8 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
+import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import ir.divarfiling.mobile.core.network.AgencySpaceHeaderKpisDto
 import ir.divarfiling.mobile.core.network.AgencySpaceItemDto
@@ -77,6 +80,8 @@ import javax.inject.Inject
 data class AgencySpaceListUiState(
     val tab: String = AgencySpaceTab.ALL,
     val query: String = "",
+    val publicationStatus: String = "active",
+    val canModerateSpace: Boolean = false,
     val items: List<AgencySpaceItemDto> = emptyList(),
     val kpis: AgencySpaceHeaderKpisDto? = null,
     val showAnalytics: Boolean = false,
@@ -88,6 +93,10 @@ data class AgencySpaceListUiState(
     val isSubmitting: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
+    val selectMode: Boolean = false,
+    val selectedIds: Set<Long> = emptySet(),
+    val bulkSubmitting: Boolean = false,
+    val pendingBulkAction: String? = null,
 )
 
 @HiltViewModel
@@ -106,6 +115,7 @@ class AgencySpaceListViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             showAnalytics = caps.canViewSpaceAnalytics,
+                            canModerateSpace = caps.canModerateAgencySpace,
                             kpis = home.data.spaceKpis,
                         )
                     }
@@ -118,6 +128,11 @@ class AgencySpaceListViewModel @Inject constructor(
 
     fun setTab(tab: String) {
         _uiState.update { it.copy(tab = tab, page = 1) }
+        refresh(true)
+    }
+
+    fun setPublicationStatus(status: String) {
+        _uiState.update { it.copy(publicationStatus = status, page = 1) }
         refresh(true)
     }
 
@@ -144,6 +159,9 @@ class AgencySpaceListViewModel @Inject constructor(
                 put("tab", state.tab)
                 if (state.query.isNotBlank()) put("q", state.query.trim())
                 if (state.page > 1) put("page", state.page.toString())
+                if (state.canModerateSpace && state.publicationStatus != "active") {
+                    put("publication_status", state.publicationStatus)
+                }
             }
             when (val result = repository.getAgencySpaceItems(params)) {
                 is ApiResult.Success -> _uiState.update {
@@ -182,12 +200,52 @@ class AgencySpaceListViewModel @Inject constructor(
     }
 
     fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
+
+    fun toggleSelectMode() = _uiState.update {
+        it.copy(selectMode = !it.selectMode, selectedIds = emptySet(), pendingBulkAction = null)
+    }
+
+    fun toggleSelected(itemId: Long) = _uiState.update { state ->
+        val next = if (itemId in state.selectedIds) state.selectedIds - itemId else state.selectedIds + itemId
+        state.copy(selectedIds = next)
+    }
+
+    fun requestBulkAction(action: String) = _uiState.update { it.copy(pendingBulkAction = action) }
+
+    fun dismissBulkConfirm() = _uiState.update { it.copy(pendingBulkAction = null) }
+
+    fun confirmBulkModerate() {
+        val action = _uiState.value.pendingBulkAction ?: return
+        val ids = _uiState.value.selectedIds.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(bulkSubmitting = true, pendingBulkAction = null) }
+            when (val result = repository.bulkModerateAgencySpace(action, ids)) {
+                is ApiResult.Success -> {
+                    val msg = "${result.data.succeeded} موفق · ${result.data.failed} ناموفق"
+                    _uiState.update {
+                        it.copy(
+                            bulkSubmitting = false,
+                            selectMode = false,
+                            selectedIds = emptySet(),
+                            successMessage = msg,
+                        )
+                    }
+                    refresh(true)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(bulkSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
 }
 
 data class AgencySpaceDetailUiState(
     val item: AgencySpaceItemDto? = null,
     val isLoading: Boolean = true,
     val isSubmitting: Boolean = false,
+    val showEditSheet: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
 )
@@ -252,6 +310,56 @@ class AgencySpaceDetailViewModel @Inject constructor(
         }
     }
 
+    fun moderate(action: String, reason: String = "") {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            when (val result = repository.moderateAgencySpaceItem(itemId, action, reason)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(isSubmitting = false, successMessage = if (action == "hide") "مورد مخفی شد" else "بازگردانی شد")
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+            load()
+        }
+    }
+
+    fun openEditSheet() = _uiState.update { it.copy(showEditSheet = true) }
+
+    fun dismissEditSheet() = _uiState.update { it.copy(showEditSheet = false) }
+
+    fun saveAccessEdit(
+        visibility: String,
+        contactShareLevel: String,
+        memberIds: List<Long>,
+        note: String,
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            val isCustomer = _uiState.value.item?.customer != null
+            val request = AgencySpaceUpdateRequest(
+                visibility = visibility,
+                contactShareLevel = contactShareLevel.takeIf { isCustomer },
+                memberIds = memberIds.takeIf { visibility == "selected_members" },
+                note = note,
+            )
+            when (val result = repository.updateAgencySpaceItem(itemId, request)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        item = result.data.item,
+                        isSubmitting = false,
+                        showEditSheet = false,
+                        successMessage = "تغییرات ذخیره شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
     fun clearMessage() = _uiState.update { it.copy(error = null, successMessage = null) }
 }
 
@@ -272,7 +380,36 @@ fun AgencySpaceListScreen(
         state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
     }
 
-    Scaffold(containerColor = DfScreenContainerColor, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+    Scaffold(
+        containerColor = DfScreenContainerColor,
+        snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            if (state.selectMode && state.selectedIds.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(AppSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    Text("${ir.divarfiling.mobile.core.design.DateUtils.toPersianDigits(state.selectedIds.size.toString())} مورد انتخاب شده")
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                        DfSecondaryButton(
+                            text = "مخفی‌سازی",
+                            onClick = { viewModel.requestBulkAction("hide") },
+                            enabled = !state.bulkSubmitting,
+                            modifier = Modifier.weight(1f),
+                        )
+                        DfSecondaryButton(
+                            text = "بازگردانی",
+                            onClick = { viewModel.requestBulkAction("restore") },
+                            enabled = !state.bulkSubmitting,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        },
+    ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.refresh() },
@@ -319,6 +456,37 @@ fun AgencySpaceListScreen(
                         }
                     }
                 }
+                if (state.canModerateSpace) {
+                    item {
+                        LazyRow(
+                            modifier = Modifier.padding(horizontal = pad),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            items(
+                                listOf(
+                                    "active" to "فعال",
+                                    "archived" to "مخفی/بایگانی",
+                                    "all" to "همه",
+                                ),
+                            ) { (key, label) ->
+                                DfSoftChip(
+                                    text = label,
+                                    selected = state.publicationStatus == key,
+                                    onClick = { viewModel.setPublicationStatus(key) },
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        DfSecondaryButton(
+                            text = if (state.selectMode) "لغو حالت انتخاب" else "انتخاب گروهی",
+                            onClick = viewModel::toggleSelectMode,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = pad),
+                        )
+                    }
+                }
                 state.error?.let { err ->
                     if (!state.isLoading && state.items.isEmpty()) {
                         item {
@@ -338,10 +506,16 @@ fun AgencySpaceListScreen(
                         )
                     }
                     else -> items(state.items, key = { it.id }) { item ->
+                        val selectable = state.selectMode && item.canModerate
                         AgencySpaceListCard(
                             item = item,
                             isSubmitting = state.isSubmitting,
-                            onOpen = { onOpenItem(item.id) },
+                            selectMode = selectable,
+                            selected = item.id in state.selectedIds,
+                            onOpen = {
+                                if (selectable) viewModel.toggleSelected(item.id)
+                                else onOpenItem(item.id)
+                            },
                             onCopy = {
                                 viewModel.copyItem(item.id, onOpenCopiedTarget)
                             },
@@ -352,6 +526,18 @@ fun AgencySpaceListScreen(
                 }
             }
         }
+    }
+
+    state.pendingBulkAction?.let { action ->
+        val label = if (action == "hide") "مخفی‌سازی گروهی" else "بازگردانی گروهی"
+        DfConfirmBottomSheet(
+            title = label,
+            message = "این عملیات روی ${state.selectedIds.size} انتشار اعمال می‌شود. موارد غیرمجاز رد می‌شوند.",
+            onConfirm = viewModel::confirmBulkModerate,
+            onDismiss = viewModel::dismissBulkConfirm,
+            isSubmitting = state.bulkSubmitting,
+            destructive = action == "hide",
+        )
     }
 }
 
@@ -382,6 +568,8 @@ private fun agencySpaceEmptyCopy(tab: String): Pair<String, String> = when (tab)
 private fun AgencySpaceListCard(
     item: AgencySpaceItemDto,
     isSubmitting: Boolean,
+    selectMode: Boolean = false,
+    selected: Boolean = false,
     onOpen: () -> Unit,
     onCopy: () -> Unit,
     onViewCopied: (kind: String, targetId: Long) -> Unit,
@@ -432,6 +620,9 @@ private fun AgencySpaceListCard(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (selectMode) {
+                        Checkbox(checked = selected, onCheckedChange = { onOpen() })
+                    }
                     DfBadge(
                         text = typeLabel,
                         color = accent.copy(alpha = 0.12f),
@@ -618,6 +809,15 @@ fun AgencySpaceDetailScreen(
                                         visibility = item.visibility,
                                         label = item.visibilityLabel,
                                     )
+                                    if (item.visibility == "selected_members" && item.audienceCount != null) {
+                                        detailRow(
+                                            "مخاطبان",
+                                            "${ir.divarfiling.mobile.core.design.DateUtils.toPersianDigits(item.audienceCount.toString())} عضو",
+                                        )
+                                    }
+                                    if (item.contactShareLevelLabel.isNotBlank()) {
+                                        detailRow("اشتراک تماس", item.contactShareLevelLabel)
+                                    }
                                     if (item.statusLabel.isNotBlank()) {
                                         Text(
                                             item.statusLabel,
@@ -669,10 +869,32 @@ fun AgencySpaceDetailScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                 }
+                                if (item.canEdit) {
+                                    DfPrimaryButton(
+                                        text = "ویرایش دسترسی",
+                                        onClick = viewModel::openEditSheet,
+                                        enabled = !state.isSubmitting,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
                                 if (item.canUnpublish) {
                                     DfSecondaryButton(
                                         text = "لغو انتشار",
                                         onClick = viewModel::unpublish,
+                                        enabled = !state.isSubmitting,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                                if (item.canModerate) {
+                                    DfSecondaryButton(
+                                        text = "مخفی‌سازی (مدیریت)",
+                                        onClick = { viewModel.moderate("hide") },
+                                        enabled = !state.isSubmitting,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    DfSecondaryButton(
+                                        text = "بازگردانی انتشار",
+                                        onClick = { viewModel.moderate("restore") },
                                         enabled = !state.isSubmitting,
                                         modifier = Modifier.fillMaxWidth(),
                                     )
@@ -682,6 +904,18 @@ fun AgencySpaceDetailScreen(
                     }
                 }
             }
+        }
+    }
+
+    val editItem = state.item
+    if (state.showEditSheet && editItem != null && editItem.canEdit) {
+        DfModalBottomSheet(onDismissRequest = viewModel::dismissEditSheet) {
+            AgencySpaceEditAccessSheet(
+                item = editItem,
+                isSubmitting = state.isSubmitting,
+                onDismiss = viewModel::dismissEditSheet,
+                onSave = viewModel::saveAccessEdit,
+            )
         }
     }
 }

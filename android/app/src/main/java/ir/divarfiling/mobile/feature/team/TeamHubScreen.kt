@@ -62,6 +62,7 @@ fun TeamHubScreen(
     onOpenPerformance: () -> Unit = {},
     onOpenSeats: () -> Unit = {},
     onOpenAdvanced: () -> Unit = {},
+    onOpenActivity: () -> Unit = {},
     onOpenAgencySpace: () -> Unit = {},
     onNavigateWebBridge: (String) -> Unit = {},
     viewModel: TeamHubViewModel = hiltViewModel(),
@@ -208,6 +209,34 @@ fun TeamHubScreen(
                                     )
                                 }
                             }
+                            if (home.teamActivity.isNotEmpty()) {
+                                item {
+                                    TeamSectionLabel(
+                                        title = "فعالیت اخیر تیم",
+                                        subtitle = "رویدادهای مدیریتی",
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                                items(home.teamActivity.take(6), key = { "act-${it.id}" }) { ev ->
+                                    DfCard(modifier = Modifier.padding(horizontal = pad).fillMaxWidth()) {
+                                        Column(Modifier.padding(AppSpacing.sm), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(ev.title.ifBlank { ev.eventType }, fontWeight = FontWeight.SemiBold)
+                                            if (ev.actorName.isNotBlank()) {
+                                                Text(ev.actorName, style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
+                                            }
+                                            ev.createdAt.takeIf { it.isNotBlank() }?.let { iso ->
+                                                DateUtils.parseInstantMillis(iso)?.let { ms ->
+                                                    Text(
+                                                        DateUtils.formatJalaliDateTimeLatinFromMillis(ms),
+                                                        style = AppTypography.labelSmall,
+                                                        color = DfThemeColors.textMuted(),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             item {
                                 TeamSectionLabel(
                                     title = "اقدام سریع",
@@ -310,6 +339,23 @@ fun TeamHubScreen(
                                         ),
                                         modifier = Modifier.padding(horizontal = pad),
                                     )
+                                    if (perms.canManage) {
+                                        TeamDestinationCard(
+                                            destination = TeamDestination(
+                                                title = "فعالیت آژانس",
+                                                subtitle = "فیلتر رویدادها بر اساس مشاور",
+                                                metricLabel = "اخیر",
+                                                metricValue = DateUtils.toPersianDigits(
+                                                    home.teamActivity.size.coerceAtMost(99).toString(),
+                                                ),
+                                                tint = info,
+                                                wash = infoWash,
+                                                icon = DfIcons.Clock,
+                                                onClick = onOpenActivity,
+                                            ),
+                                            modifier = Modifier.padding(horizontal = pad),
+                                        )
+                                    }
                                     if (perms.canOperateInbox) {
                                         TeamDestinationCard(
                                             destination = TeamDestination(

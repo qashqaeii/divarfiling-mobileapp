@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -49,6 +50,9 @@ data class ContractWizardUiState(
     val witnesses: List<WizardWitnessDraft> = emptyList(),
     val clauses: WizardClausesDraft = WizardClausesDraft(),
     val optionalClauseOptions: List<Pair<String, String>> = emptyList(),
+    val clauseUi: JsonObject? = null,
+    val status: String = "",
+    val isActionLoading: Boolean = false,
     val pickerLoading: Boolean = false,
     val pickerItems: List<ContractWizardPickerItemDto> = emptyList(),
     val pickerQuery: String = "",
@@ -57,6 +61,13 @@ data class ContractWizardUiState(
     val pickerApplying: Boolean = false,
     val pendingStepIndex: Int? = null,
     val showSaveBeforeLeaveDialog: Boolean = false,
+    val choices: JsonObject = buildJsonObject { },
+    val clauseWarnings: List<String> = emptyList(),
+    val showPrepareSendConfirm: Boolean = false,
+    val reviewContext: JsonObject? = null,
+    val pdfAvailable: Boolean = false,
+    val openPdf: Boolean = false,
+    val showVersionConflictDialog: Boolean = false,
 )
 
 enum class WizardPickerTarget { Party, Property }
@@ -102,7 +113,9 @@ class ContractWizardViewModel @Inject constructor(
                 contractTypeLabel = dto.contractTypeLabel,
                 internalNumber = dto.internalNumber,
                 statusLabel = dto.statusLabel,
+                status = dto.status,
                 canEdit = dto.canEdit,
+                clauseUi = dto.clauseUi,
                 pickerEnabled = dto.pickerEnabled,
                 displaySteps = dto.displaySteps,
                 stepIndex = stepIndex,
@@ -110,6 +123,10 @@ class ContractWizardViewModel @Inject constructor(
                 updatedAt = dto.updatedAt,
                 workspaceWizardPath = dto.workspacePaths.wizard,
                 optionalClauseOptions = optional,
+                choices = dto.choices,
+                clauseWarnings = parseClauseWarnings(dto.clauseUi),
+                reviewContext = dto.reviewContext,
+                pdfAvailable = dto.pdfAvailable,
             )
             if (!replaceDrafts) next else next.copy(
                 parties = partiesFromWizardData(dto.wizardData, roles),
@@ -118,11 +135,60 @@ class ContractWizardViewModel @Inject constructor(
                 saleFinancial = saleFinancialFromWizard(dto.wizardData),
                 jvFinancial = jvFinancialFromWizard(dto.wizardData),
                 witnesses = witnessesFromWizard(dto.wizardData),
-                clauses = clausesFromWizard(dto.wizardData),
+                clauses = mergeClauseDraftFromWizard(dto.wizardData, dto.clauseUi),
             )
         }
         if (replaceDrafts) {
             refreshAllSnapshots(_uiState.value)
+        }
+    }
+
+    private fun parseClauseWarnings(clauseUi: JsonObject?): List<String> {
+        val arr = clauseUi?.get("clause_step_warnings")?.jsonArray ?: return emptyList()
+        return arr.mapNotNull { it.jsonPrimitive.contentOrNull?.takeIf { w -> w.isNotBlank() } }
+    }
+
+    fun goToStepByKey(key: String) {
+        val idx = _uiState.value.displaySteps.indexOfFirst { it.key == key }
+        if (idx >= 0) goToStep(idx)
+    }
+
+    fun requestPrepareSend() {
+        if (_uiState.value.validationErrors.isNotEmpty()) return
+        _uiState.update { it.copy(showPrepareSendConfirm = true) }
+    }
+
+    fun dismissPrepareSendConfirm() = _uiState.update { it.copy(showPrepareSendConfirm = false) }
+
+    fun dismissVersionConflictDialog() = _uiState.update { it.copy(showVersionConflictDialog = false) }
+
+    fun reloadWizardAfterConflict() {
+        dismissVersionConflictDialog()
+        load(currentStepKey)
+    }
+
+    fun confirmPrepareSend() {
+        _uiState.update { it.copy(showPrepareSendConfirm = false) }
+        prepareSend()
+    }
+
+    private fun refreshClauseUi() {
+        viewModelScope.launch {
+            when (val result = repository.getWizard(contractId, "clauses")) {
+                is ApiResult.Success -> {
+                    val dto = result.data
+                    _uiState.update { state ->
+                        state.copy(
+                            clauseUi = dto.clauseUi,
+                            clauseWarnings = parseClauseWarnings(dto.clauseUi),
+                            optionalClauseOptions = parseOptionalClauses(dto.clauseUi),
+                            clauses = mergeClauseDraftFromWizard(dto.wizardData, dto.clauseUi),
+                        )
+                    }
+                    markSnapshotSaved("clauses")
+                }
+                is ApiResult.Error -> Unit
+            }
         }
     }
 
@@ -189,7 +255,15 @@ class ContractWizardViewModel @Inject constructor(
 
     private fun setStepIndex(index: Int) {
         _uiState.update { it.copy(stepIndex = index, pendingStepIndex = null) }
+        val key = _uiState.value.displaySteps.getOrNull(index)?.key
+        if (key == "review") {
+            load("review")
+        }
     }
+
+    fun requestOpenPdf() = _uiState.update { it.copy(openPdf = true) }
+
+    fun consumeOpenPdf() = _uiState.update { it.copy(openPdf = false) }
 
     fun updateParty(index: Int, party: WizardPartyDraft) {
         _uiState.update { state ->
@@ -197,6 +271,23 @@ class ContractWizardViewModel @Inject constructor(
             if (index in list.indices) list[index] = party
             state.copy(parties = list)
         }
+    }
+
+    fun addParty(role: String) {
+        if (role.isBlank()) return
+        _uiState.update { it.copy(parties = it.parties + WizardPartyDraft(role = role)) }
+    }
+
+    fun removeParty(index: Int) {
+        val state = _uiState.value
+        if (!canRemoveWizardParty(state.parties, index, state.contractType)) return
+        _uiState.update {
+            it.copy(parties = it.parties.filterIndexed { i, _ -> i != index })
+        }
+    }
+
+    fun clearPartyCustomer(index: Int) {
+        updateParty(index, _uiState.value.parties.getOrNull(index)?.copy(customerId = ""). ?: return)
     }
 
     fun updateProperty(property: WizardPropertyDraft) = _uiState.update { it.copy(property = property) }
@@ -262,6 +353,9 @@ class ContractWizardViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     mergePatchResult(step, result.data)
                     markSnapshotSaved(step)
+                    if (step == "clauses") {
+                        refreshClauseUi()
+                    }
                     _uiState.update {
                         it.copy(
                             isSaving = false,
@@ -278,7 +372,8 @@ class ContractWizardViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            snackbar = result.message,
+                            snackbar = if (result.code == "CONFLICT") null else result.message,
+                            showVersionConflictDialog = result.code == "CONFLICT",
                             pendingStepIndex = if (result.code == "CONFLICT") null else it.pendingStepIndex,
                             showSaveBeforeLeaveDialog = result.code != "CONFLICT" && it.pendingStepIndex != null,
                         )
@@ -307,7 +402,7 @@ class ContractWizardViewModel @Inject constructor(
                     else -> state.copy(saleFinancial = saleFinancialFromWizard(wizard))
                 }
                 "witnesses" -> state.copy(witnesses = witnessesFromWizard(wizard))
-                "clauses" -> state.copy(clauses = clausesFromWizard(wizard))
+                "clauses" -> state.copy(clauses = mergeClauseDraftFromWizard(wizard, state.clauseUi))
                 else -> state
             }
             merged.copy(
@@ -414,16 +509,7 @@ class ContractWizardViewModel @Inject constructor(
     fun applyPickerItem(item: ContractWizardPickerItemDto) {
         when (_uiState.value.pickerTarget) {
             WizardPickerTarget.Party -> applyPartyPickerItem(item)
-            WizardPickerTarget.Property -> {
-                updateProperty(
-                    _uiState.value.property.copy(
-                        crmPropertyId = item.id.toString(),
-                        crmPropertyTitle = item.displayTitle(),
-                        address = item.displaySubtitle(),
-                    ),
-                )
-                closePicker()
-            }
+            WizardPickerTarget.Property -> applyPropertyPickerItem(item)
             null -> Unit
         }
     }
@@ -450,6 +536,58 @@ class ContractWizardViewModel @Inject constructor(
                             pickerApplying = false,
                             snackbar = result.message,
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun applyPropertyPickerItem(item: ContractWizardPickerItemDto) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(pickerApplying = true) }
+            when (val result = repository.getWizardPropertyPayload(item.id)) {
+                is ApiResult.Success -> {
+                    updateProperty(propertyDraftFromWizardPayload(result.data.property))
+                    _uiState.update { it.copy(pickerApplying = false) }
+                    closePicker()
+                }
+                is ApiResult.Error -> {
+                    updateProperty(
+                        _uiState.value.property.copy(
+                            crmPropertyId = item.id.toString(),
+                            crmPropertyTitle = item.displayTitle(),
+                            address = item.displaySubtitle(),
+                        ),
+                    )
+                    _uiState.update {
+                        it.copy(pickerApplying = false, snackbar = result.message)
+                    }
+                    closePicker()
+                }
+            }
+        }
+    }
+
+    fun prepareSend() {
+        if (_uiState.value.isActionLoading) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isActionLoading = true) }
+            when (val result = repository.contractAction(contractId, "prepare_send")) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isActionLoading = false,
+                            snackbar = "قرارداد برای طرفین ارسال شد",
+                            status = result.data.status,
+                            statusLabel = result.data.statusLabel,
+                            canEdit = result.data.canEdit,
+                            validationErrors = result.data.validationErrors,
+                        )
+                    }
+                }
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(isActionLoading = false, snackbar = result.message)
                     }
                 }
             }

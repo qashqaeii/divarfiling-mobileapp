@@ -381,6 +381,32 @@ interface MobileApi {
     @GET("contracts/wizard/customers/{customer_id}")
     suspend fun getContractWizardCustomer(@Path("customer_id") customerId: Long): ApiEnvelope
 
+    @GET("contracts/wizard/properties/{property_id}")
+    suspend fun getContractWizardProperty(@Path("property_id") propertyId: Long): ApiEnvelope
+
+    @POST("contracts/{id}/actions")
+    suspend fun postContractAction(
+        @Path("id") contractId: Long,
+        @Body body: ContractActionRequest,
+    ): ApiEnvelope
+
+    @POST("contracts/{id}/handover")
+    suspend fun createContractHandover(@Path("id") contractId: Long): ApiEnvelope
+
+    @GET("contracts/{id}/handover/{handoverId}/wizard")
+    suspend fun getContractHandoverWizard(
+        @Path("id") contractId: Long,
+        @Path("handoverId") handoverId: Long,
+        @Query("step") step: String? = null,
+    ): ApiEnvelope
+
+    @PATCH("contracts/{id}/handover/{handoverId}/wizard")
+    suspend fun patchContractHandoverWizard(
+        @Path("id") contractId: Long,
+        @Path("handoverId") handoverId: Long,
+        @Body body: HandoverWizardPatchRequest,
+    ): ApiEnvelope
+
     @GET("contracts/wizard/properties")
     suspend fun searchContractWizardProperties(
         @Query("q") query: String? = null,
@@ -400,6 +426,8 @@ interface MobileApi {
         @Path("id") contractId: Long,
         @Part file: MultipartBody.Part,
         @Part("title") title: okhttp3.RequestBody? = null,
+        @Part("attachment_type") attachmentType: okhttp3.RequestBody? = null,
+        @Part("handover_id") handoverId: okhttp3.RequestBody? = null,
     ): ApiEnvelope
 
     @GET("crm/properties")
@@ -899,6 +927,30 @@ interface MobileApi {
 
     @GET("agency/performance")
     suspend fun getAgencyPerformance(@Query("days") days: Int? = null): ApiEnvelope
+
+    @GET("agency/activity")
+    suspend fun getAgencyActivity(
+        @Query("advisor") advisorMemberId: Long? = null,
+        @Query("event_type") eventType: String? = null,
+    ): ApiEnvelope
+
+    @GET("agency/invite/preview")
+    suspend fun getAgencyInvitePreview(@Query("token") token: String): ApiEnvelope
+
+    @POST("agency/invite/respond")
+    suspend fun respondAgencyInvite(@Body body: AgencyInviteRespondRequest): ApiEnvelope
+
+    @GET("agency/settings")
+    suspend fun getAgencySettings(): ApiEnvelope
+
+    @PATCH("agency/settings")
+    suspend fun patchAgencySettings(@Body body: AgencySettingsPatchRequest): ApiEnvelope
+
+    @GET("agency/audit")
+    suspend fun getAgencyAudit(@Query("limit") limit: Int? = null): ApiEnvelope
+
+    @POST("agency/space/moderate/bulk")
+    suspend fun bulkModerateAgencySpace(@Body body: AgencySpaceBulkModerateRequest): ApiEnvelope
 
     @GET("agency/space/items")
     suspend fun getAgencySpaceItems(@QueryMap params: Map<String, String>): ApiEnvelope

@@ -1,4 +1,4 @@
-package ir.divarfiling.mobile.feature.contracts
+﻿package ir.divarfiling.mobile.feature.contracts
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -9,17 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,6 +48,7 @@ fun ContractWizardScreen(
     onBack: () -> Unit,
     onNavigateWebBridge: (String) -> Unit,
     onFinished: () -> Unit,
+    onOpenPdf: (Long, String) -> Unit = { _, _ -> },
     viewModel: ContractWizardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -69,6 +66,60 @@ fun ContractWizardScreen(
             onNavigateWebBridge(it)
             viewModel.consumeWebBridge()
         }
+    }
+
+    LaunchedEffect(state.openPdf) {
+        if (state.openPdf) {
+            onOpenPdf(
+                state.contractId,
+                state.internalNumber.ifBlank { state.contractTypeLabel },
+            )
+            viewModel.consumeOpenPdf()
+        }
+    }
+
+    if (state.showPrepareSendConfirm) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissPrepareSendConfirm,
+            title = { Text("ارسال قرارداد") },
+            text = {
+                Text(
+                    "قرارداد برای طرفین آماده و دعوت‌نامه ارسال می‌شود. این عمل قابل بازگشت ساده نیست. ادامه می‌دهید؟",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmPrepareSend) {
+                    Text("تأیید و ارسال")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissPrepareSendConfirm) {
+                    Text("انصراف")
+                }
+            },
+        )
+    }
+
+    if (state.showVersionConflictDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissVersionConflictDialog,
+            title = { Text("تعارض نسخه") },
+            text = {
+                Text(
+                    "نسخه جدیدتری از قرارداد روی سرور ذخیره شده است. برای ادامه، نسخه سرور را بارگذاری کنید یا ویرایش محلی را نگه دارید.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::reloadWizardAfterConflict) {
+                    Text("بارگذاری از سرور")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissVersionConflictDialog) {
+                    Text("ادامه ویرایش محلی")
+                }
+            },
+        )
     }
 
     if (state.showSaveBeforeLeaveDialog) {
@@ -186,15 +237,21 @@ fun ContractWizardScreen(
                         when (viewModel.currentStepKey) {
                             "parties" -> WizardPartiesStep(
                                 parties = state.parties,
+                                contractType = state.contractType,
                                 canEdit = state.canEdit,
                                 pickerEnabled = state.pickerEnabled,
+                                choices = state.choices,
                                 onPartyChange = viewModel::updateParty,
                                 onPickContact = viewModel::openPickerForParty,
+                                onAddParty = viewModel::addParty,
+                                onRemoveParty = viewModel::removeParty,
+                                onClearPartyCustomer = viewModel::clearPartyCustomer,
                             )
                             "property" -> WizardPropertyStep(
                                 property = state.property,
                                 canEdit = state.canEdit,
                                 pickerEnabled = state.pickerEnabled,
+                                choices = state.choices,
                                 onChange = viewModel::updateProperty,
                                 onPickProperty = viewModel::openPickerForProperty,
                             )
@@ -204,6 +261,7 @@ fun ContractWizardScreen(
                                 sale = state.saleFinancial,
                                 jv = state.jvFinancial,
                                 canEdit = state.canEdit,
+                                choices = state.choices,
                                 onLeaseChange = viewModel::updateLeaseFinancial,
                                 onSaleChange = viewModel::updateSaleFinancial,
                                 onJvChange = viewModel::updateJvFinancial,
@@ -217,13 +275,26 @@ fun ContractWizardScreen(
                                 clauses = state.clauses,
                                 contractType = state.contractType,
                                 options = state.optionalClauseOptions,
+                                clauseSections = clauseSectionsFromUi(state.clauseUi),
+                                clauseWarnings = state.clauseWarnings,
                                 canEdit = state.canEdit,
                                 onChange = viewModel::updateClauses,
                                 onToggleOptional = viewModel::toggleOptionalClause,
                             )
-                            "review" -> WizardReviewStep(
+                            "review" -> WizardReviewStepRich(
+                                reviewContext = state.reviewContext,
                                 validationErrors = state.validationErrors,
                                 statusLabel = state.statusLabel,
+                                pdfAvailable = state.pdfAvailable,
+                                onEditStep = viewModel::goToStepByKey,
+                                onOpenPdf = viewModel::requestOpenPdf,
+                                onPrepareSend = if (state.canEdit && state.status == "draft") {
+                                    viewModel::requestPrepareSend
+                                } else {
+                                    null
+                                },
+                                prepareSendEnabled = state.canEdit,
+                                prepareSendLoading = state.isActionLoading,
                             )
                             else -> DfEmptyState(title = "مرحله نامشخص", subtitle = "از stepper مرحله دیگری را انتخاب کنید")
                         }
@@ -353,238 +424,5 @@ private fun WizardBottomBar(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun WizardPartiesStep(
-    parties: List<WizardPartyDraft>,
-    canEdit: Boolean,
-    pickerEnabled: Boolean,
-    onPartyChange: (Int, WizardPartyDraft) -> Unit,
-    onPickContact: (Int) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-        parties.forEachIndexed { index, party ->
-            Surface(shape = AppShapes.Card, color = DfThemeColors.surface()) {
-                Column(
-                    Modifier.padding(AppSpacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                ) {
-                    Text(party.role, fontWeight = FontWeight.Bold, color = DfThemeColors.primary())
-                    if (pickerEnabled && canEdit) {
-                        DfSecondaryButton(
-                            text = "انتخاب از CRM",
-                            onClick = { onPickContact(index) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    WizardField("نوع شخص", party.personType) { onPartyChange(index, party.copy(personType = it)) }
-                    WizardField("نام", party.firstName) { onPartyChange(index, party.copy(firstName = it)) }
-                    WizardField("نام خانوادگی", party.lastName) { onPartyChange(index, party.copy(lastName = it)) }
-                    WizardField("کد ملی", party.nationalId) { onPartyChange(index, party.copy(nationalId = it)) }
-                    WizardField("موبایل", party.mobile) { onPartyChange(index, party.copy(mobile = it)) }
-                    WizardField("آدرس", party.address) { onPartyChange(index, party.copy(address = it)) }
-                    if (party.personType == "legal") {
-                        WizardField("نام شرکت", party.companyName) { onPartyChange(index, party.copy(companyName = it)) }
-                        WizardField("شناسه ملی شرکت", party.companyNationalId) {
-                            onPartyChange(index, party.copy(companyNationalId = it))
-                        }
-                        WizardField("نام نماینده", party.representativeName) {
-                            onPartyChange(index, party.copy(representativeName = it))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WizardPropertyStep(
-    property: WizardPropertyDraft,
-    canEdit: Boolean,
-    pickerEnabled: Boolean,
-    onChange: (WizardPropertyDraft) -> Unit,
-    onPickProperty: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-        if (pickerEnabled && canEdit) {
-            DfSecondaryButton(text = "انتخاب فایل CRM", onClick = onPickProperty, modifier = Modifier.fillMaxWidth())
-        }
-        if (property.crmPropertyTitle.isNotBlank()) {
-            Text("فایل: ${property.crmPropertyTitle}", style = AppTypography.labelLarge)
-        }
-        WizardField("نوع ملک", property.propertyType) { onChange(property.copy(propertyType = it)) }
-        WizardField("کاربری", property.usage) { onChange(property.copy(usage = it)) }
-        WizardField("شهر", property.city) { onChange(property.copy(city = it)) }
-        WizardField("منطقه", property.district) { onChange(property.copy(district = it)) }
-        WizardField("محله", property.neighborhood) { onChange(property.copy(neighborhood = it)) }
-        WizardField("آدرس", property.address) { onChange(property.copy(address = it)) }
-        WizardField("کد پستی", property.postalCode) { onChange(property.copy(postalCode = it)) }
-        WizardField("متراژ", property.area) { onChange(property.copy(area = it)) }
-        WizardField("سال ساخت", property.buildYear) { onChange(property.copy(buildYear = it)) }
-        WizardField("طبقه", property.floor) { onChange(property.copy(floor = it)) }
-        WizardField("واحد", property.unit) { onChange(property.copy(unit = it)) }
-        WizardField("اتاق", property.bedrooms) { onChange(property.copy(bedrooms = it)) }
-        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.md)) {
-            WizardToggle("پارکینگ", property.hasParking) { onChange(property.copy(hasParking = it)) }
-            WizardToggle("انباری", property.hasStorage) { onChange(property.copy(hasStorage = it)) }
-            WizardToggle("آسانسور", property.hasElevator) { onChange(property.copy(hasElevator = it)) }
-        }
-    }
-}
-
-@Composable
-private fun WizardFinancialStep(
-    contractType: String,
-    lease: WizardLeaseFinancialDraft,
-    sale: WizardSaleFinancialDraft,
-    jv: WizardJvFinancialDraft,
-    canEdit: Boolean,
-    onLeaseChange: (WizardLeaseFinancialDraft) -> Unit,
-    onSaleChange: (WizardSaleFinancialDraft) -> Unit,
-    onJvChange: (WizardJvFinancialDraft) -> Unit,
-) {
-    when (contractType) {
-        "lease" -> Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            WizardField("شروع اجاره", lease.leaseStart) { onLeaseChange(lease.copy(leaseStart = it)) }
-            WizardField("پایان اجاره", lease.leaseEnd) { onLeaseChange(lease.copy(leaseEnd = it)) }
-            WizardField("رهن (تومان)", lease.deposit) { onLeaseChange(lease.copy(deposit = it)) }
-            WizardField("اجاره ماهانه", lease.monthlyRent) { onLeaseChange(lease.copy(monthlyRent = it)) }
-            WizardField("روز پرداخت", lease.rentPaymentDay) { onLeaseChange(lease.copy(rentPaymentDay = it)) }
-            WizardField("تحویل", lease.deliveryDate) { onLeaseChange(lease.copy(deliveryDate = it)) }
-            WizardField("نوع استفاده", lease.usageType) { onLeaseChange(lease.copy(usageType = it)) }
-            WizardField("تعداد ساکنین", lease.occupantsCount) { onLeaseChange(lease.copy(occupantsCount = it)) }
-        }
-        "jv" -> Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            WizardField("سهم مالک (%)", jv.ownerPercent) { onJvChange(jv.copy(ownerPercent = it)) }
-            WizardField("سهم سازنده (%)", jv.builderPercent) { onJvChange(jv.copy(builderPercent = it)) }
-            WizardField("شروع پروژه", jv.startDate) { onJvChange(jv.copy(startDate = it)) }
-            WizardField("مدت تخمینی", jv.durationEstimate) { onJvChange(jv.copy(durationEstimate = it)) }
-            WizardField("تحویل", jv.deliveryDate) { onJvChange(jv.copy(deliveryDate = it)) }
-            WizardField("آورده مالک", jv.ownerContribution) { onJvChange(jv.copy(ownerContribution = it)) }
-            WizardField("آورده سازنده", jv.builderContribution) { onJvChange(jv.copy(builderContribution = it)) }
-        }
-        else -> Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            WizardField("مبلغ کل (تومان)", sale.totalPrice) { onSaleChange(sale.copy(totalPrice = it)) }
-            WizardField("پیش‌پرداخت", sale.downPayment) { onSaleChange(sale.copy(downPayment = it)) }
-            WizardField("بیعانه", sale.earnestMoney) { onSaleChange(sale.copy(earnestMoney = it)) }
-            WizardField("تاریخ تحویل", sale.deliveryDate) { onSaleChange(sale.copy(deliveryDate = it)) }
-            WizardField("تاریخ انتقال سند", sale.transferDate) { onSaleChange(sale.copy(transferDate = it)) }
-            WizardField("محل انتقال", sale.transferPlace) { onSaleChange(sale.copy(transferPlace = it)) }
-        }
-    }
-}
-
-@Composable
-private fun WizardWitnessesStep(
-    witnesses: List<WizardWitnessDraft>,
-    canEdit: Boolean,
-    onChange: (Int, WizardWitnessDraft) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-        witnesses.forEachIndexed { index, w ->
-            Surface(shape = AppShapes.Card, color = DfThemeColors.surface()) {
-                Column(Modifier.padding(AppSpacing.sm), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-                    Text(w.witnessRole, fontWeight = FontWeight.SemiBold)
-                    WizardField("نام", w.firstName) { onChange(index, w.copy(firstName = it)) }
-                    WizardField("نام خانوادگی", w.lastName) { onChange(index, w.copy(lastName = it)) }
-                    WizardField("کد ملی", w.nationalId) { onChange(index, w.copy(nationalId = it)) }
-                    WizardField("موبایل", w.mobile) { onChange(index, w.copy(mobile = it)) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WizardClausesStep(
-    clauses: WizardClausesDraft,
-    contractType: String,
-    options: List<Pair<String, String>>,
-    canEdit: Boolean,
-    onChange: (WizardClausesDraft) -> Unit,
-    onToggleOptional: (String) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-        if (options.isNotEmpty()) {
-            Text("بندهای اختیاری", fontWeight = FontWeight.Bold)
-            options.forEach { (code, title) ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Checkbox(
-                        checked = code in clauses.selectedOptionalCodes,
-                        onCheckedChange = { if (canEdit) onToggleOptional(code) },
-                        enabled = canEdit,
-                    )
-                    Text(title, modifier = Modifier.weight(1f))
-                }
-            }
-        }
-        if (contractType == "lease") {
-            WizardField("انتقال به غیر", clauses.transferChoice) { onChange(clauses.copy(transferChoice = it)) }
-        }
-        if (contractType == "sale") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("ملک دارای مستأجر است")
-                Switch(
-                    checked = clauses.propertyHasTenant,
-                    onCheckedChange = { if (canEdit) onChange(clauses.copy(propertyHasTenant = it)) },
-                    enabled = canEdit,
-                )
-            }
-        }
-        HorizontalDivider()
-        WizardField("عنوان توافق اختصاصی", clauses.customTitle) { onChange(clauses.copy(customTitle = it)) }
-        DfTextField(
-            value = clauses.customBody,
-            onValueChange = { onChange(clauses.copy(customBody = it)) },
-            label = "متن توافق اختصاصی",
-            minLines = 4,
-            singleLine = false,
-            enabled = canEdit,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun WizardReviewStep(
-    validationErrors: List<String>,
-    statusLabel: String,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-        Text("مرور نهایی", style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold)
-        Text("وضعیت: $statusLabel", color = DfThemeColors.textSecondary())
-        if (validationErrors.isEmpty()) {
-            Text(
-                "پیش‌نویس از نظر اعتبارسنجی اولیه آماده است. ارسال و تأیید طرفین از جزئیات قرارداد یا میزکار انجام می‌شود.",
-                style = AppTypography.bodyDescription,
-            )
-        } else {
-            validationErrors.forEach { Text("• $it", color = DfThemeColors.warning()) }
-        }
-    }
-}
-
-@Composable
-private fun WizardField(label: String, value: String, onValueChange: (String) -> Unit) {
-    DfTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = label,
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-@Composable
-private fun WizardToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = AppTypography.labelSmall)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

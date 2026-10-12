@@ -32,6 +32,7 @@ import ir.divarfiling.mobile.feature.crm.CrmHubScreen
 import ir.divarfiling.mobile.feature.crm.DealDetailScreen
 import ir.divarfiling.mobile.feature.contracts.ContractCreateScreen
 import ir.divarfiling.mobile.feature.contracts.ContractDetailScreen
+import ir.divarfiling.mobile.feature.contracts.ContractHandoverWizardScreen
 import ir.divarfiling.mobile.feature.contracts.ContractPdfScreen
 import ir.divarfiling.mobile.feature.contracts.ContractWizardScreen
 import ir.divarfiling.mobile.feature.contracts.ContractsHomeScreen
@@ -66,7 +67,11 @@ import ir.divarfiling.mobile.feature.support.SupportTicketsScreen
 import ir.divarfiling.mobile.feature.tools.SmartToolCalculatorScreen
 import ir.divarfiling.mobile.feature.tools.ToolsScreen
 import ir.divarfiling.mobile.feature.tools.smartToolIdFromKey
+import ir.divarfiling.mobile.feature.team.AgencyActivityScreen
 import ir.divarfiling.mobile.feature.team.AgencyAdvancedSettingsScreen
+import ir.divarfiling.mobile.feature.team.AgencyAuditScreen
+import ir.divarfiling.mobile.feature.team.AgencyInviteAcceptScreen
+import ir.divarfiling.mobile.feature.team.AgencyProfileScreen
 import ir.divarfiling.mobile.feature.team.AgencyAdvisorDetailScreen
 import ir.divarfiling.mobile.feature.team.AgencyPerformanceScreen
 import ir.divarfiling.mobile.feature.team.AgencySpaceDetailScreen
@@ -113,8 +118,9 @@ object Routes {
     const val CRM_CONTRACTS = "crm/contracts"
     const val CRM_CONTRACT_DETAIL = "crm/contracts/{contractId}"
     const val CRM_CONTRACT_CREATE = "crm/contracts/create?dealId={dealId}"
-    const val CRM_CONTRACT_PDF = "crm/contracts/{contractId}/pdf?title={title}"
+    const val CRM_CONTRACT_PDF = "crm/contracts/{contractId}/pdf?title={title}&handoverId={handoverId}"
     const val CRM_CONTRACT_WIZARD = "crm/contracts/{contractId}/wizard"
+    const val CRM_CONTRACT_HANDOVER = "crm/contracts/{contractId}/handover/{handoverId}"
     const val WORKSPACE_WEB = "workspace/web?bridgeUrl={bridgeUrl}&webTitle={webTitle}"
 
     fun workspaceWeb(bridgeUrl: String, webTitle: String = "میزکار") =
@@ -136,6 +142,12 @@ object Routes {
     const val TEAM_PERFORMANCE = "team/performance"
     const val TEAM_SEATS = "team/seats"
     const val TEAM_ADVANCED = "team/advanced"
+    const val TEAM_ACTIVITY = "team/activity"
+    const val TEAM_PROFILE = "team/profile"
+    const val TEAM_AUDIT = "team/audit"
+    const val TEAM_INVITE = "team/invite/{token}"
+
+    fun agencyInvite(token: String) = "team/invite/${Uri.encode(token)}"
     const val TEAM_SPACE = "team/space"
     const val TEAM_SPACE_DETAIL = "team/space/{itemId}"
 
@@ -156,9 +168,11 @@ object Routes {
     fun dealDetail(dealId: Long) = "crm/deals/$dealId"
     fun contractDetail(contractId: Long) = "crm/contracts/$contractId"
     fun contractCreate(dealId: Long = 0) = "crm/contracts/create?dealId=$dealId"
-    fun contractPdf(contractId: Long, title: String = "") =
-        "crm/contracts/$contractId/pdf?title=${Uri.encode(title)}"
+    fun contractPdf(contractId: Long, title: String = "", handoverId: Long = 0L) =
+        "crm/contracts/$contractId/pdf?title=${Uri.encode(title)}&handoverId=$handoverId"
     fun contractWizard(contractId: Long) = "crm/contracts/$contractId/wizard"
+    fun contractHandover(contractId: Long, handoverId: Long) =
+        "crm/contracts/$contractId/handover/$handoverId"
     fun deals(
         customerId: Long? = null,
         propertyId: Long? = null,
@@ -203,6 +217,12 @@ fun DivarFilingNavHost(
     when (isLoggedIn) {
         null -> { /* splash */ }
         false -> {
+            LaunchedEffect(deepLink) {
+                if (deepLink is DeepLinkTarget.AgencyInvite) {
+                    sessionViewModel.rememberPendingInvite(deepLink.token)
+                    onDeepLinkHandled()
+                }
+            }
             NavHost(navController, startDestination = Routes.LOGIN) {
                 composable(Routes.LOGIN) {
                     LoginScreen(
@@ -212,6 +232,11 @@ fun DivarFilingNavHost(
             }
         }
         true -> {
+            LaunchedEffect(Unit) {
+                sessionViewModel.consumePendingInvite()?.let { token ->
+                    navController.navigate(Routes.agencyInvite(token))
+                }
+            }
             LaunchedEffect(deepLink) {
                 deepLink?.let { target ->
                     if (target is DeepLinkTarget.Payment) {
@@ -428,6 +453,7 @@ fun DivarFilingNavHost(
                         ContractsHomeScreen(
                             onBack = { navController.popBackStack() },
                             onContractClick = { id -> navController.navigate(Routes.contractDetail(id)) },
+                            onContinueWizard = { id -> navController.navigate(Routes.contractWizard(id)) },
                             onCreateContract = { navController.navigate(Routes.contractCreate()) },
                             onNavigatePlans = { navController.navigate(Routes.PLANS) },
                         )
@@ -442,10 +468,28 @@ fun DivarFilingNavHost(
                             onBack = { navController.popBackStack() },
                             onNavigateWebBridge = { url -> navController.navigate(Routes.workspaceWeb(url, "قرارداد")) },
                             onNavigateWizard = { id -> navController.navigate(Routes.contractWizard(id)) },
+                            onNavigateHandover = { cId, hoId ->
+                                navController.navigate(Routes.contractHandover(cId, hoId))
+                            },
                             onOpenPdf = { id, title -> navController.navigate(Routes.contractPdf(id, title)) },
                             onNavigateDeal = { dealId -> navController.navigate(Routes.dealDetail(dealId)) },
                             hybridRefreshPending = hybridRefresh,
                             onHybridRefreshConsumed = { entry.savedStateHandle["refresh_contract"] = false },
+                        )
+                    }
+                    composable(
+                        route = Routes.CRM_CONTRACT_HANDOVER,
+                        arguments = listOf(
+                            navArgument("contractId") { type = NavType.LongType },
+                            navArgument("handoverId") { type = NavType.LongType },
+                        ),
+                    ) {
+                        ContractHandoverWizardScreen(
+                            onBack = { navController.popBackStack() },
+                            onFinished = { navController.popBackStack() },
+                            onOpenPdf = { cId, hoId ->
+                                navController.navigate(Routes.contractPdf(cId, "صورت‌جلسه تحویل", hoId))
+                            },
                         )
                     }
                     composable(
@@ -457,6 +501,7 @@ fun DivarFilingNavHost(
                             onNavigateWebBridge = { url ->
                                 navController.navigate(Routes.workspaceWeb(url, "قرارداد"))
                             },
+                            onOpenPdf = { id, title -> navController.navigate(Routes.contractPdf(id, title)) },
                             onFinished = {
                                 val contractId = entry.arguments?.getLong("contractId") ?: 0L
                                 navController.previousBackStackEntry?.savedStateHandle?.set("refresh_contract", true)
@@ -496,6 +541,10 @@ fun DivarFilingNavHost(
                             navArgument("title") {
                                 type = NavType.StringType
                                 defaultValue = ""
+                            },
+                            navArgument("handoverId") {
+                                type = NavType.LongType
+                                defaultValue = 0L
                             },
                         ),
                     ) {
@@ -730,6 +779,7 @@ fun DivarFilingNavHost(
                             onOpenPerformance = { navController.navigate(Routes.TEAM_PERFORMANCE) },
                             onOpenSeats = { navController.navigate(Routes.TEAM_SEATS) },
                             onOpenAdvanced = { navController.navigate(Routes.TEAM_ADVANCED) },
+                            onOpenActivity = { navController.navigate(Routes.TEAM_ACTIVITY) },
                             onOpenAgencySpace = { navController.navigate(Routes.TEAM_SPACE) },
                             onNavigateWebBridge = { url ->
                                 navController.navigate(Routes.workspaceWeb(url, "میزکار تیم"))
@@ -775,9 +825,36 @@ fun DivarFilingNavHost(
                     composable(Routes.TEAM_SEATS) {
                         AgencySeatsScreen(onBack = { navController.popBackStack() })
                     }
+                    composable(Routes.TEAM_ACTIVITY) {
+                        AgencyActivityScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.TEAM_PROFILE) {
+                        AgencyProfileScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.TEAM_AUDIT) {
+                        AgencyAuditScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(
+                        route = Routes.TEAM_INVITE,
+                        arguments = listOf(navArgument("token") { type = NavType.StringType }),
+                    ) {
+                        val token = it.arguments?.getString("token").orEmpty()
+                        AgencyInviteAcceptScreen(
+                            token = token,
+                            onBack = { navController.popBackStack() },
+                            onAccepted = {
+                                navController.navigate(Routes.TEAM) {
+                                    popUpTo(Routes.TEAM_INVITE) { inclusive = true }
+                                }
+                            },
+                        )
+                    }
                     composable(Routes.TEAM_ADVANCED) {
                         AgencyAdvancedSettingsScreen(
                             onBack = { navController.popBackStack() },
+                            onOpenActivity = { navController.navigate(Routes.TEAM_ACTIVITY) },
+                            onOpenProfile = { navController.navigate(Routes.TEAM_PROFILE) },
+                            onOpenAudit = { navController.navigate(Routes.TEAM_AUDIT) },
                             onOpenBridge = { url ->
                                 navController.navigate(Routes.workspaceWeb(url, "تنظیمات پیشرفته"))
                             },

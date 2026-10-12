@@ -18,6 +18,11 @@ import ir.divarfiling.mobile.core.network.ContractWizardPatchRequest
 import ir.divarfiling.mobile.core.network.ContractWizardPickerPageDto
 import ir.divarfiling.mobile.core.network.ContractsListData
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import ir.divarfiling.mobile.core.network.DealContractItemDto
 import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.PaginatedResult
@@ -118,6 +123,28 @@ class ContractsRepository @Inject constructor(
         api.getContractWizardCustomer(customerId)
     }
 
+    suspend fun getWizardPropertyPayload(
+        propertyId: Long,
+    ): ApiResult<ir.divarfiling.mobile.core.network.ContractWizardPropertyDetailData> = single {
+        api.getContractWizardProperty(propertyId)
+    }
+
+    suspend fun contractAction(
+        contractId: Long,
+        action: String,
+        reason: String = "",
+        invitationId: Long? = null,
+    ): ApiResult<ir.divarfiling.mobile.core.network.ContractActionResultDto> = single {
+        api.postContractAction(
+            contractId,
+            ir.divarfiling.mobile.core.network.ContractActionRequest(
+                action = action,
+                reason = reason,
+                invitationId = invitationId,
+            ),
+        )
+    }
+
     suspend fun searchWizardProperties(query: String): ApiResult<ContractWizardPickerPageDto> = single {
         api.searchContractWizardProperties(query = query.ifBlank { null })
     }
@@ -141,7 +168,13 @@ class ContractsRepository @Inject constructor(
         ApiResult.Error(e.toUserMessage("خطای شبکه"))
     }
 
-    suspend fun uploadAttachment(contractId: Long, uri: Uri, title: String): ApiResult<ContractAttachmentDto> =
+    suspend fun uploadAttachment(
+        contractId: Long,
+        uri: Uri,
+        title: String,
+        attachmentType: String = "other",
+        handoverId: Long? = null,
+    ): ApiResult<ContractAttachmentDto> =
         withContext(Dispatchers.IO) {
             try {
                 val stream = context.contentResolver.openInputStream(uri)
@@ -155,7 +188,16 @@ class ContractsRepository @Inject constructor(
                     bytes.toRequestBody(mime.toMediaType()),
                 )
                 val titlePart = name.toRequestBody("text/plain".toMediaType())
-                val response = api.uploadContractAttachment(contractId, part, titlePart)
+                val typePart = attachmentType.toRequestBody("text/plain".toMediaType())
+                val handoverPart = handoverId?.takeIf { it > 0 }?.toString()
+                    ?.toRequestBody("text/plain".toMediaType())
+                val response = api.uploadContractAttachment(
+                    contractId,
+                    part,
+                    titlePart,
+                    typePart,
+                    handoverPart,
+                )
                 if (!response.ok) ApiResult.Error(response.error ?: "خطا", response.code)
                 else ApiResult.Success(response.requireData(json))
             } catch (e: Exception) {
@@ -187,6 +229,87 @@ class ContractsRepository @Inject constructor(
             dirName = "contract_pdf",
             fileName = "contract_$contractId.pdf",
         )
+
+    suspend fun downloadHandoverPdf(contractId: Long, handoverId: Long): ApiResult<File> =
+        downloadBinary(
+            path = "contracts/$contractId/handover/$handoverId/pdf?inline=1",
+            dirName = "handover_pdf",
+            fileName = "handover_${contractId}_$handoverId.pdf",
+        )
+
+    data class HandoverWizardEnvelope(
+        val wizard: kotlinx.serialization.json.JsonObject,
+        val canEdit: Boolean = true,
+        val status: String = "",
+        val statusLabel: String = "",
+        val pdfAvailable: Boolean = false,
+        val sendDisabled: Boolean = false,
+        val published: Boolean = false,
+    )
+
+    private fun parseHandoverEnvelope(root: kotlinx.serialization.json.JsonObject): HandoverWizardEnvelope {
+        val wizard = root["wizard"]?.jsonObject ?: root
+        fun bool(key: String) = root[key]?.jsonPrimitive?.contentOrNull == "true" ||
+            root[key]?.jsonPrimitive?.booleanOrNull == true
+        return HandoverWizardEnvelope(
+            wizard = wizard,
+            canEdit = root["can_edit"]?.jsonPrimitive?.booleanOrNull ?: bool("can_edit"),
+            status = root.stringOrEmpty("status"),
+            statusLabel = root.stringOrEmpty("status_label"),
+            pdfAvailable = bool("pdf_available"),
+            sendDisabled = bool("send_disabled"),
+            published = bool("published"),
+        )
+    }
+
+    private fun kotlinx.serialization.json.JsonObject.stringOrEmpty(key: String): String =
+        get(key)?.jsonPrimitive?.contentOrNull.orEmpty()
+
+    suspend fun createHandover(contractId: Long): ApiResult<Long> =
+        when (val result = single<ir.divarfiling.mobile.core.network.HandoverCreateData> {
+            api.createContractHandover(contractId)
+        }) {
+            is ApiResult.Success -> ApiResult.Success(result.data.handoverId)
+            is ApiResult.Error -> result
+        }
+
+    suspend fun getHandoverWizard(
+        contractId: Long,
+        handoverId: Long,
+        step: String? = null,
+    ): ApiResult<HandoverWizardEnvelope> = try {
+        val response = api.getContractHandoverWizard(contractId, handoverId, step)
+        if (!response.ok) {
+            ApiResult.Error(response.error ?: "خطا", response.code)
+        } else {
+            val root = response.requireData<kotlinx.serialization.json.JsonObject>(json)
+            ApiResult.Success(parseHandoverEnvelope(root))
+        }
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
+
+    suspend fun patchHandoverWizard(
+        contractId: Long,
+        handoverId: Long,
+        step: String,
+        data: JsonElement,
+        publish: Boolean = false,
+    ): ApiResult<HandoverWizardEnvelope> = try {
+        val response = api.patchContractHandoverWizard(
+            contractId,
+            handoverId,
+            ir.divarfiling.mobile.core.network.HandoverWizardPatchRequest(step, data, publish),
+        )
+        if (!response.ok) {
+            ApiResult.Error(response.error ?: "خطا", response.code)
+        } else {
+            val root = response.requireData<kotlinx.serialization.json.JsonObject>(json)
+            ApiResult.Success(parseHandoverEnvelope(root))
+        }
+    } catch (e: Exception) {
+        ApiResult.Error(e.toUserMessage("خطای شبکه"))
+    }
 
     private suspend fun downloadBinary(path: String, dirName: String, fileName: String): ApiResult<File> =
         withContext(Dispatchers.IO) {

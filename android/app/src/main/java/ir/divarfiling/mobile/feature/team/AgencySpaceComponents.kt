@@ -59,6 +59,7 @@ import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
+import ir.divarfiling.mobile.core.network.AgencySpaceItemDto
 
 import ir.divarfiling.mobile.core.network.AgencySpaceProvenanceDto
 
@@ -515,6 +516,142 @@ fun AgencySpacePublishSheet(
 
     }
 
+}
+
+
+
+@Composable
+fun AgencySpaceEditAccessSheet(
+    item: AgencySpaceItemDto,
+    isSubmitting: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (visibility: String, contactShareLevel: String, memberIds: List<Long>, note: String) -> Unit,
+) {
+    val isCustomer = item.sourceKind == "customer" || item.customer != null
+    var visibility by remember(item.id) { mutableStateOf(item.visibility.ifBlank { "agency_public" }) }
+    var shareLevel by remember(item.id) {
+        mutableStateOf(item.contactShareLevel.ifBlank { "summary" })
+    }
+    var note by remember(item.id) { mutableStateOf(item.note) }
+    var selectedMembers by remember(item.id) {
+        mutableStateOf(item.audienceMemberIds.toSet())
+    }
+    var memberQuery by remember { mutableStateOf("") }
+    val teamMembers = item.editTeamMembers
+    val filteredMembers = remember(teamMembers, memberQuery) {
+        val q = memberQuery.trim()
+        if (q.isBlank()) teamMembers
+        else teamMembers.filter {
+            it.name.contains(q, ignoreCase = true) || it.role.contains(q, ignoreCase = true)
+        }
+    }
+
+    DfSheetScaffold(
+        title = "ویرایش دسترسی انتشار",
+        subtitle = "محدوده دید و اشتراک اطلاعات",
+        onClose = onDismiss,
+        footer = {
+            DfSheetActions(
+                primaryText = if (isSubmitting) "در حال ذخیره…" else "ذخیره تغییرات",
+                onPrimary = {
+                    onSave(visibility, shareLevel, selectedMembers.toList(), note.trim())
+                },
+                primaryEnabled = !isSubmitting &&
+                    (visibility != "selected_members" || selectedMembers.isNotEmpty()),
+                isSubmitting = isSubmitting,
+                secondaryText = "انصراف",
+                onSecondary = onDismiss,
+            )
+        },
+    ) {
+        DfSheetSection(title = "محدوده دید") {
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                DfSoftChip(
+                    text = "عمومی برای آژانس",
+                    selected = visibility == "agency_public",
+                    onClick = { visibility = "agency_public" },
+                )
+                DfSoftChip(
+                    text = "فقط افراد منتخب",
+                    selected = visibility == "selected_members",
+                    onClick = { visibility = "selected_members" },
+                )
+            }
+            Text(
+                "اعضای خارج از محدوده، این مورد را نمی‌بینند.",
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textMuted(),
+                modifier = Modifier.padding(top = AppSpacing.xs),
+            )
+        }
+        if (isCustomer) {
+            DfSheetSection(title = "اطلاعات قابل اشتراک") {
+                Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                    DfSoftChip(
+                        text = "فقط اطلاعات کاری",
+                        selected = shareLevel == "summary",
+                        onClick = { shareLevel = "summary" },
+                    )
+                    DfSoftChip(
+                        text = "همراه اطلاعات تماس",
+                        selected = shareLevel == "full",
+                        onClick = { shareLevel = "full" },
+                    )
+                }
+                Text(
+                    "شماره و راه‌های تماس فقط در حالت دوم در فضای آژانس دیده می‌شود.",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                    modifier = Modifier.padding(top = AppSpacing.xs),
+                )
+            }
+        }
+        if (visibility == "selected_members" && teamMembers.isNotEmpty()) {
+            DfSheetSection(title = "انتخاب اعضا") {
+                if (teamMembers.size > 6) {
+                    DfSearchField(
+                        value = memberQuery,
+                        onValueChange = { memberQuery = it },
+                        placeholder = "جستجو در اعضای تیم…",
+                        modifier = Modifier.padding(bottom = AppSpacing.sm),
+                    )
+                }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    filteredMembers.forEach { member ->
+                        AgencySpaceMemberRow(
+                            member = member,
+                            selected = member.id in selectedMembers,
+                            onToggle = {
+                                selectedMembers = if (member.id in selectedMembers) {
+                                    selectedMembers - member.id
+                                } else {
+                                    selectedMembers + member.id
+                                }
+                            },
+                        )
+                    }
+                }
+                Text(
+                    "${selectedMembers.size} نفر انتخاب شده‌اند",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textSecondary(),
+                    modifier = Modifier.padding(top = AppSpacing.sm),
+                )
+            }
+        }
+        DfSheetSection(title = "یادداشت (اختیاری)") {
+            OutlinedTextField(
+                value = note,
+                onValueChange = { note = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("برای هم‌تیمی‌ها") },
+                minLines = 2,
+            )
+        }
+    }
 }
 
 

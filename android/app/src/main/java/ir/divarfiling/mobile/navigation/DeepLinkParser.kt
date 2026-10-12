@@ -7,10 +7,17 @@ object DeepLinkParser {
         Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
     fun parse(uri: Uri?): DeepLinkTarget? {
-        if (uri == null || uri.scheme != "divarfiling") return null
+        if (uri == null) return null
+        parseInvite(uri)?.let { return it }
+        if (uri.scheme != "divarfiling") return null
         val host = uri.host ?: return null
         val segments = uri.pathSegments
         return when (host) {
+            "team" -> when {
+                segments.firstOrNull() == "invite" && segments.size >= 2 ->
+                    DeepLinkTarget.AgencyInvite(segments[1])
+                else -> null
+            }
             "filing" -> when {
                 segments.isEmpty() -> {
                     if (uri.getQueryParameter("retention_warning") == "1") {
@@ -61,6 +68,24 @@ object DeepLinkParser {
             else -> null
         }
     }
+
+    private fun parseInvite(uri: Uri): DeepLinkTarget? {
+        val path = uri.path.orEmpty()
+        val match = Regex("""/agency/invite/([^/]+)/?""").find(path)
+            ?: Regex("""/workspace/agency/invite/([^/]+)/?""").find(path)
+        val token = match?.groupValues?.getOrNull(1)?.trim().orEmpty()
+        if (token.isBlank()) return null
+        if (uri.scheme == "divarfiling") {
+            val segs = uri.pathSegments
+            if (uri.host == "team" && segs.size >= 2 && segs[0] == "invite") {
+                return DeepLinkTarget.AgencyInvite(segs[1])
+            }
+        }
+        if (uri.scheme in listOf("http", "https")) {
+            return DeepLinkTarget.AgencyInvite(token)
+        }
+        return null
+    }
 }
 
 sealed class DeepLinkTarget {
@@ -88,4 +113,5 @@ sealed class DeepLinkTarget {
     data object Settings : DeepLinkTarget()
     data object Plans : DeepLinkTarget()
     data class Payment(val orderId: String) : DeepLinkTarget()
+    data class AgencyInvite(val token: String) : DeepLinkTarget()
 }

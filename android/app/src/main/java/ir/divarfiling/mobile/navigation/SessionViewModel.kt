@@ -6,6 +6,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.data.repository.AuthRepository
 import ir.divarfiling.mobile.data.repository.ShopRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -16,6 +18,20 @@ class SessionViewModel @Inject constructor(
     private val shopRepository: ShopRepository,
 ) : ViewModel() {
     val isLoggedIn = authRepository.isLoggedIn
+
+    private val _pendingInviteToken = MutableStateFlow<String?>(null)
+    val pendingInviteToken = _pendingInviteToken.asStateFlow()
+
+    fun rememberPendingInvite(token: String) {
+        val t = token.trim()
+        if (t.isNotEmpty()) _pendingInviteToken.value = t
+    }
+
+    fun consumePendingInvite(): String? {
+        val t = _pendingInviteToken.value
+        _pendingInviteToken.value = null
+        return t
+    }
 
     fun rememberPendingOrder(orderId: String) {
         val normalized = orderId.trim()

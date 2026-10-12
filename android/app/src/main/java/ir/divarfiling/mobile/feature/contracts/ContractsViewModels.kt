@@ -15,6 +15,8 @@ import ir.divarfiling.mobile.data.repository.ContractsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
@@ -44,6 +46,7 @@ data class ContractsHomeUiState(
     val page: Int = 1,
     val hasMore: Boolean = false,
     val isFilteredEmpty: Boolean = false,
+    val resumeContract: ContractListItemDto? = null,
 )
 
 @HiltViewModel
@@ -52,6 +55,7 @@ class ContractsHomeViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ContractsHomeUiState())
     val uiState: StateFlow<ContractsHomeUiState> = _uiState.asStateFlow()
+    private var searchJob: Job? = null
 
     init {
         load(refresh = true)
@@ -92,6 +96,9 @@ class ContractsHomeViewModel @Inject constructor(
                     val (data, page) = result.data
                     val filteredEmpty = data.items.isEmpty() &&
                         (state.query.isNotBlank() || filters.activeCount() > 0 || state.selectedTab != ContractSummaryTab.ALL)
+                    val resume = data.items.firstOrNull { c ->
+                        c.status == "draft" && c.nextAction.nativeTarget.isNotBlank()
+                    } ?: data.items.firstOrNull { it.status == "draft" }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -102,6 +109,7 @@ class ContractsHomeViewModel @Inject constructor(
                             page = page.page,
                             hasMore = page.hasMore,
                             isFilteredEmpty = filteredEmpty,
+                            resumeContract = if (state.selectedTab == ContractSummaryTab.ALL) resume else null,
                         )
                     }
                 }
@@ -121,7 +129,14 @@ class ContractsHomeViewModel @Inject constructor(
         }
     }
 
-    fun onQueryChange(value: String) = _uiState.update { it.copy(query = value) }
+    fun onQueryChange(value: String) {
+        _uiState.update { it.copy(query = value) }
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(400)
+            load(refresh = true)
+        }
+    }
 
     fun onTabSelected(tab: ContractSummaryTab) {
         _uiState.update { it.copy(selectedTab = tab) }
@@ -168,6 +183,15 @@ data class ContractDetailUiState(
     val openPdf: Boolean = false,
     val isUploadingAttachment: Boolean = false,
     val attachmentBusyId: Long? = null,
+    val isContractActionLoading: Boolean = false,
+    val showCancelDialog: Boolean = false,
+    val navigateCopiedContractId: Long? = null,
+    val openHandover: HandoverNav? = null,
+)
+
+data class HandoverNav(
+    val contractId: Long,
+    val handoverId: Long,
 )
 
 @HiltViewModel
@@ -242,6 +266,15 @@ class ContractDetailViewModel @Inject constructor(
         when (action.nativeTarget) {
             "pdf" -> _uiState.update { it.copy(openPdf = true) }
             "wizard" -> _uiState.update { it.copy(openNativeWizard = true) }
+            "handover_create" -> startHandover(create = true)
+            "handover_wizard" -> {
+                val hoId = action.handoverId ?: detail.handover.id
+                if (hoId != null && hoId > 0) {
+                    _uiState.update { it.copy(openHandover = HandoverNav(contractId, hoId)) }
+                } else {
+                    startHandover(create = true)
+                }
+            }
             "bridge" -> openBridge(action.webPath.ifBlank { detail.workspacePaths.wizard })
             else -> {
                 if (action.action == "OPEN_WIZARD") {
@@ -296,6 +329,117 @@ class ContractDetailViewModel @Inject constructor(
     }
 
     fun showMessage(message: String) = _uiState.update { it.copy(snackbarMessage = message) }
+
+    fun showCancelDialog() = _uiState.update { it.copy(showCancelDialog = true) }
+
+    fun dismissCancelDialog() = _uiState.update { it.copy(showCancelDialog = false) }
+
+    fun cancelContract(reason: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isContractActionLoading = true, showCancelDialog = false) }
+            when (val result = repository.contractAction(contractId, "cancel", reason = reason)) {
+                is ApiResult.Success -> {
+                    refreshInBackground()
+                    _uiState.update {
+                        it.copy(
+                            isContractActionLoading = false,
+                            snackbarMessage = "قرارداد لغو شد",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isContractActionLoading = false, snackbarError = result.message)
+                }
+            }
+        }
+    }
+
+    fun resendInvitation(invitationId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isContractActionLoading = true) }
+            when (val result = repository.contractAction(contractId, "resend_invitation", invitationId = invitationId)) {
+                is ApiResult.Success -> {
+                    refreshInBackground()
+                    _uiState.update {
+                        it.copy(isContractActionLoading = false, snackbarMessage = "پیامک مجدداً ارسال شد")
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isContractActionLoading = false, snackbarError = result.message)
+                }
+            }
+        }
+    }
+
+    fun createNewVersion() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isContractActionLoading = true) }
+            when (val result = repository.contractAction(contractId, "new_version")) {
+                is ApiResult.Success -> {
+                    refreshInBackground()
+                    _uiState.update {
+                        it.copy(
+                            isContractActionLoading = false,
+                            openNativeWizard = true,
+                            snackbarMessage = "نسخه جدید ایجاد شد — ویزارد را تکمیل کنید",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isContractActionLoading = false, snackbarError = result.message)
+                }
+            }
+        }
+    }
+
+    fun startHandover(create: Boolean) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isContractActionLoading = true) }
+            val handoverId = if (create) {
+                when (val created = repository.createHandover(contractId)) {
+                    is ApiResult.Success -> created.data
+                    is ApiResult.Error -> {
+                        _uiState.update {
+                            it.copy(isContractActionLoading = false, snackbarError = created.message)
+                        }
+                        return@launch
+                    }
+                }
+            } else {
+                _uiState.value.detail?.handover?.id ?: 0L
+            }
+            _uiState.update {
+                it.copy(
+                    isContractActionLoading = false,
+                    openHandover = HandoverNav(contractId, handoverId),
+                )
+            }
+        }
+    }
+
+    fun consumeOpenHandover() = _uiState.update { it.copy(openHandover = null) }
+
+    fun copyContract() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isContractActionLoading = true) }
+            when (val result = repository.contractAction(contractId, "copy")) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isContractActionLoading = false,
+                            navigateCopiedContractId = result.data.contractId,
+                            snackbarMessage = "کپی قرارداد ایجاد شد",
+                        )
+                    }
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isContractActionLoading = false, snackbarError = result.message)
+                }
+            }
+        }
+    }
+
+    fun consumeNavigateCopied() = _uiState.update { it.copy(navigateCopiedContractId = null) }
 
     fun openAttachment(att: ContractAttachmentDto, onFile: (File, String) -> Unit) {
         viewModelScope.launch {
@@ -368,6 +512,7 @@ class ContractPdfViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val contractId: Long = savedStateHandle.get<Long>("contractId") ?: 0L
+    private val handoverId: Long = savedStateHandle.get<Long>("handoverId") ?: 0L
     private val _uiState = MutableStateFlow(
         ContractPdfUiState(title = savedStateHandle.get<String>("title").orEmpty().ifBlank { "PDF قرارداد" }),
     )
@@ -385,7 +530,12 @@ class ContractPdfViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            when (val result = repository.downloadPdf(contractId)) {
+            val result = if (handoverId > 0) {
+                repository.downloadHandoverPdf(contractId, handoverId)
+            } else {
+                repository.downloadPdf(contractId)
+            }
+            when (result) {
                 is ApiResult.Success -> {
                     cachedFile = result.data
                     _uiState.update {
