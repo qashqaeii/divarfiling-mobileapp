@@ -118,10 +118,6 @@ fun JsonObject?.labeledOptions(key: String): List<WizardChoiceOption> {
     }
 }
 
-private fun JsonObject.choiceValues(key: String): List<String> =
-    get(key)?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull }?.filter { it.isNotBlank() }
-        ?: emptyList()
-
 @Composable
 fun WizardMoneyField(
     label: String,
