@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import ir.divarfiling.mobile.core.design.components.showDfMessage
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +46,6 @@ import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
@@ -324,7 +324,12 @@ class AgencyAdvisorDetailViewModel @Inject constructor(
         if (state.detail?.canViewWorkspace != true) return
         viewModelScope.launch {
             _uiState.update {
-                it.copy(workspaceLoading = true, workspaceError = null, workspaceForbidden = false)
+                it.copy(
+                    workspaceLoading = true,
+                    workspace = if (reset) null else it.workspace,
+                    workspaceError = null,
+                    workspaceForbidden = false,
+                )
             }
             val params = buildMap {
                 put("tab", state.workspaceTab.apiValue)
@@ -643,19 +648,28 @@ fun AgencyAdvisorDetailScreen(
         onPauseOrDispose { }
     }
     LaunchedEffect(state.successMessage, state.error) {
-        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
-        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.successMessage?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
     }
     val pad = teamHorizontalPadding()
     Scaffold(
         containerColor = DfScreenContainerColor,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { TeamAgencySnackbarHost(snackbar) },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = teamListContentPadding(),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
         ) {
+            item {
+                TeamAgencyScreenHeader(
+                    title = AGENCY_ADVISOR_WORKSPACE_TITLE,
+                    subtitle = if (state.isLoading) "در حال بارگذاری…" else "فعالیت، پرونده و صندلی",
+                    icon = DfIcons.User,
+                    accent = AgencyHeaderAccent.Detail,
+                    onBack = onBack,
+                )
+            }
             when {
                 state.isLoading -> item { DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad)) }
                 state.detailError != null && state.detail == null -> item {
@@ -677,16 +691,6 @@ fun AgencyAdvisorDetailScreen(
                         Advisor360Tab.DEALS to d.sectionCounts.deals,
                         Advisor360Tab.CONTRACTS to d.sectionCounts.contracts,
                     )
-                    item {
-                        TeamAgencyScreenHeader(
-                            title = AGENCY_ADVISOR_WORKSPACE_TITLE,
-                            subtitle = "فعالیت، پرونده و صندلی",
-                            icon = DfIcons.User,
-                            accent = AgencyHeaderAccent.Detail,
-                            onBack = onBack,
-                            modifier = Modifier.padding(bottom = AppSpacing.xs),
-                        )
-                    }
                     item {
                         AgencyAdvisorProfileHero(
                             name = d.member.name,
@@ -992,8 +996,8 @@ fun AgencySeatsScreen(
     val snackbar = remember { SnackbarHostState() }
     val pad = teamHorizontalPadding()
     LaunchedEffect(state.error, state.successMessage) {
-        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
-        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.successMessage?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
     }
     LifecycleResumeEffect(Unit) {
         viewModel.refresh()
@@ -1083,7 +1087,7 @@ fun AgencySeatsScreen(
             isSubmitting = state.isSubmitting,
         )
     }
-    Scaffold(containerColor = DfScreenContainerColor, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+    Scaffold(containerColor = DfScreenContainerColor, snackbarHost = { TeamAgencySnackbarHost(snackbar) }) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.refresh() },

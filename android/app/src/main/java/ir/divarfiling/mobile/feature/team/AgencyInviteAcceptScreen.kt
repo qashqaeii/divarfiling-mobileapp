@@ -31,13 +31,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.showDfMessage
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
@@ -132,12 +132,12 @@ fun AgencyInviteAcceptScreen(
         if (state.accepted) onAccepted()
     }
     LaunchedEffect(state.error) {
-        state.error?.let { snackbar.showSnackbar(it) }
+        state.error?.let { snackbar.showDfMessage(it) }
     }
 
     Scaffold(
         containerColor = DfScreenContainerColor,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { TeamAgencySnackbarHost(snackbar) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             TeamAmbientBackground()

@@ -8,13 +8,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.showDfMessage
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,16 +43,27 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
-import ir.divarfiling.mobile.core.design.components.DfHeaderSections
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.network.AgencyAttentionDto
 import ir.divarfiling.mobile.core.network.TeamPanelNotificationDto
+
+private fun agencyAttentionAction(
+    item: AgencyAttentionDto,
+    perms: ir.divarfiling.mobile.core.network.TeamPermissionsDto,
+    onOpenMembers: () -> Unit,
+    onOpenSeats: () -> Unit,
+    onOpenInbox: () -> Unit,
+): (() -> Unit)? = when (item.kind) {
+    "pending_invites" -> onOpenMembers
+    "members_without_seat" -> if (perms.canManageSeats) onOpenSeats else onOpenMembers
+    "inbox_leads" -> if (perms.canOperateInbox) onOpenInbox else null
+    else -> null
+}
 
 private data class AgencyHubDestination(
     val title: String,
@@ -86,8 +96,8 @@ fun TeamHubScreen(
     val pad = teamHorizontalPadding()
 
     LaunchedEffect(state.successMessage, state.error) {
-        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
-        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.successMessage?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
     }
 
     LaunchedEffect(state.webBridgeUrl) {
@@ -104,7 +114,7 @@ fun TeamHubScreen(
 
     Scaffold(
         containerColor = DfScreenContainerColor,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { TeamAgencySnackbarHost(snackbar) },
     ) { padding ->
         Box(
             modifier = Modifier
@@ -120,12 +130,12 @@ fun TeamHubScreen(
             ) {
                 when {
                     state.isLoading -> {
-                        Column {
-                            DfHubPageHeader(
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            TeamAgencyScreenHeader(
                                 title = "آژانس",
                                 subtitle = "هاب آژانس",
-                                sectionLabel = DfHeaderSections.TEAM,
-                                titleIconRes = DfDecorIcons.Users,
+                                icon = DfIcons.Users,
+                                accent = AgencyHeaderAccent.Dashboard,
                                 onBack = onBack,
                             )
                             DfCardListSkeleton(modifier = Modifier.padding(horizontal = pad))
@@ -137,12 +147,11 @@ fun TeamHubScreen(
                             verticalArrangement = Arrangement.spacedBy(AppSpacing.cardGap),
                         ) {
                             item {
-                                DfHubPageHeader(
+                                TeamAgencyScreenHeader(
                                     title = "آژانس",
                                     subtitle = "هنوز به آژانسی وصل نیستید",
-                                    sectionLabel = DfHeaderSections.TEAM,
-                                titleIconRes = DfDecorIcons.Users,
-                                    userName = state.userName,
+                                    icon = DfIcons.Users,
+                                    accent = AgencyHeaderAccent.Dashboard,
                                     onBack = onBack,
                                 )
                             }
@@ -215,6 +224,53 @@ fun TeamHubScreen(
                                     ),
                                     modifier = Modifier.padding(horizontal = pad),
                                 )
+                            }
+                            if (perms.canInvite || perms.canOperateInbox || perms.canManageSeats || perms.canManage) {
+                                item {
+                                    AgencyHubQuickActionsRow(
+                                        actions = buildList {
+                                            if (perms.canInvite) {
+                                                add(TeamQuickAction("دعوت مشاور", DfIcons.UserPlus, onOpenMembers))
+                                            }
+                                            if (perms.canOperateInbox) {
+                                                add(TeamQuickAction("تخصیص سرنخ", DfIcons.ListTodo, onOpenInbox))
+                                            }
+                                            if (perms.canManageSeats) {
+                                                add(TeamQuickAction("مدیریت صندلی", DfIcons.Building, onOpenSeats))
+                                            }
+                                            if (perms.canManage) {
+                                                add(TeamQuickAction("عملکرد", DfIcons.BarChart, onOpenPerformance))
+                                            }
+                                        },
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
+                            if (perms.canManageSeats && seats != null) {
+                                item {
+                                    TeamSeatsOverviewBar(
+                                        seats = seats,
+                                        onClick = onOpenSeats,
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
+                            }
+                            if (home.attention.isNotEmpty()) {
+                                item {
+                                    AgencyHubAttentionPanel(
+                                        items = home.attention.take(4),
+                                        onItemClick = { item ->
+                                            agencyAttentionAction(
+                                                item,
+                                                perms,
+                                                onOpenMembers,
+                                                onOpenSeats,
+                                                onOpenInbox,
+                                            )?.invoke()
+                                        },
+                                        modifier = Modifier.padding(horizontal = pad),
+                                    )
+                                }
                             }
                             item {
                                 TeamSectionLabel(
@@ -370,113 +426,66 @@ fun TeamHubScreen(
                                     }
                                 }
                             }
-                            if (perms.canManageSeats && seats != null) {
-                                item {
-                                    TeamSeatsOverviewBar(
-                                        seats = seats,
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                            }
-                            if (home.attention.isNotEmpty()) {
-                                item {
-                                    TeamSectionLabel(
-                                        title = "نیازمند توجه",
-                                        subtitle = "موارد مهم برای امروز",
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                                items(home.attention.take(4), key = { it.kind + it.title }) { item ->
-                                    val action: (() -> Unit)? = when (item.kind) {
-                                        "pending_invites" -> onOpenMembers
-                                        "members_without_seat" -> if (perms.canManageSeats) onOpenSeats else onOpenMembers
-                                        "inbox_leads" -> if (perms.canOperateInbox) onOpenInbox else null
-                                        else -> null
-                                    }
-                                    TeamAttentionCard(
-                                        item = item,
-                                        onClick = action,
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                            }
-                            if (perms.canInvite || perms.canOperateInbox || perms.canManageSeats) {
-                                item {
-                                    TeamSectionLabel(
-                                        title = "اقدام سریع",
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                                item {
-                                    TeamQuickActionGrid(
-                                        actions = buildList {
-                                            if (perms.canInvite) {
-                                                add(TeamQuickAction("دعوت مشاور", DfIcons.UserPlus, onOpenMembers))
-                                            }
-                                            if (perms.canOperateInbox) {
-                                                add(TeamQuickAction("تخصیص سرنخ", DfIcons.ListTodo, onOpenInbox))
-                                            }
-                                            if (perms.canManageSeats) {
-                                                add(TeamQuickAction("مدیریت صندلی", DfIcons.Building, onOpenSeats))
-                                            }
-                                            if (perms.canManage) {
-                                                add(TeamQuickAction("عملکرد", DfIcons.BarChart, onOpenPerformance))
-                                            }
-                                        },
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                            }
                             if (home.teamActivity.isNotEmpty() && perms.canManage) {
                                 item {
-                                    TeamSectionLabel(
+                                    val activityItems = home.teamActivity.take(5)
+                                    AgencyHubExpandableSection(
                                         title = "فعالیت اخیر",
+                                        subtitle = "رویدادهای تیم در چند روز گذشته",
+                                        badge = DateUtils.toPersianDigits(activityItems.size.toString()),
+                                        initiallyExpanded = activityItems.size <= 3,
                                         modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                                items(home.teamActivity.take(5), key = { it.id }) { ev ->
-                                    val time = ev.createdAt.takeIf { it.isNotBlank() }?.let { iso ->
-                                        DateUtils.parseInstantMillis(iso)?.let { ms ->
-                                            DateUtils.formatJalaliDateTimeLatinFromMillis(ms)
+                                        headerAction = {
+                                            TextButton(onClick = onOpenActivity) {
+                                                Text("همه", color = DfThemeColors.primary())
+                                            }
+                                        },
+                                    ) {
+                                        activityItems.forEachIndexed { index, ev ->
+                                            val time = ev.createdAt.takeIf { it.isNotBlank() }?.let { iso ->
+                                                DateUtils.parseInstantMillis(iso)?.let { ms ->
+                                                    DateUtils.formatJalaliDateTimeLatinFromMillis(ms)
+                                                }
+                                            } ?: ""
+                                            TeamActivityTimelineRow(
+                                                title = ev.displayTitle(),
+                                                actorName = ev.displaySubtitle(),
+                                                timeLabel = time,
+                                                eventType = ev.eventType,
+                                                isLast = index == activityItems.lastIndex,
+                                            )
                                         }
-                                    } ?: ""
-                                    TeamActivityTimelineRow(
-                                        title = ev.displayTitle(),
-                                        actorName = ev.displaySubtitle(),
-                                        timeLabel = time,
-                                        modifier = Modifier.padding(horizontal = pad),
-                                    )
+                                    }
                                 }
                             }
                             if (state.notifications.isNotEmpty()) {
                                 item {
-                                    TeamSectionLabel(
+                                    val unreadBadge = unread.notifications.takeIf { it > 0 }?.let {
+                                        DateUtils.toPersianDigits(it.toString()) + " جدید"
+                                    }
+                                    AgencyHubExpandableSection(
                                         title = "اعلان‌های پنل",
                                         subtitle = if (unread.notifications > 0) {
-                                            "${unread.notifications} مورد منتظر بررسی"
+                                            "موارد منتظر بررسی شما"
                                         } else {
                                             "آخرین رویدادهای آژانس"
                                         },
+                                        badge = unreadBadge,
+                                        initiallyExpanded = unread.notifications > 0,
                                         modifier = Modifier.padding(horizontal = pad),
-                                    )
-                                }
-                                item {
-                                    DfCard(modifier = Modifier.padding(horizontal = pad)) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                                        headerAction = {
                                             if (unread.notifications > 0) {
-                                                TextButton(
-                                                    onClick = viewModel::markAllNotificationsRead,
-                                                    modifier = Modifier.align(Alignment.End),
-                                                ) {
-                                                    Text("همه خوانده شد", color = DfThemeColors.info())
+                                                TextButton(onClick = viewModel::markAllNotificationsRead) {
+                                                    Text("خوانده شد", color = DfThemeColors.info())
                                                 }
                                             }
-                                            state.notifications.forEach { note ->
-                                                TeamNotificationRow(
-                                                    note = note,
-                                                    onClick = { viewModel.markNotificationRead(note.id) },
-                                                )
-                                            }
+                                        },
+                                    ) {
+                                        state.notifications.forEach { note ->
+                                            TeamNotificationRow(
+                                                note = note,
+                                                onClick = { viewModel.markNotificationRead(note.id) },
+                                            )
                                         }
                                     }
                                 }

@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import ir.divarfiling.mobile.core.design.components.showDfMessage
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -40,8 +40,6 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
-import ir.divarfiling.mobile.core.design.components.DfHeaderSections
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
@@ -78,8 +76,8 @@ fun TeamMembersScreen(
     }
 
     LaunchedEffect(state.successMessage, state.error) {
-        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
-        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.successMessage?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
     }
 
     if (state.showInvite) {
@@ -133,7 +131,7 @@ fun TeamMembersScreen(
 
     Scaffold(
         containerColor = DfScreenContainerColor,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { TeamAgencySnackbarHost(snackbar) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             TeamAmbientBackground()

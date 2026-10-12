@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -27,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppElevations
 import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -129,35 +129,14 @@ fun AgencyDashboardHeader(
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = teamHorizontalPadding())
-            .padding(bottom = AppSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            .padding(top = AppSpacing.xs, bottom = AppSpacing.sm),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-        ) {
-            DfHubBackButton(onClick = onBack, compact = true)
-            Text(
-                "فضای آژانس",
-                style = AppTypography.labelSmall,
-                color = DfThemeColors.textMuted(),
-                modifier = Modifier.weight(1f),
-            )
-            trailingBadge?.let {
-                DfBadge(
-                    text = it,
-                    color = DfThemeColors.errorContainer(),
-                    textColor = DfThemeColors.error(),
-                )
-            }
-        }
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = AppShapes.Hero,
             color = DfThemeColors.surface(),
             border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
-            shadowElevation = 1.dp,
+            shadowElevation = AppElevations.subtle,
         ) {
             Row(
                 modifier = Modifier
@@ -171,6 +150,7 @@ fun AgencyDashboardHeader(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                DfHubBackButton(onClick = onBack, compact = true)
                 TeamAgencyLogo(agencyName = title, logoUrl = logoUrl, size = 52.dp, accent = accent)
                 Column(
                     modifier = Modifier.weight(1f),
@@ -201,6 +181,13 @@ fun AgencyDashboardHeader(
                         }
                     }
                 }
+                trailingBadge?.let {
+                    DfBadge(
+                        text = it,
+                        color = DfThemeColors.errorContainer(),
+                        textColor = DfThemeColors.error(),
+                    )
+                }
             }
         }
     }
@@ -222,42 +209,50 @@ fun AgencyManagementHeader(
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = teamHorizontalPadding())
-            .padding(bottom = AppSpacing.xs),
+            .padding(top = AppSpacing.xs, bottom = AppSpacing.sm),
     ) {
-        Row(
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            shape = AppShapes.Hero,
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            shadowElevation = AppElevations.subtle,
         ) {
-            DfHubBackButton(onClick = onBack, compact = true)
-            AgencyHeaderIconContainer(icon = icon, tint = tint, size = 36.dp)
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    title,
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!subtitle.isNullOrBlank()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(tint.copy(alpha = 0.12f), Color.Transparent),
+                        ),
+                    )
+                    .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                DfHubBackButton(onClick = onBack, compact = true)
+                AgencyHeaderIconContainer(icon = icon, tint = tint, size = 44.dp)
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        subtitle,
-                        style = AppTypography.labelSmall,
-                        color = DfThemeColors.textMuted(),
-                        maxLines = 1,
+                        title,
+                        style = AppTypography.pageTitle,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (!subtitle.isNullOrBlank()) {
+                        Text(
+                            subtitle,
+                            style = AppTypography.bodyDescription,
+                            color = DfThemeColors.textSecondary(),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
+                actions()
             }
-            actions()
         }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = AppSpacing.xs)
-                .height(1.dp)
-                .background(DfThemeColors.outlineSubtle().copy(alpha = 0.65f)),
-        )
     }
 }
 
@@ -297,27 +292,28 @@ fun AgencyDetailProfileHeader(
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = teamHorizontalPadding())
-            .padding(bottom = AppSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            .padding(top = AppSpacing.xs, bottom = AppSpacing.sm),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            DfHubBackButton(onClick = onBack, compact = true)
-            Spacer(modifier = Modifier.weight(1f))
-        }
         Surface(
             shape = AppShapes.Hero,
             color = DfThemeColors.surface(),
             border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            shadowElevation = AppElevations.subtle,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
-                modifier = Modifier.padding(AppSpacing.md),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(accent.copy(alpha = 0.1f), Color.Transparent),
+                        ),
+                    )
+                    .padding(AppSpacing.md),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                DfHubBackButton(onClick = onBack, compact = true)
                 TeamAvatar(name = avatarName, size = 56.dp, accent = accent)
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(

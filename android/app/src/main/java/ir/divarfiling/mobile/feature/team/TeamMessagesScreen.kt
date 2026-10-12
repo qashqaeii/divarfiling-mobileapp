@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
+import ir.divarfiling.mobile.core.design.components.showDfMessage
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -56,14 +57,14 @@ fun TeamMessagesScreen(
     val unreadThreads = state.threads.sumOf { it.unreadCount }
 
     LaunchedEffect(state.successMessage, state.error) {
-        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
-        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.successMessage?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = DfScreenContainerColor,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { TeamAgencySnackbarHost(snackbar) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.toggleCompose(true) },

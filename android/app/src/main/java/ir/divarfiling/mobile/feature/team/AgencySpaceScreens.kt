@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Checkbox
@@ -23,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.ContentScale
+import ir.divarfiling.mobile.core.design.components.showDfMessage
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.design.components.DfSearchField
@@ -61,7 +61,6 @@ import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
@@ -741,8 +740,8 @@ fun AgencySpaceListScreen(
     val pad = teamHorizontalPadding()
 
     LaunchedEffect(state.successMessage, state.error) {
-        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
-        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.successMessage?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
     }
 
     LifecycleResumeEffect(Unit) {
@@ -752,7 +751,7 @@ fun AgencySpaceListScreen(
 
     Scaffold(
         containerColor = DfScreenContainerColor,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { TeamAgencySnackbarHost(snackbar) },
         bottomBar = {
             if (state.selectMode && state.selectedIds.isNotEmpty()) {
                 Column(
@@ -785,7 +784,7 @@ fun AgencySpaceListScreen(
             DfPullRefresh(
                 isRefreshing = state.isRefreshing,
                 onRefresh = { viewModel.refresh(initial = true) },
-                modifier = Modifier.fillMaxSize().statusBarsPadding(),
+                modifier = Modifier.fillMaxSize(),
             ) {
             LazyColumn(
                 contentPadding = teamListContentPadding(),
@@ -1002,8 +1001,8 @@ fun AgencySpaceDetailScreen(
 
     LaunchedEffect(itemId) { viewModel.bind(itemId) }
     LaunchedEffect(state.successMessage, state.error) {
-        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
-        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.successMessage?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
     }
 
     LifecycleResumeEffect(itemId) {
@@ -1011,12 +1010,11 @@ fun AgencySpaceDetailScreen(
         onPauseOrDispose { }
     }
 
-    Scaffold(containerColor = DfScreenContainerColor, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+    Scaffold(containerColor = DfScreenContainerColor, snackbarHost = { TeamAgencySnackbarHost(snackbar) }) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .statusBarsPadding(),
+                .padding(padding),
         ) {
             TeamAmbientBackground()
             Column(modifier = Modifier.fillMaxSize()) {
@@ -1080,71 +1078,10 @@ fun AgencySpaceDetailScreen(
                                 modifier = Modifier.padding(horizontal = pad),
                             ) {
                                 item.property?.let { prop ->
-                                    prop.priceRows.forEach { row ->
-                                        if (row.label.isNotBlank() && row.value.isNotBlank()) {
-                                            detailRow(row.label, row.value)
-                                        }
-                                    }
-                                    if (prop.priceLabel.isNotBlank() && prop.priceRows.isEmpty()) {
-                                        detailRow("قیمت", prop.priceLabel)
-                                    }
-                                    if (prop.areaLabel.isNotBlank()) detailRow("متراژ", prop.areaLabel)
-                                    if (prop.landAreaLabel.isNotBlank()) detailRow("زمین", prop.landAreaLabel)
-                                    if (prop.rooms.isNotBlank()) detailRow("خواب", prop.rooms)
-                                    prop.floor?.let { detailRow("طبقه", it.toString()) }
-                                    prop.totalFloors?.let { detailRow("تعداد طبقات", it.toString()) }
-                                    prop.buildYear?.let { detailRow("سال ساخت", it.toString()) }
-                                    if (prop.region.isNotBlank()) detailRow("منطقه", prop.region)
-                                    if (prop.propertyType.isNotBlank()) detailRow("نوع ملک", prop.propertyType)
-                                    if (prop.dealMode.isNotBlank()) detailRow("معامله", prop.dealMode)
-                                    if (prop.transactionStatus.isNotBlank()) {
-                                        detailRow("وضعیت معامله", prop.transactionStatus)
-                                    }
-                                    if (prop.pricePerMeterLabel.isNotBlank()) {
-                                        detailRow("قیمت هر متر", prop.pricePerMeterLabel)
-                                    }
-                                    prop.featureDataRows.forEach { row ->
-                                        if (row.label.isNotBlank() && row.value.isNotBlank()) {
-                                            detailRow(row.label, row.value)
-                                        }
-                                    }
-                                    if (prop.amenityFlags.isNotEmpty()) {
-                                        detailRow(
-                                            "امکانات",
-                                            prop.amenityFlags.map { it.label }.filter { it.isNotBlank() }.joinToString(" · "),
-                                        )
-                                    }
-                                    if (prop.address.isNotBlank()) detailRow("آدرس", prop.address)
-                                    if (prop.ownerName.isNotBlank()) detailRow("مالک", prop.ownerName)
-                                    if (prop.phone.isNotBlank()) detailRow("تماس", prop.phone)
-                                    if (prop.notes.isNotBlank()) detailRow("یادداشت ملک", prop.notes)
+                                    AgencySpacePropertySpecsBlock(prop = prop)
                                 }
                                 item.customer?.let { cust ->
-                                    if (cust.customerType.isNotBlank()) detailRow("نوع مشتری", cust.customerType)
-                                    if (cust.status.isNotBlank()) detailRow("وضعیت", cust.status)
-                                    if (cust.priority.isNotBlank()) detailRow("اولویت", cust.priority)
-                                    if (cust.needSummary.isNotBlank()) detailRow("نیاز", cust.needSummary)
-                                    cust.budgetRows.forEach { row ->
-                                        if (row.label.isNotBlank() && row.value.isNotBlank()) {
-                                            detailRow(row.label, row.value)
-                                        }
-                                    }
-                                    if (cust.budgetLabel.isNotBlank() && cust.budgetRows.isEmpty()) {
-                                        detailRow("بودجه", cust.budgetLabel)
-                                    }
-                                    if (cust.rentDepositLabel.isNotBlank()) {
-                                        detailRow("رهن و اجاره", cust.rentDepositLabel)
-                                    }
-                                    if (cust.areaLabel.isNotBlank()) detailRow("متراژ موردنظر", cust.areaLabel)
-                                    if (cust.roomsLabel.isNotBlank()) detailRow("خواب", cust.roomsLabel)
-                                    if (cust.propertyType.isNotBlank()) detailRow("نوع ملک", cust.propertyType)
-                                    if (cust.region.isNotBlank()) detailRow("محدوده", cust.region)
-                                    if (cust.areasDisplay.isNotBlank()) detailRow("مناطق", cust.areasDisplay)
-                                    if (cust.amenityTags.isNotEmpty()) {
-                                        detailRow("امکانات", cust.amenityTags.joinToString(" · "))
-                                    }
-                                    if (cust.phone.isNotBlank()) detailRow("تماس", cust.phone)
-                                    if (cust.notes.isNotBlank()) detailRow("یادداشت", cust.notes)
+                                    AgencySpaceContactSpecsBlock(customer = cust)
                                 }
                                 if (item.note.isNotBlank()) detailRow("یادداشت انتشار", item.note)
                             }
@@ -1365,6 +1302,74 @@ private fun AgencySpaceDetailHero(
                 }
             }
         }
+    }
+}
+
+@Composable
+@Composable
+private fun AgencySpacePropertySpecsBlock(
+    prop: ir.divarfiling.mobile.core.network.AgencySpacePropertyPreviewDto,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+        val primaryPrice = prop.priceRows.firstOrNull()?.value?.takeIf { it.isNotBlank() } ?: prop.priceLabel
+        AgencySpaceInfoTile("قیمت / معامله", primaryPrice, DfIcons.Calculator, emphasize = true)
+        prop.priceRows.drop(1).forEach { row ->
+            AgencySpaceInfoTile(row.label, row.value, DfIcons.Calculator)
+        }
+        AgencySpaceInfoTile("متراژ", prop.areaLabel, DfIcons.Building)
+        AgencySpaceInfoTile("زمین", prop.landAreaLabel, DfIcons.MapPin)
+        AgencySpaceInfoTile("خواب", prop.rooms, DfIcons.Users)
+        prop.floor?.let { AgencySpaceInfoTile("طبقه", it.toString(), DfIcons.Layers) }
+        prop.totalFloors?.let { AgencySpaceInfoTile("تعداد طبقات", it.toString(), DfIcons.Layers) }
+        prop.buildYear?.let { AgencySpaceInfoTile("سال ساخت", it.toString(), DfIcons.Clock) }
+        AgencySpaceInfoTile("منطقه", prop.region, DfIcons.MapPin)
+        AgencySpaceInfoTile("نوع ملک", prop.propertyType, DfIcons.Building)
+        AgencySpaceInfoTile("معامله", prop.dealMode, DfIcons.Handshake)
+        AgencySpaceInfoTile("وضعیت", prop.transactionStatus, DfIcons.Sparkles)
+        AgencySpaceInfoTile("قیمت هر متر", prop.pricePerMeterLabel, DfIcons.Calculator)
+        prop.featureDataRows.forEach { row ->
+            AgencySpaceInfoTile(row.label, row.value, DfIcons.Layers)
+        }
+        if (prop.amenityFlags.isNotEmpty()) {
+            AgencySpaceInfoTile(
+                "امکانات",
+                prop.amenityFlags.map { it.label }.filter { it.isNotBlank() }.joinToString(" · "),
+                DfIcons.Check,
+            )
+        }
+        AgencySpaceInfoTile("آدرس", prop.address, DfIcons.MapPin)
+        AgencySpaceInfoTile("مالک", prop.ownerName, DfIcons.User)
+        AgencySpaceInfoTile("تماس", prop.phone, DfIcons.Phone)
+        AgencySpaceInfoTile("یادداشت", prop.notes, DfIcons.File)
+    }
+}
+
+@Composable
+private fun AgencySpaceContactSpecsBlock(
+    customer: ir.divarfiling.mobile.core.network.AgencySpaceCustomerPreviewDto,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+        AgencySpaceInfoTile("نوع مشتری", customer.customerType, DfIcons.Users)
+        AgencySpaceInfoTile("وضعیت", customer.status, DfIcons.Sparkles)
+        AgencySpaceInfoTile("اولویت", customer.priority, DfIcons.Sparkles)
+        AgencySpaceInfoTile("نیاز", customer.needSummary, DfIcons.File, emphasize = true)
+        customer.budgetRows.forEach { row ->
+            AgencySpaceInfoTile(row.label, row.value, DfIcons.Calculator)
+        }
+        if (customer.budgetLabel.isNotBlank() && customer.budgetRows.isEmpty()) {
+            AgencySpaceInfoTile("بودجه", customer.budgetLabel, DfIcons.Calculator, emphasize = true)
+        }
+        AgencySpaceInfoTile("رهن و اجاره", customer.rentDepositLabel, DfIcons.Handshake)
+        AgencySpaceInfoTile("متراژ", customer.areaLabel, DfIcons.Building)
+        AgencySpaceInfoTile("خواب", customer.roomsLabel, DfIcons.Users)
+        AgencySpaceInfoTile("نوع ملک", customer.propertyType, DfIcons.Building)
+        AgencySpaceInfoTile("محدوده", customer.region, DfIcons.MapPin)
+        AgencySpaceInfoTile("مناطق", customer.areasDisplay, DfIcons.MapPin)
+        if (customer.amenityTags.isNotEmpty()) {
+            AgencySpaceInfoTile("امکانات", customer.amenityTags.joinToString(" · "), DfIcons.Check)
+        }
+        AgencySpaceInfoTile("تماس", customer.phone, DfIcons.Phone)
+        AgencySpaceInfoTile("یادداشت", customer.notes, DfIcons.File)
     }
 }
 

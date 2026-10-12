@@ -49,23 +49,6 @@ fun AgencyHubHeader(
             .padding(top = AppSpacing.xs, bottom = AppSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (onBack != null) {
-                DfHubBackButton(onClick = onBack, compact = true)
-            } else {
-                Box(modifier = Modifier.size(40.dp))
-            }
-            DfBadge(
-                text = "میزکار آژانس",
-                color = DfThemeColors.primaryContainer(),
-                textColor = DfThemeColors.primary(),
-            )
-            Box(modifier = Modifier.size(40.dp))
-        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -86,6 +69,9 @@ fun AgencyHubHeader(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (onBack != null) {
+                    DfHubBackButton(onClick = onBack, compact = true)
+                }
                 TeamAgencyLogo(
                     agencyName = agencyName,
                     logoUrl = logoUrl,

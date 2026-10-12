@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,12 +29,12 @@ import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
+import ir.divarfiling.mobile.core.design.components.showDfMessage
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
-import ir.divarfiling.mobile.core.design.components.DfHeaderSections
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
@@ -130,12 +129,12 @@ fun AgencyActivityScreen(
     val pad = teamHorizontalPadding()
 
     LaunchedEffect(state.error) {
-        state.error?.let { snackbar.showSnackbar(it) }
+        state.error?.let { snackbar.showDfMessage(it) }
     }
 
     Scaffold(
         containerColor = DfScreenContainerColor,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { TeamAgencySnackbarHost(snackbar) },
     ) { padding ->
         DfPullRefresh(
             isRefreshing = state.isRefreshing,
@@ -231,14 +230,20 @@ fun AgencyActivityScreen(
                         val events = state.events
                         items(events.size, key = { events[it].id }) { index ->
                             val event = events[index]
-                            TeamActivityTimelineRow(
-                                title = event.displayTitle(),
-                                actorName = event.displaySubtitle(),
-                                timeLabel = DateUtils.formatRelativeFa(event.createdAt),
-                                eventType = event.eventType,
-                                isLast = index == events.lastIndex,
-                                modifier = Modifier.padding(horizontal = pad),
-                            )
+                            DfCard(
+                                modifier = Modifier
+                                    .padding(horizontal = pad)
+                                    .fillMaxWidth(),
+                            ) {
+                                TeamActivityTimelineRow(
+                                    title = event.displayTitle(),
+                                    actorName = event.displaySubtitle(),
+                                    timeLabel = DateUtils.formatRelativeFa(event.createdAt),
+                                    eventType = event.eventType,
+                                    isLast = index == events.lastIndex,
+                                    modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+                                )
+                            }
                         }
                     }
                 }

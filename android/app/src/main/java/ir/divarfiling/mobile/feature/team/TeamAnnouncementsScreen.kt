@@ -15,13 +15,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Surface
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import ir.divarfiling.mobile.core.design.components.showDfMessage
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,8 +49,6 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
 import ir.divarfiling.mobile.core.design.components.DfFilterOption
-import ir.divarfiling.mobile.core.design.components.DfHeaderSections
-import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -102,7 +99,7 @@ class TeamAnnouncementsViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val perms = home.data.permissions
                     _uiState.update {
-                        it.copy(canCreate = perms.canManage || perms.canManageAgency)
+                        it.copy(canCreate = perms.canManage)
                     }
                 }
                 is ApiResult.Error -> Unit
@@ -205,7 +202,7 @@ class TeamAnnouncementsViewModel @Inject constructor(
 
     fun onCreateTitleChange(v: String) = _uiState.update { it.copy(createTitle = v) }
     fun onCreateBodyChange(v: String) = _uiState.update { it.copy(createBody = v) }
-    fun onCreateImportantToggle() = _uiState.update { it.copy(createImportant = !it.createImportant) }
+    fun onCreateImportantChange(checked: Boolean) = _uiState.update { it.copy(createImportant = checked) }
 
     fun submitCreate() {
         val state = _uiState.value
@@ -248,8 +245,8 @@ fun TeamAnnouncementsScreen(
     val pad = teamHorizontalPadding()
 
     LaunchedEffect(state.error, state.successMessage) {
-        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
-        state.error?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.successMessage?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
+        state.error?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
     }
 
     state.selected?.let { detail ->
@@ -297,17 +294,87 @@ fun TeamAnnouncementsScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    if (state.showCreate) {
+        BackHandler { viewModel.toggleCreate(false) }
+        Scaffold(
+            containerColor = DfScreenContainerColor,
+            snackbarHost = { TeamAgencySnackbarHost(snackbar) },
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .imePadding()
+                    .navigationBarsPadding(),
+            ) {
+                AgencyConversationHeader(
+                    title = "اطلاعیه جدید",
+                    subtitle = "انتشار برای تیم آژانس",
+                    onBack = { viewModel.toggleCreate(false) },
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = pad, vertical = AppSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    DfTextField(
+                        value = state.createTitle,
+                        onValueChange = viewModel::onCreateTitleChange,
+                        label = "عنوان",
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    DfTextField(
+                        value = state.createBody,
+                        onValueChange = viewModel::onCreateBodyChange,
+                        label = "متن اطلاعیه",
+                        singleLine = false,
+                        minLines = 8,
+                        maxLines = 16,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    ) {
+                        Checkbox(
+                            checked = state.createImportant,
+                            onCheckedChange = viewModel::onCreateImportantChange,
+                        )
+                        Text(
+                            "اولویت مهم",
+                            style = AppTypography.bodyDescription,
+                            color = DfThemeColors.textPrimary(),
+                        )
+                    }
+                }
+                DfPrimaryButton(
+                    text = if (state.isCreating) "در حال ثبت…" else "ثبت اطلاعیه",
+                    onClick = viewModel::submitCreate,
+                    enabled = !state.isCreating &&
+                        state.createTitle.isNotBlank() &&
+                        state.createBody.isNotBlank(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = pad, vertical = AppSpacing.sm),
+                )
+            }
+        }
+        return
+    }
+
     Scaffold(
         containerColor = DfScreenContainerColor,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { TeamAgencySnackbarHost(snackbar) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             TeamAmbientBackground()
             DfPullRefresh(
                 isRefreshing = state.isRefreshing,
                 onRefresh = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize().statusBarsPadding(),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 LazyColumn(
                     contentPadding = teamListContentPadding(),
@@ -392,77 +459,6 @@ fun TeamAnnouncementsScreen(
                             )
                         }
                     }
-                }
-            }
-        }
-    }
-        if (state.showCreate) {
-            BackHandler { viewModel.toggleCreate(false) }
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(DfScreenContainerColor),
-                color = DfScreenContainerColor,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .imePadding()
-                        .navigationBarsPadding(),
-                ) {
-                    AgencyConversationHeader(
-                        title = "اطلاعیه جدید",
-                        subtitle = "انتشار برای تیم آژانس",
-                        onBack = { viewModel.toggleCreate(false) },
-                    )
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = pad, vertical = AppSpacing.sm),
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    ) {
-                        DfTextField(
-                            value = state.createTitle,
-                            onValueChange = viewModel::onCreateTitleChange,
-                            label = "عنوان",
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        DfTextField(
-                            value = state.createBody,
-                            onValueChange = viewModel::onCreateBodyChange,
-                            label = "متن اطلاعیه",
-                            singleLine = false,
-                            minLines = 6,
-                            maxLines = 12,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-                        ) {
-                            Checkbox(
-                                checked = state.createImportant,
-                                onCheckedChange = { viewModel.onCreateImportantToggle() },
-                            )
-                            Text(
-                                "اولویت مهم",
-                                style = AppTypography.bodyDescription,
-                                color = DfThemeColors.textPrimary(),
-                            )
-                        }
-                    }
-                    DfPrimaryButton(
-                        text = if (state.isCreating) "در حال ثبت…" else "ثبت اطلاعیه",
-                        onClick = viewModel::submitCreate,
-                        enabled = !state.isCreating &&
-                            state.createTitle.isNotBlank() &&
-                            state.createBody.isNotBlank(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = pad, vertical = AppSpacing.sm),
-                    )
                 }
             }
         }

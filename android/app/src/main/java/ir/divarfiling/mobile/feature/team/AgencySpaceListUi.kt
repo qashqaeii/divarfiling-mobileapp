@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.team
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -26,8 +29,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppShapes
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
 import ir.divarfiling.mobile.core.design.components.DfCard
@@ -601,6 +606,50 @@ fun AgencySpaceFilterSheet(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun AgencySpaceInfoTile(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+    emphasize: Boolean = false,
+) {
+    if (value.isBlank()) return
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.CardSmall,
+        color = if (emphasize) DfThemeColors.primaryContainer().copy(alpha = 0.35f) else DfThemeColors.surfaceVariant().copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(AppShapes.IconContainer)
+                    .background(DfThemeColors.primary().copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = DfThemeColors.primary(), modifier = Modifier.size(16.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                Text(
+                    value,
+                    style = if (emphasize) AppTypography.cardTitle else AppTypography.bodyDescription,
+                    fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Medium,
+                    color = if (emphasize) DfThemeColors.primary() else DfThemeColors.textPrimary(),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

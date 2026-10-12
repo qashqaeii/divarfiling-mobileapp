@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -59,6 +58,8 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
+import ir.divarfiling.mobile.core.design.components.DfSnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfGlassButtonVariant
 import ir.divarfiling.mobile.core.design.components.DfHubBackButton
@@ -98,6 +99,20 @@ data class TeamDestination(
     val onClick: () -> Unit,
 )
 
+@Composable
+fun TeamAgencySnackbarHost(
+    hostState: SnackbarHostState,
+    modifier: Modifier = Modifier,
+) {
+    DfSnackbarHost(
+        hostState = hostState,
+        modifier = modifier
+            .padding(horizontal = teamHorizontalPadding())
+            .padding(bottom = AppSpacing.md),
+    )
+}
+
+/** هدر ثابت بالای صفحات آژانس؛ inset نوار وضعیت فقط اینجا اعمال می‌شود — روی والد `statusBarsPadding` نزنید. */
 @Composable
 fun TeamAgencyScreenHeader(
     title: String,
@@ -1645,34 +1660,10 @@ fun TeamDestinationCompact(
 fun TeamSeatsOverviewBar(
     seats: AgencySeatsSummaryDto?,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
-    if (seats == null || seats.total <= 0) return
-    val primary = DfThemeColors.primary()
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(AppShapes.CardSmall)
-            .background(DfThemeColors.surface())
-            .border(BorderStroke(1.dp, DfThemeColors.outlineSubtle()), AppShapes.CardSmall)
-            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("خلاصه صندلی‌ها", style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold)
-            Text(
-                "${DateUtils.toPersianDigits(seats.assigned.toString())} تخصیص · ${DateUtils.toPersianDigits(seats.available.toString())} آزاد",
-                style = AppTypography.labelSmall,
-                color = DfThemeColors.textMuted(),
-            )
-        }
-        Text(
-            "${DateUtils.toPersianDigits(seats.assigned.toString())}/${DateUtils.toPersianDigits(seats.total.toString())}",
-            style = AppTypography.cardTitle,
-            fontWeight = FontWeight.Bold,
-            color = primary,
-        )
-    }
+    if (seats == null) return
+    AgencyHubSeatsSummaryCard(seats = seats, onClick = onClick, modifier = modifier)
 }
 
 @Composable
