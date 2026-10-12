@@ -34,6 +34,7 @@ import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 @Composable
@@ -85,8 +86,10 @@ fun ContractHandoverWizardScreen(
             state.error?.let { DfErrorBanner(message = it, modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) }
             if (!enabled) {
                 DfStatusBanner(
-                    message = "این صورت‌جلسه قابل ویرایش نیست.",
-                    detail = state.statusLabel.takeIf { it.isNotBlank() },
+                    message = buildString {
+                        append("این صورت‌جلسه قابل ویرایش نیست.")
+                        state.statusLabel.takeIf { it.isNotBlank() }?.let { append('\n').append(it) }
+                    },
                     tone = DfStatusTone.Warning,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal, vertical = AppSpacing.xs),
                 )

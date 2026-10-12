@@ -1,6 +1,7 @@
 package ir.divarfiling.mobile.feature.team
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -166,7 +167,7 @@ fun AgencyActivityScreen(
                             }
                             items(state.eventTypes, key = { it }) { type ->
                                 DfSoftChip(
-                                    text = type.replace('.', ' · '),
+                                    text = type.replace(".", " · "),
                                     selected = state.eventType == type,
                                     onClick = { viewModel.setEventTypeFilter(type) },
                                 )

@@ -411,8 +411,10 @@ fun HandoverReviewStepContent(
                 else -> DfStatusTone.Warning
             }
             DfStatusBanner(
-                message = r.str("readiness_message"),
-                detail = r.str("readiness_detail").takeIf { it.isNotBlank() },
+                message = buildString {
+                    append(r.str("readiness_message"))
+                    r.str("readiness_detail").takeIf { it.isNotBlank() }?.let { append('\n').append(it) }
+                },
                 tone = tone,
             )
             r.get("issues")?.jsonArray?.forEach { el ->

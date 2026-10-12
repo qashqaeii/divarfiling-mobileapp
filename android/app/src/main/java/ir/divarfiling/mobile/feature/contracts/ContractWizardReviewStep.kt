@@ -46,18 +46,20 @@ fun WizardReviewStepRich(
             Text("وضعیت: $statusLabel", color = DfThemeColors.textSecondary())
         }
         val readiness = ctx?.str("readiness").orEmpty()
-        val readinessMsg = ctx?.str("readiness_message").ifBlank {
+        val readinessMsg = ctx?.str("readiness_message").orEmpty().ifBlank {
             "اعتبارسنجی قرارداد"
         }
-        val readinessDetail = ctx?.str("readiness_detail")
+        val readinessDetail = ctx?.str("readiness_detail").orEmpty()
         val tone = when (readiness) {
             "ready" -> DfStatusTone.Success
             "attention" -> DfStatusTone.Warning
             else -> DfStatusTone.Warning
         }
         DfStatusBanner(
-            message = readinessMsg,
-            detail = readinessDetail?.takeIf { it.isNotBlank() },
+            message = buildString {
+                append(readinessMsg)
+                readinessDetail.takeIf { it.isNotBlank() }?.let { append('\n').append(it) }
+            },
             tone = tone,
         )
         ctx?.get("contract_meta")?.jsonObject?.let { meta ->

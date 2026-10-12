@@ -287,9 +287,23 @@ fun WizardPropertyStep(
             canEdit,
         )
         WizardToggle("پارکینگ", property.hasParking, { onChange(property.copy(hasParking = it)) }, canEdit)
-        if (property.hasParking) WizardField("شماره پارکینگ", property.parkingNumber) { onChange(property.copy(parkingNumber = it)) }
+        if (property.hasParking) {
+            WizardField(
+                "شماره پارکینگ",
+                property.parkingNumber,
+                onValueChange = { onChange(property.copy(parkingNumber = it)) },
+                enabled = canEdit,
+            )
+        }
         WizardToggle("انباری", property.hasStorage, { onChange(property.copy(hasStorage = it)) }, canEdit)
-        if (property.hasStorage) WizardField("شماره انباری", property.storageNumber) { onChange(property.copy(storageNumber = it)) }
+        if (property.hasStorage) {
+            WizardField(
+                "شماره انباری",
+                property.storageNumber,
+                onValueChange = { onChange(property.copy(storageNumber = it)) },
+                enabled = canEdit,
+            )
+        }
         WizardToggle("آسانسور", property.hasElevator, { onChange(property.copy(hasElevator = it)) }, canEdit)
         WizardSectionTitle("سند و وضعیت")
         WizardField("نوع سند", property.deedType, { onChange(property.copy(deedType = it)) }, enabled = canEdit)

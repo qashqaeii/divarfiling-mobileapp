@@ -77,7 +77,7 @@ fun HandoverPhotosGrid(
                         bitmap = bitmap,
                         contentDescription = previewTitle,
                         modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.FitWidth,
+                        contentScale = ContentScale.FillWidth,
                     )
                 } else {
                     Text("نمایش تصویر ممکن نیست")
