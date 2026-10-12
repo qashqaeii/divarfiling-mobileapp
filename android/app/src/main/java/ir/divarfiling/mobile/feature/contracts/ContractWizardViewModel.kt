@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ir.divarfiling.mobile.core.network.ContractWizardGetDto
+import ir.divarfiling.mobile.core.network.ContractWizardPatchDto
 import ir.divarfiling.mobile.core.network.ContractWizardPickerItemDto
 import ir.divarfiling.mobile.core.network.ContractWizardStepDto
 import ir.divarfiling.mobile.data.repository.ApiResult
@@ -15,8 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -52,9 +53,15 @@ data class ContractWizardUiState(
     val pickerItems: List<ContractWizardPickerItemDto> = emptyList(),
     val pickerQuery: String = "",
     val pickerTarget: WizardPickerTarget? = null,
+    val pickerPartyIndex: Int? = null,
+    val pickerApplying: Boolean = false,
+    val pendingStepIndex: Int? = null,
+    val showSaveBeforeLeaveDialog: Boolean = false,
 )
 
 enum class WizardPickerTarget { Party, Property }
+
+private val PATCHABLE_WIZARD_STEPS = setOf("parties", "property", "financial", "witnesses", "clauses")
 
 @HiltViewModel
 class ContractWizardViewModel @Inject constructor(
@@ -65,6 +72,8 @@ class ContractWizardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ContractWizardUiState(contractId = contractId))
     val uiState: StateFlow<ContractWizardUiState> = _uiState.asStateFlow()
 
+    private val savedStepSnapshots = mutableMapOf<String, String>()
+
     init {
         if (contractId > 0) load()
     }
@@ -73,7 +82,7 @@ class ContractWizardViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = repository.getWizard(contractId, stepKey)) {
-                is ApiResult.Success -> applyWizard(result.data)
+                is ApiResult.Success -> applyWizard(result.data, replaceDrafts = true)
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoading = false, error = result.message)
                 }
@@ -81,12 +90,12 @@ class ContractWizardViewModel @Inject constructor(
         }
     }
 
-    private fun applyWizard(dto: ContractWizardGetDto) {
+    private fun applyWizard(dto: ContractWizardGetDto, replaceDrafts: Boolean) {
         val roles = defaultRolesForType(dto.contractType)
         val optional = parseOptionalClauses(dto.clauseUi)
         val stepIndex = dto.displaySteps.indexOfFirst { it.key == dto.currentStep }.coerceAtLeast(0)
-        _uiState.update {
-            it.copy(
+        _uiState.update { state ->
+            val next = state.copy(
                 isLoading = false,
                 contractId = dto.contractId,
                 contractType = dto.contractType,
@@ -100,6 +109,9 @@ class ContractWizardViewModel @Inject constructor(
                 validationErrors = dto.validationErrors,
                 updatedAt = dto.updatedAt,
                 workspaceWizardPath = dto.workspacePaths.wizard,
+                optionalClauseOptions = optional,
+            )
+            if (!replaceDrafts) next else next.copy(
                 parties = partiesFromWizardData(dto.wizardData, roles),
                 property = propertyFromWizardData(dto.wizardData),
                 leaseFinancial = leaseFinancialFromWizard(dto.wizardData),
@@ -107,12 +119,14 @@ class ContractWizardViewModel @Inject constructor(
                 jvFinancial = jvFinancialFromWizard(dto.wizardData),
                 witnesses = witnessesFromWizard(dto.wizardData),
                 clauses = clausesFromWizard(dto.wizardData),
-                optionalClauseOptions = optional,
             )
+        }
+        if (replaceDrafts) {
+            refreshAllSnapshots(_uiState.value)
         }
     }
 
-    private fun parseOptionalClauses(clauseUi: kotlinx.serialization.json.JsonObject?): List<Pair<String, String>> {
+    private fun parseOptionalClauses(clauseUi: JsonObject?): List<Pair<String, String>> {
         val arr = clauseUi?.get("available_clauses")?.jsonArray ?: return emptyList()
         return arr.mapNotNull { el ->
             val o = el.jsonObject
@@ -133,9 +147,34 @@ class ContractWizardViewModel @Inject constructor(
 
     fun goToStep(index: Int) {
         val steps = _uiState.value.displaySteps
-        if (index !in steps.indices) return
-        _uiState.update { it.copy(stepIndex = index) }
-        load(steps[index].key)
+        if (index !in steps.indices || index == _uiState.value.stepIndex) return
+        if (_uiState.value.isSaving) return
+        val step = currentStepKey
+        if (step == "review" || !_uiState.value.canEdit || step !in PATCHABLE_WIZARD_STEPS) {
+            setStepIndex(index)
+            return
+        }
+        if (isCurrentStepDirty()) {
+            _uiState.update {
+                it.copy(pendingStepIndex = index, showSaveBeforeLeaveDialog = true)
+            }
+        } else {
+            setStepIndex(index)
+        }
+    }
+
+    fun confirmSaveAndLeaveStep() {
+        val target = _uiState.value.pendingStepIndex ?: return
+        _uiState.update {
+            it.copy(showSaveBeforeLeaveDialog = false)
+        }
+        saveCurrentStep(targetStepIndex = target)
+    }
+
+    fun cancelLeaveStep() {
+        _uiState.update {
+            it.copy(pendingStepIndex = null, showSaveBeforeLeaveDialog = false)
+        }
     }
 
     fun goNext() {
@@ -146,6 +185,10 @@ class ContractWizardViewModel @Inject constructor(
     fun goPrevious() {
         val prev = _uiState.value.stepIndex - 1
         if (prev >= 0) goToStep(prev)
+    }
+
+    private fun setStepIndex(index: Int) {
+        _uiState.update { it.copy(stepIndex = index, pendingStepIndex = null) }
     }
 
     fun updateParty(index: Int, party: WizardPartyDraft) {
@@ -179,9 +222,30 @@ class ContractWizardViewModel @Inject constructor(
     }
 
     fun saveCurrentStep(advance: Boolean = false) {
+        val target = if (advance) {
+            (_uiState.value.stepIndex + 1).takeIf {
+                it < _uiState.value.displaySteps.size
+            }
+        } else {
+            null
+        }
+        saveCurrentStep(targetStepIndex = target)
+    }
+
+    private fun saveCurrentStep(targetStepIndex: Int? = null) {
+        if (_uiState.value.isSaving) return
         val step = currentStepKey ?: return
         if (step == "review") {
-            if (advance) goNext()
+            targetStepIndex?.let { setStepIndex(it) }
+            return
+        }
+        if (step !in PATCHABLE_WIZARD_STEPS) {
+            targetStepIndex?.let { setStepIndex(it) }
+            return
+        }
+        if (!isCurrentStepDirty()) {
+            targetStepIndex?.let { setStepIndex(it) }
+            clearLeavePrompt()
             return
         }
         val payload = buildStepPayload(step) ?: return
@@ -196,35 +260,69 @@ class ContractWizardViewModel @Inject constructor(
                 )
             ) {
                 is ApiResult.Success -> {
+                    mergePatchResult(step, result.data)
+                    markSnapshotSaved(step)
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            updatedAt = result.data.updatedAt,
-                            validationErrors = result.data.validationErrors,
                             snackbar = "ذخیره شد",
                         )
                     }
-                    if (advance) goNext() else load(step)
+                    val navigateTo = targetStepIndex ?: _uiState.value.pendingStepIndex
+                    if (navigateTo != null && navigateTo in _uiState.value.displaySteps.indices) {
+                        setStepIndex(navigateTo)
+                    }
+                    clearLeavePrompt()
                 }
                 is ApiResult.Error -> {
-                    if (result.code == "CONFLICT") {
-                        _uiState.update {
-                            it.copy(isSaving = false, error = result.message)
-                        }
-                        load(step)
-                    } else {
-                        _uiState.update {
-                            it.copy(isSaving = false, error = result.message)
-                        }
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            snackbar = result.message,
+                            pendingStepIndex = if (result.code == "CONFLICT") null else it.pendingStepIndex,
+                            showSaveBeforeLeaveDialog = result.code != "CONFLICT" && it.pendingStepIndex != null,
+                        )
                     }
                 }
             }
         }
     }
 
-    private fun buildStepPayload(step: String): JsonElement? {
-        val state = _uiState.value
-        return when (step) {
+    private fun clearLeavePrompt() {
+        _uiState.update {
+            it.copy(pendingStepIndex = null, showSaveBeforeLeaveDialog = false)
+        }
+    }
+
+    private fun mergePatchResult(step: String, dto: ContractWizardPatchDto) {
+        val wizard = dto.wizardData
+        val roles = defaultRolesForType(_uiState.value.contractType)
+        _uiState.update { state ->
+            val merged = when (step) {
+                "parties" -> state.copy(parties = partiesFromWizardData(wizard, roles))
+                "property" -> state.copy(property = propertyFromWizardData(wizard))
+                "financial" -> when (state.contractType) {
+                    "lease" -> state.copy(leaseFinancial = leaseFinancialFromWizard(wizard))
+                    "jv" -> state.copy(jvFinancial = jvFinancialFromWizard(wizard))
+                    else -> state.copy(saleFinancial = saleFinancialFromWizard(wizard))
+                }
+                "witnesses" -> state.copy(witnesses = witnessesFromWizard(wizard))
+                "clauses" -> state.copy(clauses = clausesFromWizard(wizard))
+                else -> state
+            }
+            merged.copy(
+                updatedAt = dto.updatedAt,
+                validationErrors = dto.validationErrors,
+            )
+        }
+        markSnapshotSaved(step)
+    }
+
+    private fun buildStepPayload(step: String): JsonElement? =
+        buildStepPayload(_uiState.value, step)
+
+    private fun buildStepPayload(state: ContractWizardUiState, step: String): JsonElement? =
+        when (step) {
             "parties" -> partiesToJson(state.parties)
             "property" -> propertyToJson(state.property)
             "financial" -> when (state.contractType) {
@@ -236,14 +334,60 @@ class ContractWizardViewModel @Inject constructor(
             "clauses" -> clausesToJson(state.clauses, state.contractType)
             else -> null
         }
+
+    private fun stepPayloadFingerprint(state: ContractWizardUiState, step: String): String? =
+        buildStepPayload(state, step)?.toString()
+
+    private fun isCurrentStepDirty(): Boolean {
+        val step = currentStepKey ?: return false
+        if (step !in PATCHABLE_WIZARD_STEPS) return false
+        val current = stepPayloadFingerprint(_uiState.value, step) ?: return false
+        return current != savedStepSnapshots[step]
     }
 
-    fun openPicker(target: WizardPickerTarget) {
-        _uiState.update { it.copy(pickerTarget = target, pickerQuery = "", pickerItems = emptyList()) }
+    private fun refreshAllSnapshots(state: ContractWizardUiState) {
+        PATCHABLE_WIZARD_STEPS.forEach { step ->
+            stepPayloadFingerprint(state, step)?.let { savedStepSnapshots[step] = it }
+        }
+    }
+
+    private fun markSnapshotSaved(step: String) {
+        stepPayloadFingerprint(_uiState.value, step)?.let { savedStepSnapshots[step] = it }
+    }
+
+    fun openPickerForParty(partyIndex: Int) {
+        if (partyIndex !in _uiState.value.parties.indices) return
+        _uiState.update {
+            it.copy(
+                pickerTarget = WizardPickerTarget.Party,
+                pickerPartyIndex = partyIndex,
+                pickerQuery = "",
+                pickerItems = emptyList(),
+            )
+        }
         searchPicker("")
     }
 
-    fun closePicker() = _uiState.update { it.copy(pickerTarget = null, pickerItems = emptyList()) }
+    fun openPickerForProperty() {
+        _uiState.update {
+            it.copy(
+                pickerTarget = WizardPickerTarget.Property,
+                pickerPartyIndex = null,
+                pickerQuery = "",
+                pickerItems = emptyList(),
+            )
+        }
+        searchPicker("")
+    }
+
+    fun closePicker() = _uiState.update {
+        it.copy(
+            pickerTarget = null,
+            pickerPartyIndex = null,
+            pickerItems = emptyList(),
+            pickerApplying = false,
+        )
+    }
 
     fun onPickerQueryChange(query: String) {
         _uiState.update { it.copy(pickerQuery = query) }
@@ -269,20 +413,7 @@ class ContractWizardViewModel @Inject constructor(
 
     fun applyPickerItem(item: ContractWizardPickerItemDto) {
         when (_uiState.value.pickerTarget) {
-            WizardPickerTarget.Party -> {
-                val idx = _uiState.value.parties.indexOfFirst { it.customerId.isBlank() && it.firstName.isBlank() }
-                    .takeIf { it >= 0 } ?: 0
-                val current = _uiState.value.parties.getOrNull(idx) ?: WizardPartyDraft()
-                updateParty(
-                    idx,
-                    current.copy(
-                        customerId = item.id.toString(),
-                        firstName = item.displayTitle().substringBefore(" ").ifBlank { item.displayTitle() },
-                        lastName = item.displayTitle().substringAfter(" ", ""),
-                        mobile = item.phone.orEmpty(),
-                    ),
-                )
-            }
+            WizardPickerTarget.Party -> applyPartyPickerItem(item)
             WizardPickerTarget.Property -> {
                 updateProperty(
                     _uiState.value.property.copy(
@@ -291,10 +422,38 @@ class ContractWizardViewModel @Inject constructor(
                         address = item.displaySubtitle(),
                     ),
                 )
+                closePicker()
             }
             null -> Unit
         }
-        closePicker()
+    }
+
+    private fun applyPartyPickerItem(item: ContractWizardPickerItemDto) {
+        val idx = _uiState.value.pickerPartyIndex
+        if (idx == null || idx !in _uiState.value.parties.indices) {
+            closePicker()
+            return
+        }
+        val role = _uiState.value.parties[idx].role
+        viewModelScope.launch {
+            _uiState.update { it.copy(pickerApplying = true) }
+            when (val result = repository.getWizardCustomerParty(item.id)) {
+                is ApiResult.Success -> {
+                    val draft = partyDraftFromCustomerPayload(role, result.data.party)
+                    updateParty(idx, draft)
+                    _uiState.update { it.copy(pickerApplying = false) }
+                    closePicker()
+                }
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            pickerApplying = false,
+                            snackbar = result.message,
+                        )
+                    }
+                }
+            }
+        }
     }
 
     fun openWebFallback() {

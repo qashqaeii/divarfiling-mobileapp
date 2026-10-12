@@ -111,6 +111,27 @@ private fun JsonObject.bool(key: String): Boolean {
     }
 }
 
+fun partyDraftFromCustomerPayload(role: String, payload: JsonObject): WizardPartyDraft {
+    val customerId = payload["customer_id"]?.jsonPrimitive?.contentOrNull.orEmpty()
+    return WizardPartyDraft(
+        role = role,
+        customerId = customerId,
+        personType = payload.string("person_type").ifBlank { "natural" },
+        firstName = payload.string("first_name"),
+        lastName = payload.string("last_name"),
+        fatherName = payload.string("father_name"),
+        nationalId = payload.string("national_id"),
+        mobile = payload.string("mobile"),
+        address = payload.string("address"),
+        postalCode = payload.string("postal_code"),
+        companyName = payload.string("company_name"),
+        companyNationalId = payload.string("company_national_id"),
+        representativeName = payload.string("representative_name"),
+        representativeNationalId = payload.string("representative_national_id"),
+        representativeMobile = payload.string("representative_mobile"),
+    )
+}
+
 fun partiesFromWizardData(wizard: JsonObject, defaultRoles: List<String>): List<WizardPartyDraft> {
     val arr = wizard["parties"]?.jsonArray ?: return defaultRoles.map { WizardPartyDraft(role = it) }
     val parsed = arr.mapNotNull { el ->

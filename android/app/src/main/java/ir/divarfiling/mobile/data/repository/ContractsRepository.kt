@@ -112,6 +112,12 @@ class ContractsRepository @Inject constructor(
         api.searchContractWizardCustomers(query = query.ifBlank { null })
     }
 
+    suspend fun getWizardCustomerParty(
+        customerId: Long,
+    ): ApiResult<ir.divarfiling.mobile.core.network.ContractWizardCustomerDetailData> = single {
+        api.getContractWizardCustomer(customerId)
+    }
+
     suspend fun searchWizardProperties(query: String): ApiResult<ContractWizardPickerPageDto> = single {
         api.searchContractWizardProperties(query = query.ifBlank { null })
     }

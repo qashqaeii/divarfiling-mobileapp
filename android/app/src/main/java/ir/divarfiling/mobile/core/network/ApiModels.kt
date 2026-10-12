@@ -3040,6 +3040,11 @@ data class ContractWizardPatchRequest(
 )
 
 @Serializable
+data class ContractWizardCustomerDetailData(
+    val party: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap()),
+)
+
+@Serializable
 data class ContractWizardPatchDto(
     @SerialName("contract_id") val contractId: Long = 0,
     @SerialName("wizard_step") val wizardStep: String = "",

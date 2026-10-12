@@ -378,6 +378,9 @@ interface MobileApi {
         @Query("limit") limit: Int = 20,
     ): ApiEnvelope
 
+    @GET("contracts/wizard/customers/{customer_id}")
+    suspend fun getContractWizardCustomer(@Path("customer_id") customerId: Long): ApiEnvelope
+
     @GET("contracts/wizard/properties")
     suspend fun searchContractWizardProperties(
         @Query("q") query: String? = null,

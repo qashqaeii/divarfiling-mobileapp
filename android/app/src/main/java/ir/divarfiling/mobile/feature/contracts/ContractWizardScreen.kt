@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -22,6 +25,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +55,14 @@ fun ContractWizardScreen(
     viewModel: ContractWizardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.snackbar) {
+        state.snackbar?.let {
+            snackbarHost.showSnackbar(it)
+            viewModel.consumeSnackbar()
+        }
+    }
 
     LaunchedEffect(state.webBridgeFallback) {
         state.webBridgeFallback?.let {
@@ -59,8 +71,29 @@ fun ContractWizardScreen(
         }
     }
 
+    if (state.showSaveBeforeLeaveDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelLeaveStep,
+            title = { Text("ذخیره تغییرات") },
+            text = {
+                Text("قبل از رفتن به مرحله دیگر، تغییرات این مرحله ذخیره شود.")
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmSaveAndLeaveStep) {
+                    Text("ذخیره و ادامه")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelLeaveStep) {
+                    Text("انصراف")
+                }
+            },
+        )
+    }
+
     Scaffold(
         containerColor = DfThemeColors.background(),
+        snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             DfDetailPageHeader(
                 title = "تکمیل قرارداد",
@@ -156,14 +189,14 @@ fun ContractWizardScreen(
                                 canEdit = state.canEdit,
                                 pickerEnabled = state.pickerEnabled,
                                 onPartyChange = viewModel::updateParty,
-                                onPickContact = { viewModel.openPicker(WizardPickerTarget.Party) },
+                                onPickContact = viewModel::openPickerForParty,
                             )
                             "property" -> WizardPropertyStep(
                                 property = state.property,
                                 canEdit = state.canEdit,
                                 pickerEnabled = state.pickerEnabled,
                                 onChange = viewModel::updateProperty,
-                                onPickProperty = { viewModel.openPicker(WizardPickerTarget.Property) },
+                                onPickProperty = viewModel::openPickerForProperty,
                             )
                             "financial" -> WizardFinancialStep(
                                 contractType = state.contractType,
@@ -214,7 +247,9 @@ fun ContractWizardScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (state.pickerLoading) {
+                if (state.pickerApplying) {
+                    Text("در حال بارگذاری مخاطب…", color = DfThemeColors.textMuted())
+                } else if (state.pickerLoading) {
                     Text("در حال جستجو…", color = DfThemeColors.textMuted())
                 } else if (state.pickerItems.isEmpty()) {
                     DfEmptyState(title = "نتیجه‌ای نیست", subtitle = "عبارت دیگری را امتحان کنید")
@@ -327,12 +362,9 @@ private fun WizardPartiesStep(
     canEdit: Boolean,
     pickerEnabled: Boolean,
     onPartyChange: (Int, WizardPartyDraft) -> Unit,
-    onPickContact: () -> Unit,
+    onPickContact: (Int) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-        if (pickerEnabled && canEdit) {
-            DfSecondaryButton(text = "انتخاب از CRM", onClick = onPickContact, modifier = Modifier.fillMaxWidth())
-        }
         parties.forEachIndexed { index, party ->
             Surface(shape = AppShapes.Card, color = DfThemeColors.surface()) {
                 Column(
@@ -340,6 +372,13 @@ private fun WizardPartiesStep(
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
                     Text(party.role, fontWeight = FontWeight.Bold, color = DfThemeColors.primary())
+                    if (pickerEnabled && canEdit) {
+                        DfSecondaryButton(
+                            text = "انتخاب از CRM",
+                            onClick = { onPickContact(index) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     WizardField("نوع شخص", party.personType) { onPartyChange(index, party.copy(personType = it)) }
                     WizardField("نام", party.firstName) { onPartyChange(index, party.copy(firstName = it)) }
                     WizardField("نام خانوادگی", party.lastName) { onPartyChange(index, party.copy(lastName = it)) }
