@@ -2794,6 +2794,7 @@ data class AgencyAdvisorWorkspaceItemDto(
     @SerialName("customer_name") val customerName: String = "",
     @SerialName("property_title") val propertyTitle: String = "",
     @SerialName("internal_number") val internalNumber: String = "",
+    @SerialName("deal_title") val dealTitle: String = "",
     @SerialName("next_follow_up_display") val nextFollowUpDisplay: String = "",
     @SerialName("created_at_display") val createdAtDisplay: String = "",
     @SerialName("updated_at_display") val updatedAtDisplay: String = "",
