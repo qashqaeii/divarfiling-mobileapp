@@ -86,6 +86,7 @@ fun TeamHubScreen(
     onOpenSeats: () -> Unit = {},
     onOpenAdvanced: () -> Unit = {},
     onOpenActivity: () -> Unit = {},
+    onOpenAgencyContracts: () -> Unit = {},
     onOpenAgencySpace: () -> Unit = {},
     onNavigateWebBridge: (String) -> Unit = {},
     viewModel: TeamHubViewModel = hiltViewModel(),
@@ -362,6 +363,14 @@ fun TeamHubScreen(
                                         )
                                     }
                                     if (perms.canManage) {
+                                        add(
+                                            AgencyHubDestination(
+                                                title = "قراردادهای تیم",
+                                                subtitle = "وضعیت امضا و پیش‌نویس‌ها",
+                                                icon = DfIcons.File,
+                                                onClick = onOpenAgencyContracts,
+                                            ),
+                                        )
                                         add(
                                             AgencyHubDestination(
                                                 title = "عملکرد تیم",

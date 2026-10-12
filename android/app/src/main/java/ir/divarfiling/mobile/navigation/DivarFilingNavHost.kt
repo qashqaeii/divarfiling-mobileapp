@@ -70,6 +70,7 @@ import ir.divarfiling.mobile.feature.tools.smartToolIdFromKey
 import ir.divarfiling.mobile.feature.team.AgencyActivityScreen
 import ir.divarfiling.mobile.feature.team.AgencyAdvancedSettingsScreen
 import ir.divarfiling.mobile.feature.team.AgencyAuditScreen
+import ir.divarfiling.mobile.feature.team.AgencyContractsScreen
 import ir.divarfiling.mobile.feature.team.AgencyInviteAcceptScreen
 import ir.divarfiling.mobile.feature.team.AgencyProfileScreen
 import ir.divarfiling.mobile.feature.team.AgencyAdvisorDetailScreen
@@ -145,6 +146,7 @@ object Routes {
     const val TEAM_SEATS = "team/seats"
     const val TEAM_ADVANCED = "team/advanced"
     const val TEAM_ACTIVITY = "team/activity"
+    const val TEAM_CONTRACTS = "team/contracts"
     const val TEAM_PROFILE = "team/profile"
     const val TEAM_AUDIT = "team/audit"
     const val TEAM_INVITE = "team/invite/{token}"
@@ -785,6 +787,7 @@ fun DivarFilingNavHost(
                             onOpenSeats = { navController.navigate(Routes.TEAM_SEATS) },
                             onOpenAdvanced = { navController.navigate(Routes.TEAM_ADVANCED) },
                             onOpenActivity = { navController.navigate(Routes.TEAM_ACTIVITY) },
+                            onOpenAgencyContracts = { navController.navigate(Routes.TEAM_CONTRACTS) },
                             onOpenAgencySpace = { navController.navigate(Routes.TEAM_SPACE) },
                             onNavigateWebBridge = { url ->
                                 navController.navigate(Routes.workspaceWeb(url, "میزکار تیم"))
@@ -837,6 +840,13 @@ fun DivarFilingNavHost(
                     }
                     composable(Routes.TEAM_ACTIVITY) {
                         AgencyActivityScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(Routes.TEAM_CONTRACTS) {
+                        AgencyContractsScreen(
+                            onBack = { navController.popBackStack() },
+                            onContractClick = { id -> navController.navigate(Routes.contractDetail(id)) },
+                            onContinueWizard = { id -> navController.navigate(Routes.contractWizard(id)) },
+                        )
                     }
                     composable(Routes.TEAM_PROFILE) {
                         AgencyProfileScreen(onBack = { navController.popBackStack() })

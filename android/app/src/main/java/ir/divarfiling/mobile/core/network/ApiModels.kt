@@ -3164,6 +3164,41 @@ data class ContractsListData(
 )
 
 @Serializable
+data class AgencyContractListItemDto(
+    val id: Long,
+    val title: String = "",
+    @SerialName("contract_type") val contractType: String = "",
+    @SerialName("contract_type_label") val contractTypeLabel: String = "",
+    @SerialName("internal_number") val internalNumber: String = "",
+    val status: String = "",
+    @SerialName("status_label") val statusLabel: String = "",
+    val parties: List<String> = emptyList(),
+    @SerialName("primary_party") val primaryParty: String = "",
+    @SerialName("signature_status") val signatureStatus: String = "",
+    @SerialName("handover_status") val handoverStatus: String = "",
+    @SerialName("deal_id") val dealId: Long? = null,
+    @SerialName("deal_title") val dealTitle: String = "",
+    @SerialName("property_title") val propertyTitle: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("current_version_number") val currentVersionNumber: Int = 0,
+    @SerialName("wizard_step") val wizardStep: String = "",
+    val cta: String = "",
+    @SerialName("workspace_paths") val workspacePaths: DealContractWorkspacePathsDto = DealContractWorkspacePathsDto(),
+    @SerialName("next_action") val nextAction: ContractNextActionDto = ContractNextActionDto(),
+    @SerialName("advisor_member_id") val advisorMemberId: Long? = null,
+    @SerialName("advisor_name") val advisorName: String = "",
+)
+
+@Serializable
+data class AgencyContractsListPayload(
+    val items: List<AgencyContractListItemDto> = emptyList(),
+    val stats: ContractListStatsDto = ContractListStatsDto(),
+    val advisors: List<TeamMemberDto> = emptyList(),
+    @SerialName("can_filter_advisor") val canFilterAdvisor: Boolean = false,
+)
+
+@Serializable
 data class ContractCreateRequest(
     @SerialName("contract_type") val contractType: String,
     @SerialName("deal_id") val dealId: Long? = null,

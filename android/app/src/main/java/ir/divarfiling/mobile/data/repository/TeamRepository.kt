@@ -256,6 +256,46 @@ class TeamRepository @Inject constructor(
     suspend fun getAgencyPerformance(days: Int): ApiResult<ir.divarfiling.mobile.core.network.AgencyPerformancePayload> =
         single { api.getAgencyPerformance(days = days) }
 
+    suspend fun listAgencyContracts(
+        query: String = "",
+        status: String? = null,
+        type: String? = null,
+        advisorMemberId: Long? = null,
+        dealLinked: String? = null,
+        dateFrom: String? = null,
+        dateTo: String? = null,
+        sort: String = "updated",
+        needsAction: Boolean = false,
+        page: Int = 1,
+    ): ApiResult<Pair<ir.divarfiling.mobile.core.network.AgencyContractsListPayload, ir.divarfiling.mobile.core.network.PaginatedResult<ir.divarfiling.mobile.core.network.AgencyContractListItemDto>>> {
+        return try {
+            val response = api.getAgencyContracts(
+                query = query.ifBlank { null },
+                status = status?.ifBlank { null },
+                type = type?.ifBlank { null },
+                advisorMemberId = advisorMemberId,
+                dealLinked = dealLinked?.ifBlank { null },
+                dateFrom = dateFrom?.ifBlank { null },
+                dateTo = dateTo?.ifBlank { null },
+                sort = sort.ifBlank { null },
+                needsAction = if (needsAction) "true" else null,
+                page = page,
+            )
+            if (!response.ok) {
+                return ApiResult.Error(response.error ?: "خطا", response.code)
+            }
+            val data = response.requireData<ir.divarfiling.mobile.core.network.AgencyContractsListPayload>(json)
+            val pageSize = response.meta?.pageSize ?: 20
+            val total = response.meta?.total ?: data.items.size
+            val hasMore = data.items.isNotEmpty() && page * pageSize < total
+            ApiResult.Success(
+                data to ir.divarfiling.mobile.core.network.PaginatedResult(data.items, page, total, hasMore),
+            )
+        } catch (e: Exception) {
+            ApiResult.Error(e.toUserMessage("خطای شبکه"))
+        }
+    }
+
     suspend fun getAgencyActivity(
         advisorMemberId: Long? = null,
         eventType: String? = null,

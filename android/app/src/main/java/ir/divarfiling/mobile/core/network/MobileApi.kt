@@ -934,6 +934,21 @@ interface MobileApi {
     @POST("agency/seats")
     suspend fun mutateAgencySeat(@Body body: AgencySeatMutationRequest): ApiEnvelope
 
+    @GET("agency/contracts")
+    suspend fun getAgencyContracts(
+        @Query("q") query: String? = null,
+        @Query("status") status: String? = null,
+        @Query("type") type: String? = null,
+        @Query("advisor") advisorMemberId: Long? = null,
+        @Query("deal_linked") dealLinked: String? = null,
+        @Query("date_from") dateFrom: String? = null,
+        @Query("date_to") dateTo: String? = null,
+        @Query("sort") sort: String? = null,
+        @Query("needs_action") needsAction: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("page_size") pageSize: Int = 20,
+    ): ApiEnvelope
+
     @GET("agency/performance")
     suspend fun getAgencyPerformance(@Query("days") days: Int? = null): ApiEnvelope
 

@@ -577,13 +577,18 @@ private fun Advisor360ContractCard(
     item: AgencyAdvisorWorkspaceItemDto,
     onClick: () -> Unit,
 ) {
-    DfCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(AppSpacing.cardPadding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(item.internalNumber.ifBlank { item.title }.ifBlank { "قرارداد" }, fontWeight = FontWeight.Bold)
-            if (item.status.isNotBlank()) DfBadge(text = item.status, color = DfThemeColors.infoContainer(), textColor = DfThemeColors.info())
-            if (item.updatedAtDisplay.isNotBlank()) Text(item.updatedAtDisplay, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
-        }
-    }
+    AgencyContractListCard(
+        item = ir.divarfiling.mobile.core.network.AgencyContractListItemDto(
+            id = item.id,
+            title = item.title,
+            internalNumber = item.internalNumber,
+            statusLabel = item.status,
+            contractTypeLabel = "قرارداد",
+            dealTitle = item.dealTitle,
+        ),
+        onClick = onClick,
+        compact = true,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
