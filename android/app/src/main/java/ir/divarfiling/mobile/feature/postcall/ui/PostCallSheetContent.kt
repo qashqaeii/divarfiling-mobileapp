@@ -353,10 +353,10 @@ fun PostCallSheetContent(
     }
 }
 
-@Composable
 private fun PostCallUiState.canEditNoteField(): Boolean =
     !isSubmittingNote && !isSubmittingOutcome && !isSubmittingLead && !noteSaved
 
+@Composable
 private fun PostCallSheetFooter(
     state: PostCallUiState,
     onDismiss: () -> Unit,
