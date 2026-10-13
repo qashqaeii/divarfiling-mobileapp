@@ -126,7 +126,7 @@ fun PostCallSheetContent(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 contact?.fullName ?: "—",
-                                style = AppTypography.titleSmall,
+                                style = AppTypography.cardTitle,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
@@ -187,7 +187,7 @@ fun PostCallSheetContent(
                 DfSheetSection(title = "شماره") {
                     Text(
                         state.phone,
-                        style = AppTypography.titleSmall,
+                        style = AppTypography.cardTitle,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(

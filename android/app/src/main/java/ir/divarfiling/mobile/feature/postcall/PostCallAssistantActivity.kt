@@ -49,7 +49,7 @@ class PostCallAssistantActivity : ComponentActivity() {
                             }
                         },
                         onOpenContact = { contactId ->
-                            val main = Intent(this, ir.divarfiling.mobile.MainActivity::class.java).apply {
+                            val main = Intent(this@PostCallAssistantActivity, ir.divarfiling.mobile.MainActivity::class.java).apply {
                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                                 putExtra(EXTRA_OPEN_CONTACT_ID, contactId)
                             }

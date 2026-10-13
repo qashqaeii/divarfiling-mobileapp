@@ -27,7 +27,7 @@ fun PostCallOnboardingCard(
         Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
             Text(
                 "دستیار پس از تماس",
-                style = AppTypography.titleSmall,
+                style = AppTypography.cardTitle,
                 fontWeight = FontWeight.SemiBold,
                 color = DfThemeColors.textPrimary(),
             )

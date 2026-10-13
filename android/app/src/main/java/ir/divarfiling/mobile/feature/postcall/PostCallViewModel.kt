@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.feature.postcall
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.PostCallContactBriefDto
 import ir.divarfiling.mobile.core.network.PostCallResolveData
 import ir.divarfiling.mobile.data.repository.ApiResult
@@ -126,14 +127,7 @@ class PostCallViewModel @Inject constructor(
                                     submitLocked = true,
                                     successMessage = "مخاطب و یادداشت ثبت شد",
                                     mode = PostCallUiMode.Existing,
-                                    contact = PostCallContactBriefDto(
-                                        id = contactId,
-                                        fullName = result.data.fullName,
-                                        phone = result.data.phone,
-                                        customerType = result.data.customerType,
-                                        status = result.data.status,
-                                        lastFollowUp = null,
-                                    ),
+                                    contact = result.data.toPostCallBrief(contactId),
                                 )
                             }
                             is ApiResult.Error -> _uiState.update {
@@ -143,14 +137,7 @@ class PostCallViewModel @Inject constructor(
                                     successMessage = "مخاطب ثبت شد",
                                     error = "یادداشت ذخیره نشد: ${noteResult.message}",
                                     mode = PostCallUiMode.Existing,
-                                    contact = PostCallContactBriefDto(
-                                        id = contactId,
-                                        fullName = result.data.fullName,
-                                        phone = result.data.phone,
-                                        customerType = result.data.customerType,
-                                        status = result.data.status,
-                                        lastFollowUp = null,
-                                    ),
+                                    contact = result.data.toPostCallBrief(contactId),
                                 )
                             }
                         }
@@ -161,14 +148,7 @@ class PostCallViewModel @Inject constructor(
                                 submitLocked = true,
                                 successMessage = "مخاطب ثبت شد",
                                 mode = PostCallUiMode.Existing,
-                                contact = PostCallContactBriefDto(
-                                    id = contactId,
-                                    fullName = result.data.fullName,
-                                    phone = result.data.phone,
-                                    customerType = result.data.customerType,
-                                    status = result.data.status,
-                                    lastFollowUp = null,
-                                ),
+                                contact = result.data.toPostCallBrief(contactId),
                             )
                         }
                     }
@@ -184,3 +164,13 @@ class PostCallViewModel @Inject constructor(
         _uiState.update { it.copy(successMessage = null, error = null) }
     }
 }
+
+private fun ContactDto.toPostCallBrief(contactId: Long): PostCallContactBriefDto =
+    PostCallContactBriefDto(
+        id = contactId,
+        fullName = fullName,
+        phone = phone.orEmpty(),
+        customerType = customerType.orEmpty(),
+        status = status.orEmpty(),
+        lastFollowUp = null,
+    )
