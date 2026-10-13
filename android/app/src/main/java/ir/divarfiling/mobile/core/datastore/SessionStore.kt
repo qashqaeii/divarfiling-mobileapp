@@ -133,8 +133,15 @@ class SessionStore @Inject constructor(
     }
 
     suspend fun isAccessTokenExpiringSoon(withinMs: Long = 120_000L): Boolean {
-        val expiresAt = dataStore.data.first()[Keys.ACCESS_EXPIRES_AT] ?: return false
+        val expiresAt = dataStore.data.first()[Keys.ACCESS_EXPIRES_AT] ?: return true
         return System.currentTimeMillis() + withinMs >= expiresAt
+    }
+
+    /** برای جلوگیری از refresh تکراری پس از تمدید موفق درخواست‌های همزمان. */
+    suspend fun isAccessTokenLikelyValid(withinMs: Long = 120_000L): Boolean {
+        if (getAccessToken().isNullOrBlank()) return false
+        val expiresAt = dataStore.data.first()[Keys.ACCESS_EXPIRES_AT] ?: return false
+        return System.currentTimeMillis() + withinMs < expiresAt
     }
 
     suspend fun saveLicense(license: LicenseDto?) {

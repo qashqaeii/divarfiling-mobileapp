@@ -11,10 +11,10 @@ import javax.inject.Singleton
 @Singleton
 class AuthInterceptor @Inject constructor(
     private val sessionStore: SessionStore,
+    private val tokenRefresher: TokenRefresher,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        val token = runBlocking { sessionStore.getAccessToken() }
         val deviceId = runBlocking { sessionStore.getDeviceId() }
         val path = request.url.encodedPath
         val skipAuth = path.endsWith("/auth/login") ||
@@ -30,8 +30,15 @@ class AuthInterceptor @Inject constructor(
             .header("X-App-Version", BuildConfig.VERSION_NAME)
             .header("X-App-Build", BuildConfig.VERSION_CODE.toString())
 
-        if (!skipAuth && !token.isNullOrBlank()) {
-            builder.header("Authorization", "Bearer $token")
+        if (!skipAuth) {
+            val hasToken = runBlocking { !sessionStore.getAccessToken().isNullOrBlank() }
+            if (hasToken && runBlocking { sessionStore.isAccessTokenExpiringSoon() }) {
+                tokenRefresher.refreshSync()
+            }
+            val token = runBlocking { sessionStore.getAccessToken() }
+            if (!token.isNullOrBlank()) {
+                builder.header("Authorization", "Bearer $token")
+            }
         }
         if (!deviceId.isNullOrBlank()) {
             builder.header("X-Device-Id", deviceId)

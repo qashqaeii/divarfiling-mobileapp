@@ -31,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -1088,11 +1089,39 @@ fun TeamComposerBar(
                 modifier = Modifier.weight(1f),
             )
             val canSend = !isSubmitting && value.isNotBlank()
+            val sendContainer = if (canSend) {
+                DfThemeColors.primary()
+            } else {
+                DfThemeColors.surface()
+            }
+            val sendIconTint = if (canSend) {
+                Color.White
+            } else {
+                DfThemeColors.textMuted().copy(alpha = 0.55f)
+            }
             FloatingActionButton(
-                onClick = { if (canSend) onSend() },
-                modifier = Modifier.size(48.dp),
-                containerColor = if (canSend) DfThemeColors.primary() else DfThemeColors.surfaceVariant(),
-                contentColor = Color.White,
+                onClick = onSend,
+                enabled = canSend,
+                modifier = Modifier
+                    .size(48.dp)
+                    .then(
+                        if (!canSend) {
+                            Modifier.border(
+                                width = 1.dp,
+                                color = DfThemeColors.outlineSubtle().copy(alpha = 0.65f),
+                                shape = CircleShape,
+                            )
+                        } else {
+                            Modifier
+                        },
+                    ),
+                containerColor = sendContainer,
+                contentColor = sendIconTint,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = if (canSend) 4.dp else 0.dp,
+                    pressedElevation = if (canSend) 6.dp else 0.dp,
+                    disabledElevation = 0.dp,
+                ),
             ) {
                 if (isSubmitting) {
                     CircularProgressIndicator(

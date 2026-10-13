@@ -23,6 +23,9 @@ class TokenRefresher @Inject constructor(
     private val refreshLock = Any()
 
     fun refreshSync(): Boolean = synchronized(refreshLock) {
+        if (runBlocking { sessionStore.isAccessTokenLikelyValid() }) {
+            return true
+        }
         val refreshToken = runBlocking { sessionStore.getRefreshToken() }
         if (refreshToken.isNullOrBlank()) {
             return false
