@@ -1,12 +1,16 @@
 package ir.divarfiling.mobile.feature.postcall.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,6 +37,8 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.feature.postcall.POST_CALL_LEAD_TYPES
+import ir.divarfiling.mobile.feature.postcall.POST_CALL_OUTCOMES
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.PostCallUiMode
 import ir.divarfiling.mobile.feature.postcall.PostCallViewModel
@@ -113,6 +119,7 @@ fun PostCallSheetContent(
                         style = AppTypography.bodyDescription,
                         color = DfThemeColors.textSecondary(),
                     )
+                    DfSecondaryButton("تلاش دوباره", onClick = viewModel::retryResolve)
                 }
             }
             state.mode == PostCallUiMode.Existing -> {
@@ -158,6 +165,42 @@ fun PostCallSheetContent(
                     contact?.lastFollowUp?.summary?.takeIf { it.isNotBlank() }?.let {
                         MetaLine("آخرین پیگیری", it)
                     }
+                    contact?.areasSummary?.takeIf { it.isNotBlank() }?.let {
+                        MetaLine("محله", it)
+                    }
+                    contact?.budgetSummary?.takeIf { it.isNotBlank() }?.let {
+                        MetaLine("بودجه", it)
+                    }
+                }
+                if (state.expanded) {
+                    DfSheetSection("نتیجه تماس") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                        ) {
+                            POST_CALL_OUTCOMES.forEach { outcome ->
+                                FilterChip(
+                                    selected = state.selectedOutcome == outcome,
+                                    onClick = { viewModel.onOutcomeSelected(outcome) },
+                                    label = { Text(outcome, style = AppTypography.labelSmall) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = DfColors.PurpleContainer,
+                                        selectedLabelColor = DfColors.Purple,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                    DfSheetSection("یادآور سریع") {
+                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                            DfSecondaryButton("۱ ساعت", onClick = { viewModel.submitQuickReminder(1) })
+                            DfSecondaryButton("فردا", onClick = { viewModel.submitQuickReminder(24) })
+                        }
+                    }
+                } else {
+                    DfSecondaryButton("نمایش جزئیات", onClick = { viewModel.setExpanded(true) })
                 }
                 DfSheetSection("یادداشت کوتاه") {
                     OutlinedTextField(
@@ -185,6 +228,24 @@ fun PostCallSheetContent(
                     )
                 }
                 DfSheetSection("ثبت سریع") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    ) {
+                        POST_CALL_LEAD_TYPES.forEach { type ->
+                            FilterChip(
+                                selected = state.leadCustomerType == type,
+                                onClick = { viewModel.onLeadTypeChange(type) },
+                                label = { Text(type, style = AppTypography.labelSmall) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = DfColors.PurpleContainer,
+                                    selectedLabelColor = DfColors.Purple,
+                                ),
+                            )
+                        }
+                    }
                     OutlinedTextField(
                         value = state.leadName,
                         onValueChange = viewModel::onLeadNameChange,
@@ -234,11 +295,19 @@ private fun PostCallSheetFooter(
         }
         state.mode == PostCallUiMode.Existing -> {
             val contact = state.contact
+            val primaryOutcome = state.selectedOutcome != null
             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 DfPrimaryButton(
-                    text = if (state.isSubmitting) "در حال ثبت…" else "ثبت یادداشت",
-                    onClick = viewModel::submitNote,
-                    enabled = !state.isSubmitting && !state.submitLocked && state.note.isNotBlank(),
+                    text = if (state.isSubmitting) {
+                        "در حال ثبت…"
+                    } else if (primaryOutcome) {
+                        "ثبت نتیجه تماس"
+                    } else {
+                        "ثبت یادداشت"
+                    },
+                    onClick = if (primaryOutcome) viewModel::submitCallOutcome else viewModel::submitNote,
+                    enabled = !state.isSubmitting && !state.submitLocked &&
+                        (primaryOutcome || state.note.isNotBlank()),
                     loading = state.isSubmitting,
                 )
                 DfSecondaryButton(

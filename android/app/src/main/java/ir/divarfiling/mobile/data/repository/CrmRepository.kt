@@ -147,9 +147,13 @@ class CrmRepository @Inject constructor(
         }
     }
 
-    suspend fun quickLead(fullName: String, phone: String): ApiResult<ContactDto> {
+    suspend fun quickLead(
+        fullName: String,
+        phone: String,
+        customerType: String? = null,
+    ): ApiResult<ContactDto> {
         return try {
-            val response = api.quickLead(QuickLeadRequest(fullName, phone))
+            val response = api.quickLead(QuickLeadRequest(fullName, phone, customerType = customerType))
             if (!response.ok) return ApiResult.Error(response.error ?: "ثبت سرنخ ناموفق")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {

@@ -1,11 +1,11 @@
 package ir.divarfiling.mobile.feature.postcall.call
 
+import ir.divarfiling.mobile.feature.postcall.debug.PostCallTrace
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * فعال/غیرفعال‌کردن Manifest [PostCallPhoneStateReceiver] و پرچم runtime.
- * رویدادها از طریق [PostCallPhoneStateHandler] به همان مسیر resolve/present می‌رسند.
  */
 @Singleton
 class PostCallMonitor @Inject constructor(
@@ -13,25 +13,38 @@ class PostCallMonitor @Inject constructor(
     private val manifestRegistrar: PostCallManifestRegistrar,
     private val sessionStore: PostCallCallSessionStore,
 ) {
-    @Volatile
-    private var running = false
-
     @Synchronized
     fun start() {
-        if (running) return
-        running = true
         runtimeGate.setArmed(true)
         manifestRegistrar.setManifestReceiverEnabled(true)
+        PostCallTrace.log(PostCallTrace.Stage.State, "monitor start")
     }
 
     @Synchronized
     fun stop() {
-        if (!running) return
-        running = false
         runtimeGate.setArmed(false)
         manifestRegistrar.setManifestReceiverEnabled(false)
         sessionStore.clear()
+        PostCallTrace.log(PostCallTrace.Stage.State, "monitor stop")
     }
 
-    val isRunning: Boolean get() = running
+    /**
+     * تطبیق وضعیت Component با مقدار ذخیره‌شده — بدون اتکا به متغیر in-memory Process.
+     */
+    @Synchronized
+    fun reconcile(shouldRun: Boolean) {
+        val componentEnabled = manifestRegistrar.isManifestReceiverEnabled()
+        val desired = manifestRegistrar.desiredReceiverEnabled()
+        PostCallTrace.log(
+            PostCallTrace.Stage.State,
+            "reconcile shouldRun=$shouldRun desired=$desired component=$componentEnabled armed=${runtimeGate.isArmed()}",
+        )
+        if (!shouldRun) {
+            if (componentEnabled || runtimeGate.isArmed()) stop()
+            return
+        }
+        if (!componentEnabled || !runtimeGate.isArmed()) {
+            start()
+        }
+    }
 }

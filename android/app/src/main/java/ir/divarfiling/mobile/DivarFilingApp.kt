@@ -31,9 +31,11 @@ class DivarFilingApp : Application(), ImageLoaderFactory {
         Configuration.getInstance().osmdroidBasePath = cacheDir
         Configuration.getInstance().osmdroidTileCache = File(cacheDir, "osmdroid/tiles")
         AppForegroundTracker.register(this)
-        EntryPointAccessors.fromApplication(this, PostCallEntryPoint::class.java)
-            .postCallBootstrap()
-            .bind()
+        val postCallEntry = EntryPointAccessors.fromApplication(this, PostCallEntryPoint::class.java)
+        postCallEntry.postCallBootstrap().bind()
+        appScope.launch(Dispatchers.IO) {
+            postCallEntry.postCallController().reconcileFromPersistedConfig()
+        }
         appScope.launch(Dispatchers.IO) {
             val sessionStore = EntryPointAccessors.fromApplication(
                 this@DivarFilingApp,

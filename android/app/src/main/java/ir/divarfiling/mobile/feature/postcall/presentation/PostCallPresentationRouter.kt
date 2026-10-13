@@ -1,14 +1,12 @@
 package ir.divarfiling.mobile.feature.postcall.presentation
 
 import android.app.KeyguardManager
-import android.content.ActivityNotFoundException
 import android.content.Context
-import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.core.notifications.AppForegroundTracker
-import ir.divarfiling.mobile.feature.postcall.PostCallAssistantActivity
 import ir.divarfiling.mobile.feature.postcall.PostCallEventHub
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
+import ir.divarfiling.mobile.feature.postcall.debug.PostCallTrace
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionManager
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,48 +17,53 @@ class PostCallPresentationRouter @Inject constructor(
     private val permissions: PostCallPermissionManager,
     private val eventHub: PostCallEventHub,
     private val notifier: PostCallNotifier,
+    private val overlayController: PostCallOverlayController,
+    private val presentationLedger: PostCallPresentationLedger,
 ) {
     fun presentAfterCall(phone: String, callEndKind: PostCallLogic.CallEndKind) {
-        if (isKeyguardLocked()) return
-        val snap = permissions.snapshot()
+        PostCallTrace.log(
+            PostCallTrace.Stage.Presentation,
+            "kind=${callEndKind.name} phone=${PostCallTrace.maskPhone(phone)}",
+        )
+        if (isKeyguardLocked()) {
+            PostCallTrace.log(PostCallTrace.Stage.Skipped, "keyguard locked")
+            return
+        }
+        if (!presentationLedger.tryClaim(phone, callEndKind)) {
+            PostCallTrace.log(PostCallTrace.Stage.Skipped, "duplicate presentation")
+            return
+        }
         val inForeground = AppForegroundTracker.isInForeground
 
-        if (inForeground && eventHub.tryPresent(phone, callEndKind)) return
-
-        if (snap.canShowOverlay) {
-            try {
-                context.startActivity(
-                    PostCallAssistantActivity.intent(
-                        context,
-                        phone,
-                        callEndKind,
-                        fromNotification = false,
-                    ),
-                )
-                return
-            } catch (e: ActivityNotFoundException) {
-                Log.w(TAG, "Post-call overlay activity blocked", e)
-            } catch (e: Exception) {
-                Log.w(TAG, "Post-call overlay activity failed", e)
+        if (inForeground) {
+            if (eventHub.tryPresent(phone, callEndKind)) {
+                PostCallTrace.log(PostCallTrace.Stage.Displayed, "in-app sheet")
+            } else {
+                PostCallTrace.log(PostCallTrace.Stage.Skipped, "in-app hub busy or dedup")
             }
-        }
-
-        if (snap.canNotify) {
-            notifier.showPostCallNotification(phone, callEndKind)
             return
         }
 
-        if (inForeground) {
-            eventHub.tryPresent(phone, callEndKind)
+        val snap = permissions.snapshot()
+        if (snap.canShowOverlay) {
+            val shown = overlayController.show(phone, callEndKind)
+            if (shown) return
+            PostCallTrace.log(PostCallTrace.Stage.Skipped, "overlay failed, fallback notification")
         }
+
+        if (snap.canNotify) {
+            val ok = notifier.showPostCallNotification(phone, callEndKind)
+            if (ok) {
+                PostCallTrace.log(PostCallTrace.Stage.Notification, "shown")
+                return
+            }
+        }
+
+        PostCallTrace.log(PostCallTrace.Stage.Skipped, "no presentation path")
     }
 
     private fun isKeyguardLocked(): Boolean {
         val km = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
         return km?.isKeyguardLocked == true
-    }
-
-    companion object {
-        private const val TAG = "PostCallPresentation"
     }
 }

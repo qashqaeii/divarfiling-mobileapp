@@ -19,6 +19,7 @@ class PostCallBootstrap @Inject constructor(
     private val sessionStore: SessionStore,
     private val controller: PostCallController,
     private val preferences: PostCallPreferences,
+    private val runtimePrefs: PostCallRuntimePrefs,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var started = false
@@ -26,6 +27,9 @@ class PostCallBootstrap @Inject constructor(
     fun bind() {
         if (!PostCallFeatureFlags.ENABLED || started) return
         started = true
+        scope.launch {
+            controller.reconcileFromPersistedConfig()
+        }
         scope.launch {
             sessionStore.isLoggedIn
                 .flatMapLatest { loggedIn ->
@@ -39,7 +43,17 @@ class PostCallBootstrap @Inject constructor(
                 }
                 .distinctUntilChanged()
                 .collect { enabled ->
-                    if (enabled) controller.refreshRuntime() else controller.stopRuntimeOnly()
+                    scope.launch {
+                        val userId = sessionStore.getUser()?.id
+                        val mirrorEnabled = userId != null &&
+                            runtimePrefs.activeUserId() == userId &&
+                            runtimePrefs.isEnabledForActiveUser()
+                        if (enabled || mirrorEnabled) {
+                            controller.refreshRuntime()
+                        } else {
+                            controller.stopRuntimeOnly()
+                        }
+                    }
                 }
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(

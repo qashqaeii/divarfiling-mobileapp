@@ -22,6 +22,7 @@ import ir.divarfiling.mobile.data.repository.LicenseRepository
 import ir.divarfiling.mobile.data.repository.SettingsRepository
 import ir.divarfiling.mobile.feature.postcall.PostCallController
 import ir.divarfiling.mobile.feature.postcall.PostCallFeatureFlags
+import ir.divarfiling.mobile.feature.postcall.permission.PostCallHealthSnapshot
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,6 +61,7 @@ data class SettingsUiState(
     val postCallPermissions: PostCallPermissionSnapshot? = null,
     val postCallStatus: String? = null,
     val postCallBusy: Boolean = false,
+    val postCallHealth: PostCallHealthSnapshot? = null,
 )
 
 @HiltViewModel
@@ -104,6 +106,7 @@ class SettingsViewModel @Inject constructor(
                     postCallEnabled = enabled,
                     postCallPermissions = snap,
                     postCallStatus = buildPostCallStatus(enabled, snap),
+                    postCallHealth = if (enabled) postCallController.healthSnapshot() else null,
                 )
             }
         }

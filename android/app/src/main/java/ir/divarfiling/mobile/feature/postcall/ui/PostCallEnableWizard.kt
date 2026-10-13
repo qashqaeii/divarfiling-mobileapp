@@ -310,5 +310,8 @@ private fun buildSummaryBody(snapshot: PostCallPermissionSnapshot): String {
         }
     }
     lines += if (snapshot.canNotify) "اعلان: بله" else "اعلان: خیر (پیشنهاد می‌شود)"
+    if (snapshot.isXiaomiFamilyDevice) {
+        lines += "پس از راه‌اندازی، Autostart و بهینه‌سازی باتری را در «بررسی سلامت» چک کنید."
+    }
     return lines.joinToString("\n")
 }

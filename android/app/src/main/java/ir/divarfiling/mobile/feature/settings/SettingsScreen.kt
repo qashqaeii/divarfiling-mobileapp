@@ -45,6 +45,7 @@ import dagger.hilt.android.EntryPointAccessors
 import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
 import ir.divarfiling.mobile.feature.postcall.PostCallFeatureFlags
 import ir.divarfiling.mobile.feature.postcall.ui.PostCallEnableWizard
+import ir.divarfiling.mobile.feature.postcall.ui.PostCallHealthBlock
 import ir.divarfiling.mobile.feature.postcall.ui.PostCallSettingsBlock
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -243,6 +244,34 @@ fun SettingsScreen(
                                 context.startActivity(postCallEntry.postCallPermissionManager().appDetailsIntent())
                             },
                         )
+                    }
+                    if (state.postCallEnabled && state.postCallHealth != null) {
+                        item {
+                            PostCallHealthBlock(
+                                health = state.postCallHealth!!,
+                                onOpenOverlay = {
+                                    context.startActivity(postCallEntry.postCallPermissionManager().overlaySettingsIntent())
+                                },
+                                onOpenMiui = {
+                                    val pm = postCallEntry.postCallPermissionManager()
+                                    val intent = pm.miuiBackgroundPopupSettingsIntentOrNull() ?: pm.appDetailsIntent()
+                                    context.startActivity(intent)
+                                },
+                                onOpenBattery = {
+                                    runCatching {
+                                        context.startActivity(postCallEntry.postCallPermissionManager().batteryOptimizationIntent())
+                                    }
+                                },
+                                onOpenAutostart = {
+                                    val pm = postCallEntry.postCallPermissionManager()
+                                    val intent = pm.xiaomiAutostartIntentOrNull() ?: pm.appDetailsIntent()
+                                    context.startActivity(intent)
+                                },
+                                onOpenAppSettings = {
+                                    context.startActivity(postCallEntry.postCallPermissionManager().appDetailsIntent())
+                                },
+                            )
+                        }
                     }
                 }
 

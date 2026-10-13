@@ -24,5 +24,20 @@ class PostCallManifestRegistrar @Inject constructor(
             state,
             PackageManager.DONT_KILL_APP,
         )
+        prefs.edit().putBoolean(KEY_DESIRED, enabled).apply()
+    }
+
+    fun isManifestReceiverEnabled(): Boolean {
+        val state = context.packageManager.getComponentEnabledSetting(component)
+        return state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+    }
+
+    fun desiredReceiverEnabled(): Boolean = prefs.getBoolean(KEY_DESIRED, false)
+
+    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    companion object {
+        private const val PREFS = "post_call_manifest_registrar"
+        private const val KEY_DESIRED = "desired_enabled"
     }
 }

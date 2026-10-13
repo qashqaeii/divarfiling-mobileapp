@@ -466,6 +466,7 @@ data class QuickLeadRequest(
     @SerialName("full_name") val fullName: String,
     val phone: String,
     val source: String = "موبایل",
+    @SerialName("customer_type") val customerType: String? = null,
 )
 
 @Serializable
@@ -487,6 +488,8 @@ data class PostCallContactBriefDto(
     @SerialName("customer_type") val customerType: String = "",
     val status: String = "",
     @SerialName("last_follow_up") val lastFollowUp: PostCallFollowUpBriefDto? = null,
+    @SerialName("areas_summary") val areasSummary: String = "",
+    @SerialName("budget_summary") val budgetSummary: String = "",
 )
 
 @Serializable

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
 import javax.inject.Inject
 
 enum class PostCallUiMode {
@@ -24,14 +25,27 @@ enum class PostCallUiMode {
     Error,
 }
 
+val POST_CALL_LEAD_TYPES = listOf("خریدار", "مالک", "فروشنده", "مستاجر", "سرنخ")
+
+val POST_CALL_OUTCOMES = listOf(
+    "نیاز به پیگیری",
+    "ارسال فایل",
+    "هماهنگی بازدید",
+    "پاسخ نداد",
+    "سایر",
+)
+
 data class PostCallUiState(
     val phone: String = "",
     val callEndKind: PostCallLogic.CallEndKind = PostCallLogic.CallEndKind.Answered,
     val mode: PostCallUiMode = PostCallUiMode.Loading,
+    val expanded: Boolean = false,
     val contact: PostCallContactBriefDto? = null,
     val ambiguousContacts: List<PostCallContactBriefDto> = emptyList(),
     val leadName: String = "",
+    val leadCustomerType: String = "سرنخ",
     val note: String = "",
+    val selectedOutcome: String? = null,
     val isResolving: Boolean = true,
     val isSubmitting: Boolean = false,
     val error: String? = null,
@@ -67,6 +81,14 @@ class PostCallViewModel @Inject constructor(
         }
     }
 
+    fun retryResolve() {
+        val phone = _uiState.value.phone
+        if (phone.isBlank()) return
+        load(phone, _uiState.value.callEndKind)
+    }
+
+    fun setExpanded(expanded: Boolean) = _uiState.update { it.copy(expanded = expanded) }
+
     private fun applyResolve(data: PostCallResolveData) {
         _uiState.update {
             val mode = when (data.status) {
@@ -89,6 +111,8 @@ class PostCallViewModel @Inject constructor(
 
     fun onLeadNameChange(v: String) = _uiState.update { it.copy(leadName = v) }
     fun onNoteChange(v: String) = _uiState.update { it.copy(note = v) }
+    fun onLeadTypeChange(type: String) = _uiState.update { it.copy(leadCustomerType = type) }
+    fun onOutcomeSelected(outcome: String) = _uiState.update { it.copy(selectedOutcome = outcome) }
 
     fun submitNote() {
         val state = _uiState.value
@@ -113,6 +137,57 @@ class PostCallViewModel @Inject constructor(
         }
     }
 
+    fun submitCallOutcome() {
+        val state = _uiState.value
+        val contactId = state.contact?.id ?: return
+        val outcome = state.selectedOutcome ?: return
+        val extra = state.note.trim()
+        val content = buildString {
+            append("نتیجه تماس: $outcome")
+            if (extra.isNotBlank()) append("\n").append(extra)
+        }
+        if (state.isSubmitting || state.submitLocked) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = crmRepository.createNote(contactId, content)) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isSubmitting = false,
+                        submitLocked = true,
+                        successMessage = "نتیجه تماس ثبت شد",
+                        note = "",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun submitQuickReminder(hoursFromNow: Long) {
+        val state = _uiState.value
+        val contactId = state.contact?.id ?: return
+        if (state.isSubmitting || state.submitLocked) return
+        val dueAt = Instant.now().plusSeconds(hoursFromNow * 3600).toString()
+        val title = "پیگیری تماس"
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (val result = crmRepository.createReminder(contactId, title, dueAt, note = state.note.trim())) {
+                is ApiResult.Success -> _uiState.update {
+                    it.copy(
+                        isSubmitting = false,
+                        submitLocked = true,
+                        successMessage = "یادآور ثبت شد",
+                    )
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
     fun submitQuickLead() {
         val state = _uiState.value
         val name = state.leadName.trim()
@@ -121,7 +196,7 @@ class PostCallViewModel @Inject constructor(
         if (name.isBlank() || phone.isBlank() || state.isSubmitting || state.submitLocked) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (val result = crmRepository.quickLead(name, phone)) {
+            when (val result = crmRepository.quickLead(name, phone, state.leadCustomerType)) {
                 is ApiResult.Success -> {
                     val contactId = result.data.id
                     if (note.isNotBlank()) {

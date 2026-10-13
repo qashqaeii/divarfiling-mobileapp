@@ -18,6 +18,7 @@ private val Context.postCallDataStore: DataStore<Preferences> by preferencesData
 @Singleton
 class PostCallPreferences @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val runtimePrefs: PostCallRuntimePrefs,
 ) {
     private val dataStore = context.postCallDataStore
 
@@ -33,6 +34,11 @@ class PostCallPreferences @Inject constructor(
     suspend fun setEnabled(userId: Long, enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[enabledKey(userId)] = enabled
+        }
+        if (enabled) {
+            runtimePrefs.setEnabledForUser(userId, true)
+        } else {
+            runtimePrefs.clear()
         }
     }
 
@@ -52,5 +58,8 @@ class PostCallPreferences @Inject constructor(
 
     suspend fun clearAll() {
         dataStore.edit { it.clear() }
+        runtimePrefs.clear()
     }
+
+    fun isEnabledSyncForRuntime(userId: Long): Boolean = runtimePrefs.activeUserId() == userId && runtimePrefs.isEnabledForActiveUser()
 }

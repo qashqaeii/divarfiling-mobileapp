@@ -1,14 +1,17 @@
 package ir.divarfiling.mobile.feature.postcall.permission
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import ir.divarfiling.mobile.feature.postcall.call.PostCallManifestRegistrar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,6 +20,18 @@ enum class MiuiBackgroundPopupStatus {
     NeedsManualConfirmation,
     UserAcknowledged,
 }
+
+data class PostCallHealthSnapshot(
+    val callDetectionReady: Boolean,
+    val callLogReady: Boolean,
+    val callLogUnknown: Boolean,
+    val overlayReady: Boolean,
+    val notificationsReady: Boolean,
+    val isXiaomiFamily: Boolean,
+    val miuiBackgroundPopupStatus: MiuiBackgroundPopupStatus,
+    val batteryRestrictionHint: Boolean,
+    val receiverComponentEnabled: Boolean,
+)
 
 data class PostCallPermissionSnapshot(
     val phoneStateGranted: Boolean,
@@ -34,6 +49,7 @@ data class PostCallPermissionSnapshot(
 @Singleton
 class PostCallPermissionManager @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val manifestRegistrar: PostCallManifestRegistrar,
 ) {
     private val wizardPrefs = context.getSharedPreferences(WIZARD_PREFS, Context.MODE_PRIVATE)
 
@@ -143,6 +159,57 @@ class PostCallPermissionManager @Inject constructor(
 
     fun clearWizardAcknowledgements() {
         wizardPrefs.edit().clear().apply()
+    }
+
+    fun healthSnapshot(): PostCallHealthSnapshot {
+        val snap = snapshot()
+        val ignoringBattery = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            pm.isIgnoringBatteryOptimizations(context.packageName)
+        } else {
+            true
+        }
+        return PostCallHealthSnapshot(
+            callDetectionReady = snap.canDetectCalls && manifestRegistrar.isManifestReceiverEnabled(),
+            callLogReady = snap.callLogRuntimeAvailable,
+            callLogUnknown = snap.callLogGranted && !snap.callLogRuntimeAvailable,
+            overlayReady = snap.canShowOverlay,
+            notificationsReady = snap.canNotify,
+            isXiaomiFamily = snap.isXiaomiFamilyDevice,
+            miuiBackgroundPopupStatus = snap.miuiBackgroundPopupStatus,
+            batteryRestrictionHint = !ignoringBattery || snap.isXiaomiFamilyDevice,
+            receiverComponentEnabled = manifestRegistrar.isManifestReceiverEnabled(),
+        )
+    }
+
+    fun batteryOptimizationIntent(): Intent {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:${context.packageName}")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        }
+        return appDetailsIntent()
+    }
+
+    fun xiaomiAutostartIntentOrNull(): Intent? {
+        if (!isXiaomiFamilyDevice()) return null
+        val candidates = listOf(
+            Intent().setComponent(
+                ComponentName(
+                    "com.miui.securitycenter",
+                    "com.miui.permcenter.autostart.AutoStartManagementActivity",
+                ),
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            Intent().setComponent(
+                ComponentName(
+                    "com.miui.securitycenter",
+                    "com.miui.permcenter.permissions.PermissionsEditorActivity",
+                ),
+            ).putExtra("extra_pkgname", context.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        val pm = context.packageManager
+        return candidates.firstOrNull { it.resolveActivity(pm) != null }
     }
 
     private fun has(permission: String): Boolean =
