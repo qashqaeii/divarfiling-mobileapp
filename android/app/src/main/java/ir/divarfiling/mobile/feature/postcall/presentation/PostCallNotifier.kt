@@ -1,12 +1,14 @@
 package ir.divarfiling.mobile.feature.postcall.presentation
 
+import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.R
 import ir.divarfiling.mobile.core.notifications.NotificationCatalog
@@ -18,7 +20,7 @@ import javax.inject.Singleton
 class PostCallNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    fun showPostCallNotification(phone: String) {
+    fun showPostCallNotification(phone: String): Boolean {
         ensureChannel()
         val intent = PostCallAssistantActivity.intent(context, phone, fromNotification = true)
         val pending = PendingIntent.getActivity(
@@ -36,7 +38,20 @@ class PostCallNotifier @Inject constructor(
             .setContentIntent(pending)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        val manager = NotificationManagerCompat.from(context)
+        if (!manager.areNotificationsEnabled()) return false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
+        }
+        return try {
+            manager.notify(NOTIFICATION_ID, notification)
+            true
+        } catch (_: SecurityException) {
+            false
+        }
     }
 
     fun cancel() {
