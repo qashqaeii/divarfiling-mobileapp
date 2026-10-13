@@ -93,7 +93,18 @@ class ContractWizardViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = repository.getWizard(contractId, stepKey)) {
-                is ApiResult.Success -> applyWizard(result.data, replaceDrafts = true)
+                is ApiResult.Success -> {
+                    try {
+                        applyWizard(result.data, replaceDrafts = true)
+                    } catch (e: Exception) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = "بارگذاری ویزارد ناموفق بود. دوباره تلاش کنید.",
+                            )
+                        }
+                    }
+                }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isLoading = false, error = result.message)
                 }

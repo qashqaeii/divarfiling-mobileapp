@@ -223,17 +223,19 @@ val SALE_PENALTY_KEYS = listOf(
 
 private fun JsonObject.string(key: String): String {
     val el = get(key) ?: return ""
+    val primitive = el as? kotlinx.serialization.json.JsonPrimitive ?: return ""
     return when {
-        el.jsonPrimitive.isString -> el.jsonPrimitive.content
-        else -> el.jsonPrimitive.contentOrNull.orEmpty()
+        primitive.isString -> primitive.content
+        else -> primitive.contentOrNull.orEmpty()
     }
 }
 
 private fun JsonObject.bool(key: String): Boolean {
     val el = get(key) ?: return false
+    val primitive = el as? kotlinx.serialization.json.JsonPrimitive ?: return false
     return when {
-        el.jsonPrimitive.isString -> el.jsonPrimitive.content in listOf("true", "1", "yes", "on")
-        else -> el.jsonPrimitive.contentOrNull?.toBooleanStrictOrNull() == true
+        primitive.isString -> primitive.content in listOf("true", "1", "yes", "on")
+        else -> primitive.contentOrNull?.toBooleanStrictOrNull() == true
     }
 }
 

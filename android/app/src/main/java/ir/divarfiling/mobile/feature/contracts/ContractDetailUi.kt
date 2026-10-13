@@ -231,48 +231,21 @@ fun ContractDetailNextActionCard(
     enabled: Boolean = true,
 ) {
     if (label.isBlank()) return
-    val primary = DfThemeColors.primary()
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = AppShapes.Hero,
-        color = primary.copy(alpha = 0.07f),
-        border = BorderStroke(1.dp, primary.copy(alpha = 0.3f)),
-        shadowElevation = AppElevations.subtle,
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = enabled, onClick = onPrimary)
-                .padding(AppSpacing.md),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(AppShapes.IconContainer)
-                    .background(primary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(
-                    painter = painterResource(DfDecorIcons.Rocket),
-                    contentDescription = null,
-                    modifier = Modifier.size(26.dp),
-                )
-            }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("گام بعدی", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
-                Text(
-                    label,
-                    style = AppTypography.cardTitle,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DfThemeColors.textPrimary(),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Icon(DfIcons.ChevronLeft, contentDescription = null, tint = primary, modifier = Modifier.size(22.dp))
-        }
+        ContractDetailLinkRow(
+            icon = DfIcons.Pencil,
+            title = label,
+            subtitle = "گام بعدی",
+            onClick = onPrimary,
+            enabled = enabled,
+            iconTint = DfThemeColors.primary(),
+            modifier = Modifier.padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+        )
     }
 }
 

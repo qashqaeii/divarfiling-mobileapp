@@ -67,6 +67,8 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.DateUtils
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import ir.divarfiling.mobile.core.design.AppShapes
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.ui.text.font.FontWeight
@@ -918,34 +920,68 @@ private fun ContractTypePickCard(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val border = if (selected) DfThemeColors.primary() else DfThemeColors.outlineSubtle()
-    val bg = if (selected) DfThemeColors.primaryContainer().copy(alpha = 0.45f) else DfThemeColors.surface()
+    val primary = DfThemeColors.primary()
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = bg,
-        border = BorderStroke(if (selected) 1.5.dp else 1.dp, border),
-        shadowElevation = if (selected) 2.dp else 0.dp,
+        shape = AppShapes.CardSmall,
+        color = if (selected) {
+            DfThemeColors.primaryContainer().copy(alpha = 0.35f)
+        } else {
+            DfThemeColors.surface()
+        },
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) primary.copy(alpha = 0.35f) else DfThemeColors.outlineSubtle(),
+        ),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(AppSpacing.md),
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.sm),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            androidx.compose.foundation.Image(
-                painter = androidx.compose.ui.res.painterResource(iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-            )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-                Text(description, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(AppShapes.IconContainer)
+                    .background(
+                        if (selected) primary.copy(alpha = 0.12f) else DfThemeColors.surfaceVariant().copy(alpha = 0.5f),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    title,
+                    style = AppTypography.labelLarge,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (selected) primary else DfThemeColors.textPrimary(),
+                )
+                Text(description, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
             }
             if (selected) {
-                Text("✓", color = DfThemeColors.primary(), fontWeight = FontWeight.Bold)
+                Icon(
+                    imageVector = DfIcons.CircleCheck,
+                    contentDescription = null,
+                    tint = primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            } else {
+                Icon(
+                    imageVector = DfIcons.ChevronLeft,
+                    contentDescription = null,
+                    tint = DfThemeColors.textMuted(),
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }

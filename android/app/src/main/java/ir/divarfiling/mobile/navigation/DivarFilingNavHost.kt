@@ -477,8 +477,10 @@ fun DivarFilingNavHost(
                         ContractCreateScreen(
                             onBack = { navController.popBackStack() },
                             onCreatedNavigateWizard = { id ->
-                                navController.popBackStack()
-                                navController.navigate(Routes.contractWizard(id))
+                                navController.navigate(Routes.contractWizard(id)) {
+                                    popUpTo(Routes.CRM_CONTRACT_CREATE) { inclusive = true }
+                                    launchSingleTop = true
+                                }
                             },
                             onNavigateWebBridge = { url -> navController.navigate(Routes.workspaceWeb(url, "قرارداد")) },
                         )

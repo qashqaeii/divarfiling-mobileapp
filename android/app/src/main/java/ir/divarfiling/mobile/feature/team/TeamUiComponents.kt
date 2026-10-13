@@ -1100,8 +1100,7 @@ fun TeamComposerBar(
                 DfThemeColors.textMuted().copy(alpha = 0.55f)
             }
             FloatingActionButton(
-                onClick = onSend,
-                enabled = canSend,
+                onClick = { if (canSend) onSend() },
                 modifier = Modifier
                     .size(48.dp)
                     .then(
@@ -1117,11 +1116,14 @@ fun TeamComposerBar(
                     ),
                 containerColor = sendContainer,
                 contentColor = sendIconTint,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = if (canSend) 4.dp else 0.dp,
-                    pressedElevation = if (canSend) 6.dp else 0.dp,
-                    disabledElevation = 0.dp,
-                ),
+                elevation = if (canSend) {
+                    FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 4.dp,
+                        pressedElevation = 6.dp,
+                    )
+                } else {
+                    FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp)
+                },
             ) {
                 if (isSubmitting) {
                     CircularProgressIndicator(
