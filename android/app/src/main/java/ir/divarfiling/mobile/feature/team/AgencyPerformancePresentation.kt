@@ -19,6 +19,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,6 +70,8 @@ object AgencyPerformancePresentation {
         else -> DfIcons.BarChart
     }
 
+    @Composable
+    @ReadOnlyComposable
     fun metricTint(key: String): Color = when (key) {
         "contacts" -> DfThemeColors.info()
         "calls" -> DfThemeColors.primary()

@@ -32,7 +32,6 @@ import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfBadge
-import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.network.AgencyContractListItemDto
 import ir.divarfiling.mobile.core.network.ContractListStatsDto
@@ -192,9 +191,9 @@ fun AgencyContractListCard(
 }
 
 private fun agencyContractTypeIcon(contractType: String): ImageVector = when (contractType) {
-    "lease" -> DfDecorIcons.House
+    "lease" -> DfIcons.Home
     "jv" -> DfIcons.Layers
-    else -> DfDecorIcons.Handshake
+    else -> DfIcons.Handshake
 }
 
 @Composable
