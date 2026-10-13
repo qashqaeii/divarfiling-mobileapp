@@ -719,11 +719,12 @@ private fun ContractDetailLinkRow(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
     iconTint: Color = DfThemeColors.primary(),
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(AppShapes.CardSmall)
             .clickable(enabled = enabled, onClick = onClick)
