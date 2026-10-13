@@ -54,7 +54,7 @@ import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
-import ir.divarfiling.mobile.core.design.components.DfTextField
+import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.core.network.TeamAnnouncementDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.TeamRepository
@@ -296,16 +296,41 @@ fun TeamAnnouncementsScreen(
 
     if (state.showCreate) {
         BackHandler { viewModel.toggleCreate(false) }
+        val canSubmit = state.createTitle.isNotBlank() && state.createBody.isNotBlank()
         Scaffold(
             containerColor = DfScreenContainerColor,
             snackbarHost = { TeamAgencySnackbarHost(snackbar) },
+            bottomBar = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DfScreenContainerColor)
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .padding(horizontal = pad, vertical = AppSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                ) {
+                    if (!canSubmit && !state.isCreating) {
+                        Text(
+                            "عنوان و متن را تکمیل کنید — با آیکن میکروفن می‌توانید صوتی هم وارد کنید.",
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                        )
+                    }
+                    DfPrimaryButton(
+                        text = "ثبت اطلاعیه",
+                        onClick = viewModel::submitCreate,
+                        enabled = canSubmit && !state.isCreating,
+                        loading = state.isCreating,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
         ) { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
-                    .imePadding()
-                    .navigationBarsPadding(),
+                    .padding(padding),
             ) {
                 AgencyConversationHeader(
                     title = "اطلاعیه جدید",
@@ -319,17 +344,19 @@ fun TeamAnnouncementsScreen(
                         .padding(horizontal = pad, vertical = AppSpacing.sm),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 ) {
-                    DfTextField(
+                    VoiceTextField(
                         value = state.createTitle,
                         onValueChange = viewModel::onCreateTitleChange,
                         label = "عنوان",
+                        placeholder = "مثلاً جلسه هفتگی تیم",
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    DfTextField(
+                    VoiceTextField(
                         value = state.createBody,
                         onValueChange = viewModel::onCreateBodyChange,
                         label = "متن اطلاعیه",
+                        placeholder = "متن کامل اطلاعیه برای مشاوران",
                         singleLine = false,
                         minLines = 8,
                         maxLines = 16,
@@ -350,16 +377,6 @@ fun TeamAnnouncementsScreen(
                         )
                     }
                 }
-                DfPrimaryButton(
-                    text = if (state.isCreating) "در حال ثبت…" else "ثبت اطلاعیه",
-                    onClick = viewModel::submitCreate,
-                    enabled = !state.isCreating &&
-                        state.createTitle.isNotBlank() &&
-                        state.createBody.isNotBlank(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = pad, vertical = AppSpacing.sm),
-                )
             }
         }
         return

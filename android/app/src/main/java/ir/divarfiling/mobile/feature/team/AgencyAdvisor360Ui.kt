@@ -23,7 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.CircularProgressIndicator
+import ir.divarfiling.mobile.core.design.AppElevations
+import ir.divarfiling.mobile.core.network.AgencyAdvisorSectionCountsDto
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -65,25 +70,49 @@ fun AgencyAdvisorProfileHero(
     isActive: Boolean,
     seatSummary: String,
     seatExpiry: String?,
+    scorePct: Int = 0,
+    rank: Int? = null,
+    activeLeads: Int = 0,
+    activeDeals: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     val displayName = PresentationLabels.memberDisplayName(name, phone)
     val accent = teamAccentFor(displayName)
+    val score = scorePct.coerceIn(0, 100)
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Hero,
         color = DfThemeColors.surface(),
         border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        shadowElevation = AppElevations.subtle,
     ) {
         Column(
-            modifier = Modifier.padding(AppSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(accent.copy(alpha = 0.14f), Color.Transparent),
+                    ),
+                )
+                .padding(AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TeamAvatar(name = displayName, size = 56.dp, accent = accent)
+                Box(contentAlignment = Alignment.Center) {
+                    if (score > 0) {
+                        CircularProgressIndicator(
+                            progress = { score / 100f },
+                            modifier = Modifier.size(76.dp),
+                            color = accent,
+                            trackColor = DfThemeColors.surfaceVariant(),
+                            strokeWidth = 4.dp,
+                        )
+                    }
+                    TeamAvatar(name = displayName, size = 64.dp, accent = accent)
+                }
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -111,6 +140,31 @@ fun AgencyAdvisorProfileHero(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    if (score > 0) {
+                        Text(
+                            "${DateUtils.toPersianDigits(score.toString())}٪",
+                            style = AppTypography.sectionTitle,
+                            fontWeight = FontWeight.Bold,
+                            color = accent,
+                        )
+                        Text("امتیاز", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+                    }
+                    rank?.let {
+                        DfBadge(
+                            text = "رتبه ${DateUtils.toPersianDigits(it.toString())}",
+                            color = accent.copy(alpha = 0.15f),
+                            textColor = accent,
+                        )
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            ) {
+                Advisor360HeroMiniStat("سرنخ فعال", activeLeads, DfIcons.Users, Modifier.weight(1f))
+                Advisor360HeroMiniStat("معامله فعال", activeDeals, DfIcons.Handshake, Modifier.weight(1f))
             }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -137,6 +191,103 @@ fun AgencyAdvisorProfileHero(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun Advisor360HeroMiniStat(
+    label: String,
+    value: Int,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(AppShapes.CardSmall)
+            .background(DfThemeColors.surfaceVariant().copy(alpha = 0.55f))
+            .padding(vertical = AppSpacing.sm, horizontal = AppSpacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = DfThemeColors.primary(), modifier = Modifier.size(16.dp))
+        Text(
+            DateUtils.toPersianDigits(value.toString()),
+            style = AppTypography.cardTitle,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted(), maxLines = 1)
+    }
+}
+
+@Composable
+fun AgencyAdvisorWorkspaceSnapshot(
+    sectionCounts: AgencyAdvisorSectionCountsDto,
+    calls: Int,
+    visits: Int,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            Text("نمای پرونده", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                item {
+                    Advisor360SnapshotChip("مخاطب", sectionCounts.contacts, DfIcons.Users, DfThemeColors.info())
+                }
+                item {
+                    Advisor360SnapshotChip("فایل", sectionCounts.properties, DfIcons.Building, Color(0xFF0F766E))
+                }
+                item {
+                    Advisor360SnapshotChip("فایلینگ", sectionCounts.datasets, DfIcons.Layers, DfThemeColors.primary())
+                }
+                item {
+                    Advisor360SnapshotChip("معامله", sectionCounts.deals, DfIcons.Handshake, DfThemeColors.warning())
+                }
+                item {
+                    Advisor360SnapshotChip("قرارداد", sectionCounts.contracts, DfIcons.File, DfThemeColors.success())
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Advisor360HeroMiniStat("تماس", calls, DfIcons.Phone, Modifier.weight(1f))
+                Advisor360HeroMiniStat("بازدید", visits, DfIcons.MapPin, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun Advisor360SnapshotChip(
+    label: String,
+    count: Int,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+) {
+    Row(
+        modifier = Modifier
+            .clip(AppShapes.CardSmall)
+            .background(tint.copy(alpha = 0.1f))
+            .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+        Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
+        Text(
+            DateUtils.toPersianDigits(count.toString()),
+            style = AppTypography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = tint,
+        )
     }
 }
 
@@ -350,17 +501,19 @@ private fun Advisor360OverviewPanel(
     performance: ir.divarfiling.mobile.core.network.AgencyMemberPerformanceDto,
 ) {
     val periodLabel = DateUtils.toPersianDigits(overview.periodDays.toString())
+    val accent = DfThemeColors.primary()
     Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
         Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs), modifier = Modifier.fillMaxWidth()) {
-            Advisor360KpiTile("مخاطب", overview.contacts, DfIcons.Users, Modifier.weight(1f))
-            Advisor360KpiTile("فایل شخصی", overview.properties, DfIcons.Building, Modifier.weight(1f))
+            Advisor360KpiTile("مخاطب", overview.contacts, DfIcons.Users, DfThemeColors.info(), Modifier.weight(1f))
+            Advisor360KpiTile("فایل شخصی", overview.properties, DfIcons.Building, Color(0xFF0F766E), Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs), modifier = Modifier.fillMaxWidth()) {
-            Advisor360KpiTile("فایلینگ", overview.datasets, DfIcons.Layers, Modifier.weight(1f))
+            Advisor360KpiTile("فایلینگ", overview.datasets, DfIcons.Layers, accent, Modifier.weight(1f))
             Advisor360StatTile(
                 label = "معامله فعال",
                 value = DateUtils.toPersianDigits(overview.dealsActive.toString()),
                 icon = DfIcons.Handshake,
+                tint = DfThemeColors.warning(),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -371,9 +524,17 @@ private fun Advisor360OverviewPanel(
                 color = DfThemeColors.textMuted(),
             )
         }
-        DfCard(modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = AppShapes.Hero,
+            color = DfThemeColors.surface(),
+            border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+            shadowElevation = AppElevations.subtle,
+        ) {
             Column(
-                Modifier.padding(AppSpacing.cardPadding),
+                Modifier
+                    .background(Brush.verticalGradient(listOf(accent.copy(alpha = 0.1f), Color.Transparent)))
+                    .padding(AppSpacing.cardPadding),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
             ) {
                 Row(
@@ -391,8 +552,8 @@ private fun Advisor360OverviewPanel(
                     }
                     DfBadge(
                         text = "${DateUtils.toPersianDigits(performance.scorePct.toString())}٪",
-                        color = DfThemeColors.primaryContainer(),
-                        textColor = DfThemeColors.primary(),
+                        color = accent.copy(alpha = 0.14f),
+                        textColor = accent,
                     )
                 }
                 LinearProgressIndicator(
@@ -469,30 +630,45 @@ private fun Advisor360KpiTile(
     label: String,
     metric: AgencyAdvisorPeriodMetricDto,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
     modifier: Modifier = Modifier,
 ) {
-    val accent = DfThemeColors.primary()
-    Column(
-        modifier = modifier
-            .clip(AppShapes.CardSmall)
-            .background(DfThemeColors.surface())
-            .padding(AppSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+    Surface(
+        modifier = modifier,
+        shape = AppShapes.CardSmall,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(14.dp))
-            Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+        Column(
+            modifier = Modifier
+                .background(tint.copy(alpha = 0.08f))
+                .padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(AppShapes.CardSmall)
+                        .background(tint.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
+                }
+                Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+            }
+            Text(
+                DateUtils.toPersianDigits(metric.total.toString()),
+                style = AppTypography.sectionTitle,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                "+${DateUtils.toPersianDigits(metric.period.toString())} در بازه",
+                style = AppTypography.labelSmall,
+                color = tint,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
-        Text(
-            DateUtils.toPersianDigits(metric.total.toString()),
-            style = AppTypography.cardTitle,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            "+${DateUtils.toPersianDigits(metric.period.toString())} در بازه",
-            style = AppTypography.labelSmall,
-            color = accent,
-        )
     }
 }
 
@@ -501,20 +677,35 @@ private fun Advisor360StatTile(
     label: String,
     value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color = DfThemeColors.info(),
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .clip(AppShapes.CardSmall)
-            .background(DfThemeColors.surface())
-            .padding(AppSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+    Surface(
+        modifier = modifier,
+        shape = AppShapes.CardSmall,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = DfThemeColors.info(), modifier = Modifier.size(14.dp))
-            Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+        Column(
+            modifier = Modifier
+                .background(tint.copy(alpha = 0.08f))
+                .padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(AppShapes.CardSmall)
+                        .background(tint.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
+                }
+                Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+            }
+            Text(value, style = AppTypography.sectionTitle, fontWeight = FontWeight.Bold)
         }
-        Text(value, style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
     }
 }
 

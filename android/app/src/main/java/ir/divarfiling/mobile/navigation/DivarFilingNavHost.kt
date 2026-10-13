@@ -466,6 +466,24 @@ fun DivarFilingNavHost(
                         )
                     }
                     composable(
+                        route = Routes.CRM_CONTRACT_CREATE,
+                        arguments = listOf(
+                            navArgument("dealId") {
+                                type = NavType.LongType
+                                defaultValue = 0L
+                            },
+                        ),
+                    ) {
+                        ContractCreateScreen(
+                            onBack = { navController.popBackStack() },
+                            onCreatedNavigateWizard = { id ->
+                                navController.popBackStack()
+                                navController.navigate(Routes.contractWizard(id))
+                            },
+                            onNavigateWebBridge = { url -> navController.navigate(Routes.workspaceWeb(url, "قرارداد")) },
+                        )
+                    }
+                    composable(
                         route = Routes.CRM_CONTRACT_DETAIL,
                         arguments = listOf(navArgument("contractId") { type = NavType.LongType }),
                     ) { entry ->
@@ -520,25 +538,6 @@ fun DivarFilingNavHost(
                                     navController.popBackStack()
                                 }
                             },
-                        )
-                    }
-                    composable(
-                        route = Routes.CRM_CONTRACT_CREATE,
-                        arguments = listOf(
-                            navArgument("dealId") {
-                                type = NavType.LongType
-                                defaultValue = 0L
-                            },
-                        ),
-                    ) {
-                        ContractCreateScreen(
-                            onBack = { navController.popBackStack() },
-                            onCreatedNavigateWizard = { id ->
-                                navController.navigate(Routes.contractWizard(id)) {
-                                    popUpTo(Routes.CRM_CONTRACT_CREATE) { inclusive = true }
-                                }
-                            },
-                            onNavigateWebBridge = { url -> navController.navigate(Routes.workspaceWeb(url, "قرارداد")) },
                         )
                     }
                     composable(

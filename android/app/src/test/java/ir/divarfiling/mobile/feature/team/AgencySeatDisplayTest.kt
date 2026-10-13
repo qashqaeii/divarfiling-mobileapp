@@ -61,4 +61,14 @@ class AgencySeatDisplayTest {
         val label = formatAgencySeatExpiry("2026-12-01T00:00:00Z")
         assertTrue(label?.startsWith("اعتبار تا") == true)
     }
+
+    @Test
+    fun eligibleForSeatAssignment_excludesOwnerAndAssigned() {
+        val owner = AgencyAdvisorDto(id = 1, role = "owner", isActive = true)
+        assertFalse(owner.eligibleForSeatAssignment())
+        val withSeat = AgencyAdvisorDto(id = 2, role = "advisor", hasSeat = true, status = "active")
+        assertFalse(withSeat.eligibleForSeatAssignment())
+        val ready = AgencyAdvisorDto(id = 3, role = "advisor", isActive = true)
+        assertTrue(ready.eligibleForSeatAssignment())
+    }
 }

@@ -1480,18 +1480,29 @@ fun TeamInvitationCompactCard(
             if (pending) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    DfPrimaryButton(
-                        text = "ارسال مجدد",
+                    androidx.compose.material3.TextButton(
                         onClick = onResend,
                         modifier = Modifier.weight(1f),
-                    )
-                    DfSecondaryButton(
-                        text = "لغو دعوت",
+                    ) {
+                        Text(
+                            "ارسال مجدد",
+                            color = DfThemeColors.primary(),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    androidx.compose.material3.TextButton(
                         onClick = onCancel,
                         modifier = Modifier.weight(1f),
-                    )
+                    ) {
+                        Text(
+                            "حذف",
+                            color = DfThemeColors.error(),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
         }

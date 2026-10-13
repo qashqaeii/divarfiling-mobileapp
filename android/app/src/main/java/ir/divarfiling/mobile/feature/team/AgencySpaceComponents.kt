@@ -38,6 +38,10 @@ import androidx.compose.ui.Modifier
 
 import androidx.compose.ui.text.font.FontWeight
 
+import androidx.compose.ui.text.style.TextOverflow
+
+import androidx.compose.ui.unit.dp
+
 import ir.divarfiling.mobile.core.design.AppSpacing
 
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -169,47 +173,87 @@ fun AgencySpaceProvenanceBadge(
 
     if (provenance.publisherName.isBlank()) return
 
-    Row(
+    androidx.compose.material3.Surface(
 
         modifier = modifier.fillMaxWidth(),
 
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        shape = ir.divarfiling.mobile.core.design.AppShapes.CardSmall,
 
-        verticalAlignment = Alignment.CenterVertically,
+        color = DfThemeColors.primaryContainer().copy(alpha = 0.35f),
 
     ) {
 
-        DfBadge(
+        Row(
 
-            text = provenance.label.ifBlank { "فضای آژانس" },
+            modifier = Modifier
 
-            color = DfThemeColors.primaryContainer(),
+                .fillMaxWidth()
 
-            textColor = DfThemeColors.primary(),
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
 
-        )
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
 
-        Text(
+            verticalAlignment = Alignment.CenterVertically,
 
-            text = "از ${provenance.publisherName}",
+        ) {
 
-            style = AppTypography.bodyDescription,
+            DfBadge(
 
-            color = DfThemeColors.textSecondary(),
+                text = provenance.label.ifBlank { "فضای آژانس" },
 
-            modifier = Modifier.weight(1f),
+                color = DfThemeColors.primaryContainer(),
 
-        )
-
-        if (onOpenSpaceItem != null) {
-
-            DfSecondaryButton(
-
-                text = "مشاهده",
-
-                onClick = { onOpenSpaceItem(itemId) },
+                textColor = DfThemeColors.primary(),
 
             )
+
+            Text(
+
+                text = "از ${provenance.publisherName}",
+
+                style = AppTypography.labelSmall,
+
+                color = DfThemeColors.textSecondary(),
+
+                modifier = Modifier.weight(1f),
+
+                maxLines = 1,
+
+                overflow = TextOverflow.Ellipsis,
+
+            )
+
+            if (onOpenSpaceItem != null) {
+
+                androidx.compose.material3.TextButton(
+
+                    onClick = { onOpenSpaceItem(itemId) },
+
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+
+                        horizontal = AppSpacing.xs,
+
+                        vertical = 0.dp,
+
+                    ),
+
+                ) {
+
+                    Text(
+
+                        "مشاهده",
+
+                        style = AppTypography.labelLarge,
+
+                        fontWeight = FontWeight.SemiBold,
+
+                        color = DfThemeColors.primary(),
+
+                    )
+
+                }
+
+            }
 
         }
 

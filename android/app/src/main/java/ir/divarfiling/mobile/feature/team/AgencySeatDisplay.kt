@@ -55,6 +55,10 @@ fun AgencyAdvisorSeatDto.resolvedHasSeat(): Boolean =
 fun AgencyAdvisorDto.hasSeatAssignment(): Boolean =
     seatAssignmentState() != AgencySeatAssignmentState.Unassigned
 
+/** اعضای قابل تخصیص صندلی — هم‌راستا با `assign_seat_to_member` در بک‌اند. */
+fun AgencyAdvisorDto.eligibleForSeatAssignment(): Boolean =
+    isActive && role != "owner" && !hasSeatAssignment()
+
 fun AgencyAdvisorDto.seatStatusBadgeLabel(): String = when (seatAssignmentState()) {
     AgencySeatAssignmentState.Unassigned -> "بدون صندلی"
     AgencySeatAssignmentState.Active -> "صندلی فعال"

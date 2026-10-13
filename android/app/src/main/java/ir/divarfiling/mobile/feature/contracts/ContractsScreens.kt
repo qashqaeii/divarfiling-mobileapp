@@ -84,6 +84,7 @@ import ir.divarfiling.mobile.core.design.components.DfTextButton
 import ir.divarfiling.mobile.core.design.components.DfSoftChip
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.design.components.DfHubPageHeader
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
@@ -138,17 +139,14 @@ fun ContractsHomeScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
                 item {
-                    DfDetailPageHeader(
-                        title = "قراردادها",
-                        subtitle = "${DateUtils.toPersianDigits(state.stats.all.toString())} قرارداد ثبت‌شده",
-                        sectionLabel = DfHeaderSections.CRM,
-                        titleIconRes = DfDecorIcons.FileText,
+                    ContractsPageHeader(
+                        stats = state.stats,
                         onBack = onBack,
-                        showBottomDivider = true,
+                        onCreateContract = onCreateContract,
                     )
                 }
                 item {
-                    ContractsKpiRow(
+                    ContractsKpiDashboard(
                         stats = state.stats,
                         selectedTab = state.selectedTab,
                         onTabSelected = viewModel::onTabSelected,
@@ -157,7 +155,7 @@ fun ContractsHomeScreen(
                 }
                 state.resumeContract?.let { resume ->
                     item {
-                        ContractResumeBanner(
+                        ContractsResumeCard(
                             item = resume,
                             onContinue = { onContinueWizard(resume.id) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
@@ -250,83 +248,7 @@ fun ContractsHomeScreen(
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }
-                item {
-                    DfPrimaryButton(
-                        text = "قرارداد جدید",
-                        onClick = onCreateContract,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppSpacing.screenHorizontal),
-                    )
-                }
             }
-        }
-    }
-}
-
-@Composable
-private fun ContractsKpiRow(
-    stats: ir.divarfiling.mobile.core.network.ContractListStatsDto,
-    selectedTab: ContractSummaryTab,
-    onTabSelected: (ContractSummaryTab) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
-    ) {
-        listOf(
-            ContractSummaryTab.NEEDS_ACTION to ("نیازمند اقدام" to stats.needsAction),
-            ContractSummaryTab.DRAFT to ("پیش‌نویس" to stats.draft),
-            ContractSummaryTab.AWAITING to ("در انتظار" to stats.awaitingAcceptance),
-            ContractSummaryTab.FINALIZED to ("نهایی" to stats.finalized),
-        ).forEach { (tab, labelCount) ->
-            val (label, count) = labelCount
-            DfCard(
-                onClick = { onTabSelected(tab) },
-                modifier = Modifier.weight(1f),
-            ) {
-                Column(
-                    Modifier.padding(vertical = AppSpacing.sm, horizontal = AppSpacing.xs),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        DateUtils.toPersianDigits(count.toString()),
-                        style = AppTypography.sectionTitle,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selectedTab == tab) DfThemeColors.primary() else DfThemeColors.textPrimary(),
-                    )
-                    Text(
-                        label,
-                        style = AppTypography.labelSmall,
-                        color = DfThemeColors.textMuted(),
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ContractResumeBanner(
-    item: ContractListItemDto,
-    onContinue: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    DfCard(modifier = modifier.fillMaxWidth(), onClick = onContinue) {
-        Column(Modifier.padding(AppSpacing.md), verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
-            Text("ادامه قرارداد نیمه‌کاره", fontWeight = FontWeight.Bold, color = DfThemeColors.primary())
-            Text(
-                item.internalNumber.ifBlank { item.title }.ifBlank { item.contractTypeLabel },
-                style = AppTypography.cardTitle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (item.wizardStep.isNotBlank()) {
-                Text("مرحله: ${item.wizardStep}", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
-            }
-            DfPrimaryButton(text = item.nextAction.label.ifBlank { "ادامه ویزارد" }, onClick = onContinue)
         }
     }
 }
@@ -539,7 +461,6 @@ fun ContractDetailScreen(
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
-        topBar = { DfDetailPageHeader(title = detail?.title ?: "قرارداد", onBack = onBack) },
     ) { padding ->
         DfPullRefresh(isRefreshing = state.isRefreshing, onRefresh = { viewModel.refresh(initial = false) }, modifier = Modifier.padding(padding)) {
             when {
@@ -558,21 +479,27 @@ fun ContractDetailScreen(
                     var expandedAttach by remember { mutableStateOf(true) }
                     var expandedHandover by remember { mutableStateOf(false) }
                     var expandedTimeline by remember { mutableStateOf(false) }
+                    var expandedVersions by remember { mutableStateOf(false) }
                     var expandedManage by remember { mutableStateOf(false) }
                     val finRows = remember(detail) { financialRows(detail) }
                     val propLine = remember(detail) { propertySummary(detail) }
+                    val timelineItems = state.timeline.take(20)
                     LazyColumn(
-                        contentPadding = PaddingValues(
-                            horizontal = AppSpacing.screenHorizontal,
-                            vertical = AppSpacing.md,
-                        ),
+                        contentPadding = PaddingValues(bottom = AppSpacing.xxxl),
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
                     ) {
-                        item { ContractDetailHero(detail = detail) }
+                        item { ContractDetailPageHeader(detail = detail, onBack = onBack) }
+                        item {
+                            ContractDetailHero(
+                                detail = detail,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            )
+                        }
                         item {
                             ContractDetailNextActionCard(
                                 label = detail.nextAction.label,
                                 onPrimary = viewModel::onPrimaryAction,
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
                         item {
@@ -581,27 +508,22 @@ fun ContractDetailScreen(
                                 propertyLine = propLine,
                                 partyLine = detail.signatures.firstOrNull()?.name,
                                 onOpenDeal = detail.dealId?.let { dealId -> { onNavigateDeal(dealId) } },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             )
                         }
                         item {
                             ContractDetailExpandableSection(
                                 title = "طرفین قرارداد",
+                                icon = DfIcons.Users,
+                                subtitle = "نقش، نام و وضعیت هر طرف",
+                                badge = DateUtils.toPersianDigits(detail.signatures.size.toString()).takeIf { detail.signatures.isNotEmpty() },
+                                accent = DfThemeColors.primary(),
                                 expanded = expandedParties,
                                 onToggle = { expandedParties = !expandedParties },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             ) {
                                 detail.signatures.forEach { row ->
-                                    val (chipBg, chipFg) = contractStatusThemeColors(row.statusLabel)
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(row.name, style = AppTypography.cardTitle, fontWeight = FontWeight.SemiBold, color = DfThemeColors.textPrimary())
-                                            Text(row.roleLabel, style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
-                                        }
-                                        DfBadge(text = row.statusLabel, color = chipBg, textColor = chipFg)
-                                    }
+                                    ContractDetailPartyRow(row = row)
                                 }
                             }
                         }
@@ -609,8 +531,13 @@ fun ContractDetailScreen(
                             item {
                                 ContractDetailExpandableSection(
                                     title = "اطلاعات مالی",
+                                    icon = DfIcons.Coins,
+                                    subtitle = "مبالغ و شرایط پرداخت",
+                                    badge = DateUtils.toPersianDigits(finRows.size.toString()),
+                                    accent = DfThemeColors.warning(),
                                     expanded = expandedFinancial,
                                     onToggle = { expandedFinancial = !expandedFinancial },
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                                 ) {
                                     finRows.forEach { row ->
                                         ContractDetailLabeledRow(label = row.label, value = row.value)
@@ -622,8 +549,12 @@ fun ContractDetailScreen(
                             item {
                                 ContractDetailExpandableSection(
                                     title = "ملک",
+                                    icon = DfIcons.Building,
+                                    subtitle = "موقعیت و مشخصات ثبت‌شده",
+                                    accent = DfThemeColors.info(),
                                     expanded = expandedProperty,
                                     onToggle = { expandedProperty = !expandedProperty },
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                                 ) {
                                     Text(propLine, style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
                                 }
@@ -633,11 +564,16 @@ fun ContractDetailScreen(
                             item {
                                 ContractDetailExpandableSection(
                                     title = "بندهای قرارداد",
+                                    icon = DfIcons.Scale,
+                                    subtitle = "فهرست بندهای فعال",
+                                    badge = DateUtils.toPersianDigits(detail.clauses.size.toString()),
+                                    accent = DfThemeColors.primary(),
                                     expanded = expandedClauses,
                                     onToggle = { expandedClauses = !expandedClauses },
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                                 ) {
-                                    detail.clauses.take(12).forEach { clause ->
-                                        Text("• ${clause.title}", style = AppTypography.bodyDescription, color = DfThemeColors.textSecondary())
+                                    detail.clauses.take(12).forEachIndexed { index, clause ->
+                                        ContractDetailClauseRow(clause = clause, index = index + 1)
                                     }
                                     if (detail.canEditClauses) {
                                         DfTextButton(text = "ادامه ویرایش بندها", onClick = viewModel::openClausesEditor, compact = true)
@@ -648,37 +584,35 @@ fun ContractDetailScreen(
                         item {
                             ContractDetailExpandableSection(
                                 title = "امضا و تأیید",
+                                icon = DfIcons.CircleCheck,
+                                subtitle = "وضعیت دعوت‌نامه و امضای طرفین",
+                                accent = DfThemeColors.success(),
                                 expanded = expandedSign,
                                 onToggle = { expandedSign = !expandedSign },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             ) {
                                 detail.signatures.forEach { row ->
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(
-                                            "${row.roleLabel} · ${row.name} · ${row.statusLabel}",
-                                            style = AppTypography.labelSmall,
-                                            color = DfThemeColors.textSecondary(),
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        if (row.canResend && row.invitationId != null) {
-                                            DfTextButton(
-                                                text = "ارسال مجدد",
-                                                onClick = { viewModel.resendInvitation(row.invitationId) },
-                                                compact = true,
-                                            )
-                                        }
-                                    }
+                                    ContractDetailSignatureRow(
+                                        row = row,
+                                        onResend = if (row.canResend && row.invitationId != null) {
+                                            { viewModel.resendInvitation(row.invitationId) }
+                                        } else {
+                                            null
+                                        },
+                                    )
                                 }
                             }
                         }
                         item {
                             ContractDetailExpandableSection(
                                 title = "پیوست‌ها",
+                                icon = DfIcons.Paperclip,
+                                subtitle = "مدارک و فایل‌های مرتبط",
+                                badge = DateUtils.toPersianDigits(state.attachments.size.toString()).takeIf { state.attachments.isNotEmpty() },
+                                accent = DfThemeColors.primary(),
                                 expanded = expandedAttach,
                                 onToggle = { expandedAttach = !expandedAttach },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             ) {
                             if (state.attachments.isEmpty()) {
                                 Text(
@@ -688,7 +622,7 @@ fun ContractDetailScreen(
                                 )
                             }
                             state.attachments.forEach { att ->
-                                AttachmentRow(
+                                ContractDetailAttachmentRow(
                                     att = att,
                                     busy = state.attachmentBusyId == att.id,
                                     onOpen = {
@@ -730,39 +664,36 @@ fun ContractDetailScreen(
                         item {
                             ContractDetailExpandableSection(
                                 title = "تحویل",
+                                icon = DfIcons.ClipboardList,
+                                subtitle = "صورت‌جلسه و وضعیت تحویل ملک",
+                                accent = DfThemeColors.info(),
                                 expanded = expandedHandover,
                                 onToggle = { expandedHandover = !expandedHandover },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             ) {
-                            if (detail.handover.exists) Text("${detail.handover.statusLabel} · ${detail.handover.summary}")
-                            else Text("صورت‌جلسه ثبت نشده")
-                            detail.handover.nextAction?.let { action ->
-                                if (action.label.isNotBlank()) {
-                                    DfSecondaryButton(
-                                        text = action.label,
-                                        onClick = { viewModel.onPrimaryAction() },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            }
+                            ContractDetailHandoverBlock(
+                                exists = detail.handover.exists,
+                                statusLabel = detail.handover.statusLabel,
+                                summary = detail.handover.summary,
+                                actionLabel = detail.handover.nextAction?.label,
+                                onAction = viewModel::onPrimaryAction,
+                            )
                             }
                         }
                         if (detail.versions.isNotEmpty()) {
                             item {
                                 ContractDetailExpandableSection(
                                     title = "نسخه‌ها",
-                                    expanded = expandedManage,
-                                    onToggle = { expandedManage = !expandedManage },
+                                    icon = DfIcons.Layers,
+                                    subtitle = "نسخه فعلی: ${DateUtils.toPersianDigits(detail.currentVersionNumber.toString())}",
+                                    badge = DateUtils.toPersianDigits(detail.versions.size.toString()),
+                                    accent = DfThemeColors.primary(),
+                                    expanded = expandedVersions,
+                                    onToggle = { expandedVersions = !expandedVersions },
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                                 ) {
-                                    Text(
-                                        "نسخه فعلی: ${detail.currentVersionNumber}",
-                                        style = AppTypography.labelSmall,
-                                        color = DfThemeColors.textSecondary(),
-                                    )
                                     detail.versions.forEach { ver ->
-                                        Text(
-                                            "v${ver.versionNumber} · ${ver.statusLabel}${if (ver.isCurrent) " (فعلی)" else ""}",
-                                            style = AppTypography.labelSmall,
-                                        )
+                                        ContractDetailVersionRow(ver = ver)
                                     }
                                     if (detail.canNewVersion) {
                                         DfSecondaryButton(
@@ -779,8 +710,12 @@ fun ContractDetailScreen(
                             item {
                                 ContractDetailExpandableSection(
                                     title = "مدیریت",
+                                    icon = DfIcons.Settings,
+                                    subtitle = "عملیات پیشرفته پرونده",
+                                    accent = DfThemeColors.textSecondary(),
                                     expanded = expandedManage,
                                     onToggle = { expandedManage = !expandedManage },
+                                    modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                                 ) {
                                     if (state.isContractActionLoading) {
                                         LinearProgressIndicator(
@@ -789,26 +724,30 @@ fun ContractDetailScreen(
                                         )
                                     }
                                     if (detail.canNewVersion && detail.versions.isEmpty()) {
-                                        DfSecondaryButton(
-                                            text = "ایجاد نسخه جدید",
+                                        ContractDetailManageAction(
+                                            icon = DfIcons.Layers,
+                                            title = "ایجاد نسخه جدید",
+                                            subtitle = "شروع نسخه بعدی قرارداد",
                                             onClick = viewModel::createNewVersion,
                                             enabled = !state.isContractActionLoading,
-                                            modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
                                     if (detail.canCopy) {
-                                        DfSecondaryButton(
-                                            text = "کپی قرارداد",
+                                        ContractDetailManageAction(
+                                            icon = DfIcons.Copy,
+                                            title = "کپی قرارداد",
+                                            subtitle = "ایجاد پرونده مشابه با داده‌های فعلی",
                                             onClick = viewModel::copyContract,
                                             enabled = !state.isContractActionLoading,
-                                            modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
                                     if (detail.canCancel) {
-                                        DfTextButton(
-                                            text = "لغو قرارداد",
+                                        ContractDetailManageAction(
+                                            icon = DfIcons.Trash,
+                                            title = "لغو قرارداد",
+                                            subtitle = "غیرفعال‌سازی پرونده با ثبت دلیل",
                                             onClick = viewModel::showCancelDialog,
-                                            compact = true,
+                                            destructive = true,
                                         )
                                     }
                                 }
@@ -817,15 +756,20 @@ fun ContractDetailScreen(
                         item {
                             ContractDetailExpandableSection(
                                 title = "تاریخچه",
+                                icon = DfIcons.Clock,
+                                subtitle = "رویدادها و تغییرات اخیر",
+                                badge = DateUtils.toPersianDigits(timelineItems.size.toString()).takeIf { timelineItems.isNotEmpty() },
+                                accent = DfThemeColors.textSecondary(),
                                 expanded = expandedTimeline,
                                 onToggle = { expandedTimeline = !expandedTimeline },
+                                modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                             ) {
-                            state.timeline.take(20).forEach { ev ->
-                                val whenText = ev.createdAt?.let { iso ->
-                                    DateUtils.parseInstantMillis(iso)?.let(DateUtils::formatJalaliDateTimeLatinFromMillis)
-                                } ?: ""
-                                Text("${ev.label} · $whenText")
-                                if (ev.detail.isNotBlank()) Text(ev.detail, style = MaterialTheme.typography.bodySmall)
+                            if (timelineItems.isEmpty()) {
+                                Text("رویدادی ثبت نشده", style = AppTypography.bodyDescription, color = DfThemeColors.textMuted())
+                            } else {
+                                timelineItems.forEachIndexed { index, ev ->
+                                    ContractDetailTimelineItem(event = ev, isLast = index == timelineItems.lastIndex)
+                                }
                             }
                             }
                         }
@@ -834,35 +778,6 @@ fun ContractDetailScreen(
             }
         }
     }
-}
-
-@Composable
-private fun AttachmentRow(att: ContractAttachmentDto, busy: Boolean, onOpen: () -> Unit, onDownload: () -> Unit, onShare: () -> Unit) {
-    var menu by remember { mutableStateOf(false) }
-    Row(
-        Modifier.fillMaxWidth().clickable(enabled = !busy, onClick = onOpen).padding(vertical = 8.dp).heightIn(min = 48.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(att.title.ifBlank { "پیوست" }, style = MaterialTheme.typography.bodyLarge)
-            Text("${att.mimeType} · ${att.fileSize} بایت", style = MaterialTheme.typography.bodySmall)
-            att.createdAt?.let { iso ->
-                DateUtils.parseInstantMillis(iso)?.let { ms ->
-                    Text(DateUtils.formatJalaliDateTimeLatinFromMillis(ms), style = MaterialTheme.typography.labelSmall)
-                }
-            }
-        }
-        Box {
-            IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, contentDescription = null) }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(text = { Text("باز کردن") }, onClick = { menu = false; onOpen() })
-                DropdownMenuItem(text = { Text("دانلود") }, onClick = { menu = false; onDownload() })
-                DropdownMenuItem(text = { Text("اشتراک") }, onClick = { menu = false; onShare() })
-            }
-        }
-    }
-    if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
 }
 
 @Composable
@@ -891,7 +806,7 @@ fun ContractCreateScreen(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
             item {
-                DfDetailPageHeader(
+                DfHubPageHeader(
                     title = "ایجاد قرارداد",
                     subtitle = "مرحله ۱ — نوع قرارداد را انتخاب کنید",
                     sectionLabel = DfHeaderSections.CRM,

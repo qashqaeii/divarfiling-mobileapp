@@ -40,6 +40,7 @@ import ir.divarfiling.mobile.core.design.components.DfCardListSkeleton
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
@@ -78,6 +79,24 @@ fun TeamMembersScreen(
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
         state.error?.let { snackbar.showDfMessage(it); viewModel.clearMessage() }
+    }
+
+    if (state.pendingCancelInvitationId != null) {
+        val invId = state.pendingCancelInvitationId!!
+        val invPhone = state.invitations.firstOrNull { it.id == invId }?.phone ?: ""
+        DfConfirmBottomSheet(
+            title = "حذف دعوت",
+            message = if (invPhone.isNotBlank()) {
+                "دعوت $invPhone از لیست حذف شود؟"
+            } else {
+                "این دعوت از لیست حذف شود؟"
+            },
+            onConfirm = viewModel::confirmCancelInvitation,
+            onDismiss = viewModel::dismissCancelInvitation,
+            destructive = true,
+            isSubmitting = state.cancelInvitationSubmitting,
+            confirmText = "حذف",
+        )
     }
 
     if (state.showInvite) {
@@ -248,7 +267,7 @@ fun TeamMembersScreen(
                                     TeamInvitationCompactCard(
                                         invitation = inv,
                                         onResend = { viewModel.resendInvitation(inv.id) },
-                                        onCancel = { viewModel.cancelInvitation(inv.id) },
+                                        onCancel = { viewModel.requestCancelInvitation(inv.id) },
                                         modifier = Modifier.padding(horizontal = pad),
                                     )
                                 }
