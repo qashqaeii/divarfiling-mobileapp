@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -109,7 +110,9 @@ class PostCallPhoneStateHandler @Inject constructor(
             PostCallTrace.log(PostCallTrace.Stage.Skipped, "dedup event")
             return
         }
-        presentationRouter.presentAfterCall(phone, kind)
+        withContext(Dispatchers.Main.immediate) {
+            presentationRouter.presentAfterCall(phone, kind)
+        }
     }
 
     private suspend fun ensureMonitorArmedFromPersisted() {

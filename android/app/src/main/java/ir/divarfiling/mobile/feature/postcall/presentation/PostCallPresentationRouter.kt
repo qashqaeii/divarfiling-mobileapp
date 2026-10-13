@@ -10,6 +10,8 @@ import ir.divarfiling.mobile.feature.postcall.debug.PostCallTrace
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionManager
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Singleton
 class PostCallPresentationRouter @Inject constructor(
@@ -20,7 +22,7 @@ class PostCallPresentationRouter @Inject constructor(
     private val overlayController: PostCallOverlayController,
     private val presentationLedger: PostCallPresentationLedger,
 ) {
-    fun presentAfterCall(phone: String, callEndKind: PostCallLogic.CallEndKind) {
+    suspend fun presentAfterCall(phone: String, callEndKind: PostCallLogic.CallEndKind) {
         PostCallTrace.log(
             PostCallTrace.Stage.Presentation,
             "kind=${callEndKind.name} phone=${PostCallTrace.maskPhone(phone)}",
@@ -29,37 +31,53 @@ class PostCallPresentationRouter @Inject constructor(
             PostCallTrace.log(PostCallTrace.Stage.Skipped, "keyguard locked")
             return
         }
-        if (!presentationLedger.tryClaim(phone, callEndKind)) {
+        if (!presentationLedger.beginPresentation(phone, callEndKind)) {
             PostCallTrace.log(PostCallTrace.Stage.Skipped, "duplicate presentation")
             return
         }
-        val inForeground = AppForegroundTracker.isInForeground
 
-        if (inForeground) {
-            if (eventHub.tryPresent(phone, callEndKind)) {
-                PostCallTrace.log(PostCallTrace.Stage.Displayed, "in-app sheet")
-            } else {
-                PostCallTrace.log(PostCallTrace.Stage.Skipped, "in-app hub busy or dedup")
-            }
-            return
-        }
-
-        val snap = permissions.snapshot()
-        if (snap.canShowOverlay) {
-            val shown = overlayController.show(phone, callEndKind)
-            if (shown) return
-            PostCallTrace.log(PostCallTrace.Stage.Skipped, "overlay failed, fallback notification")
-        }
-
-        if (snap.canNotify) {
-            val ok = notifier.showPostCallNotification(phone, callEndKind)
-            if (ok) {
-                PostCallTrace.log(PostCallTrace.Stage.Notification, "shown")
+        var displayed = false
+        try {
+            val inForeground = AppForegroundTracker.isInForeground
+            if (inForeground) {
+                displayed = withContext(Dispatchers.Main.immediate) {
+                    eventHub.tryPresent(phone, callEndKind)
+                }
+                if (displayed) {
+                    PostCallTrace.log(PostCallTrace.Stage.Displayed, "in-app sheet")
+                } else {
+                    PostCallTrace.log(PostCallTrace.Stage.Skipped, "in-app hub busy or dedup")
+                }
                 return
             }
-        }
 
-        PostCallTrace.log(PostCallTrace.Stage.Skipped, "no presentation path")
+            val snap = permissions.snapshot()
+            if (snap.canShowOverlay) {
+                val shown = overlayController.show(phone, callEndKind)
+                if (shown) {
+                    displayed = true
+                    return
+                }
+                PostCallTrace.log(PostCallTrace.Stage.Skipped, "overlay failed, fallback notification")
+            }
+
+            if (snap.canNotify) {
+                val ok = notifier.showPostCallNotification(phone, callEndKind)
+                if (ok) {
+                    displayed = true
+                    PostCallTrace.log(PostCallTrace.Stage.Notification, "shown")
+                    return
+                }
+            }
+
+            PostCallTrace.log(PostCallTrace.Stage.Skipped, "no presentation path")
+        } finally {
+            if (displayed) {
+                presentationLedger.commitPresentation(phone, callEndKind)
+            } else {
+                presentationLedger.rollbackPresentation(phone, callEndKind)
+            }
+        }
     }
 
     private fun isKeyguardLocked(): Boolean {

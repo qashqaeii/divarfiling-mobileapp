@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.postcall.presentation
 
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -21,21 +23,29 @@ internal class PostCallOverlayLifecycleOwner :
     override val savedStateRegistry: SavedStateRegistry
         get() = savedStateController.savedStateRegistry
 
-    fun onCreate() {
+    fun onCreate() = onMainThread {
         savedStateController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
     }
 
-    fun onStart() {
+    fun onStart() = onMainThread {
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
     }
 
-    fun onResume() {
+    fun onResume() = onMainThread {
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
     }
 
-    fun onDestroy() {
+    fun onDestroy() = onMainThread {
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         viewModelStore.clear()
+    }
+
+    private inline fun onMainThread(crossinline block: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            block()
+        } else {
+            Handler(Looper.getMainLooper()).post { block() }
+        }
     }
 }

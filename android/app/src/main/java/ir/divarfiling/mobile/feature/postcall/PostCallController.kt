@@ -91,7 +91,7 @@ class PostCallController @Inject constructor(
     fun stopRuntimeOnly() {
         monitor.reconcile(shouldRun = false)
         eventHub.clearSession()
-        overlayController.dismiss()
+        overlayController.dismissFromAnyThread()
         presentationLedger.clear()
     }
 }
