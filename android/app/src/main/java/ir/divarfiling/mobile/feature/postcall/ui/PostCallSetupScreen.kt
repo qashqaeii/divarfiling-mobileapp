@@ -6,16 +6,20 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -23,10 +27,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import dagger.hilt.android.EntryPointAccessors
@@ -42,9 +49,7 @@ import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
 import ir.divarfiling.mobile.feature.postcall.permission.MiuiBackgroundPopupStatus
-import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionManager
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionSnapshot
-import ir.divarfiling.mobile.feature.settings.SettingsInfoRow
 import kotlinx.coroutines.launch
 
 private enum class SetupRowStatus {
@@ -59,7 +64,9 @@ private data class SetupPermissionRow(
     val title: String,
     val subtitle: String,
     val status: SetupRowStatus,
+    val countsTowardProgress: Boolean,
     val onClick: () -> Unit,
+    val onManualConfirm: (() -> Unit)? = null,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,19 +113,21 @@ fun PostCallSetupScreen(
         runCatching { context.startActivity(intent) }
     }
 
-    val rows = remember(snapshot, lockScreenEnabled, permissionManager) {
+    val rows = remember(snapshot, lockScreenEnabled) {
         buildSetupRows(
             snapshot = snapshot,
-            permissionManager = permissionManager,
             lockScreenEnabled = lockScreenEnabled,
             onPhone = { phoneLauncher.launch(permissionManager.phoneStatePermission()) },
             onCallLog = { callLogLauncher.launch(permissionManager.callLogPermission()) },
             onOverlay = { openSettings(permissionManager.overlaySettingsIntent()) },
-            onMiuiPopup = {
+            onMiuiPopupOpen = {
                 val intent = permissionManager.miuiBackgroundPopupSettingsIntentOrNull()
                     ?: permissionManager.appDetailsIntent()
                 openSettings(intent)
+            },
+            onMiuiPopupConfirm = {
                 permissionManager.setMiuiBackgroundPopupUserAcknowledged(true)
+                refresh()
             },
             onNotifications = {
                 permissionManager.postNotificationsPermissionOrNull()?.let {
@@ -137,8 +146,12 @@ fun PostCallSetupScreen(
         )
     }
 
-    val progress = rows.count { it.status == SetupRowStatus.Granted }.toFloat() /
-        rows.count { it.id != "lock_screen" }.coerceAtLeast(1).toFloat()
+    val measurable = rows.filter { it.countsTowardProgress }
+    val progress = if (measurable.isEmpty()) {
+        0f
+    } else {
+        measurable.count { it.status == SetupRowStatus.Granted }.toFloat() / measurable.size
+    }
     val ready = snapshot.phoneStateGranted
 
     Scaffold(
@@ -176,7 +189,7 @@ fun PostCallSetupScreen(
                     color = DfColors.Purple,
                 )
                 Text(
-                    "${(progress * 100).toInt()}٪ از دسترسی‌های قابل بررسی",
+                    "${(progress * 100).toInt()}٪ دسترسی‌های قابل سنجش",
                     style = AppTypography.labelSmall,
                     color = DfThemeColors.textSecondary(),
                     modifier = Modifier.padding(top = AppSpacing.xs),
@@ -200,7 +213,7 @@ fun PostCallSetupScreen(
             item {
                 DfSecondaryButton(
                     text = "بررسی مجدد",
-                    onClick = refresh,
+                    onClick = { refresh() },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -227,26 +240,86 @@ private fun SetupPermissionRowView(row: SetupPermissionRow) {
         SetupRowStatus.Granted -> "فعال"
         SetupRowStatus.Pending -> "نیاز به فعال‌سازی"
         SetupRowStatus.Manual -> "تأیید دستی"
-        SetupRowStatus.Denied -> "رد شده / نامشخص"
+        SetupRowStatus.Denied -> "رد شده"
     }
-    DfCard {
-        SettingsInfoRow(
-            title = row.title,
-            subtitle = "${row.subtitle} · $statusLabel",
-            icon = DfIcons.Settings,
-            onClick = row.onClick,
-        )
+    val statusTint = when (row.status) {
+        SetupRowStatus.Granted -> Color(0xFF2E7D32)
+        SetupRowStatus.Manual -> Color(0xFFE65100)
+        SetupRowStatus.Denied -> DfThemeColors.error()
+        SetupRowStatus.Pending -> DfThemeColors.textSecondary()
+    }
+    DfCard(
+        onClick = row.onClick,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(AppSpacing.md)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                when (row.status) {
+                    SetupRowStatus.Granted -> {
+                        Icon(
+                            DfIcons.CircleCheck,
+                            contentDescription = null,
+                            tint = Color(0xFF2E7D32),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    SetupRowStatus.Manual -> {
+                        Icon(
+                            DfIcons.Settings,
+                            contentDescription = null,
+                            tint = Color(0xFFE65100),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    else -> {
+                        Icon(
+                            DfIcons.Settings,
+                            contentDescription = null,
+                            tint = DfThemeColors.textMuted(),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(row.title, style = AppTypography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        row.subtitle,
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textSecondary(),
+                        modifier = Modifier.padding(top = AppSpacing.xxs),
+                    )
+                    Text(
+                        statusLabel,
+                        style = AppTypography.labelSmall,
+                        color = statusTint,
+                        modifier = Modifier.padding(top = AppSpacing.xxs),
+                    )
+                }
+            }
+            row.onManualConfirm?.let { confirm ->
+                TextButton(
+                    onClick = confirm,
+                    modifier = Modifier.align(Alignment.End),
+                ) {
+                    Text("تأیید کردم", color = DfColors.Purple)
+                }
+            }
+        }
     }
 }
 
 private fun buildSetupRows(
     snapshot: PostCallPermissionSnapshot,
-    permissionManager: PostCallPermissionManager,
     lockScreenEnabled: Boolean,
     onPhone: () -> Unit,
     onCallLog: () -> Unit,
     onOverlay: () -> Unit,
-    onMiuiPopup: () -> Unit,
+    onMiuiPopupOpen: () -> Unit,
+    onMiuiPopupConfirm: () -> Unit,
     onNotifications: () -> Unit,
     onAutostart: () -> Unit,
     onBattery: () -> Unit,
@@ -258,6 +331,7 @@ private fun buildSetupRows(
             title = "وضعیت تلفن",
             subtitle = "تشخیص پایان تماس",
             status = if (snapshot.phoneStateGranted) SetupRowStatus.Granted else SetupRowStatus.Pending,
+            countsTowardProgress = true,
             onClick = onPhone,
         ),
     )
@@ -268,9 +342,10 @@ private fun buildSetupRows(
             subtitle = "شماره، تاریخ و مدت مکالمه",
             status = when {
                 snapshot.callLogRuntimeAvailable -> SetupRowStatus.Granted
-                snapshot.callLogGranted -> SetupRowStatus.Manual
+                snapshot.callLogGranted -> SetupRowStatus.Denied
                 else -> SetupRowStatus.Pending
             },
+            countsTowardProgress = true,
             onClick = onCallLog,
         ),
     )
@@ -280,20 +355,21 @@ private fun buildSetupRows(
             title = "نمایش روی سایر برنامه‌ها",
             subtitle = "پنجره فشرده پس از تماس",
             status = if (snapshot.canShowOverlay) SetupRowStatus.Granted else SetupRowStatus.Pending,
+            countsTowardProgress = true,
             onClick = onOverlay,
         ),
     )
     if (snapshot.isXiaomiFamilyDevice) {
+        val miuiAcked = snapshot.miuiBackgroundPopupStatus == MiuiBackgroundPopupStatus.UserAcknowledged
         add(
             SetupPermissionRow(
                 id = "miui_popup",
                 title = "پنجره پس‌زمینه شیائومی",
-                subtitle = "جدا از Overlay سیستم",
-                status = when (snapshot.miuiBackgroundPopupStatus) {
-                    MiuiBackgroundPopupStatus.UserAcknowledged -> SetupRowStatus.Manual
-                    else -> SetupRowStatus.Pending
-                },
-                onClick = onMiuiPopup,
+                subtitle = "باز کردن تنظیمات و سپس تأیید دستی",
+                status = if (miuiAcked) SetupRowStatus.Manual else SetupRowStatus.Pending,
+                countsTowardProgress = false,
+                onClick = onMiuiPopupOpen,
+                onManualConfirm = if (miuiAcked) null else onMiuiPopupConfirm,
             ),
         )
     }
@@ -303,6 +379,7 @@ private fun buildSetupRows(
             title = "اعلان‌ها",
             subtitle = "وقتی اپ در پس‌زمینه است",
             status = if (snapshot.canNotify) SetupRowStatus.Granted else SetupRowStatus.Pending,
+            countsTowardProgress = true,
             onClick = onNotifications,
         ),
     )
@@ -311,8 +388,9 @@ private fun buildSetupRows(
             SetupPermissionRow(
                 id = "autostart",
                 title = "اجرای خودکار شیائومی",
-                subtitle = "بدون تأیید سیستمی قابل بررسی نیست",
+                subtitle = "فقط از تنظیمات سازنده",
                 status = SetupRowStatus.Manual,
+                countsTowardProgress = false,
                 onClick = onAutostart,
             ),
         )
@@ -323,6 +401,7 @@ private fun buildSetupRows(
             title = "محدودیت باتری",
             subtitle = "اجرای پایدار در پس‌زمینه",
             status = SetupRowStatus.Manual,
+            countsTowardProgress = false,
             onClick = onBattery,
         ),
     )
@@ -330,8 +409,9 @@ private fun buildSetupRows(
         SetupPermissionRow(
             id = "lock_screen",
             title = "نمایش روی صفحه قفل",
-            subtitle = if (lockScreenEnabled) "روشن (پیش‌فرض خاموش)" else "خاموش — فقط اعلان عمومی روی قفل",
+            subtitle = if (lockScreenEnabled) "روشن" else "خاموش (پیش‌فرض)",
             status = if (lockScreenEnabled) SetupRowStatus.Manual else SetupRowStatus.Pending,
+            countsTowardProgress = false,
             onClick = onLockScreenToggle,
         ),
     )

@@ -92,10 +92,11 @@ object PostCallLogic {
         isValidMobile: (String) -> Boolean,
     ): ResolvedCallLog? {
         val lookbackMs = computeLookbackMs(notBeforeMs, endedAtMs)
-        val windowStart = notBeforeMs - DEFAULT_LOOKBACK_MS
+        val windowStart = (notBeforeMs - lookbackMs).coerceAtLeast(0L)
+        val windowEnd = endedAtMs + CALL_LOG_END_SLACK_MS
         val normalizedEntries = entries
             .asSequence()
-            .filter { it.dateMs >= windowStart }
+            .filter { it.dateMs in windowStart..windowEnd }
             .filter { !isPrivateOrEmptyNumber(it.number) }
             .map { entry ->
                 val normalized = normalize(entry.number)
@@ -108,10 +109,12 @@ object PostCallLogic {
             val matched = normalizedEntries.filter { matcher(it) }
             if (matched.isEmpty()) return null
             val hint = hintedNormalized?.takeIf { isValidMobile(it) }
-            if (!hint.isNullOrBlank()) {
-                matched.firstOrNull { it.number == hint }?.let { return it }
+            val pool = if (!hint.isNullOrBlank()) {
+                matched.filter { it.number == hint }.ifEmpty { matched }
+            } else {
+                matched
             }
-            return matched.maxByOrNull { it.dateMs }
+            return pool.minByOrNull { kotlin.math.abs(it.dateMs - endedAtMs) }
         }
 
         val strict = pickWithMatcher { matchesCallLogEntryStrict(it, kind) }
@@ -165,6 +168,7 @@ object PostCallLogic {
 
     private const val DEFAULT_LOOKBACK_MS = 20_000L
     private const val MAX_LOOKBACK_MS = 4 * 60 * 60 * 1000L
+    private const val CALL_LOG_END_SLACK_MS = 8_000L
 
     private val PRIVATE_MARKERS = setOf(
         "unknown",

@@ -7,6 +7,12 @@ data class PostCallCallMetadata(
     val durationSec: Long?,
     val callLogType: Int?,
 ) {
+    /** فقط فیلدهای معتبر Call Log در سربرگ یادداشت استفاده شوند. */
+    fun withValidCallLogFieldsOnly(): PostCallCallMetadata = copy(
+        callLogDateMs = callLogDateMs?.takeIf { it > 0L },
+        durationSec = durationSec?.takeIf { it > 0L },
+    )
+
     companion object {
         fun fromResolved(
             phone: String,

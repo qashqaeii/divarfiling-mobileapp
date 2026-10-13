@@ -96,6 +96,26 @@ class PostCallLogicTest {
     }
 
     @Test
+    fun pick_call_log_ignores_records_outside_session_window() {
+        val sessionStart = 20_000L
+        val endedAt = 25_000L
+        val entries = listOf(
+            PostCallLogic.CallLogEntry("09121234567", CallLog.Calls.INCOMING_TYPE, 24_800L, 30L),
+            PostCallLogic.CallLogEntry("09129999999", CallLog.Calls.INCOMING_TYPE, 1_000L, 30L),
+        )
+        val picked = PostCallLogic.pickCallLogEntry(
+            entries = entries,
+            kind = PostCallLogic.CallEndKind.Answered,
+            notBeforeMs = sessionStart,
+            endedAtMs = endedAt,
+            hintedNormalized = null,
+            normalize = { it },
+            isValidMobile = { it.startsWith("09") },
+        )
+        assertEquals("09121234567", picked?.phone)
+    }
+
+    @Test
     fun pick_call_log_does_not_select_unrelated_old_record() {
         val now = 20_000L
         val entries = listOf(

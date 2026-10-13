@@ -39,7 +39,12 @@ class CallLogResolver @Inject constructor(
                 normalize = PhoneNormalizer::normalize,
                 isValidMobile = PhoneNormalizer::isValidIranMobile,
             )
-            if (picked != null) return picked
+            if (picked != null) {
+                val awaitingDuration = callKind == PostCallLogic.CallEndKind.Answered &&
+                    picked.durationSec <= 0L &&
+                    attempt < maxAttempts - 1
+                if (!awaitingDuration) return picked
+            }
             if (attempt < maxAttempts - 1) delay(delayMs)
         }
         val hintOnly = hintedNormalized?.takeIf {

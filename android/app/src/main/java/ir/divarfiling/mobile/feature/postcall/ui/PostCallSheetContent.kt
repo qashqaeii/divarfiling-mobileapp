@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.postcall.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,6 +42,8 @@ import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.feature.postcall.POST_CALL_LEAD_TYPES
 import ir.divarfiling.mobile.feature.postcall.POST_CALL_OUTCOMES
+import ir.divarfiling.mobile.feature.postcall.POST_CALL_OUTCOMES_OUTGOING
+import ir.divarfiling.mobile.feature.postcall.PostCallUiState
 import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.PostCallUiMode
@@ -63,6 +67,8 @@ fun PostCallSheetContent(
 
     val headerSubtitle = buildSheetSubtitle(metadata.phone, metadata.callEndKind)
     val isMissed = metadata.callEndKind == PostCallLogic.CallEndKind.Missed
+    val isOutgoing = metadata.callEndKind == PostCallLogic.CallEndKind.Outgoing
+    val isAnswered = metadata.callEndKind == PostCallLogic.CallEndKind.Answered
 
     DfSheetScaffold(
         title = "دستیار پس از تماس",
@@ -101,16 +107,42 @@ fun PostCallSheetContent(
             state.mode == PostCallUiMode.Ambiguous -> {
                 DfSheetSection("چند مخاطب با این شماره") {
                     Text(
-                        "برای جلوگیری از انتخاب اشتباه، از CRM پرونده مناسب را باز کنید.",
+                        "یک پرونده را انتخاب کنید. تا انتخاب نکنید، هیچ اطلاعاتی ثبت نمی‌شود.",
                         style = AppTypography.bodyDescription,
                         color = DfThemeColors.textSecondary(),
                     )
                     state.ambiguousContacts.forEach { c ->
-                        Text(
-                            "• ${c.fullName} — ${c.customerType}",
-                            style = AppTypography.labelSmall,
-                            modifier = Modifier.padding(top = AppSpacing.xs),
-                        )
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = AppSpacing.sm)
+                                .clickable { viewModel.selectAmbiguousContact(c) },
+                            shape = RoundedCornerShape(14.dp),
+                            color = DfThemeColors.surfaceVariant().copy(alpha = 0.45f),
+                        ) {
+                            Column(modifier = Modifier.padding(AppSpacing.md)) {
+                                Text(
+                                    c.fullName,
+                                    style = AppTypography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    listOfNotNull(
+                                        c.customerType.takeIf { it.isNotBlank() },
+                                        c.status.takeIf { it.isNotBlank() },
+                                    ).joinToString(" · "),
+                                    style = AppTypography.labelSmall,
+                                    color = DfThemeColors.textSecondary(),
+                                    modifier = Modifier.padding(top = AppSpacing.xxs),
+                                )
+                                Text(
+                                    "انتخاب این مخاطب",
+                                    style = AppTypography.labelSmall,
+                                    color = DfColors.Purple,
+                                    modifier = Modifier.padding(top = AppSpacing.xs),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -174,19 +206,22 @@ fun PostCallSheetContent(
                         MetaLine("بودجه", it)
                     }
                 }
-                if (!isMissed && state.expanded) {
-                    DfSheetSection("نتیجه تماس") {
+                val showOutcomeSection = !isMissed && (isOutgoing || state.expanded || isAnswered)
+                if (showOutcomeSection) {
+                    val outcomes = if (isOutgoing) POST_CALL_OUTCOMES_OUTGOING else POST_CALL_OUTCOMES
+                    DfSheetSection(if (isOutgoing) "نتیجه تماس خروجی" else "نتیجه تماس") {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                         ) {
-                            POST_CALL_OUTCOMES.forEach { outcome ->
+                            outcomes.forEach { outcome ->
                                 FilterChip(
                                     selected = state.selectedOutcome == outcome,
                                     onClick = { viewModel.onOutcomeSelected(outcome) },
                                     label = { Text(outcome, style = AppTypography.labelSmall) },
+                                    enabled = !state.outcomeSaved,
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = DfColors.PurpleContainer,
                                         selectedLabelColor = DfColors.Purple,
@@ -195,20 +230,45 @@ fun PostCallSheetContent(
                             }
                         }
                     }
-                    DfSheetSection("یادآور سریع") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                            DfSecondaryButton("۱ ساعت", onClick = { viewModel.submitQuickReminder(1) })
-                            DfSecondaryButton("فردا", onClick = { viewModel.submitQuickReminder(24) })
-                        }
-                    }
-                } else if (!isMissed) {
+                } else if (!isMissed && isAnswered) {
                     DfSecondaryButton("نمایش جزئیات", onClick = { viewModel.setExpanded(true) })
                 }
+                if (!isMissed && (showOutcomeSection || state.expanded)) {
+                    DfSheetSection("یادآور سریع") {
+                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                            DfSecondaryButton(
+                                "۱ ساعت",
+                                onClick = { viewModel.submitQuickReminder(1) },
+                                enabled = !state.reminderSaved && !state.isSubmittingReminder,
+                            )
+                            DfSecondaryButton(
+                                "فردا",
+                                onClick = { viewModel.submitQuickReminder(24) },
+                                enabled = !state.reminderSaved && !state.isSubmittingReminder,
+                            )
+                        }
+                    }
+                }
                 if (isMissed) {
+                    DfSheetSection("تماس بی‌پاسخ") {
+                        Text(
+                            "مکالمه انجام نشده است. یادآوری تماس مجدد یا یادداشت کوتاه ثبت کنید.",
+                            style = AppTypography.bodyDescription,
+                            color = DfThemeColors.textSecondary(),
+                        )
+                    }
                     DfSheetSection("یادآوری تماس مجدد") {
                         Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                            DfSecondaryButton("۱ ساعت", onClick = { viewModel.submitQuickReminder(1) })
-                            DfSecondaryButton("فردا", onClick = { viewModel.submitQuickReminder(24) })
+                            DfSecondaryButton(
+                                "۱ ساعت",
+                                onClick = { viewModel.submitQuickReminder(1) },
+                                enabled = !state.reminderSaved && !state.isSubmittingReminder,
+                            )
+                            DfSecondaryButton(
+                                "فردا",
+                                onClick = { viewModel.submitQuickReminder(24) },
+                                enabled = !state.reminderSaved && !state.isSubmittingReminder,
+                            )
                         }
                     }
                 }
@@ -216,7 +276,7 @@ fun PostCallSheetContent(
                     noteHeader = state.noteHeader,
                     note = state.note,
                     onNoteChange = viewModel::onNoteChange,
-                    enabled = !state.isSubmitting && !state.submitLocked,
+                    enabled = state.canEditNoteField(),
                     placeholder = if (isMissed) "یادداشت اختیاری…" else "توضیحات این تماس…",
                 )
                 state.error?.let {
@@ -227,11 +287,21 @@ fun PostCallSheetContent(
                 }
             }
             state.mode == PostCallUiMode.New -> {
-                DfSheetSection(title = "وضعیت CRM") {
+                DfSheetSection(title = if (isMissed) "تماس بی‌پاسخ · مخاطب جدید" else "مخاطب جدید") {
                     Text(
-                        "در CRM ثبت نشده",
+                        if (isMissed) {
+                            "این شماره در CRM نیست. می‌توانید مخاطب جدید ثبت کنید."
+                        } else {
+                            "در CRM ثبت نشده — ثبت سریع مخاطب"
+                        },
                         style = AppTypography.bodyDescription,
                         color = DfThemeColors.textSecondary(),
+                    )
+                    Text(
+                        metadata.phone,
+                        style = AppTypography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = AppSpacing.xs),
                     )
                 }
                 DfSheetSection("ثبت سریع") {
@@ -262,13 +332,13 @@ fun PostCallSheetContent(
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             capitalization = KeyboardCapitalization.Words,
                         ),
-                        enabled = !state.isSubmitting && !state.submitLocked,
+                        enabled = !state.isSubmittingLead && !state.leadSaved,
                     )
                     PostCallNoteSections(
                         noteHeader = state.noteHeader,
                         note = state.note,
                         onNoteChange = viewModel::onNoteChange,
-                        enabled = !state.isSubmitting && !state.submitLocked,
+                        enabled = state.canEditNoteField(),
                         placeholder = "یادداشت کوتاه",
                     )
                 }
@@ -284,8 +354,11 @@ fun PostCallSheetContent(
 }
 
 @Composable
+private fun PostCallUiState.canEditNoteField(): Boolean =
+    !isSubmittingNote && !isSubmittingOutcome && !isSubmittingLead && !noteSaved
+
 private fun PostCallSheetFooter(
-    state: ir.divarfiling.mobile.feature.postcall.PostCallUiState,
+    state: PostCallUiState,
     onDismiss: () -> Unit,
     onOpenContact: (Long) -> Unit,
     viewModel: PostCallViewModel,
@@ -295,29 +368,35 @@ private fun PostCallSheetFooter(
             DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
         }
         state.mode == PostCallUiMode.Invalid ||
-            state.mode == PostCallUiMode.Ambiguous ||
             state.mode == PostCallUiMode.Error -> {
+            DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+        }
+        state.mode == PostCallUiMode.Ambiguous -> {
             DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
         }
         state.mode == PostCallUiMode.Existing -> {
             val contact = state.contact
             val isMissed = state.callEndKind == PostCallLogic.CallEndKind.Missed
             val primaryOutcome = !isMissed && state.selectedOutcome != null
-            val canSaveNote = state.note.isNotBlank() || state.noteHeader.isNotBlank()
+            val canSaveNote = (state.note.isNotBlank() || state.noteHeader.isNotBlank()) && !state.noteSaved
+            val canSaveOutcome = primaryOutcome && !state.outcomeSaved
             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                DfPrimaryButton(
-                    text = if (state.isSubmitting) {
-                        "در حال ثبت…"
-                    } else if (primaryOutcome) {
-                        "ثبت نتیجه تماس"
-                    } else {
-                        "ثبت یادداشت"
-                    },
-                    onClick = if (primaryOutcome) viewModel::submitCallOutcome else viewModel::submitNote,
-                    enabled = !state.isSubmitting && !state.submitLocked &&
-                        (primaryOutcome || canSaveNote),
-                    loading = state.isSubmitting,
-                )
+                if (canSaveOutcome) {
+                    DfPrimaryButton(
+                        text = if (state.isSubmittingOutcome) "در حال ثبت…" else "ثبت نتیجه تماس",
+                        onClick = viewModel::submitCallOutcome,
+                        enabled = !state.isSubmittingOutcome,
+                        loading = state.isSubmittingOutcome,
+                    )
+                }
+                if (canSaveNote) {
+                    DfPrimaryButton(
+                        text = if (state.isSubmittingNote) "در حال ثبت…" else "ثبت یادداشت",
+                        onClick = viewModel::submitNote,
+                        enabled = !state.isSubmittingNote,
+                        loading = state.isSubmittingNote,
+                    )
+                }
                 DfSecondaryButton(
                     text = "مشاهده پرونده",
                     onClick = { contact?.id?.let(onOpenContact) },
@@ -329,10 +408,10 @@ private fun PostCallSheetFooter(
         state.mode == PostCallUiMode.New -> {
             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 DfPrimaryButton(
-                    text = if (state.isSubmitting) "در حال ثبت…" else "ثبت مخاطب",
+                    text = if (state.isSubmittingLead) "در حال ثبت…" else "ثبت مخاطب",
                     onClick = viewModel::submitQuickLead,
-                    enabled = !state.isSubmitting && !state.submitLocked && state.leadName.isNotBlank(),
-                    loading = state.isSubmitting,
+                    enabled = !state.isSubmittingLead && !state.leadSaved && state.leadName.isNotBlank(),
+                    loading = state.isSubmittingLead,
                 )
                 DfSecondaryButton(text = "فعلاً نه", onClick = onDismiss)
             }
