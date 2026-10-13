@@ -22,6 +22,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import dagger.hilt.android.EntryPointAccessors
+import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
+import ir.divarfiling.mobile.feature.postcall.ui.PostCallOnboardingCard
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,6 +82,18 @@ fun HomeScreen(
     val usesInAppApkUpdate = UpdateDistribution.usesInAppApkUpdate
     var todayExpanded by remember { mutableStateOf(false) }
     var notificationsExpanded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val postCallEntry = remember(context) {
+        EntryPointAccessors.fromApplication(context, PostCallEntryPoint::class.java)
+    }
+    val postCallPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        val phoneOk = grants[android.Manifest.permission.READ_PHONE_STATE] == true
+        if (phoneOk) {
+            scope.launch { viewModel.enablePostCallAfterPermissions() }
+        }
+    }
 
     LaunchedEffect(Unit) {
         updateViewModel.refreshForDashboard()
@@ -126,6 +145,20 @@ fun HomeScreen(
                     DfErrorBanner(
                         message = error,
                         onRetry = viewModel::refresh,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
+
+            if (state.showPostCallPromo) {
+                item {
+                    PostCallOnboardingCard(
+                        onEnable = {
+                            postCallPermissionLauncher.launch(
+                                postCallEntry.postCallPermissionManager().requiredRuntimePermissions(),
+                            )
+                        },
+                        onDismiss = viewModel::dismissPostCallPromo,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )
                 }

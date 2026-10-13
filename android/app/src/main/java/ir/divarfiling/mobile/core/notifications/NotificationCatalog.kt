@@ -21,6 +21,7 @@ object NotificationCatalog {
     const val CHANNEL_DIGEST = "df_digest"
     const val CHANNEL_ANNOUNCEMENTS = "df_announcements"
     const val CHANNEL_SUPPORT = "df_support"
+    const val CHANNEL_POST_CALL = "df_post_call"
 
     const val GROUP_REMINDERS = "reminders"
     const val GROUP_MATCHES = "customer_match"

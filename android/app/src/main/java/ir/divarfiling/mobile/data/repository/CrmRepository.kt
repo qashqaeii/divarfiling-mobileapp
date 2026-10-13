@@ -25,6 +25,8 @@ import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.NoteCreateRequest
 import ir.divarfiling.mobile.core.network.PaginatedResult
 import ir.divarfiling.mobile.core.network.PropertyMatchDto
+import ir.divarfiling.mobile.core.network.PostCallResolveData
+import ir.divarfiling.mobile.core.network.PostCallResolveRequest
 import ir.divarfiling.mobile.core.network.QuickLeadRequest
 import ir.divarfiling.mobile.core.network.ReminderCreateRequest
 import ir.divarfiling.mobile.core.network.ReminderDto
@@ -149,6 +151,16 @@ class CrmRepository @Inject constructor(
         return try {
             val response = api.quickLead(QuickLeadRequest(fullName, phone))
             if (!response.ok) return ApiResult.Error(response.error ?: "ثبت سرنخ ناموفق")
+            ApiResult.Success(response.requireData(json))
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "خطای شبکه")
+        }
+    }
+
+    suspend fun resolvePostCall(phone: String): ApiResult<PostCallResolveData> {
+        return try {
+            val response = api.postCallResolve(PostCallResolveRequest(phone))
+            if (!response.ok) return ApiResult.Error(response.error ?: "شناسایی شماره ناموفق")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "خطای شبکه")

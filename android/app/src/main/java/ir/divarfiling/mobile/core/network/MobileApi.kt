@@ -159,6 +159,9 @@ interface MobileApi {
     @POST("crm/contacts/quick-lead")
     suspend fun quickLead(@Body body: QuickLeadRequest): ApiEnvelope
 
+    @POST("crm/post-call/resolve")
+    suspend fun postCallResolve(@Body body: PostCallResolveRequest): ApiEnvelope
+
     @POST("crm/contacts/{id}/activities")
     suspend fun createActivity(
         @Path("id") contactId: Long,

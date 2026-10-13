@@ -20,6 +20,7 @@ data class HomeUiState(
     val canExtract: Boolean = false,
     val syncPendingCount: Int = 0,
     val isSyncing: Boolean = false,
+    val showPostCallPromo: Boolean = false,
 )
 
 data class DashboardStats(

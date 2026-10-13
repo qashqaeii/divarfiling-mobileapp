@@ -39,6 +39,12 @@ import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.AvatarPickerSheet
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.share.DossierShareActions
+import dagger.hilt.android.EntryPointAccessors
+import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
+import ir.divarfiling.mobile.feature.postcall.PostCallFeatureFlags
+import ir.divarfiling.mobile.feature.postcall.ui.PostCallSettingsBlock
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +78,20 @@ fun SettingsScreen(
 
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let(viewModel::uploadAvatar)
+    }
+    val scope = rememberCoroutineScope()
+    val postCallEntry = remember(context) {
+        EntryPointAccessors.fromApplication(context, PostCallEntryPoint::class.java)
+    }
+    val postCallPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        val phoneOk = grants[android.Manifest.permission.READ_PHONE_STATE] == true
+        if (phoneOk) {
+            scope.launch { viewModel.enablePostCallAfterPermissions() }
+        } else {
+            viewModel.refreshPostCallSettings()
+        }
     }
 
     AvatarPickerSheet(
@@ -189,6 +209,32 @@ fun SettingsScreen(
                                 showDivider = true,
                             )
                         }
+                    }
+                }
+
+                if (PostCallFeatureFlags.ENABLED && state.postCallPermissions != null) {
+                    item {
+                        PostCallSettingsBlock(
+                            enabled = state.postCallEnabled,
+                            permissions = state.postCallPermissions!!,
+                            isBusy = state.postCallBusy,
+                            statusLine = state.postCallStatus,
+                            onToggle = { checked ->
+                                if (checked) {
+                                    postCallPermissionLauncher.launch(
+                                        postCallEntry.postCallPermissionManager().requiredRuntimePermissions(),
+                                    )
+                                } else {
+                                    viewModel.disablePostCall()
+                                }
+                            },
+                            onOpenOverlaySettings = {
+                                context.startActivity(postCallEntry.postCallPermissionManager().overlaySettingsIntent())
+                            },
+                            onOpenAppSettings = {
+                                context.startActivity(postCallEntry.postCallPermissionManager().appDetailsIntent())
+                            },
+                        )
                     }
                 }
 

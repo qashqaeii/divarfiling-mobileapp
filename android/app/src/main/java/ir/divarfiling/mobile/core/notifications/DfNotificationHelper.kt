@@ -149,6 +149,7 @@ class DfNotificationHelper @Inject constructor(
             channel(NotificationCatalog.CHANNEL_DIGEST, "کارهای امروز", "خلاصه روزانه CRM", NotificationManager.IMPORTANCE_DEFAULT),
             channel(NotificationCatalog.CHANNEL_ANNOUNCEMENTS, "اطلاعیه‌ها", "اطلاعیه‌ها و بروزرسانی", NotificationManager.IMPORTANCE_DEFAULT),
             channel(NotificationCatalog.CHANNEL_SUPPORT, "پشتیبانی", "پاسخ تیکت پشتیبانی", NotificationManager.IMPORTANCE_HIGH),
+            channel(NotificationCatalog.CHANNEL_POST_CALL, "دستیار پس از تماس", "ثبت سریع بعد از تماس", NotificationManager.IMPORTANCE_HIGH),
             // Legacy channel kept for devices that already had it configured.
             channel(LEGACY_CHANNEL_ID, "اعلان‌های دیوار فایلینگ", "یادآور CRM، استخراج و کارهای امروز", NotificationManager.IMPORTANCE_HIGH),
         )

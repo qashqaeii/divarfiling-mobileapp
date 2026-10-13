@@ -20,6 +20,9 @@ import ir.divarfiling.mobile.data.repository.AuthRepository
 import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.LicenseRepository
 import ir.divarfiling.mobile.data.repository.SettingsRepository
+import ir.divarfiling.mobile.feature.postcall.PostCallController
+import ir.divarfiling.mobile.feature.postcall.PostCallFeatureFlags
+import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,6 +56,10 @@ data class SettingsUiState(
     val successMessage: String? = null,
     val error: String? = null,
     val notificationBadgeCount: Int = 0,
+    val postCallEnabled: Boolean = false,
+    val postCallPermissions: PostCallPermissionSnapshot? = null,
+    val postCallStatus: String? = null,
+    val postCallBusy: Boolean = false,
 )
 
 @HiltViewModel
@@ -62,6 +69,7 @@ class SettingsViewModel @Inject constructor(
     private val licenseRepository: LicenseRepository,
     private val dashboardRepository: DashboardRepository,
     private val sessionStore: SessionStore,
+    private val postCallController: PostCallController,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -83,6 +91,50 @@ class SettingsViewModel @Inject constructor(
             }
         }
         refreshAll()
+        refreshPostCallSettings()
+    }
+
+    fun refreshPostCallSettings() {
+        if (!PostCallFeatureFlags.ENABLED) return
+        viewModelScope.launch {
+            val enabled = postCallController.isEnabledForCurrentUser()
+            val snap = postCallController.permissionSnapshot()
+            _uiState.update {
+                it.copy(
+                    postCallEnabled = enabled,
+                    postCallPermissions = snap,
+                    postCallStatus = buildPostCallStatus(enabled, snap),
+                )
+            }
+        }
+    }
+
+    suspend fun enablePostCallAfterPermissions() {
+        _uiState.update { it.copy(postCallBusy = true) }
+        postCallController.setEnabled(true)
+        refreshPostCallSettings()
+        _uiState.update { it.copy(postCallBusy = false) }
+    }
+
+    fun disablePostCall() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(postCallBusy = true) }
+            postCallController.setEnabled(false)
+            refreshPostCallSettings()
+            _uiState.update { it.copy(postCallBusy = false) }
+        }
+    }
+
+    private fun buildPostCallStatus(enabled: Boolean, snap: PostCallPermissionSnapshot): String? {
+        if (!enabled) return null
+        if (!snap.phoneStateGranted) return "برای تشخیص تماس، مجوز وضعیت تماس لازم است."
+        if (!snap.callLogRuntimeAvailable) {
+            return "بدون گزارش تماس، شماره فقط در صورت ارسال مستقیم توسط سیستم قابل تشخیص است."
+        }
+        if (!snap.canShowOverlay && !snap.canNotify) {
+            return "پنجره شناور یا اعلان را فعال کنید تا پس از تماس یادآور ببینید."
+        }
+        return null
     }
 
     fun refreshAll() {

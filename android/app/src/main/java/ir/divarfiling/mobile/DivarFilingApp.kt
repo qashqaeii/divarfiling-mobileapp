@@ -6,6 +6,7 @@ import coil.ImageLoaderFactory
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.android.EntryPointAccessors
 import ir.divarfiling.mobile.core.fcm.FcmEntryPoint
+import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
 import ir.divarfiling.mobile.core.notifications.AppForegroundTracker
 import ir.divarfiling.mobile.core.sync.BackgroundWorkManager
 import ir.divarfiling.mobile.core.sync.WorkerSessionEntryPoint
@@ -30,6 +31,9 @@ class DivarFilingApp : Application(), ImageLoaderFactory {
         Configuration.getInstance().osmdroidBasePath = cacheDir
         Configuration.getInstance().osmdroidTileCache = File(cacheDir, "osmdroid/tiles")
         AppForegroundTracker.register(this)
+        EntryPointAccessors.fromApplication(this, PostCallEntryPoint::class.java)
+            .postCallBootstrap()
+            .bind()
         appScope.launch(Dispatchers.IO) {
             val sessionStore = EntryPointAccessors.fromApplication(
                 this@DivarFilingApp,

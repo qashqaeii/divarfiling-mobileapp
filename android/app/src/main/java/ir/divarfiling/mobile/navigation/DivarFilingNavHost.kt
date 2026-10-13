@@ -1,8 +1,13 @@
 package ir.divarfiling.mobile.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.platform.LocalContext
+import dagger.hilt.android.EntryPointAccessors
+import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
+import ir.divarfiling.mobile.feature.postcall.ui.PostCallInAppOverlay
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -210,6 +215,8 @@ object Routes {
 fun DivarFilingNavHost(
     deepLink: DeepLinkTarget? = null,
     onDeepLinkHandled: () -> Unit = {},
+    pendingPostCallContactId: Long? = null,
+    onPostCallContactHandled: () -> Unit = {},
     sessionViewModel: SessionViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
@@ -273,6 +280,18 @@ fun DivarFilingNavHost(
             val navBackStack by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStack?.destination?.route
             val showBottomBar = currentRoute in Routes.mainTabs
+            val context = LocalContext.current
+            val postCallEventHub = remember(context) {
+                EntryPointAccessors.fromApplication(context, PostCallEntryPoint::class.java).postCallEventHub()
+            }
+
+            LaunchedEffect(pendingPostCallContactId) {
+                val id = pendingPostCallContactId ?: return@LaunchedEffect
+                if (id > 0L) {
+                    navController.navigate(Routes.contactDetail(id))
+                    onPostCallContactHandled()
+                }
+            }
 
             Scaffold(
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -303,10 +322,11 @@ fun DivarFilingNavHost(
                     }
                 },
             ) { padding ->
+                Box(modifier = Modifier.padding(padding)) {
                 NavHost(
                     navController = navController,
                     startDestination = Routes.HOME,
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     composable(Routes.HOME) {
                         HomeScreen(
@@ -1016,6 +1036,14 @@ fun DivarFilingNavHost(
                             )
                         }
                     }
+                }
+                    PostCallInAppOverlay(
+                        eventHub = postCallEventHub,
+                        onOpenContact = { contactId ->
+                            navController.navigate(Routes.contactDetail(contactId))
+                            postCallEventHub.dismiss()
+                        },
+                    )
                 }
             }
         }

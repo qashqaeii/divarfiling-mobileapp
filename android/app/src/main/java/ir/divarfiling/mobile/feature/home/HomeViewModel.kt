@@ -14,6 +14,8 @@ import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
 import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.SyncRepository
+import ir.divarfiling.mobile.feature.postcall.PostCallController
+import ir.divarfiling.mobile.feature.postcall.PostCallFeatureFlags
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +30,7 @@ class HomeViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
     private val crmRepository: CrmRepository,
     private val syncRepository: SyncRepository,
+    private val postCallController: PostCallController,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -50,6 +53,28 @@ class HomeViewModel @Inject constructor(
         }
         loadDashboard(refreshing = false)
         syncInBackground()
+        refreshPostCallPromo()
+    }
+
+    fun refreshPostCallPromo() {
+        if (!PostCallFeatureFlags.ENABLED) return
+        viewModelScope.launch {
+            val show = postCallController.shouldShowPromo()
+            _uiState.update { it.copy(showPostCallPromo = show) }
+        }
+    }
+
+    fun dismissPostCallPromo() {
+        viewModelScope.launch {
+            postCallController.dismissPromo()
+            _uiState.update { it.copy(showPostCallPromo = false) }
+        }
+    }
+
+    suspend fun enablePostCallAfterPermissions(): Boolean {
+        val ok = postCallController.setEnabled(true)
+        if (ok) _uiState.update { it.copy(showPostCallPromo = false) }
+        return ok
     }
 
     private fun syncInBackground() {

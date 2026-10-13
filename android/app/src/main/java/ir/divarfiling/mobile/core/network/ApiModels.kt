@@ -469,6 +469,35 @@ data class QuickLeadRequest(
 )
 
 @Serializable
+data class PostCallResolveRequest(
+    val phone: String,
+)
+
+@Serializable
+data class PostCallFollowUpBriefDto(
+    val at: String? = null,
+    val summary: String = "",
+)
+
+@Serializable
+data class PostCallContactBriefDto(
+    val id: Long,
+    @SerialName("full_name") val fullName: String,
+    val phone: String = "",
+    @SerialName("customer_type") val customerType: String = "",
+    val status: String = "",
+    @SerialName("last_follow_up") val lastFollowUp: PostCallFollowUpBriefDto? = null,
+)
+
+@Serializable
+data class PostCallResolveData(
+    val status: String,
+    val phone: String = "",
+    val contact: PostCallContactBriefDto? = null,
+    val contacts: List<PostCallContactBriefDto> = emptyList(),
+)
+
+@Serializable
 data class CrmNeighborhoodsData(
     val neighborhoods: List<String> = emptyList(),
 )

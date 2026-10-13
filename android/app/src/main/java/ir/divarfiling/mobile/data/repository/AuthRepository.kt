@@ -26,6 +26,7 @@ import ir.divarfiling.mobile.core.notifications.NotificationDedupStore
 import ir.divarfiling.mobile.core.notifications.ReminderSyncManager
 import ir.divarfiling.mobile.core.security.LocalDataWiper
 import ir.divarfiling.mobile.core.sync.BackgroundWorkManager
+import ir.divarfiling.mobile.feature.postcall.PostCallController
 import ir.divarfiling.mobile.core.util.DeviceIdProvider
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -47,6 +48,7 @@ class AuthRepository @Inject constructor(
     private val reminderSyncManager: ReminderSyncManager,
     private val notificationDedupStore: NotificationDedupStore,
     private val localDataWiper: LocalDataWiper,
+    private val postCallController: PostCallController,
     private val json: Json,
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
 ) {
@@ -211,6 +213,7 @@ class AuthRepository @Inject constructor(
             }
         } catch (_: Exception) {
         } finally {
+            postCallController.onLogout()
             reminderSyncManager.clearAll()
             notificationDedupStore.clear()
             localDataWiper.wipeUserData()
