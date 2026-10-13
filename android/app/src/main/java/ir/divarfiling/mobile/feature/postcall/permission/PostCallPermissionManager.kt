@@ -161,6 +161,13 @@ class PostCallPermissionManager @Inject constructor(
         wizardPrefs.edit().clear().apply()
     }
 
+    fun isShowOnLockScreenEnabled(): Boolean =
+        wizardPrefs.getBoolean(KEY_SHOW_ON_LOCK_SCREEN, false)
+
+    fun setShowOnLockScreenEnabled(enabled: Boolean) {
+        wizardPrefs.edit().putBoolean(KEY_SHOW_ON_LOCK_SCREEN, enabled).apply()
+    }
+
     fun healthSnapshot(): PostCallHealthSnapshot {
         val snap = snapshot()
         val ignoringBattery = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -235,6 +242,7 @@ class PostCallPermissionManager @Inject constructor(
     companion object {
         private const val WIZARD_PREFS = "post_call_wizard_prefs"
         private const val KEY_MIUI_BG_ACK = "miui_bg_popup_user_ack"
+        private const val KEY_SHOW_ON_LOCK_SCREEN = "show_on_lock_screen"
         private val XIAOMI_FAMILY = setOf("xiaomi", "redmi", "poco")
     }
 }

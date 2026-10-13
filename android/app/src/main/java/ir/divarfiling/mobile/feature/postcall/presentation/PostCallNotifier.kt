@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.R
 import ir.divarfiling.mobile.core.notifications.NotificationCatalog
 import ir.divarfiling.mobile.feature.postcall.PostCallAssistantActivity
+import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,24 +22,58 @@ import javax.inject.Singleton
 class PostCallNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    fun showPostCallNotification(phone: String, callEndKind: PostCallLogic.CallEndKind): Boolean {
+    fun showPostCallNotification(metadata: PostCallCallMetadata): Boolean {
         ensureChannel()
-        val intent = PostCallAssistantActivity.intent(context, phone, callEndKind, fromNotification = true)
+        val intent = PostCallAssistantActivity.intent(
+            context,
+            metadata,
+            fromNotification = true,
+        )
         val pending = PendingIntent.getActivity(
             context,
-            phone.hashCode(),
+            metadata.phone.hashCode(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, NotificationCatalog.CHANNEL_POST_CALL)
             .setSmallIcon(R.drawable.ic_stat_divarfiling)
             .setColor(context.getColor(R.color.notification_brand))
-            .setContentTitle(notificationTitle(callEndKind))
-            .setContentText("ثبت سریع در CRM برای $phone")
+            .setContentTitle(notificationTitle(metadata.callEndKind))
+            .setContentText("ثبت سریع در CRM برای ${metadata.phone}")
             .setAutoCancel(true)
             .setContentIntent(pending)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
+        return notify(notification)
+    }
+
+    fun showKeyguardSafeNotification(metadata: PostCallCallMetadata): Boolean {
+        ensureChannel()
+        val intent = PostCallAssistantActivity.intent(context, metadata, fromNotification = true)
+        val pending = PendingIntent.getActivity(
+            context,
+            metadata.phone.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = NotificationCompat.Builder(context, NotificationCatalog.CHANNEL_POST_CALL)
+            .setSmallIcon(R.drawable.ic_stat_divarfiling)
+            .setColor(context.getColor(R.color.notification_brand))
+            .setContentTitle("تماس پایان یافت")
+            .setContentText("برای ثبت در CRM، اعلان را باز کنید")
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
+        return notify(notification)
+    }
+
+    fun cancel() {
+        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+    }
+
+    private fun notify(notification: android.app.Notification): Boolean {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -53,10 +88,6 @@ class PostCallNotifier @Inject constructor(
         } catch (_: SecurityException) {
             false
         }
-    }
-
-    fun cancel() {
-        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
     }
 
     private fun ensureChannel() {

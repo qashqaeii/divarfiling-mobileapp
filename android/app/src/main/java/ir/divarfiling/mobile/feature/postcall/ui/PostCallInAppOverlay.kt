@@ -18,9 +18,7 @@ fun PostCallInAppOverlay(
 ) {
     val prompt by eventHub.active.collectAsStateWithLifecycle()
     val active = prompt ?: return
-    val phone = active.phone
-    if (phone.isBlank()) return
-    val callEndKind = active.callEndKind
+    if (active.phone.isBlank()) return
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -30,8 +28,7 @@ fun PostCallInAppOverlay(
         sheetState = sheetState,
     ) {
         PostCallSheetContent(
-            phone = phone,
-            callEndKind = callEndKind,
+            metadata = active.metadata,
             onDismiss = {
                 scope.launch {
                     sheetState.hide()

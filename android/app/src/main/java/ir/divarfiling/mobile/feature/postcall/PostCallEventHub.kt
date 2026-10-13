@@ -9,6 +9,7 @@ import javax.inject.Singleton
 data class PostCallPrompt(
     val phone: String,
     val callEndKind: PostCallLogic.CallEndKind,
+    val metadata: PostCallCallMetadata,
     val sessionId: String = java.util.UUID.randomUUID().toString(),
 )
 
@@ -21,25 +22,28 @@ class PostCallEventHub @Inject constructor() {
     private var lastPresentedAtMs: Long = 0L
 
     fun tryPresent(
-        phone: String,
-        callEndKind: PostCallLogic.CallEndKind,
+        metadata: PostCallCallMetadata,
         nowMs: Long = System.currentTimeMillis(),
     ): Boolean {
         if (_active.value != null) return false
-        val dedupPhone = phone
+        val phone = metadata.phone
         if (PostCallLogic.shouldSuppressDuplicate(
                 lastPhone = lastPresentedKey?.substringBefore('|'),
                 lastAtMs = lastPresentedAtMs,
-                phone = dedupPhone,
+                phone = phone,
                 nowMs = nowMs,
                 windowMs = DEDUP_WINDOW_MS,
             )
         ) {
             return false
         }
-        lastPresentedKey = "$dedupPhone|${callEndKind.name}"
+        lastPresentedKey = "$phone|${metadata.callEndKind.name}"
         lastPresentedAtMs = nowMs
-        _active.value = PostCallPrompt(phone = phone, callEndKind = callEndKind)
+        _active.value = PostCallPrompt(
+            phone = phone,
+            callEndKind = metadata.callEndKind,
+            metadata = metadata,
+        )
         return true
     }
 

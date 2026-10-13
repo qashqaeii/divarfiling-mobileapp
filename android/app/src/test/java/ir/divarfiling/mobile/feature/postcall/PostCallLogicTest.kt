@@ -69,7 +69,7 @@ class PostCallLogicTest {
             ),
         )
         assertTrue(
-            PostCallLogic.matchesCallLogEntryForKind(
+            PostCallLogic.matchesCallLogEntryStrict(
                 PostCallLogic.CallLogEntry("09121234567", CallLog.Calls.MISSED_TYPE, 5_000L, 0L),
                 PostCallLogic.CallEndKind.Missed,
             ),

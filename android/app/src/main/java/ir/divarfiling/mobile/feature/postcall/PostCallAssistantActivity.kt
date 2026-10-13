@@ -26,11 +26,7 @@ class PostCallAssistantActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val phone = intent.getStringExtra(EXTRA_PHONE).orEmpty()
-        val callKind = intent.getStringExtra(EXTRA_CALL_KIND)
-            ?.let { runCatching { PostCallLogic.CallEndKind.valueOf(it) }.getOrNull() }
-            ?: PostCallLogic.CallEndKind.Answered
-        if (phone.isBlank()) {
+        val metadata = readMetadata(intent) ?: run {
             finish()
             return
         }
@@ -44,8 +40,7 @@ class PostCallAssistantActivity : ComponentActivity() {
                     sheetState = sheetState,
                 ) {
                     PostCallSheetContent(
-                        phone = phone,
-                        callEndKind = callKind,
+                        metadata = metadata,
                         onDismiss = {
                             scope.launch {
                                 sheetState.hide()
@@ -74,18 +69,28 @@ class PostCallAssistantActivity : ComponentActivity() {
     companion object {
         const val EXTRA_PHONE = "post_call_phone"
         const val EXTRA_CALL_KIND = "post_call_call_kind"
+        const val EXTRA_CALL_LOG_DATE_MS = "post_call_log_date_ms"
+        const val EXTRA_DURATION_SEC = "post_call_duration_sec"
         const val EXTRA_OPEN_CONTACT_ID = "post_call_open_contact_id"
         private const val EXTRA_FROM_NOTIFICATION = "post_call_from_notification"
+        private const val MISSING_LONG = -1L
 
         fun intent(
             context: Context,
-            phone: String,
-            callEndKind: PostCallLogic.CallEndKind,
+            metadata: PostCallCallMetadata,
             fromNotification: Boolean,
         ): Intent =
             Intent(context, PostCallAssistantActivity::class.java).apply {
-                putExtra(EXTRA_PHONE, phone)
-                putExtra(EXTRA_CALL_KIND, callEndKind.name)
+                putExtra(EXTRA_PHONE, metadata.phone)
+                putExtra(EXTRA_CALL_KIND, metadata.callEndKind.name)
+                putExtra(
+                    EXTRA_CALL_LOG_DATE_MS,
+                    metadata.callLogDateMs ?: MISSING_LONG,
+                )
+                putExtra(
+                    EXTRA_DURATION_SEC,
+                    metadata.durationSec ?: MISSING_LONG,
+                )
                 putExtra(EXTRA_FROM_NOTIFICATION, fromNotification)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -94,5 +99,23 @@ class PostCallAssistantActivity : ComponentActivity() {
                     addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION)
                 }
             }
+
+        fun readMetadata(intent: Intent): PostCallCallMetadata? {
+            val phone = intent.getStringExtra(EXTRA_PHONE)?.trim().orEmpty()
+            if (phone.isBlank()) return null
+            val kind = intent.getStringExtra(EXTRA_CALL_KIND)
+                ?.let { runCatching { PostCallLogic.CallEndKind.valueOf(it) }.getOrNull() }
+                ?: PostCallLogic.CallEndKind.Answered
+            val dateMs = intent.getLongExtra(EXTRA_CALL_LOG_DATE_MS, MISSING_LONG).takeIf { it > 0L }
+            val duration = intent.getLongExtra(EXTRA_DURATION_SEC, MISSING_LONG)
+                .takeIf { it >= 0L && it != MISSING_LONG }
+            return PostCallCallMetadata(
+                phone = phone,
+                callEndKind = kind,
+                callLogDateMs = dateMs,
+                durationSec = duration,
+                callLogType = null,
+            )
+        }
     }
 }

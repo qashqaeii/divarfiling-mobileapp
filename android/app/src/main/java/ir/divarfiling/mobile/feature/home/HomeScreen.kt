@@ -22,12 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.ComponentActivity
-import dagger.hilt.android.EntryPointAccessors
-import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
-import ir.divarfiling.mobile.feature.postcall.ui.PostCallEnableWizard
 import ir.divarfiling.mobile.feature.postcall.ui.PostCallOnboardingCard
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,6 +62,7 @@ fun HomeScreen(
     onNavigateCrm: () -> Unit = {},
     onNavigateProperties: () -> Unit = {},
     onNavigateSettings: () -> Unit = {},
+    onNavigatePostCallSetup: () -> Unit = {},
     onNavigateTools: () -> Unit = {},
     onNavigateMore: () -> Unit = {},
     onDatasetClick: (String) -> Unit = {},
@@ -81,20 +77,6 @@ fun HomeScreen(
     val usesInAppApkUpdate = UpdateDistribution.usesInAppApkUpdate
     var todayExpanded by remember { mutableStateOf(false) }
     var notificationsExpanded by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val postCallEntry = remember(context) {
-        EntryPointAccessors.fromApplication(context, PostCallEntryPoint::class.java)
-    }
-    var showPostCallWizard by remember { mutableStateOf(false) }
-    PostCallEnableWizard(
-        visible = showPostCallWizard,
-        permissionManager = postCallEntry.postCallPermissionManager(),
-        onDismiss = { showPostCallWizard = false },
-        onEnableConfirmed = {
-            scope.launch { viewModel.enablePostCallAfterPermissions() }
-        },
-    )
-
     LaunchedEffect(Unit) {
         updateViewModel.refreshForDashboard()
     }
@@ -153,7 +135,7 @@ fun HomeScreen(
             if (state.showPostCallPromo) {
                 item {
                     PostCallOnboardingCard(
-                        onEnable = { showPostCallWizard = true },
+                        onEnable = onNavigatePostCallSetup,
                         onDismiss = viewModel::dismissPostCallPromo,
                         modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                     )

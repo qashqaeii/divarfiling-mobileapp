@@ -8,6 +8,7 @@ import androidx.compose.ui.platform.LocalContext
 import dagger.hilt.android.EntryPointAccessors
 import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
 import ir.divarfiling.mobile.feature.postcall.ui.PostCallInAppOverlay
+import ir.divarfiling.mobile.feature.postcall.ui.PostCallSetupScreen
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -109,6 +110,7 @@ object Routes {
     const val EXTRACT = "extract"
     const val EXTRACT_SCHEDULES = "extract/schedules"
     const val SETTINGS = "settings"
+    const val POST_CALL_SETUP = "settings/post-call-setup"
     const val PLANS = "plans"
     const val SETTINGS_INSTALL_HELP = "settings/install-help"
     const val MORE = "more"
@@ -339,10 +341,19 @@ fun DivarFilingNavHost(
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
                             onNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                             onNavigateSettings = { navController.navigate(Routes.SETTINGS) },
+                            onNavigatePostCallSetup = { navController.navigate(Routes.POST_CALL_SETUP) },
                             onNavigateTools = { navController.navigate(Routes.TOOLS) },
                             onNavigateMore = { navController.navigate(Routes.MORE) },
                             onDatasetClick = { id -> navController.navigate(Routes.listings(id)) },
                             onNotificationDeepLink = { target -> navController.navigateDeepLink(target) },
+                        )
+                    }
+                    composable(Routes.POST_CALL_SETUP) {
+                        PostCallSetupScreen(
+                            onBack = { navController.popBackStack() },
+                            onFinished = {
+                                navController.popBackStack()
+                            },
                         )
                     }
                     composable(Routes.GLOBAL_SEARCH) {
@@ -759,6 +770,7 @@ fun DivarFilingNavHost(
                             onNavigateSupport = { navController.navigate(Routes.SUPPORT) },
                             onNavigateInstallHelp = { navController.navigate(Routes.SETTINGS_INSTALL_HELP) },
                             onNavigatePlans = { navController.navigate(Routes.PLANS) },
+                            onNavigatePostCallSetup = { navController.navigate(Routes.POST_CALL_SETUP) },
                         )
                     }
                     composable(Routes.PLANS) {

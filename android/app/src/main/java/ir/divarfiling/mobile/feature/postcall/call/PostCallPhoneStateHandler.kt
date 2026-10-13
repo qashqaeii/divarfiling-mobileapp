@@ -96,22 +96,28 @@ class PostCallPhoneStateHandler @Inject constructor(
         val kind = payload.snapshot.kind ?: return
         val endedAt = System.currentTimeMillis()
         PostCallTrace.log(PostCallTrace.Stage.State, "kind=${kind.name}")
-        val phone = callLogResolver.resolveRecentNumber(
+        val resolved = callLogResolver.resolveRecentCall(
             afterWallClockMs = startedAt,
+            endedAtMs = endedAt,
             hintedNumber = payload.snapshot.hintedNumber,
             callKind = kind,
         )
+        val phone = resolved?.phone
         if (phone.isNullOrBlank()) {
             PostCallTrace.log(PostCallTrace.Stage.CallLog, "no valid number")
             return
         }
-        PostCallTrace.log(PostCallTrace.Stage.CallLog, "picked ${PostCallTrace.maskPhone(phone)}")
+        PostCallTrace.log(
+            PostCallTrace.Stage.CallLog,
+            "picked ${PostCallTrace.maskPhone(phone)} dur=${resolved.durationSec}",
+        )
         if (!eventDedupStore.shouldProcess(phone, kind, endedAt)) {
             PostCallTrace.log(PostCallTrace.Stage.Skipped, "dedup event")
             return
         }
+        val metadata = PostCallCallMetadata.fromResolved(phone, kind, resolved)
         withContext(Dispatchers.Main.immediate) {
-            presentationRouter.presentAfterCall(phone, kind)
+            presentationRouter.presentAfterCall(metadata)
         }
     }
 

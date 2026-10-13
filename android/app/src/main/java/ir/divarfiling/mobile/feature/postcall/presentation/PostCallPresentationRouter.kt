@@ -4,8 +4,8 @@ import android.app.KeyguardManager
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.core.notifications.AppForegroundTracker
+import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
 import ir.divarfiling.mobile.feature.postcall.PostCallEventHub
-import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.debug.PostCallTrace
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionManager
 import javax.inject.Inject
@@ -22,15 +22,31 @@ class PostCallPresentationRouter @Inject constructor(
     private val overlayController: PostCallOverlayController,
     private val presentationLedger: PostCallPresentationLedger,
 ) {
-    suspend fun presentAfterCall(phone: String, callEndKind: PostCallLogic.CallEndKind) {
+    suspend fun presentAfterCall(metadata: PostCallCallMetadata) {
+        val phone = metadata.phone
+        val callEndKind = metadata.callEndKind
         PostCallTrace.log(
             PostCallTrace.Stage.Presentation,
             "kind=${callEndKind.name} phone=${PostCallTrace.maskPhone(phone)}",
         )
+
         if (isKeyguardLocked()) {
-            PostCallTrace.log(PostCallTrace.Stage.Skipped, "keyguard locked")
+            if (!presentationLedger.beginPresentation(phone, callEndKind)) return
+            var displayed = false
+            try {
+                if (permissions.snapshot().canNotify) {
+                    displayed = notifier.showKeyguardSafeNotification(metadata)
+                    if (displayed) {
+                        PostCallTrace.log(PostCallTrace.Stage.Notification, "keyguard safe")
+                    }
+                }
+            } finally {
+                if (displayed) presentationLedger.commitPresentation(phone, callEndKind)
+                else presentationLedger.rollbackPresentation(phone, callEndKind)
+            }
             return
         }
+
         if (!presentationLedger.beginPresentation(phone, callEndKind)) {
             PostCallTrace.log(PostCallTrace.Stage.Skipped, "duplicate presentation")
             return
@@ -41,7 +57,7 @@ class PostCallPresentationRouter @Inject constructor(
             val inForeground = AppForegroundTracker.isInForeground
             if (inForeground) {
                 displayed = withContext(Dispatchers.Main.immediate) {
-                    eventHub.tryPresent(phone, callEndKind)
+                    eventHub.tryPresent(metadata)
                 }
                 if (displayed) {
                     PostCallTrace.log(PostCallTrace.Stage.Displayed, "in-app sheet")
@@ -53,7 +69,7 @@ class PostCallPresentationRouter @Inject constructor(
 
             val snap = permissions.snapshot()
             if (snap.canShowOverlay) {
-                val shown = overlayController.show(phone, callEndKind)
+                val shown = overlayController.show(metadata)
                 if (shown) {
                     displayed = true
                     return
@@ -62,7 +78,7 @@ class PostCallPresentationRouter @Inject constructor(
             }
 
             if (snap.canNotify) {
-                val ok = notifier.showPostCallNotification(phone, callEndKind)
+                val ok = notifier.showPostCallNotification(metadata)
                 if (ok) {
                     displayed = true
                     PostCallTrace.log(PostCallTrace.Stage.Notification, "shown")

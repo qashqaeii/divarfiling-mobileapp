@@ -44,7 +44,6 @@ import ir.divarfiling.mobile.core.share.DossierShareActions
 import dagger.hilt.android.EntryPointAccessors
 import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
 import ir.divarfiling.mobile.feature.postcall.PostCallFeatureFlags
-import ir.divarfiling.mobile.feature.postcall.ui.PostCallEnableWizard
 import ir.divarfiling.mobile.feature.postcall.ui.PostCallHealthBlock
 import ir.divarfiling.mobile.feature.postcall.ui.PostCallSettingsBlock
 import kotlinx.coroutines.launch
@@ -59,6 +58,7 @@ fun SettingsScreen(
     onNavigateSupport: () -> Unit = {},
     onNavigateInstallHelp: () -> Unit = {},
     onNavigatePlans: () -> Unit = {},
+    onNavigatePostCallSetup: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -87,19 +87,6 @@ fun SettingsScreen(
     val postCallEntry = remember(context) {
         EntryPointAccessors.fromApplication(context, PostCallEntryPoint::class.java)
     }
-    var showPostCallWizard by remember { mutableStateOf(false) }
-    PostCallEnableWizard(
-        visible = showPostCallWizard,
-        permissionManager = postCallEntry.postCallPermissionManager(),
-        onDismiss = {
-            showPostCallWizard = false
-            viewModel.refreshPostCallSettings()
-        },
-        onEnableConfirmed = {
-            scope.launch { viewModel.enablePostCallAfterPermissions() }
-        },
-    )
-
     AvatarPickerSheet(
         visible = state.showAvatarPicker,
         selectedKey = state.pendingAvatarKey,
@@ -227,11 +214,12 @@ fun SettingsScreen(
                             statusLine = state.postCallStatus,
                             onToggle = { checked ->
                                 if (checked) {
-                                    showPostCallWizard = true
+                                    onNavigatePostCallSetup()
                                 } else {
                                     viewModel.disablePostCall()
                                 }
                             },
+                            onOpenSetup = onNavigatePostCallSetup,
                             onOpenOverlaySettings = {
                                 context.startActivity(postCallEntry.postCallPermissionManager().overlaySettingsIntent())
                             },

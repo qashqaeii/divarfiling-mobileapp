@@ -35,6 +35,7 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.network.PostCallContactBriefDto
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
+import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.PostCallUiMode
 import kotlinx.coroutines.Dispatchers
@@ -42,11 +43,12 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun PostCallCompactOverlayContent(
-    phone: String,
-    callEndKind: PostCallLogic.CallEndKind,
+    metadata: PostCallCallMetadata,
     onDismiss: () -> Unit,
     onExpand: () -> Unit,
 ) {
+    val phone = metadata.phone
+    val callEndKind = metadata.callEndKind
     val context = LocalContext.current
     val crm = remember(context) {
         EntryPointAccessors.fromApplication(context, PostCallEntryPoint::class.java).crmRepository()

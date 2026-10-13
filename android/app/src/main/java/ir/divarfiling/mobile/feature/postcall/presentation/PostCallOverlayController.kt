@@ -15,7 +15,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.feature.postcall.PostCallAssistantActivity
-import ir.divarfiling.mobile.feature.postcall.PostCallLogic
+import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
 import ir.divarfiling.mobile.feature.postcall.debug.PostCallTrace
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionManager
 import ir.divarfiling.mobile.feature.postcall.ui.PostCallCompactOverlayContent
@@ -46,10 +46,10 @@ class PostCallOverlayController @Inject constructor(
 
     fun isShowing(): Boolean = composeView != null
 
-    suspend fun show(phone: String, callEndKind: PostCallLogic.CallEndKind): Boolean =
+    suspend fun show(metadata: PostCallCallMetadata): Boolean =
         withContext(Dispatchers.Main.immediate) {
             showMutex.withLock {
-                showOnMainThread(phone, callEndKind)
+                showOnMainThread(metadata)
             }
         }
 
@@ -68,9 +68,11 @@ class PostCallOverlayController @Inject constructor(
         }
     }
 
-    private fun showOnMainThread(phone: String, callEndKind: PostCallLogic.CallEndKind): Boolean {
+    private fun showOnMainThread(metadata: PostCallCallMetadata): Boolean {
         assertMainThread()
         if (!permissions.canDrawOverlays()) return false
+        val phone = metadata.phone
+        val callEndKind = metadata.callEndKind
         val key = "${phone}|${callEndKind.name}"
         if (showingKey == key && composeView != null) return true
 
@@ -111,15 +113,14 @@ class PostCallOverlayController @Inject constructor(
                 setViewTreeSavedStateRegistryOwner(owner)
                 setContent {
                     DivarFilingTheme {
-                        PostCallCompactOverlayContent(
-                            phone = phone,
-                            callEndKind = callEndKind,
-                            onDismiss = { dismissFromAnyThread() },
-                            onExpand = {
-                                openExpandedActivity(phone, callEndKind)
-                                dismissFromAnyThread()
-                            },
-                        )
+                    PostCallCompactOverlayContent(
+                        metadata = metadata,
+                        onDismiss = { dismissFromAnyThread() },
+                        onExpand = {
+                            openExpandedActivity(metadata)
+                            dismissFromAnyThread()
+                        },
+                    )
                     }
                 }
             }
@@ -154,11 +155,10 @@ class PostCallOverlayController @Inject constructor(
         lifecycleOwner = null
     }
 
-    private fun openExpandedActivity(phone: String, callEndKind: PostCallLogic.CallEndKind) {
+    private fun openExpandedActivity(metadata: PostCallCallMetadata) {
         val intent = PostCallAssistantActivity.intent(
             context,
-            phone,
-            callEndKind,
+            metadata,
             fromNotification = false,
         )
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

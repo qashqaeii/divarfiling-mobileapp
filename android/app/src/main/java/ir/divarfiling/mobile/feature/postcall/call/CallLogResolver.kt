@@ -14,13 +14,14 @@ import javax.inject.Singleton
 class CallLogResolver @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    suspend fun resolveRecentNumber(
+    suspend fun resolveRecentCall(
         afterWallClockMs: Long,
+        endedAtMs: Long,
         hintedNumber: String?,
         callKind: PostCallLogic.CallEndKind,
-        maxAttempts: Int = 5,
-        delayMs: Long = 600L,
-    ): String? {
+        maxAttempts: Int = 8,
+        delayMs: Long = 700L,
+    ): PostCallLogic.ResolvedCallLog? {
         val hintedNormalized = hintedNumber
             ?.let { PhoneNormalizer.normalize(it) }
             ?.takeIf { PhoneNormalizer.isValidIranMobile(it) }
@@ -28,22 +29,46 @@ class CallLogResolver @Inject constructor(
         if (callKind == PostCallLogic.CallEndKind.Ignored) return null
 
         repeat(maxAttempts) { attempt ->
-            val entries = queryRecentEntries(limit = 12)
-            val picked = PostCallLogic.pickCallLogNumber(
+            val entries = queryRecentEntries(limit = 20)
+            val picked = PostCallLogic.pickCallLogEntry(
                 entries = entries,
                 kind = callKind,
                 notBeforeMs = afterWallClockMs,
+                endedAtMs = endedAtMs,
                 hintedNormalized = hintedNormalized,
                 normalize = PhoneNormalizer::normalize,
                 isValidMobile = PhoneNormalizer::isValidIranMobile,
             )
-            if (!picked.isNullOrBlank()) return picked
+            if (picked != null) return picked
             if (attempt < maxAttempts - 1) delay(delayMs)
         }
-        return hintedNormalized?.takeIf {
+        val hintOnly = hintedNormalized?.takeIf {
             callKind == PostCallLogic.CallEndKind.Missed || callKind == PostCallLogic.CallEndKind.Answered
         }
+        return hintOnly?.let {
+            PostCallLogic.ResolvedCallLog(
+                phone = it,
+                dateMs = 0L,
+                durationSec = 0L,
+                logType = -1,
+            )
+        }
     }
+
+    suspend fun resolveRecentNumber(
+        afterWallClockMs: Long,
+        hintedNumber: String?,
+        callKind: PostCallLogic.CallEndKind,
+        maxAttempts: Int = 8,
+        delayMs: Long = 700L,
+    ): String? = resolveRecentCall(
+        afterWallClockMs = afterWallClockMs,
+        endedAtMs = System.currentTimeMillis(),
+        hintedNumber = hintedNumber,
+        callKind = callKind,
+        maxAttempts = maxAttempts,
+        delayMs = delayMs,
+    )?.phone
 
     private fun queryRecentEntries(limit: Int): List<PostCallLogic.CallLogEntry> {
         if (!hasCallLogPermission()) return emptyList()

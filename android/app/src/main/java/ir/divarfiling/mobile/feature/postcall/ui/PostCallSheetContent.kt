@@ -37,8 +37,10 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.feature.postcall.POST_CALL_LEAD_TYPES
 import ir.divarfiling.mobile.feature.postcall.POST_CALL_OUTCOMES
+import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.PostCallUiMode
 import ir.divarfiling.mobile.feature.postcall.PostCallViewModel
@@ -48,19 +50,19 @@ private const val POST_CALL_SHEET_HEIGHT_FRACTION = 0.88f
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostCallSheetContent(
-    phone: String,
-    callEndKind: PostCallLogic.CallEndKind = PostCallLogic.CallEndKind.Answered,
+    metadata: PostCallCallMetadata,
     onDismiss: () -> Unit,
     onOpenContact: (Long) -> Unit,
     viewModel: PostCallViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(phone, callEndKind) {
-        viewModel.load(phone, callEndKind)
+    LaunchedEffect(metadata) {
+        viewModel.load(metadata)
     }
 
-    val headerSubtitle = buildSheetSubtitle(phone, callEndKind)
+    val headerSubtitle = buildSheetSubtitle(metadata.phone, metadata.callEndKind)
+    val isMissed = metadata.callEndKind == PostCallLogic.CallEndKind.Missed
 
     DfSheetScaffold(
         title = "دستیار پس از تماس",
@@ -172,7 +174,7 @@ fun PostCallSheetContent(
                         MetaLine("بودجه", it)
                     }
                 }
-                if (state.expanded) {
+                if (!isMissed && state.expanded) {
                     DfSheetSection("نتیجه تماس") {
                         Row(
                             modifier = Modifier
@@ -199,19 +201,24 @@ fun PostCallSheetContent(
                             DfSecondaryButton("فردا", onClick = { viewModel.submitQuickReminder(24) })
                         }
                     }
-                } else {
+                } else if (!isMissed) {
                     DfSecondaryButton("نمایش جزئیات", onClick = { viewModel.setExpanded(true) })
                 }
-                DfSheetSection("یادداشت کوتاه") {
-                    OutlinedTextField(
-                        value = state.note,
-                        onValueChange = viewModel::onNoteChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("یادداشت این تماس…") },
-                        minLines = 2,
-                        enabled = !state.isSubmitting && !state.submitLocked,
-                    )
+                if (isMissed) {
+                    DfSheetSection("یادآوری تماس مجدد") {
+                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                            DfSecondaryButton("۱ ساعت", onClick = { viewModel.submitQuickReminder(1) })
+                            DfSecondaryButton("فردا", onClick = { viewModel.submitQuickReminder(24) })
+                        }
+                    }
                 }
+                PostCallNoteSections(
+                    noteHeader = state.noteHeader,
+                    note = state.note,
+                    onNoteChange = viewModel::onNoteChange,
+                    enabled = !state.isSubmitting && !state.submitLocked,
+                    placeholder = if (isMissed) "یادداشت اختیاری…" else "توضیحات این تماس…",
+                )
                 state.error?.let {
                     Text(it, color = DfThemeColors.error(), style = AppTypography.labelSmall)
                 }
@@ -257,13 +264,12 @@ fun PostCallSheetContent(
                         ),
                         enabled = !state.isSubmitting && !state.submitLocked,
                     )
-                    OutlinedTextField(
-                        value = state.note,
-                        onValueChange = viewModel::onNoteChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("یادداشت کوتاه") },
-                        minLines = 2,
+                    PostCallNoteSections(
+                        noteHeader = state.noteHeader,
+                        note = state.note,
+                        onNoteChange = viewModel::onNoteChange,
                         enabled = !state.isSubmitting && !state.submitLocked,
+                        placeholder = "یادداشت کوتاه",
                     )
                 }
                 state.error?.let {
@@ -295,7 +301,9 @@ private fun PostCallSheetFooter(
         }
         state.mode == PostCallUiMode.Existing -> {
             val contact = state.contact
-            val primaryOutcome = state.selectedOutcome != null
+            val isMissed = state.callEndKind == PostCallLogic.CallEndKind.Missed
+            val primaryOutcome = !isMissed && state.selectedOutcome != null
+            val canSaveNote = state.note.isNotBlank() || state.noteHeader.isNotBlank()
             Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 DfPrimaryButton(
                     text = if (state.isSubmitting) {
@@ -307,7 +315,7 @@ private fun PostCallSheetFooter(
                     },
                     onClick = if (primaryOutcome) viewModel::submitCallOutcome else viewModel::submitNote,
                     enabled = !state.isSubmitting && !state.submitLocked &&
-                        (primaryOutcome || state.note.isNotBlank()),
+                        (primaryOutcome || canSaveNote),
                     loading = state.isSubmitting,
                 )
                 DfSecondaryButton(
@@ -342,6 +350,35 @@ private fun MetaLine(label: String, value: String) {
     ) {
         Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
         Text(value, style = AppTypography.labelSmall, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun PostCallNoteSections(
+    noteHeader: String,
+    note: String,
+    onNoteChange: (String) -> Unit,
+    enabled: Boolean,
+    placeholder: String,
+) {
+    if (noteHeader.isNotBlank()) {
+        DfSheetSection("اطلاعات تماس") {
+            Text(
+                noteHeader,
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textSecondary(),
+            )
+        }
+    }
+    DfSheetSection("توضیحات") {
+        VoiceTextField(
+            value = note,
+            onValueChange = onNoteChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = placeholder,
+            enabled = enabled,
+            minLines = 2,
+        )
     }
 }
 

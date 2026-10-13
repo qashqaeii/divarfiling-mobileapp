@@ -27,6 +27,7 @@ fun PostCallSettingsBlock(
     onOpenOverlaySettings: () -> Unit,
     onOpenMiuiBackgroundSettings: (() -> Unit)? = null,
     onOpenAppSettings: () -> Unit,
+    onOpenSetup: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -77,6 +78,15 @@ fun PostCallSettingsBlock(
                             subtitle = miuiSubtitle,
                             icon = DfIcons.ExternalLink,
                             onClick = onOpenMiuiBackgroundSettings,
+                            showDivider = true,
+                        )
+                    }
+                    onOpenSetup?.let { openSetup ->
+                        SettingsInfoRow(
+                            title = "راه‌اندازی و دسترسی‌ها",
+                            subtitle = "صفحه مدیریت دستیار پس از تماس",
+                            icon = DfIcons.Settings,
+                            onClick = openSetup,
                             showDivider = true,
                         )
                     }

@@ -38,6 +38,9 @@ val POST_CALL_OUTCOMES = listOf(
 data class PostCallUiState(
     val phone: String = "",
     val callEndKind: PostCallLogic.CallEndKind = PostCallLogic.CallEndKind.Answered,
+    /** سربرگ ثابت یادداشت تماس؛ یک‌بار از Call Log ساخته می‌شود. */
+    val noteHeader: String = "",
+    val callMetadata: PostCallCallMetadata? = null,
     val mode: PostCallUiMode = PostCallUiMode.Loading,
     val expanded: Boolean = false,
     val contact: PostCallContactBriefDto? = null,
@@ -60,11 +63,14 @@ class PostCallViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PostCallUiState())
     val uiState: StateFlow<PostCallUiState> = _uiState.asStateFlow()
 
-    fun load(phone: String, callEndKind: PostCallLogic.CallEndKind = PostCallLogic.CallEndKind.Answered) {
-        val normalizedPhone = phone.trim()
+    fun load(metadata: PostCallCallMetadata) {
+        val normalizedPhone = metadata.phone.trim()
+        val noteHeader = PostCallNoteHeaderBuilder.build(metadata)
         _uiState.value = PostCallUiState(
             phone = normalizedPhone,
-            callEndKind = callEndKind,
+            callEndKind = metadata.callEndKind,
+            noteHeader = noteHeader,
+            callMetadata = metadata,
             isResolving = true,
         )
         viewModelScope.launch {
@@ -82,10 +88,12 @@ class PostCallViewModel @Inject constructor(
     }
 
     fun retryResolve() {
-        val phone = _uiState.value.phone
-        if (phone.isBlank()) return
-        load(phone, _uiState.value.callEndKind)
+        val meta = _uiState.value.callMetadata ?: return
+        load(meta)
     }
+
+    private fun composeCrmNote(userBody: String): String =
+        PostCallNoteHeaderBuilder.composeNoteForCrm(_uiState.value.noteHeader, userBody)
 
     fun setExpanded(expanded: Boolean) = _uiState.update { it.copy(expanded = expanded) }
 
@@ -118,10 +126,10 @@ class PostCallViewModel @Inject constructor(
         val state = _uiState.value
         val contactId = state.contact?.id ?: return
         val note = state.note.trim()
-        if (note.isBlank() || state.isSubmitting || state.submitLocked) return
+        if ((note.isBlank() && state.noteHeader.isBlank()) || state.isSubmitting || state.submitLocked) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (val result = crmRepository.createNote(contactId, note)) {
+            when (val result = crmRepository.createNote(contactId, composeCrmNote(note))) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(
                         isSubmitting = false,
@@ -142,10 +150,11 @@ class PostCallViewModel @Inject constructor(
         val contactId = state.contact?.id ?: return
         val outcome = state.selectedOutcome ?: return
         val extra = state.note.trim()
-        val content = buildString {
+        val body = buildString {
             append("نتیجه تماس: $outcome")
             if (extra.isNotBlank()) append("\n").append(extra)
         }
+        val content = composeCrmNote(body)
         if (state.isSubmitting || state.submitLocked) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
@@ -173,7 +182,8 @@ class PostCallViewModel @Inject constructor(
         val title = "پیگیری تماس"
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (val result = crmRepository.createReminder(contactId, title, dueAt, note = state.note.trim())) {
+            val reminderNote = composeCrmNote(state.note.trim())
+            when (val result = crmRepository.createReminder(contactId, title, dueAt, note = reminderNote)) {
                 is ApiResult.Success -> _uiState.update {
                     it.copy(
                         isSubmitting = false,
@@ -200,7 +210,7 @@ class PostCallViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val contactId = result.data.id
                     if (note.isNotBlank()) {
-                        when (val noteResult = crmRepository.createNote(contactId, note)) {
+                        when (val noteResult = crmRepository.createNote(contactId, composeCrmNote(note))) {
                             is ApiResult.Success -> _uiState.update {
                                 it.copy(
                                     isSubmitting = false,
