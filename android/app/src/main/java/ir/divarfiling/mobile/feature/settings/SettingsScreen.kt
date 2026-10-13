@@ -19,7 +19,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +44,7 @@ import ir.divarfiling.mobile.core.share.DossierShareActions
 import dagger.hilt.android.EntryPointAccessors
 import ir.divarfiling.mobile.feature.postcall.PostCallEntryPoint
 import ir.divarfiling.mobile.feature.postcall.PostCallFeatureFlags
+import ir.divarfiling.mobile.feature.postcall.ui.PostCallEnableWizard
 import ir.divarfiling.mobile.feature.postcall.ui.PostCallSettingsBlock
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -83,16 +86,18 @@ fun SettingsScreen(
     val postCallEntry = remember(context) {
         EntryPointAccessors.fromApplication(context, PostCallEntryPoint::class.java)
     }
-    val postCallPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { grants ->
-        val phoneOk = grants[android.Manifest.permission.READ_PHONE_STATE] == true
-        if (phoneOk) {
-            scope.launch { viewModel.enablePostCallAfterPermissions() }
-        } else {
+    var showPostCallWizard by remember { mutableStateOf(false) }
+    PostCallEnableWizard(
+        visible = showPostCallWizard,
+        permissionManager = postCallEntry.postCallPermissionManager(),
+        onDismiss = {
+            showPostCallWizard = false
             viewModel.refreshPostCallSettings()
-        }
-    }
+        },
+        onEnableConfirmed = {
+            scope.launch { viewModel.enablePostCallAfterPermissions() }
+        },
+    )
 
     AvatarPickerSheet(
         visible = state.showAvatarPicker,
@@ -221,15 +226,18 @@ fun SettingsScreen(
                             statusLine = state.postCallStatus,
                             onToggle = { checked ->
                                 if (checked) {
-                                    postCallPermissionLauncher.launch(
-                                        postCallEntry.postCallPermissionManager().requiredRuntimePermissions(),
-                                    )
+                                    showPostCallWizard = true
                                 } else {
                                     viewModel.disablePostCall()
                                 }
                             },
                             onOpenOverlaySettings = {
                                 context.startActivity(postCallEntry.postCallPermissionManager().overlaySettingsIntent())
+                            },
+                            onOpenMiuiBackgroundSettings = {
+                                val pm = postCallEntry.postCallPermissionManager()
+                                val intent = pm.miuiBackgroundPopupSettingsIntentOrNull() ?: pm.appDetailsIntent()
+                                context.startActivity(intent)
                             },
                             onOpenAppSettings = {
                                 context.startActivity(postCallEntry.postCallPermissionManager().appDetailsIntent())

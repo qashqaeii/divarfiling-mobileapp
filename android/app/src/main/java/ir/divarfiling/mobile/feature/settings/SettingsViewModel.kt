@@ -134,6 +134,12 @@ class SettingsViewModel @Inject constructor(
         if (!snap.canShowOverlay && !snap.canNotify) {
             return "پنجره شناور یا اعلان را فعال کنید تا پس از تماس یادآور ببینید."
         }
+        if (snap.isXiaomiFamilyDevice &&
+            snap.miuiBackgroundPopupStatus ==
+            ir.divarfiling.mobile.feature.postcall.permission.MiuiBackgroundPopupStatus.NeedsManualConfirmation
+        ) {
+            return "در گوشی شیائومی، مجوز پنجره پس‌زمینه MIUI را جدا از Overlay استاندارد بررسی کنید."
+        }
         return null
     }
 

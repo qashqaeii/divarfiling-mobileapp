@@ -72,6 +72,7 @@ class PostCallController @Inject constructor(
     suspend fun onLogout() {
         stopRuntimeOnly()
         preferences.clearAll()
+        permissionManager.clearWizardAcknowledgements()
     }
 
     fun stopRuntimeOnly() {

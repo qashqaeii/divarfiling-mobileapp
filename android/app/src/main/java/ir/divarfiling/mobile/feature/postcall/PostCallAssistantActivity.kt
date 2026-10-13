@@ -27,6 +27,9 @@ class PostCallAssistantActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val phone = intent.getStringExtra(EXTRA_PHONE).orEmpty()
+        val callKind = intent.getStringExtra(EXTRA_CALL_KIND)
+            ?.let { runCatching { PostCallLogic.CallEndKind.valueOf(it) }.getOrNull() }
+            ?: PostCallLogic.CallEndKind.Answered
         if (phone.isBlank()) {
             finish()
             return
@@ -42,6 +45,7 @@ class PostCallAssistantActivity : ComponentActivity() {
                 ) {
                     PostCallSheetContent(
                         phone = phone,
+                        callEndKind = callKind,
                         onDismiss = {
                             scope.launch {
                                 sheetState.hide()
@@ -69,12 +73,19 @@ class PostCallAssistantActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_PHONE = "post_call_phone"
+        const val EXTRA_CALL_KIND = "post_call_call_kind"
         const val EXTRA_OPEN_CONTACT_ID = "post_call_open_contact_id"
         private const val EXTRA_FROM_NOTIFICATION = "post_call_from_notification"
 
-        fun intent(context: Context, phone: String, fromNotification: Boolean): Intent =
+        fun intent(
+            context: Context,
+            phone: String,
+            callEndKind: PostCallLogic.CallEndKind,
+            fromNotification: Boolean,
+        ): Intent =
             Intent(context, PostCallAssistantActivity::class.java).apply {
                 putExtra(EXTRA_PHONE, phone)
+                putExtra(EXTRA_CALL_KIND, callEndKind.name)
                 putExtra(EXTRA_FROM_NOTIFICATION, fromNotification)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)

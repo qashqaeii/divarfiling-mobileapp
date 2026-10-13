@@ -33,27 +33,42 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
+import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.PostCallUiMode
 import ir.divarfiling.mobile.feature.postcall.PostCallViewModel
+
+private const val POST_CALL_SHEET_HEIGHT_FRACTION = 0.88f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostCallSheetContent(
     phone: String,
+    callEndKind: PostCallLogic.CallEndKind = PostCallLogic.CallEndKind.Answered,
     onDismiss: () -> Unit,
     onOpenContact: (Long) -> Unit,
     viewModel: PostCallViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(phone) {
-        viewModel.load(phone)
+    LaunchedEffect(phone, callEndKind) {
+        viewModel.load(phone, callEndKind)
     }
+
+    val headerSubtitle = buildSheetSubtitle(phone, callEndKind)
 
     DfSheetScaffold(
         title = "دستیار پس از تماس",
-        subtitle = state.phone,
+        subtitle = headerSubtitle,
         onClose = onDismiss,
+        bodyHeightFraction = POST_CALL_SHEET_HEIGHT_FRACTION,
+        footer = {
+            PostCallSheetFooter(
+                state = state,
+                onDismiss = onDismiss,
+                onOpenContact = onOpenContact,
+                viewModel = viewModel,
+            )
+        },
     ) {
         when {
             state.isResolving -> {
@@ -74,7 +89,6 @@ fun PostCallSheetContent(
                         color = DfThemeColors.textSecondary(),
                     )
                 }
-                DfSecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
             state.mode == PostCallUiMode.Ambiguous -> {
                 DfSheetSection("چند مخاطب با این شماره") {
@@ -91,7 +105,6 @@ fun PostCallSheetContent(
                         )
                     }
                 }
-                DfSecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
             state.mode == PostCallUiMode.Error -> {
                 DfSheetSection("خطا") {
@@ -101,7 +114,6 @@ fun PostCallSheetContent(
                         color = DfThemeColors.textSecondary(),
                     )
                 }
-                DfSecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
             state.mode == PostCallUiMode.Existing -> {
                 val contact = state.contact
@@ -128,11 +140,6 @@ fun PostCallSheetContent(
                                 contact?.fullName ?: "—",
                                 style = AppTypography.cardTitle,
                                 fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                state.phone,
-                                style = AppTypography.labelSmall,
-                                color = DfThemeColors.textSecondary(),
                             )
                             Text(
                                 "موجود در CRM",
@@ -168,31 +175,12 @@ fun PostCallSheetContent(
                 state.successMessage?.let {
                     Text(it, color = DfColors.Purple, style = AppTypography.labelSmall)
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                    DfPrimaryButton(
-                        text = if (state.isSubmitting) "در حال ثبت…" else "ثبت یادداشت",
-                        onClick = viewModel::submitNote,
-                        enabled = !state.isSubmitting && !state.submitLocked && state.note.isNotBlank(),
-                        loading = state.isSubmitting,
-                    )
-                    DfSecondaryButton(
-                        text = "مشاهده پرونده",
-                        onClick = { contact?.id?.let(onOpenContact) },
-                        enabled = contact?.id != null,
-                    )
-                    DfSecondaryButton(text = "بستن", onClick = onDismiss)
-                }
             }
             state.mode == PostCallUiMode.New -> {
-                DfSheetSection(title = "شماره") {
-                    Text(
-                        state.phone,
-                        style = AppTypography.cardTitle,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                DfSheetSection(title = "وضعیت CRM") {
                     Text(
                         "در CRM ثبت نشده",
-                        style = AppTypography.labelSmall,
+                        style = AppTypography.bodyDescription,
                         color = DfThemeColors.textSecondary(),
                     )
                 }
@@ -223,15 +211,53 @@ fun PostCallSheetContent(
                 state.successMessage?.let {
                     Text(it, color = DfColors.Purple, style = AppTypography.labelSmall)
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                    DfPrimaryButton(
-                        text = if (state.isSubmitting) "در حال ثبت…" else "ثبت مخاطب",
-                        onClick = viewModel::submitQuickLead,
-                        enabled = !state.isSubmitting && !state.submitLocked && state.leadName.isNotBlank(),
-                        loading = state.isSubmitting,
-                    )
-                    DfSecondaryButton(text = "فعلاً نه", onClick = onDismiss)
-                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PostCallSheetFooter(
+    state: ir.divarfiling.mobile.feature.postcall.PostCallUiState,
+    onDismiss: () -> Unit,
+    onOpenContact: (Long) -> Unit,
+    viewModel: PostCallViewModel,
+) {
+    when {
+        state.isResolving -> {
+            DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+        }
+        state.mode == PostCallUiMode.Invalid ||
+            state.mode == PostCallUiMode.Ambiguous ||
+            state.mode == PostCallUiMode.Error -> {
+            DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+        }
+        state.mode == PostCallUiMode.Existing -> {
+            val contact = state.contact
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                DfPrimaryButton(
+                    text = if (state.isSubmitting) "در حال ثبت…" else "ثبت یادداشت",
+                    onClick = viewModel::submitNote,
+                    enabled = !state.isSubmitting && !state.submitLocked && state.note.isNotBlank(),
+                    loading = state.isSubmitting,
+                )
+                DfSecondaryButton(
+                    text = "مشاهده پرونده",
+                    onClick = { contact?.id?.let(onOpenContact) },
+                    enabled = contact?.id != null,
+                )
+                DfSecondaryButton(text = "بستن", onClick = onDismiss)
+            }
+        }
+        state.mode == PostCallUiMode.New -> {
+            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                DfPrimaryButton(
+                    text = if (state.isSubmitting) "در حال ثبت…" else "ثبت مخاطب",
+                    onClick = viewModel::submitQuickLead,
+                    enabled = !state.isSubmitting && !state.submitLocked && state.leadName.isNotBlank(),
+                    loading = state.isSubmitting,
+                )
+                DfSecondaryButton(text = "فعلاً نه", onClick = onDismiss)
             }
         }
     }
@@ -248,4 +274,14 @@ private fun MetaLine(label: String, value: String) {
         Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
         Text(value, style = AppTypography.labelSmall, fontWeight = FontWeight.Medium)
     }
+}
+
+private fun buildSheetSubtitle(phone: String, kind: PostCallLogic.CallEndKind): String {
+    val kindLabel = when (kind) {
+        PostCallLogic.CallEndKind.Missed -> "تماس بی‌پاسخ"
+        PostCallLogic.CallEndKind.Outgoing -> "تماس خروجی"
+        PostCallLogic.CallEndKind.Answered -> "تماس ورودی"
+        PostCallLogic.CallEndKind.Ignored -> "تماس"
+    }
+    return "$kindLabel · $phone"
 }

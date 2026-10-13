@@ -26,6 +26,7 @@ enum class PostCallUiMode {
 
 data class PostCallUiState(
     val phone: String = "",
+    val callEndKind: PostCallLogic.CallEndKind = PostCallLogic.CallEndKind.Answered,
     val mode: PostCallUiMode = PostCallUiMode.Loading,
     val contact: PostCallContactBriefDto? = null,
     val ambiguousContacts: List<PostCallContactBriefDto> = emptyList(),
@@ -45,9 +46,13 @@ class PostCallViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PostCallUiState())
     val uiState: StateFlow<PostCallUiState> = _uiState.asStateFlow()
 
-    fun load(phone: String) {
+    fun load(phone: String, callEndKind: PostCallLogic.CallEndKind = PostCallLogic.CallEndKind.Answered) {
         val normalizedPhone = phone.trim()
-        _uiState.value = PostCallUiState(phone = normalizedPhone, isResolving = true)
+        _uiState.value = PostCallUiState(
+            phone = normalizedPhone,
+            callEndKind = callEndKind,
+            isResolving = true,
+        )
         viewModelScope.launch {
             when (val result = crmRepository.resolvePostCall(normalizedPhone)) {
                 is ApiResult.Success -> applyResolve(result.data)

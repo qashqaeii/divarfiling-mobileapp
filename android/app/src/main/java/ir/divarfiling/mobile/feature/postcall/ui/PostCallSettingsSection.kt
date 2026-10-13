@@ -11,6 +11,7 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
+import ir.divarfiling.mobile.feature.postcall.permission.MiuiBackgroundPopupStatus
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionSnapshot
 import ir.divarfiling.mobile.feature.settings.NotificationPrefRow
 import ir.divarfiling.mobile.feature.settings.SettingsInfoRow
@@ -24,6 +25,7 @@ fun PostCallSettingsBlock(
     statusLine: String?,
     onToggle: (Boolean) -> Unit,
     onOpenOverlaySettings: () -> Unit,
+    onOpenMiuiBackgroundSettings: (() -> Unit)? = null,
     onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -65,6 +67,19 @@ fun PostCallSettingsBlock(
                         onClick = onOpenOverlaySettings,
                         showDivider = true,
                     )
+                    if (permissions.isXiaomiFamilyDevice && onOpenMiuiBackgroundSettings != null) {
+                        val miuiSubtitle = when (permissions.miuiBackgroundPopupStatus) {
+                            MiuiBackgroundPopupStatus.UserAcknowledged -> "تأیید دستی ثبت شد"
+                            else -> "نیازمند تأیید دستی (جدا از Overlay)"
+                        }
+                        SettingsInfoRow(
+                            title = "پنجره پس‌زمینه MIUI",
+                            subtitle = miuiSubtitle,
+                            icon = DfIcons.ExternalLink,
+                            onClick = onOpenMiuiBackgroundSettings,
+                            showDivider = true,
+                        )
+                    }
                     SettingsInfoRow(
                         title = "مجوزهای تماس",
                         subtitle = "تنظیمات برنامه در اندروید",
@@ -81,6 +96,12 @@ private fun buildPermissionSummary(snap: PostCallPermissionSnapshot): String {
     val parts = mutableListOf<String>()
     parts += if (snap.phoneStateGranted) "وضعیت تماس: بله" else "وضعیت تماس: خیر"
     parts += if (snap.callLogRuntimeAvailable) "گزارش تماس: بله" else "گزارش تماس: محدود"
-    parts += if (snap.canShowOverlay) "پنجره شناور: بله" else "پنجره شناور: خیر"
+    parts += if (snap.canShowOverlay) "Overlay: بله" else "Overlay: خیر"
+    if (snap.isXiaomiFamilyDevice) {
+        parts += when (snap.miuiBackgroundPopupStatus) {
+            MiuiBackgroundPopupStatus.UserAcknowledged -> "پنجره پس‌زمینه MIUI: تأیید دستی"
+            else -> "پنجره پس‌زمینه MIUI: نیازمند تأیید دستی"
+        }
+    }
     return parts.joinToString(" · ")
 }

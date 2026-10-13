@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.R
 import ir.divarfiling.mobile.core.notifications.NotificationCatalog
 import ir.divarfiling.mobile.feature.postcall.PostCallAssistantActivity
+import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,9 +21,9 @@ import javax.inject.Singleton
 class PostCallNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    fun showPostCallNotification(phone: String): Boolean {
+    fun showPostCallNotification(phone: String, callEndKind: PostCallLogic.CallEndKind): Boolean {
         ensureChannel()
-        val intent = PostCallAssistantActivity.intent(context, phone, fromNotification = true)
+        val intent = PostCallAssistantActivity.intent(context, phone, callEndKind, fromNotification = true)
         val pending = PendingIntent.getActivity(
             context,
             phone.hashCode(),
@@ -32,7 +33,7 @@ class PostCallNotifier @Inject constructor(
         val notification = NotificationCompat.Builder(context, NotificationCatalog.CHANNEL_POST_CALL)
             .setSmallIcon(R.drawable.ic_stat_divarfiling)
             .setColor(context.getColor(R.color.notification_brand))
-            .setContentTitle("تماس پایان یافت")
+            .setContentTitle(notificationTitle(callEndKind))
             .setContentText("ثبت سریع در CRM برای $phone")
             .setAutoCancel(true)
             .setContentIntent(pending)
@@ -69,6 +70,13 @@ class PostCallNotifier @Inject constructor(
             description = "یادآور ثبت مخاطب یا یادداشت بعد از تماس"
         }
         manager.createNotificationChannel(channel)
+    }
+
+    private fun notificationTitle(kind: PostCallLogic.CallEndKind): String = when (kind) {
+        PostCallLogic.CallEndKind.Missed -> "تماس بی‌پاسخ"
+        PostCallLogic.CallEndKind.Outgoing -> "تماس خروجی پایان یافت"
+        PostCallLogic.CallEndKind.Answered -> "تماس پایان یافت"
+        PostCallLogic.CallEndKind.Ignored -> "تماس پایان یافت"
     }
 
     companion object {

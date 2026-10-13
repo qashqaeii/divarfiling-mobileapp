@@ -55,6 +55,7 @@
             android:launchMode="singleTop"
             android:showWhenLocked="false"
             android:turnScreenOn="false"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.DivarFiling" />
 
         <service

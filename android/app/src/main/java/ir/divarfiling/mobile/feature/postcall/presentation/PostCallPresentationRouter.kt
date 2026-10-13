@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.core.notifications.AppForegroundTracker
 import ir.divarfiling.mobile.feature.postcall.PostCallAssistantActivity
 import ir.divarfiling.mobile.feature.postcall.PostCallEventHub
+import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionManager
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,16 +20,23 @@ class PostCallPresentationRouter @Inject constructor(
     private val eventHub: PostCallEventHub,
     private val notifier: PostCallNotifier,
 ) {
-    fun presentAfterCall(phone: String) {
+    fun presentAfterCall(phone: String, callEndKind: PostCallLogic.CallEndKind) {
         if (isKeyguardLocked()) return
         val snap = permissions.snapshot()
         val inForeground = AppForegroundTracker.isInForeground
 
-        if (inForeground && eventHub.tryPresent(phone)) return
+        if (inForeground && eventHub.tryPresent(phone, callEndKind)) return
 
         if (snap.canShowOverlay) {
             try {
-                context.startActivity(PostCallAssistantActivity.intent(context, phone, fromNotification = false))
+                context.startActivity(
+                    PostCallAssistantActivity.intent(
+                        context,
+                        phone,
+                        callEndKind,
+                        fromNotification = false,
+                    ),
+                )
                 return
             } catch (e: ActivityNotFoundException) {
                 Log.w(TAG, "Post-call overlay activity blocked", e)
@@ -38,12 +46,12 @@ class PostCallPresentationRouter @Inject constructor(
         }
 
         if (snap.canNotify) {
-            notifier.showPostCallNotification(phone)
+            notifier.showPostCallNotification(phone, callEndKind)
             return
         }
 
         if (inForeground) {
-            eventHub.tryPresent(phone)
+            eventHub.tryPresent(phone, callEndKind)
         }
     }
 

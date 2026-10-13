@@ -5,6 +5,7 @@ import ir.divarfiling.mobile.feature.postcall.call.PostCallLogic
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PostCallCallSessionStoreTest {
@@ -22,7 +23,7 @@ class PostCallCallSessionStoreTest {
     }
 
     @Test
-    fun persisted_missed_call_does_not_produce_payload_for_present() {
+    fun persisted_missed_call_is_presented() {
         val payload = PostCallCallSessionStore.idlePayloadFromPersisted(
             ringing = true,
             offHook = false,
@@ -31,7 +32,7 @@ class PostCallCallSessionStoreTest {
         )
         assertNotNull(payload)
         assertEquals(PostCallLogic.CallEndKind.Missed, payload!!.snapshot.kind)
-        assertEquals(false, PostCallLogic.shouldPresentAfterCall(payload.snapshot.kind))
+        assertTrue(PostCallLogic.shouldPresentAfterCall(payload.snapshot.kind))
     }
 
     @Test

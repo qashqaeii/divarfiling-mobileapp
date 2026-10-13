@@ -17,23 +17,36 @@ class CallLogResolver @Inject constructor(
     suspend fun resolveRecentNumber(
         afterWallClockMs: Long,
         hintedNumber: String?,
-        maxAttempts: Int = 3,
-        delayMs: Long = 450L,
+        callKind: PostCallLogic.CallEndKind,
+        maxAttempts: Int = 5,
+        delayMs: Long = 600L,
     ): String? {
-        if (!PostCallLogic.isPrivateOrEmptyNumber(hintedNumber)) {
-            val normalized = PhoneNormalizer.normalize(hintedNumber)
-            if (PhoneNormalizer.isValidIranMobile(normalized)) return normalized
-        }
+        val hintedNormalized = hintedNumber
+            ?.let { PhoneNormalizer.normalize(it) }
+            ?.takeIf { PhoneNormalizer.isValidIranMobile(it) }
+
+        if (callKind == PostCallLogic.CallEndKind.Ignored) return null
+
         repeat(maxAttempts) { attempt ->
-            val fromLog = queryLatestEligible(afterWallClockMs)
-            if (!fromLog.isNullOrBlank()) return fromLog
+            val entries = queryRecentEntries(limit = 12)
+            val picked = PostCallLogic.pickCallLogNumber(
+                entries = entries,
+                kind = callKind,
+                notBeforeMs = afterWallClockMs,
+                hintedNormalized = hintedNormalized,
+                normalize = PhoneNormalizer::normalize,
+                isValidMobile = PhoneNormalizer::isValidIranMobile,
+            )
+            if (!picked.isNullOrBlank()) return picked
             if (attempt < maxAttempts - 1) delay(delayMs)
         }
-        return null
+        return hintedNormalized?.takeIf {
+            callKind == PostCallLogic.CallEndKind.Missed || callKind == PostCallLogic.CallEndKind.Answered
+        }
     }
 
-    private fun queryLatestEligible(notBeforeMs: Long): String? {
-        if (!hasCallLogPermission()) return null
+    private fun queryRecentEntries(limit: Int): List<PostCallLogic.CallLogEntry> {
+        if (!hasCallLogPermission()) return emptyList()
         val uri = CallLog.Calls.CONTENT_URI
         val projection = arrayOf(
             CallLog.Calls.NUMBER,
@@ -49,18 +62,22 @@ class CallLogResolver @Inject constructor(
         } catch (_: Exception) {
             null
         }
+        val result = mutableListOf<PostCallLogic.CallLogEntry>()
         cursor?.use { c ->
-            if (!c.moveToFirst()) return null
-            val date = c.getLong(c.getColumnIndexOrThrow(CallLog.Calls.DATE))
-            if (date < notBeforeMs - 5_000L) return null
-            val type = c.getInt(c.getColumnIndexOrThrow(CallLog.Calls.TYPE))
-            if (!PostCallLogic.shouldAcceptCallLogType(type)) return null
-            val number = c.getString(c.getColumnIndexOrThrow(CallLog.Calls.NUMBER))
-            if (PostCallLogic.isPrivateOrEmptyNumber(number)) return null
-            val normalized = PhoneNormalizer.normalize(number)
-            return normalized.takeIf { PhoneNormalizer.isValidIranMobile(it) }
+            var count = 0
+            while (c.moveToNext() && count < limit) {
+                result.add(
+                    PostCallLogic.CallLogEntry(
+                        number = c.getString(c.getColumnIndexOrThrow(CallLog.Calls.NUMBER)).orEmpty(),
+                        type = c.getInt(c.getColumnIndexOrThrow(CallLog.Calls.TYPE)),
+                        dateMs = c.getLong(c.getColumnIndexOrThrow(CallLog.Calls.DATE)),
+                        durationSec = c.getLong(c.getColumnIndexOrThrow(CallLog.Calls.DURATION)),
+                    ),
+                )
+                count++
+            }
         }
-        return null
+        return result
     }
 
     fun hasCallLogPermission(): Boolean {

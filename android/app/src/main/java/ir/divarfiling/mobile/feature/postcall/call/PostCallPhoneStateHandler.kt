@@ -75,12 +75,14 @@ class PostCallPhoneStateHandler @Inject constructor(
         val payload = sessionStore.consumeOnIdle() ?: return
         if (!PostCallLogic.shouldPresentAfterCall(payload.snapshot.kind)) return
         val startedAt = payload.startedAtMs.takeIf { it > 0L } ?: System.currentTimeMillis()
+        val kind = payload.snapshot.kind ?: return
         val phone = callLogResolver.resolveRecentNumber(
             afterWallClockMs = startedAt,
             hintedNumber = payload.snapshot.hintedNumber,
+            callKind = kind,
         )
         if (phone.isNullOrBlank()) return
-        presentationRouter.presentAfterCall(phone)
+        presentationRouter.presentAfterCall(phone, kind)
     }
 
     private fun hasPhoneStatePermission(): Boolean =
