@@ -143,10 +143,11 @@ class AiAssistantViewModel @Inject constructor(
             }
             return
         }
-        if (state.quota?.remaining == 0 && state.quota.enabled) {
+        val quota = state.quota
+        if (quota != null && quota.enabled && !quota.isUnlimited && quota.remaining <= 0) {
             _uiState.update {
                 it.copy(
-                    error = "سهمیه روزانه AI تمام شده است. می‌توانید بعداً دوباره تلاش کنید.",
+                    error = "سهمیه روزانه AI تمام شده است. برای استفاده نامحدود، لایسنس را فعال کنید.",
                     successMessage = null,
                 )
             }
@@ -188,10 +189,11 @@ class AiAssistantViewModel @Inject constructor(
             _uiState.update { it.copy(error = "برای خلاصه‌سازی، یک آگهی از فایلینگ انتخاب کنید", successMessage = null) }
             return
         }
-        if (_uiState.value.quota?.remaining == 0 && _uiState.value.quota?.enabled == true) {
+        val quota = _uiState.value.quota
+        if (quota != null && quota.enabled && !quota.isUnlimited && quota.remaining <= 0) {
             _uiState.update {
                 it.copy(
-                    error = "سهمیه روزانه AI تمام شده است. می‌توانید بعداً دوباره تلاش کنید.",
+                    error = "سهمیه روزانه AI تمام شده است. برای استفاده نامحدود، لایسنس را فعال کنید.",
                     successMessage = null,
                 )
             }

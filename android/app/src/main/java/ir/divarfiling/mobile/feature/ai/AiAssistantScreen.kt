@@ -98,7 +98,7 @@ fun AiAssistantScreen(
             },
         )
     }
-    val quotaExhausted = state.quota?.let { it.enabled && it.remaining <= 0 } == true
+    val quotaExhausted = state.quota?.let { it.enabled && !it.isUnlimited && it.remaining <= 0 } == true
     val aiDisabled = state.quota?.enabled == false
     val pad = aiHorizontalPadding()
 
@@ -180,7 +180,7 @@ fun AiAssistantScreen(
                         }
                         quotaExhausted -> item {
                             DfStatusBanner(
-                                message = "سهمیه امروز تمام شده است. می‌توانید فردا دوباره تلاش کنید یا از نسخه جایگزین استفاده کنید.",
+                                message = "سهمیه امروز تمام شده است. برای استفاده نامحدود، لایسنس ربات استخراج دیوار را فعال کنید.",
                                 tone = DfStatusTone.Warning,
                                 title = "سهمیه تمام شده",
                                 icon = DfIcons.Sparkles,
@@ -196,6 +196,7 @@ fun AiAssistantScreen(
                                 remaining = quota.remaining,
                                 limit = quota.limit,
                                 enabled = quota.enabled,
+                                isUnlimited = quota.isUnlimited,
                                 modifier = Modifier.padding(horizontal = pad),
                             )
                         }
@@ -368,10 +369,12 @@ private fun AiQuotaHero(
     remaining: Int,
     limit: Int,
     enabled: Boolean,
+    isUnlimited: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val accent = when {
         !enabled -> DfThemeColors.warning()
+        isUnlimited -> DfThemeColors.primary()
         remaining > 0 -> DfThemeColors.success()
         else -> DfThemeColors.error()
     }
@@ -418,17 +421,22 @@ private fun AiQuotaHero(
                     color = DfThemeColors.textPrimary(),
                 )
                 Text(
-                    if (enabled) {
-                        "$remaining از $limit درخواست باقی مانده"
-                    } else {
-                        "سرویس AI برای این حساب خاموش است"
+                    when {
+                        !enabled -> "سرویس AI برای این حساب خاموش است"
+                        isUnlimited -> "استفاده نامحدود ∞"
+                        else -> "$remaining از $limit درخواست باقی مانده"
                     },
                     style = AppTypography.bodyDescription,
                     color = DfThemeColors.textSecondary(),
                 )
             }
             DfBadge(
-                text = if (!enabled) "خاموش" else if (remaining > 0) "فعال" else "تمام",
+                text = when {
+                    !enabled -> "خاموش"
+                    isUnlimited -> "∞"
+                    remaining > 0 -> "فعال"
+                    else -> "تمام"
+                },
                 color = accent.copy(alpha = 0.14f),
                 textColor = accent,
             )

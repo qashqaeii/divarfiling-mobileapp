@@ -14,7 +14,6 @@ object SmartCommandStateLogic {
         if (caps == null) return null
         if (caps.isUnlimited) return null
         if (!caps.aiEnabled) return SmartCommandBlockReason.AiDisabled
-        if (!caps.hasLicense) return SmartCommandBlockReason.NoLicense
         if (!caps.canUseSmartCommand) return SmartCommandBlockReason.FeatureDisabled
         val remaining = smartCommandRemaining(caps)
         if (remaining != null && remaining <= 0) return SmartCommandBlockReason.QuotaExhausted

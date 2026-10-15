@@ -2379,6 +2379,9 @@ data class AiQuotaData(
     val limit: Int = 0,
     @SerialName("plan_label") val planLabel: String? = null,
     val enabled: Boolean = true,
+    @SerialName("has_license") val hasLicense: Boolean = false,
+    @SerialName("is_unlimited") val isUnlimited: Boolean = false,
+    @SerialName("upgrade_url") val upgradeUrl: String? = null,
 )
 
 @Serializable

@@ -299,6 +299,8 @@ object SmartCommandMapping {
     fun needsContactResolution(result: NlCommandParseResult): Boolean =
         needsContactResolution(null, result)
 
+    const val UNLIMITED_QUOTA_HINT = "استفاده نامحدود ∞"
+
     fun quotaHint(remaining: Int?, limit: Int?): String? {
         if (remaining == null || limit == null || limit <= 0) return null
         return "$remaining از $limit فرمان امروز باقی مانده"

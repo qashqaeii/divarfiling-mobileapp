@@ -210,9 +210,20 @@ class SmartCommandStateLogicTest {
     }
 
     @Test
-    fun block_noLicense() {
-        val caps = AiCapabilitiesData(hasLicense = false, aiEnabled = true, canUseSmartCommand = true)
-        assertEquals(SmartCommandBlockReason.NoLicense, SmartCommandStateLogic.evaluateBlock(caps))
+    fun freeUser_withQuota_notBlocked() {
+        val caps = AiCapabilitiesData(
+            hasLicense = false,
+            aiEnabled = true,
+            canUseSmartCommand = true,
+            nlCommand = AiFeatureQuota(featureRemaining = 5, featureLimit = 30),
+        )
+        assertNull(SmartCommandStateLogic.evaluateBlock(caps))
+    }
+
+    @Test
+    fun freeUser_featureDisabled_blocked() {
+        val caps = AiCapabilitiesData(hasLicense = false, aiEnabled = true, canUseSmartCommand = false)
+        assertEquals(SmartCommandBlockReason.FeatureDisabled, SmartCommandStateLogic.evaluateBlock(caps))
     }
 
     @Test
@@ -330,17 +341,17 @@ class SmartCommandStateLogicTest {
     }
 
     @Test
-    fun crmMessage_noLicense() {
+    fun crmMessage_freeUserWithQuota() {
         val access = ContactSmartMessageLogic.accessFromCapabilities(
             AiCapabilitiesData(
                 aiEnabled = true,
                 hasLicense = false,
                 canUseCrmMessage = true,
-                messages = AiCapabilitiesMessages(noLicense = "بدون لایسنس"),
+                crmMessage = AiFeatureQuota(remaining = 3, limit = 24),
             ),
         )
-        assertFalse(access.canUse)
-        assertEquals("بدون لایسنس", access.blockMessage)
+        assertTrue(access.canUse)
+        assertNull(access.blockMessage)
     }
 
     @Test

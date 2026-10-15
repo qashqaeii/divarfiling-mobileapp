@@ -380,7 +380,7 @@ class SmartCommandViewModel @Inject constructor(
                             isLoadingCapabilities = false,
                             blockReason = block,
                             quotaHint = if (caps.isUnlimited) {
-                                null
+                                SmartCommandMapping.UNLIMITED_QUOTA_HINT
                             } else {
                                 SmartCommandMapping.quotaHint(
                                     SmartCommandStateLogic.smartCommandRemaining(caps),
