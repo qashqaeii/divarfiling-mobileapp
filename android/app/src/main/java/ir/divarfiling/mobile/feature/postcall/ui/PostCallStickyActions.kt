@@ -9,6 +9,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
+import ir.divarfiling.mobile.feature.postcall.PostCallSessionPolicy
 import ir.divarfiling.mobile.feature.postcall.PostCallUiMode
 import ir.divarfiling.mobile.feature.postcall.PostCallUiState
 import ir.divarfiling.mobile.feature.postcall.PostCallViewModel
@@ -40,7 +41,7 @@ fun PostCallStickyActions(
             state.mode == PostCallUiMode.New -> {
                 DfPrimaryButton(
                     text = if (state.isSubmittingLead) "در حال ثبت…" else "ثبت مخاطب",
-                    onClick = viewModel::submitQuickLead,
+                    onClick = viewModel::submitPrimaryAction,
                     enabled = !state.isSubmittingLead && !state.leadSaved && state.leadName.isNotBlank(),
                     loading = state.isSubmittingLead,
                 )
@@ -60,30 +61,33 @@ private fun PostCallExistingFooter(
     val contact = state.contact
     val isMissed = state.callEndKind == PostCallLogic.CallEndKind.Missed
     val hasOutcome = !isMissed && state.selectedOutcome != null
-    val hasNote = state.note.isNotBlank() || state.noteHeader.isNotBlank()
-    val canSubmitPrimary = when {
-        isMissed -> !state.reminderSaved && !state.isSubmittingReminder
-        hasOutcome -> !state.outcomeSaved && !state.isSubmittingOutcome
-        hasNote -> !state.noteSaved && !state.isSubmittingNote && state.selectedOutcome == null
+    val hasNote = state.note.isNotBlank()
+    val wantsReminder = PostCallSessionPolicy.wantsReminderOnSubmit(state)
+    val canSubmit = when {
+        state.isSubmittingSession -> false
+        isMissed -> !state.reminderSaved && wantsReminder
+        hasOutcome -> !state.outcomeSaved
+        hasNote -> !state.noteSaved
+        state.followUpReminderEnabled -> !state.reminderSaved
         else -> false
     }
     val primaryLabel = when {
-        state.isSubmittingOutcome || state.isSubmittingNote || state.isSubmittingReminder ->
-            "در حال ثبت…"
+        state.isSubmittingSession -> "در حال ثبت…"
         isMissed && state.reminderSaved -> "یادآور ثبت شد"
-        isMissed -> "تنظیم یادآوری"
-        hasOutcome -> "ثبت نتیجه تماس"
-        hasNote -> "ثبت یادداشت"
+        PostCallSessionPolicy.isSessionComplete(state) -> "ثبت شد"
+        isMissed -> "ثبت یادآوری تماس"
+        hasOutcome || hasNote || state.followUpReminderEnabled -> "ثبت اطلاعات تماس"
         else -> "بستن"
     }
-    val primaryLoading = state.isSubmittingOutcome || state.isSubmittingNote || state.isSubmittingReminder
 
-    if (canSubmitPrimary || (isMissed && !state.reminderSaved)) {
+    if (canSubmit || (isMissed && !state.reminderSaved)) {
         DfPrimaryButton(
             text = primaryLabel,
-            onClick = viewModel::submitPrimaryAction,
-            enabled = canSubmitPrimary && !primaryLoading,
-            loading = primaryLoading,
+            onClick = {
+                if (canSubmit) viewModel.submitCallSession() else onDismiss()
+            },
+            enabled = canSubmit,
+            loading = state.isSubmittingSession,
         )
     }
     if (!isMissed && contact?.id != null) {
@@ -92,7 +96,7 @@ private fun PostCallExistingFooter(
             onClick = { contact.id.let(onOpenContact) },
         )
     }
-    if (!canSubmitPrimary && !(isMissed && !state.reminderSaved)) {
+    if (!canSubmit && !(isMissed && !state.reminderSaved)) {
         DfSecondaryButton(text = "بستن", onClick = onDismiss)
     } else {
         DfSecondaryButton(text = "بعداً", onClick = onDismiss)

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ fun PostCallPendingInboxSection(modifier: Modifier = Modifier) {
     val store = remember(context) {
         EntryPointAccessors.fromApplication(context, PostCallEntryPoint::class.java).pendingCallStore()
     }
+    LaunchedEffect(store) { store.refreshForCurrentUser() }
     val items by store.items.collectAsState()
     if (items.isEmpty()) return
 

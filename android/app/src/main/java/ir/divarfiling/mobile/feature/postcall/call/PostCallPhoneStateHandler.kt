@@ -95,6 +95,10 @@ class PostCallPhoneStateHandler @Inject constructor(
         if (!PostCallLogic.shouldPresentAfterCall(payload.snapshot.kind)) return
         val startedAt = payload.startedAtMs.takeIf { it > 0L } ?: System.currentTimeMillis()
         val kind = payload.snapshot.kind ?: return
+        if (!postCallPreferences.shouldPresentCallKind(userId, kind)) {
+            PostCallTrace.log(PostCallTrace.Stage.Skipped, "call kind disabled in settings")
+            return
+        }
         val endedAt = System.currentTimeMillis()
         PostCallTrace.log(PostCallTrace.Stage.State, "kind=${kind.name}")
         val resolved = callLogResolver.resolveRecentCall(
@@ -112,11 +116,11 @@ class PostCallPhoneStateHandler @Inject constructor(
             PostCallTrace.Stage.CallLog,
             "picked ${PostCallTrace.maskPhone(phone)} dur=${resolved.durationSec}",
         )
-        if (!eventDedupStore.shouldProcess(phone, kind, endedAt)) {
+        val metadata = PostCallCallMetadata.fromResolved(phone, kind, resolved)
+        if (!eventDedupStore.shouldProcess(metadata, endedAt)) {
             PostCallTrace.log(PostCallTrace.Stage.Skipped, "dedup event")
             return
         }
-        val metadata = PostCallCallMetadata.fromResolved(phone, kind, resolved)
         withContext(Dispatchers.Main.immediate) {
             presentationRouter.presentAfterCall(metadata)
         }

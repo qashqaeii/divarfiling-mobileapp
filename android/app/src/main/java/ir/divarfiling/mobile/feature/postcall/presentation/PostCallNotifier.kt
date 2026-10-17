@@ -15,6 +15,7 @@ import ir.divarfiling.mobile.core.notifications.NotificationCatalog
 import ir.divarfiling.mobile.feature.postcall.PostCallAssistantActivity
 import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
+import ir.divarfiling.mobile.feature.postcall.PostCallSessionPolicy
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,7 +32,7 @@ class PostCallNotifier @Inject constructor(
         )
         val pending = PendingIntent.getActivity(
             context,
-            metadata.phone.hashCode(),
+            pendingIntentRequestCode(metadata),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -39,7 +40,8 @@ class PostCallNotifier @Inject constructor(
             .setSmallIcon(R.drawable.ic_stat_divarfiling)
             .setColor(context.getColor(R.color.notification_brand))
             .setContentTitle(notificationTitle(metadata.callEndKind))
-            .setContentText("ثبت سریع در CRM برای ${metadata.phone}")
+            .setContentText("ثبت سریع در CRM")
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setAutoCancel(true)
             .setContentIntent(pending)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -52,7 +54,7 @@ class PostCallNotifier @Inject constructor(
         val intent = PostCallAssistantActivity.intent(context, metadata, fromNotification = true)
         val pending = PendingIntent.getActivity(
             context,
-            metadata.phone.hashCode(),
+            pendingIntentRequestCode(metadata),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -64,7 +66,7 @@ class PostCallNotifier @Inject constructor(
             .setAutoCancel(true)
             .setContentIntent(pending)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .build()
         return notify(metadata, notification)
     }
@@ -115,14 +117,11 @@ class PostCallNotifier @Inject constructor(
         PostCallLogic.CallEndKind.Ignored -> "تماس پایان یافت"
     }
 
-    private fun notificationId(metadata: PostCallCallMetadata): Int {
-        val key = PostCallLogic.ReminderScheduling.pendingCallId(
-            metadata.phone,
-            metadata.callEndKind,
-            metadata.callLogDateMs,
-        )
-        return NOTIFICATION_ID_BASE + (key.hashCode() and 0x3FFF)
-    }
+    private fun notificationId(metadata: PostCallCallMetadata): Int =
+        NOTIFICATION_ID_BASE + (pendingIntentRequestCode(metadata) and 0x3FFF)
+
+    private fun pendingIntentRequestCode(metadata: PostCallCallMetadata): Int =
+        PostCallSessionPolicy.eventIdentity(metadata).hashCode()
 
     companion object {
         private const val NOTIFICATION_ID_BASE = 910_042

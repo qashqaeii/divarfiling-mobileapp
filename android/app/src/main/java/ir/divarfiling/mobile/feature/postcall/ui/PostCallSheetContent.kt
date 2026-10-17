@@ -251,8 +251,8 @@ fun PostCallSheetContent(
                                 ?: PostCallLogic.ReminderScheduling.tomorrowMorning().toEpochMilli(),
                             enabled = reminderEnabled,
                             savedAtMillis = state.savedReminderAtMillis,
-                            onQuickOneHour = viewModel::submitQuickReminderOneHour,
-                            onQuickTomorrow = viewModel::submitQuickReminderTomorrow,
+                            onQuickOneHour = viewModel::selectQuickReminderOneHour,
+                            onQuickTomorrow = viewModel::selectQuickReminderTomorrow,
                             onReminderTimeChange = viewModel::onReminderTimeChange,
                         )
                     }
@@ -265,6 +265,9 @@ fun PostCallSheetContent(
                     placeholder = if (isMissed) "یادداشت اختیاری…" else "توضیحات این تماس…",
                 )
                 state.error?.let {
+                    Text(it, color = DfThemeColors.error(), style = AppTypography.labelSmall)
+                }
+                state.partialSuccessMessage?.let {
                     Text(it, color = DfThemeColors.error(), style = AppTypography.labelSmall)
                 }
                 state.successMessage?.let {
@@ -326,8 +329,24 @@ fun PostCallSheetContent(
                         enabled = state.canEditNoteField(),
                         placeholder = "یادداشت کوتاه",
                     )
+                    PostCallQuickLeadExtras(
+                        expanded = state.leadExtrasExpanded,
+                        budgetMin = state.leadBudgetMin,
+                        budgetMax = state.leadBudgetMax,
+                        propertyType = state.leadPropertyType,
+                        areas = state.leadAreas,
+                        enabled = !state.isSubmittingLead && !state.leadSaved,
+                        onExpandedChange = viewModel::onLeadExtrasExpandedChange,
+                        onBudgetMinChange = viewModel::onLeadBudgetMinChange,
+                        onBudgetMaxChange = viewModel::onLeadBudgetMaxChange,
+                        onPropertyTypeChange = viewModel::onLeadPropertyTypeChange,
+                        onAreasChange = viewModel::onLeadAreasChange,
+                    )
                 }
                 state.error?.let {
+                    Text(it, color = DfThemeColors.error(), style = AppTypography.labelSmall)
+                }
+                state.partialSuccessMessage?.let {
                     Text(it, color = DfThemeColors.error(), style = AppTypography.labelSmall)
                 }
                 state.successMessage?.let {
@@ -339,7 +358,7 @@ fun PostCallSheetContent(
 }
 
 private fun PostCallUiState.canEditNoteField(): Boolean =
-    !isSubmittingNote && !isSubmittingOutcome && !isSubmittingLead &&
+    !isSubmittingSession && !isSubmittingNote && !isSubmittingOutcome && !isSubmittingLead &&
         !noteSaved && !outcomeSaved
 
 @Composable

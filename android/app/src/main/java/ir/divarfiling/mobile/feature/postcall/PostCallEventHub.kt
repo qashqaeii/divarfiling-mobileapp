@@ -18,7 +18,7 @@ class PostCallEventHub @Inject constructor() {
     private val _active = MutableStateFlow<PostCallPrompt?>(null)
     val active: StateFlow<PostCallPrompt?> = _active.asStateFlow()
 
-    private var lastPresentedKey: String? = null
+    private var lastPresentedEventKey: String? = null
     private var lastPresentedAtMs: Long = 0L
 
     fun tryPresent(
@@ -26,21 +26,14 @@ class PostCallEventHub @Inject constructor() {
         nowMs: Long = System.currentTimeMillis(),
     ): Boolean {
         if (_active.value != null) return false
-        val phone = metadata.phone
-        if (PostCallLogic.shouldSuppressDuplicate(
-                lastPhone = lastPresentedKey?.substringBefore('|'),
-                lastAtMs = lastPresentedAtMs,
-                phone = phone,
-                nowMs = nowMs,
-                windowMs = DEDUP_WINDOW_MS,
-            )
-        ) {
+        val eventKey = PostCallSessionPolicy.eventIdentity(metadata)
+        if (lastPresentedEventKey == eventKey && nowMs - lastPresentedAtMs < DEDUP_WINDOW_MS) {
             return false
         }
-        lastPresentedKey = "$phone|${metadata.callEndKind.name}"
+        lastPresentedEventKey = eventKey
         lastPresentedAtMs = nowMs
         _active.value = PostCallPrompt(
-            phone = phone,
+            phone = metadata.phone,
             callEndKind = metadata.callEndKind,
             metadata = metadata,
         )
@@ -53,7 +46,7 @@ class PostCallEventHub @Inject constructor() {
 
     fun clearSession() {
         dismiss()
-        lastPresentedKey = null
+        lastPresentedEventKey = null
         lastPresentedAtMs = 0L
     }
 

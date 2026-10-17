@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -48,7 +49,8 @@ fun PostCallCompactCard(
     val statusLabel = PostCallUiCopy.crmStatusLabel(mode)
     val contextLine = PostCallUiCopy.formatCallContextLine(metadata)
     val primaryText = PostCallUiCopy.compactPrimaryCta(mode, metadata.callEndKind)
-    val primaryEnabled = mode != PostCallUiMode.Invalid
+    val isLoading = mode == PostCallUiMode.Loading
+    val primaryEnabled = mode != PostCallUiMode.Invalid && !isLoading
     val onPrimary = when (mode) {
         PostCallUiMode.Error -> onRetryResolve
         PostCallUiMode.Invalid -> onDismiss
@@ -135,12 +137,21 @@ fun PostCallCompactCard(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DfPrimaryButton(
-                    text = primaryText,
-                    onClick = onPrimary,
-                    enabled = primaryEnabled,
-                    modifier = Modifier.weight(1f),
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = AppSpacing.sm),
+                        color = DfColors.Purple,
+                    )
+                } else {
+                    DfPrimaryButton(
+                        text = primaryText,
+                        onClick = onPrimary,
+                        enabled = primaryEnabled,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 if (mode != PostCallUiMode.Invalid && mode != PostCallUiMode.Error) {
                     TextButton(onClick = onDismiss) {
                         Text("بعداً", style = AppTypography.labelLarge)

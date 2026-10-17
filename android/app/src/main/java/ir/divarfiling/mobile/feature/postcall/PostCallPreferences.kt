@@ -24,6 +24,10 @@ class PostCallPreferences @Inject constructor(
 
     private fun enabledKey(userId: Long) = booleanPreferencesKey("enabled_$userId")
     private fun promoDismissedKey(userId: Long) = booleanPreferencesKey("promo_dismissed_$userId")
+    private fun incomingKey(userId: Long) = booleanPreferencesKey("incoming_$userId")
+    private fun outgoingKey(userId: Long) = booleanPreferencesKey("outgoing_$userId")
+    private fun missedKey(userId: Long) = booleanPreferencesKey("missed_$userId")
+    private fun preferNotificationKey(userId: Long) = booleanPreferencesKey("prefer_notification_$userId")
 
     fun isEnabledFlow(userId: Long): Flow<Boolean> =
         dataStore.data.map { it[enabledKey(userId)] == true }
@@ -62,4 +66,45 @@ class PostCallPreferences @Inject constructor(
     }
 
     fun isEnabledSyncForRuntime(userId: Long): Boolean = runtimePrefs.activeUserId() == userId && runtimePrefs.isEnabledForActiveUser()
+
+    suspend fun shouldPresentCallKind(userId: Long, kind: PostCallLogic.CallEndKind): Boolean {
+        val prefs = dataStore.data.first()
+        return when (kind) {
+            PostCallLogic.CallEndKind.Answered -> prefs[incomingKey(userId)] != false
+            PostCallLogic.CallEndKind.Outgoing -> prefs[outgoingKey(userId)] != false
+            PostCallLogic.CallEndKind.Missed -> prefs[missedKey(userId)] != false
+            PostCallLogic.CallEndKind.Ignored -> false
+        }
+    }
+
+    suspend fun setIncomingEnabled(userId: Long, enabled: Boolean) {
+        dataStore.edit { it[incomingKey(userId)] = enabled }
+    }
+
+    suspend fun setOutgoingEnabled(userId: Long, enabled: Boolean) {
+        dataStore.edit { it[outgoingKey(userId)] = enabled }
+    }
+
+    suspend fun setMissedEnabled(userId: Long, enabled: Boolean) {
+        dataStore.edit { it[missedKey(userId)] = enabled }
+    }
+
+    suspend fun isPreferNotification(userId: Long): Boolean =
+        dataStore.data.first()[preferNotificationKey(userId)] == true
+
+    suspend fun setPreferNotification(userId: Long, prefer: Boolean) {
+        dataStore.edit { it[preferNotificationKey(userId)] = prefer }
+    }
+
+    fun incomingEnabledFlow(userId: Long): Flow<Boolean> =
+        dataStore.data.map { it[incomingKey(userId)] != false }
+
+    fun outgoingEnabledFlow(userId: Long): Flow<Boolean> =
+        dataStore.data.map { it[outgoingKey(userId)] != false }
+
+    fun missedEnabledFlow(userId: Long): Flow<Boolean> =
+        dataStore.data.map { it[missedKey(userId)] != false }
+
+    fun preferNotificationFlow(userId: Long): Flow<Boolean> =
+        dataStore.data.map { it[preferNotificationKey(userId)] == true }
 }

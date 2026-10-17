@@ -2,7 +2,8 @@ package ir.divarfiling.mobile.feature.postcall.call
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import ir.divarfiling.mobile.feature.postcall.PostCallLogic
+import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
+import ir.divarfiling.mobile.feature.postcall.PostCallSessionPolicy
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,8 +13,8 @@ class PostCallEventDedupStore @Inject constructor(
 ) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    fun shouldProcess(phone: String, kind: PostCallLogic.CallEndKind, endedAtMs: Long): Boolean {
-        val key = "${phone}|${kind.name}|${endedAtMs / 1000L}"
+    fun shouldProcess(metadata: PostCallCallMetadata, endedAtMs: Long): Boolean {
+        val key = PostCallSessionPolicy.eventIdentity(metadata)
         val lastKey = prefs.getString(KEY_LAST_KEY, null)
         val lastAt = prefs.getLong(KEY_LAST_AT, 0L)
         if (lastKey == key && endedAtMs - lastAt < DEDUP_MS) return false

@@ -15,13 +15,13 @@ import androidx.compose.ui.Modifier
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfDateTimePreset
 import ir.divarfiling.mobile.core.design.components.DfDateTimePresets
 import ir.divarfiling.mobile.core.design.components.DfDateTimeSelector
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
-import java.time.Instant
 import java.time.ZoneId
 
 @Composable
@@ -48,6 +48,11 @@ fun PostCallReminderPicker(
     var customMillis by remember(selectedMillis) { mutableLongStateOf(selectedMillis) }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+        Text(
+            "زمان انتخاب‌شده: ${DateUtils.formatJalaliDateFromMillis(selectedMillis)}، ${DateUtils.formatTimeFromMillis(selectedMillis)}",
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textSecondary(),
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
@@ -65,6 +70,11 @@ fun PostCallReminderPicker(
                 modifier = Modifier.weight(1f),
             )
         }
+        Text(
+            "برای ثبت نهایی، دکمه پایین صفحه را بزنید.",
+            style = AppTypography.labelSmall,
+            color = DfThemeColors.textSecondary(),
+        )
         DfDateTimeSelector(
             millis = customMillis,
             onChange = {
@@ -80,7 +90,7 @@ fun PostCallReminderPicker(
             Text(
                 "یادآور ثبت‌شده: ${DateUtils.formatJalaliDateFromMillis(ms)}، ${DateUtils.formatTimeFromMillis(ms)}",
                 style = AppTypography.labelSmall,
-                color = DfThemeColors.textSecondary(),
+                color = DfColors.Purple,
                 modifier = Modifier.padding(top = AppSpacing.xxs),
             )
         }

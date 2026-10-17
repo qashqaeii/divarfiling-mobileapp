@@ -31,7 +31,7 @@ class PostCallPresentationRouter @Inject constructor(
         )
 
         if (isKeyguardLocked()) {
-            if (!presentationLedger.beginPresentation(phone, callEndKind)) return
+            if (!presentationLedger.beginPresentation(metadata)) return
             var displayed = false
             try {
                 if (permissions.snapshot().canNotify) {
@@ -41,13 +41,13 @@ class PostCallPresentationRouter @Inject constructor(
                     }
                 }
             } finally {
-                if (displayed) presentationLedger.commitPresentation(phone, callEndKind)
-                else presentationLedger.rollbackPresentation(phone, callEndKind)
+                if (displayed) presentationLedger.commitPresentation(metadata)
+                else presentationLedger.rollbackPresentation(metadata)
             }
             return
         }
 
-        if (!presentationLedger.beginPresentation(phone, callEndKind)) {
+        if (!presentationLedger.beginPresentation(metadata)) {
             PostCallTrace.log(PostCallTrace.Stage.Skipped, "duplicate presentation")
             return
         }
@@ -89,9 +89,9 @@ class PostCallPresentationRouter @Inject constructor(
             PostCallTrace.log(PostCallTrace.Stage.Skipped, "no presentation path")
         } finally {
             if (displayed) {
-                presentationLedger.commitPresentation(phone, callEndKind)
+                presentationLedger.commitPresentation(metadata)
             } else {
-                presentationLedger.rollbackPresentation(phone, callEndKind)
+                presentationLedger.rollbackPresentation(metadata)
             }
         }
     }
