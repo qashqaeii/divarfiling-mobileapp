@@ -176,6 +176,9 @@ fun PostCallSetupScreen(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.md),
         ) {
             item {
+                PostCallPendingInboxSection()
+            }
+            item {
                 Text(
                     if (ready) "دستیار آماده فعال‌سازی است" else "برای تشخیص پایان تماس، وضعیت تلفن الزامی است",
                     style = AppTypography.cardTitle,

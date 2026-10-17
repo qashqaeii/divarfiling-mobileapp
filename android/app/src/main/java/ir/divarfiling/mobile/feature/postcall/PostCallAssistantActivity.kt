@@ -30,6 +30,7 @@ class PostCallAssistantActivity : ComponentActivity() {
             finish()
             return
         }
+        notifier.cancelFor(metadata)
         notifier.cancel()
         setContent {
             DivarFilingTheme {

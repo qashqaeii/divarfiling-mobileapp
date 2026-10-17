@@ -19,6 +19,7 @@ class PostCallController @Inject constructor(
     private val eventDedupStore: PostCallEventDedupStore,
     private val overlayController: PostCallOverlayController,
     private val presentationLedger: ir.divarfiling.mobile.feature.postcall.presentation.PostCallPresentationLedger,
+    private val pendingCallStore: PostCallPendingCallStore,
 ) {
     suspend fun refreshRuntime() {
         reconcileFromPersistedConfig()
@@ -86,6 +87,7 @@ class PostCallController @Inject constructor(
         preferences.clearAll()
         permissionManager.clearWizardAcknowledgements()
         eventDedupStore.clear()
+        pendingCallStore.clear()
     }
 
     fun stopRuntimeOnly() {

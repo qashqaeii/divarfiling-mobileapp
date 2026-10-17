@@ -1,6 +1,8 @@
 package ir.divarfiling.mobile.feature.postcall
 
 import android.provider.CallLog
+import java.time.Instant
+import java.time.ZoneId
 
 /** منطق خالص برای تست — بدون وابستگی به فریمورک تماس. */
 object PostCallLogic {
@@ -177,4 +179,37 @@ object PostCallLogic {
         "مخفی",
         "نامشخص",
     )
+
+    fun resolveStatusToMode(status: String): PostCallUiMode = when (status) {
+        "existing_contact" -> PostCallUiMode.Existing
+        "new_contact" -> PostCallUiMode.New
+        "ambiguous" -> PostCallUiMode.Ambiguous
+        "invalid_phone" -> PostCallUiMode.Invalid
+        else -> PostCallUiMode.Error
+    }
+
+    /** زمان‌بندی یادآور پیگیری — منطق خالص برای تست. */
+    object ReminderScheduling {
+        const val DEFAULT_TOMORROW_HOUR = 10
+        const val DEFAULT_TOMORROW_MINUTE = 0
+
+        fun oneHourFromNow(now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): Instant =
+            now.plusSeconds(3_600)
+
+        fun tomorrowMorning(
+            now: Instant = Instant.now(),
+            zone: ZoneId = ZoneId.systemDefault(),
+            hour: Int = DEFAULT_TOMORROW_HOUR,
+            minute: Int = DEFAULT_TOMORROW_MINUTE,
+        ): Instant {
+            val zoned = now.atZone(zone)
+            val tomorrow = zoned.toLocalDate().plusDays(1)
+            return tomorrow.atTime(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
+                .atZone(zone)
+                .toInstant()
+        }
+
+        fun pendingCallId(phone: String, kind: CallEndKind, callLogDateMs: Long?): String =
+            listOf(phone, kind.name, callLogDateMs?.toString() ?: "0").joinToString("|")
+    }
 }

@@ -16,6 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.feature.postcall.PostCallAssistantActivity
 import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
+import ir.divarfiling.mobile.feature.postcall.PostCallPendingCallStore
 import ir.divarfiling.mobile.feature.postcall.debug.PostCallTrace
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionManager
 import ir.divarfiling.mobile.feature.postcall.ui.PostCallCompactOverlayContent
@@ -33,6 +34,7 @@ import kotlinx.coroutines.withContext
 class PostCallOverlayController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val permissions: PostCallPermissionManager,
+    private val pendingCallStore: PostCallPendingCallStore,
 ) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -115,10 +117,14 @@ class PostCallOverlayController @Inject constructor(
                     DivarFilingTheme {
                     PostCallCompactOverlayContent(
                         metadata = metadata,
-                        onDismiss = { dismissFromAnyThread() },
-                        onExpand = {
-                            openExpandedActivity(metadata)
+                        onDismiss = {
+                            pendingCallStore.enqueue(metadata, null)
                             dismissFromAnyThread()
+                        },
+                        onExpand = {
+                            if (openExpandedActivity(metadata)) {
+                                dismissFromAnyThread()
+                            }
                         },
                     )
                     }
@@ -155,14 +161,22 @@ class PostCallOverlayController @Inject constructor(
         lifecycleOwner = null
     }
 
-    private fun openExpandedActivity(metadata: PostCallCallMetadata) {
+    private fun openExpandedActivity(metadata: PostCallCallMetadata): Boolean {
         val intent = PostCallAssistantActivity.intent(
             context,
             metadata,
             fromNotification = false,
         )
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatching { context.startActivity(intent) }
+        val resolved = intent.resolveActivity(context.packageManager) != null
+        if (!resolved) {
+            PostCallTrace.log(PostCallTrace.Stage.Skipped, "expand activity not resolvable")
+            return false
+        }
+        return runCatching {
+            context.startActivity(intent)
+            true
+        }.getOrDefault(false)
     }
 
     private fun assertMainThread() {

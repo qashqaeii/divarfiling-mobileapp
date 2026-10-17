@@ -16,4 +16,5 @@ interface PostCallEntryPoint {
     fun postCallPermissionManager(): PostCallPermissionManager
     fun postCallOverlayController(): PostCallOverlayController
     fun crmRepository(): CrmRepository
+    fun pendingCallStore(): PostCallPendingCallStore
 }

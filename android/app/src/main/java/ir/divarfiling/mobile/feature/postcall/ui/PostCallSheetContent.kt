@@ -35,7 +35,6 @@ import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
-import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
@@ -47,9 +46,8 @@ import ir.divarfiling.mobile.feature.postcall.PostCallUiState
 import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.PostCallUiMode
+import ir.divarfiling.mobile.feature.postcall.PostCallUiCopy
 import ir.divarfiling.mobile.feature.postcall.PostCallViewModel
-
-private const val POST_CALL_SHEET_HEIGHT_FRACTION = 0.88f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,16 +67,20 @@ fun PostCallSheetContent(
     val isMissed = metadata.callEndKind == PostCallLogic.CallEndKind.Missed
     val isOutgoing = metadata.callEndKind == PostCallLogic.CallEndKind.Outgoing
     val isAnswered = metadata.callEndKind == PostCallLogic.CallEndKind.Answered
+    val dismissAndMaybeQueue: () -> Unit = {
+        viewModel.onDismissWithoutSave()
+        onDismiss()
+    }
 
     DfSheetScaffold(
-        title = "دستیار پس از تماس",
+        title = PostCallUiCopy.sheetTitle(state.mode, metadata.callEndKind),
         subtitle = headerSubtitle,
-        onClose = onDismiss,
-        bodyHeightFraction = POST_CALL_SHEET_HEIGHT_FRACTION,
+        onClose = dismissAndMaybeQueue,
+        bodyHeightFraction = PostCallUiCopy.computeAdaptiveSheetHeightFraction(state),
         footer = {
-            PostCallSheetFooter(
+            PostCallStickyActions(
                 state = state,
-                onDismiss = onDismiss,
+                onDismiss = dismissAndMaybeQueue,
                 onOpenContact = onOpenContact,
                 viewModel = viewModel,
             )
@@ -233,43 +235,26 @@ fun PostCallSheetContent(
                 } else if (!isMissed && isAnswered) {
                     DfSecondaryButton("نمایش جزئیات", onClick = { viewModel.setExpanded(true) })
                 }
-                if (!isMissed && (showOutcomeSection || state.expanded)) {
-                    DfSheetSection("یادآور سریع") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                            DfSecondaryButton(
-                                "۱ ساعت",
-                                onClick = { viewModel.submitQuickReminder(1) },
-                                enabled = !state.reminderSaved && !state.isSubmittingReminder,
-                            )
-                            DfSecondaryButton(
-                                "فردا",
-                                onClick = { viewModel.submitQuickReminder(24) },
-                                enabled = !state.reminderSaved && !state.isSubmittingReminder,
+                if (isMissed || (!isMissed && (showOutcomeSection || state.expanded))) {
+                    val reminderEnabled = !state.reminderSaved && !state.isSubmittingReminder
+                    DfSheetSection(if (isMissed) "یادآوری تماس مجدد" else "پیگیری بعدی (اختیاری)") {
+                        if (isMissed) {
+                            Text(
+                                "مکالمه انجام نشده است. زمان پیگیری را انتخاب کنید یا یادداشت کوتاه بنویسید.",
+                                style = AppTypography.bodyDescription,
+                                color = DfThemeColors.textSecondary(),
+                                modifier = Modifier.padding(bottom = AppSpacing.xs),
                             )
                         }
-                    }
-                }
-                if (isMissed) {
-                    DfSheetSection("تماس بی‌پاسخ") {
-                        Text(
-                            "مکالمه انجام نشده است. یادآوری تماس مجدد یا یادداشت کوتاه ثبت کنید.",
-                            style = AppTypography.bodyDescription,
-                            color = DfThemeColors.textSecondary(),
+                        PostCallReminderPicker(
+                            selectedMillis = state.reminderDueAtMillis
+                                ?: PostCallLogic.ReminderScheduling.tomorrowMorning().toEpochMilli(),
+                            enabled = reminderEnabled,
+                            savedAtMillis = state.savedReminderAtMillis,
+                            onQuickOneHour = viewModel::submitQuickReminderOneHour,
+                            onQuickTomorrow = viewModel::submitQuickReminderTomorrow,
+                            onReminderTimeChange = viewModel::onReminderTimeChange,
                         )
-                    }
-                    DfSheetSection("یادآوری تماس مجدد") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                            DfSecondaryButton(
-                                "۱ ساعت",
-                                onClick = { viewModel.submitQuickReminder(1) },
-                                enabled = !state.reminderSaved && !state.isSubmittingReminder,
-                            )
-                            DfSecondaryButton(
-                                "فردا",
-                                onClick = { viewModel.submitQuickReminder(24) },
-                                enabled = !state.reminderSaved && !state.isSubmittingReminder,
-                            )
-                        }
                     }
                 }
                 PostCallNoteSections(
@@ -354,70 +339,8 @@ fun PostCallSheetContent(
 }
 
 private fun PostCallUiState.canEditNoteField(): Boolean =
-    !isSubmittingNote && !isSubmittingOutcome && !isSubmittingLead && !noteSaved
-
-@Composable
-private fun PostCallSheetFooter(
-    state: PostCallUiState,
-    onDismiss: () -> Unit,
-    onOpenContact: (Long) -> Unit,
-    viewModel: PostCallViewModel,
-) {
-    when {
-        state.isResolving -> {
-            DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
-        }
-        state.mode == PostCallUiMode.Invalid ||
-            state.mode == PostCallUiMode.Error -> {
-            DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
-        }
-        state.mode == PostCallUiMode.Ambiguous -> {
-            DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
-        }
-        state.mode == PostCallUiMode.Existing -> {
-            val contact = state.contact
-            val isMissed = state.callEndKind == PostCallLogic.CallEndKind.Missed
-            val primaryOutcome = !isMissed && state.selectedOutcome != null
-            val canSaveNote = (state.note.isNotBlank() || state.noteHeader.isNotBlank()) && !state.noteSaved
-            val canSaveOutcome = primaryOutcome && !state.outcomeSaved
-            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                if (canSaveOutcome) {
-                    DfPrimaryButton(
-                        text = if (state.isSubmittingOutcome) "در حال ثبت…" else "ثبت نتیجه تماس",
-                        onClick = viewModel::submitCallOutcome,
-                        enabled = !state.isSubmittingOutcome,
-                        loading = state.isSubmittingOutcome,
-                    )
-                }
-                if (canSaveNote) {
-                    DfPrimaryButton(
-                        text = if (state.isSubmittingNote) "در حال ثبت…" else "ثبت یادداشت",
-                        onClick = viewModel::submitNote,
-                        enabled = !state.isSubmittingNote,
-                        loading = state.isSubmittingNote,
-                    )
-                }
-                DfSecondaryButton(
-                    text = "مشاهده پرونده",
-                    onClick = { contact?.id?.let(onOpenContact) },
-                    enabled = contact?.id != null,
-                )
-                DfSecondaryButton(text = "بستن", onClick = onDismiss)
-            }
-        }
-        state.mode == PostCallUiMode.New -> {
-            Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
-                DfPrimaryButton(
-                    text = if (state.isSubmittingLead) "در حال ثبت…" else "ثبت مخاطب",
-                    onClick = viewModel::submitQuickLead,
-                    enabled = !state.isSubmittingLead && !state.leadSaved && state.leadName.isNotBlank(),
-                    loading = state.isSubmittingLead,
-                )
-                DfSecondaryButton(text = "فعلاً نه", onClick = onDismiss)
-            }
-        }
-    }
-}
+    !isSubmittingNote && !isSubmittingOutcome && !isSubmittingLead &&
+        !noteSaved && !outcomeSaved
 
 @Composable
 private fun MetaLine(label: String, value: String) {

@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.postcall
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -8,13 +9,14 @@ import ir.divarfiling.mobile.core.network.PostCallContactBriefDto
 import ir.divarfiling.mobile.core.network.PostCallResolveData
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.CrmRepository
+import java.time.Instant
+import java.time.ZoneId
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Instant
-import javax.inject.Inject
 
 enum class PostCallUiMode {
     Loading,
@@ -29,25 +31,24 @@ val POST_CALL_LEAD_TYPES = listOf("خریدار", "مالک", "فروشنده", 
 
 val POST_CALL_OUTCOMES = listOf(
     "نیاز به پیگیری",
-    "ارسال فایل",
+    "درخواست فایل",
     "هماهنگی بازدید",
-    "پاسخ نداد",
+    "اطلاعات تکمیل شد",
     "سایر",
 )
 
 val POST_CALL_OUTCOMES_OUTGOING = listOf(
     "مکالمه انجام شد",
     "پاسخ نداد",
+    "نیاز به پیگیری",
     "ارسال فایل",
     "هماهنگی بازدید",
-    "پیگیری مجدد",
     "سایر",
 )
 
 data class PostCallUiState(
     val phone: String = "",
     val callEndKind: PostCallLogic.CallEndKind = PostCallLogic.CallEndKind.Answered,
-    /** سربرگ ثابت یادداشت تماس؛ یک‌بار از Call Log ساخته می‌شود. */
     val noteHeader: String = "",
     val callMetadata: PostCallCallMetadata? = null,
     val mode: PostCallUiMode = PostCallUiMode.Loading,
@@ -58,6 +59,8 @@ data class PostCallUiState(
     val leadCustomerType: String = "سرنخ",
     val note: String = "",
     val selectedOutcome: String? = null,
+    val reminderDueAtMillis: Long? = null,
+    val savedReminderAtMillis: Long? = null,
     val isResolving: Boolean = true,
     val isSubmittingNote: Boolean = false,
     val isSubmittingOutcome: Boolean = false,
@@ -69,11 +72,16 @@ data class PostCallUiState(
     val leadSaved: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
-)
+) {
+    fun isSessionComplete(): Boolean =
+        leadSaved || outcomeSaved || noteSaved || reminderSaved
+}
 
 @HiltViewModel
 class PostCallViewModel @Inject constructor(
     private val crmRepository: CrmRepository,
+    private val savedStateHandle: SavedStateHandle,
+    private val pendingCallStore: PostCallPendingCallStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PostCallUiState())
     val uiState: StateFlow<PostCallUiState> = _uiState.asStateFlow()
@@ -82,11 +90,17 @@ class PostCallViewModel @Inject constructor(
         val normalizedPhone = metadata.phone.trim()
         val headerSource = metadata.withValidCallLogFieldsOnly()
         val noteHeader = PostCallNoteHeaderBuilder.build(headerSource)
+        val draft = readDraft(metadata)
+        val defaultReminder = PostCallLogic.ReminderScheduling.tomorrowMorning(zone = ZoneId.systemDefault()).toEpochMilli()
         _uiState.value = PostCallUiState(
             phone = normalizedPhone,
             callEndKind = metadata.callEndKind,
             noteHeader = noteHeader,
             callMetadata = metadata,
+            note = draft?.note.orEmpty(),
+            leadName = draft?.leadName.orEmpty(),
+            selectedOutcome = draft?.outcome,
+            reminderDueAtMillis = draft?.reminderMillis ?: defaultReminder,
             isResolving = true,
         )
         viewModelScope.launch {
@@ -108,6 +122,15 @@ class PostCallViewModel @Inject constructor(
         load(meta)
     }
 
+    fun onDismissWithoutSave() {
+        val state = _uiState.value
+        val meta = state.callMetadata ?: return
+        persistDraft(state)
+        if (!state.isSessionComplete()) {
+            pendingCallStore.enqueue(meta, state.contact?.fullName)
+        }
+    }
+
     private fun composeCrmNote(userBody: String): String =
         PostCallNoteHeaderBuilder.composeNoteForCrm(_uiState.value.noteHeader, userBody)
 
@@ -115,13 +138,7 @@ class PostCallViewModel @Inject constructor(
 
     private fun applyResolve(data: PostCallResolveData) {
         _uiState.update {
-            val mode = when (data.status) {
-                "existing_contact" -> PostCallUiMode.Existing
-                "new_contact" -> PostCallUiMode.New
-                "ambiguous" -> PostCallUiMode.Ambiguous
-                "invalid_phone" -> PostCallUiMode.Invalid
-                else -> PostCallUiMode.Error
-            }
+            val mode = PostCallLogic.resolveStatusToMode(data.status)
             it.copy(
                 phone = data.phone.ifBlank { it.phone },
                 mode = mode,
@@ -133,10 +150,27 @@ class PostCallViewModel @Inject constructor(
         }
     }
 
-    fun onLeadNameChange(v: String) = _uiState.update { it.copy(leadName = v) }
-    fun onNoteChange(v: String) = _uiState.update { it.copy(note = v) }
+    fun onLeadNameChange(v: String) {
+        _uiState.update { it.copy(leadName = v) }
+        persistDraft(_uiState.value)
+    }
+
+    fun onNoteChange(v: String) {
+        _uiState.update { it.copy(note = v) }
+        persistDraft(_uiState.value)
+    }
+
     fun onLeadTypeChange(type: String) = _uiState.update { it.copy(leadCustomerType = type) }
-    fun onOutcomeSelected(outcome: String) = _uiState.update { it.copy(selectedOutcome = outcome) }
+
+    fun onOutcomeSelected(outcome: String) {
+        _uiState.update { it.copy(selectedOutcome = outcome) }
+        persistDraft(_uiState.value)
+    }
+
+    fun onReminderTimeChange(millis: Long) {
+        _uiState.update { it.copy(reminderDueAtMillis = millis) }
+        persistDraft(_uiState.value)
+    }
 
     fun selectAmbiguousContact(contact: PostCallContactBriefDto) {
         _uiState.update {
@@ -149,6 +183,28 @@ class PostCallViewModel @Inject constructor(
         }
     }
 
+    fun submitPrimaryAction() {
+        val state = _uiState.value
+        when {
+            state.callEndKind == PostCallLogic.CallEndKind.Missed &&
+                state.mode == PostCallUiMode.Existing -> {
+                val at = state.reminderDueAtMillis
+                    ?: PostCallLogic.ReminderScheduling.tomorrowMorning().toEpochMilli()
+                submitReminderAt(Instant.ofEpochMilli(at))
+            }
+            state.selectedOutcome != null -> submitCallOutcome()
+            (state.note.isNotBlank() || state.noteHeader.isNotBlank()) -> submitNote()
+        }
+    }
+
+    fun submitQuickReminderOneHour() {
+        submitReminderAt(PostCallLogic.ReminderScheduling.oneHourFromNow())
+    }
+
+    fun submitQuickReminderTomorrow() {
+        submitReminderAt(PostCallLogic.ReminderScheduling.tomorrowMorning())
+    }
+
     fun submitNote() {
         val state = _uiState.value
         val contactId = state.contact?.id ?: return
@@ -157,13 +213,16 @@ class PostCallViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingNote = true, error = null) }
             when (val result = crmRepository.createNote(contactId, composeCrmNote(note))) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        isSubmittingNote = false,
-                        noteSaved = true,
-                        successMessage = "یادداشت ثبت شد",
-                        note = "",
-                    )
+                is ApiResult.Success -> {
+                    onSessionCompleted()
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingNote = false,
+                            noteSaved = true,
+                            successMessage = "یادداشت ثبت شد",
+                            note = "",
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmittingNote = false, error = result.message)
@@ -186,13 +245,17 @@ class PostCallViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingOutcome = true, error = null) }
             when (val result = crmRepository.createNote(contactId, content)) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        isSubmittingOutcome = false,
-                        outcomeSaved = true,
-                        successMessage = "نتیجه تماس ثبت شد",
-                        note = "",
-                    )
+                is ApiResult.Success -> {
+                    onSessionCompleted()
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingOutcome = false,
+                            outcomeSaved = true,
+                            noteSaved = extra.isNotBlank() || it.noteSaved,
+                            successMessage = "نتیجه تماس ثبت شد",
+                            note = "",
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmittingOutcome = false, error = result.message)
@@ -201,22 +264,26 @@ class PostCallViewModel @Inject constructor(
         }
     }
 
-    fun submitQuickReminder(hoursFromNow: Long) {
+    private fun submitReminderAt(due: Instant) {
         val state = _uiState.value
         val contactId = state.contact?.id ?: return
         if (state.isSubmittingReminder || state.reminderSaved) return
-        val dueAt = Instant.now().plusSeconds(hoursFromNow * 3600).toString()
+        val dueAt = due.toString()
         val title = "پیگیری تماس"
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingReminder = true, error = null) }
             val reminderNote = composeCrmNote(state.note.trim())
             when (val result = crmRepository.createReminder(contactId, title, dueAt, note = reminderNote)) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        isSubmittingReminder = false,
-                        reminderSaved = true,
-                        successMessage = "یادآور ثبت شد",
-                    )
+                is ApiResult.Success -> {
+                    onSessionCompleted()
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingReminder = false,
+                            reminderSaved = true,
+                            savedReminderAtMillis = due.toEpochMilli(),
+                            successMessage = "یادآور ثبت شد",
+                        )
+                    }
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmittingReminder = false, error = result.message)
@@ -238,28 +305,35 @@ class PostCallViewModel @Inject constructor(
                     val contactId = result.data.id
                     if (note.isNotBlank() && !state.noteSaved) {
                         when (val noteResult = crmRepository.createNote(contactId, composeCrmNote(note))) {
-                            is ApiResult.Success -> _uiState.update {
-                                it.copy(
-                                    isSubmittingLead = false,
-                                    leadSaved = true,
-                                    noteSaved = true,
-                                    successMessage = "مخاطب و یادداشت ثبت شد",
-                                    mode = PostCallUiMode.Existing,
-                                    contact = result.data.toPostCallBrief(contactId),
-                                )
+                            is ApiResult.Success -> {
+                                onSessionCompleted()
+                                _uiState.update {
+                                    it.copy(
+                                        isSubmittingLead = false,
+                                        leadSaved = true,
+                                        noteSaved = true,
+                                        successMessage = "مخاطب و یادداشت ثبت شد",
+                                        mode = PostCallUiMode.Existing,
+                                        contact = result.data.toPostCallBrief(contactId),
+                                    )
+                                }
                             }
-                            is ApiResult.Error -> _uiState.update {
-                                it.copy(
-                                    isSubmittingLead = false,
-                                    leadSaved = true,
-                                    successMessage = "مخاطب ثبت شد",
-                                    error = "یادداشت ذخیره نشد: ${noteResult.message}",
-                                    mode = PostCallUiMode.Existing,
-                                    contact = result.data.toPostCallBrief(contactId),
-                                )
+                            is ApiResult.Error -> {
+                                onSessionCompleted()
+                                _uiState.update {
+                                    it.copy(
+                                        isSubmittingLead = false,
+                                        leadSaved = true,
+                                        successMessage = "مخاطب ثبت شد",
+                                        error = "یادداشت ذخیره نشد: ${noteResult.message}",
+                                        mode = PostCallUiMode.Existing,
+                                        contact = result.data.toPostCallBrief(contactId),
+                                    )
+                                }
                             }
                         }
                     } else {
+                        onSessionCompleted()
                         _uiState.update {
                             it.copy(
                                 isSubmittingLead = false,
@@ -280,6 +354,54 @@ class PostCallViewModel @Inject constructor(
 
     fun clearTransient() {
         _uiState.update { it.copy(successMessage = null, error = null) }
+    }
+
+    private fun onSessionCompleted() {
+        _uiState.value.callMetadata?.let { pendingCallStore.removeForMetadata(it) }
+        clearDraft()
+    }
+
+    private fun draftKey(metadata: PostCallCallMetadata): String =
+        "pc_draft_${metadata.phone}_${metadata.callEndKind.name}_${metadata.callLogDateMs ?: 0}"
+
+    private data class DraftSnapshot(
+        val note: String,
+        val leadName: String,
+        val outcome: String?,
+        val reminderMillis: Long?,
+    )
+
+    private fun readDraft(metadata: PostCallCallMetadata): DraftSnapshot? {
+        val key = draftKey(metadata)
+        val note = savedStateHandle.get<String>("${key}_note")
+        val lead = savedStateHandle.get<String>("${key}_lead")
+        val outcome = savedStateHandle.get<String>("${key}_outcome")
+        val reminder = savedStateHandle.get<Long>("${key}_reminder")
+        if (note == null && lead == null && outcome == null && reminder == null) return null
+        return DraftSnapshot(
+            note = note.orEmpty(),
+            leadName = lead.orEmpty(),
+            outcome = outcome,
+            reminderMillis = reminder?.takeIf { it > 0L },
+        )
+    }
+
+    private fun persistDraft(state: PostCallUiState) {
+        val meta = state.callMetadata ?: return
+        val key = draftKey(meta)
+        savedStateHandle["${key}_note"] = state.note
+        savedStateHandle["${key}_lead"] = state.leadName
+        savedStateHandle["${key}_outcome"] = state.selectedOutcome
+        savedStateHandle["${key}_reminder"] = state.reminderDueAtMillis ?: 0L
+    }
+
+    private fun clearDraft() {
+        val meta = _uiState.value.callMetadata ?: return
+        val key = draftKey(meta)
+        savedStateHandle.remove<String>("${key}_note")
+        savedStateHandle.remove<String>("${key}_lead")
+        savedStateHandle.remove<String>("${key}_outcome")
+        savedStateHandle.remove<Long>("${key}_reminder")
     }
 }
 

@@ -44,7 +44,7 @@ class PostCallNotifier @Inject constructor(
             .setContentIntent(pending)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
-        return notify(notification)
+        return notify(metadata, notification)
     }
 
     fun showKeyguardSafeNotification(metadata: PostCallCallMetadata): Boolean {
@@ -66,14 +66,19 @@ class PostCallNotifier @Inject constructor(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
-        return notify(notification)
+        return notify(metadata, notification)
     }
 
+    fun cancelFor(metadata: PostCallCallMetadata) {
+        NotificationManagerCompat.from(context).cancel(notificationId(metadata))
+    }
+
+    /** سازگاری با مسیرهای قدیمی — شناسه ثابت قبلی. */
     fun cancel() {
-        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID_LEGACY)
     }
 
-    private fun notify(notification: android.app.Notification): Boolean {
+    private fun notify(metadata: PostCallCallMetadata, notification: android.app.Notification): Boolean {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -83,7 +88,7 @@ class PostCallNotifier @Inject constructor(
             return false
         }
         return try {
-            manager.notify(NOTIFICATION_ID, notification)
+            manager.notify(notificationId(metadata), notification)
             true
         } catch (_: SecurityException) {
             false
@@ -110,7 +115,17 @@ class PostCallNotifier @Inject constructor(
         PostCallLogic.CallEndKind.Ignored -> "تماس پایان یافت"
     }
 
+    private fun notificationId(metadata: PostCallCallMetadata): Int {
+        val key = PostCallLogic.ReminderScheduling.pendingCallId(
+            metadata.phone,
+            metadata.callEndKind,
+            metadata.callLogDateMs,
+        )
+        return NOTIFICATION_ID_BASE + (key.hashCode() and 0x3FFF)
+    }
+
     companion object {
-        private const val NOTIFICATION_ID = 910_042
+        private const val NOTIFICATION_ID_BASE = 910_042
+        private const val NOTIFICATION_ID_LEGACY = NOTIFICATION_ID_BASE
     }
 }
