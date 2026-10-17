@@ -13,4 +13,5 @@ object DfComponentSpec {
     const val NavElevation = 6
     const val MinTouchTargetDp = 48
     const val PrimaryButtonMinHeightDp = 52
+    const val CompactButtonMinHeightDp = 44
 }

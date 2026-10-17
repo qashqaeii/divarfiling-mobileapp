@@ -2,6 +2,7 @@ package ir.divarfiling.mobile.feature.postcall.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,34 +25,56 @@ fun PostCallStickyActions(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
     ) {
         when {
             state.isResolving -> {
-                DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                DfSecondaryButton(
+                    text = "بستن",
+                    onClick = onDismiss,
+                    compact = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             state.mode == PostCallUiMode.Invalid ||
                 state.mode == PostCallUiMode.Error ||
                 state.mode == PostCallUiMode.Ambiguous -> {
-                DfSecondaryButton(text = "بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                DfSecondaryButton(
+                    text = "بستن",
+                    onClick = onDismiss,
+                    compact = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             state.mode == PostCallUiMode.Existing -> {
                 PostCallExistingFooter(state, onDismiss, onOpenContact, viewModel)
             }
             state.mode == PostCallUiMode.New -> {
                 val needsFollowUp = state.leadSaved && !PostCallSessionPolicy.isSessionComplete(state)
-                DfPrimaryButton(
-                    text = when {
-                        state.isSubmittingLead -> "در حال ثبت…"
-                        needsFollowUp -> "تلاش دوباره برای ثبت"
-                        else -> "ثبت مخاطب"
-                    },
-                    onClick = viewModel::submitPrimaryAction,
-                    enabled = !state.isSubmittingLead &&
-                        (needsFollowUp || (!state.leadSaved && state.leadName.isNotBlank())),
-                    loading = state.isSubmittingLead,
-                )
-                DfSecondaryButton(text = "بعداً", onClick = onDismiss)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    DfPrimaryButton(
+                        text = when {
+                            state.isSubmittingLead -> "در حال ثبت…"
+                            needsFollowUp -> "تلاش دوباره"
+                            else -> "ثبت مخاطب"
+                        },
+                        onClick = viewModel::submitPrimaryAction,
+                        enabled = !state.isSubmittingLead &&
+                            (needsFollowUp || (!state.leadSaved && state.leadName.isNotBlank())),
+                        loading = state.isSubmittingLead,
+                        compact = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    DfSecondaryButton(
+                        text = "بعداً",
+                        onClick = onDismiss,
+                        compact = true,
+                        modifier = Modifier.weight(0.42f),
+                    )
+                }
             }
         }
     }
@@ -81,30 +104,58 @@ private fun PostCallExistingFooter(
         state.isSubmittingSession -> "در حال ثبت…"
         isMissed && state.reminderSaved -> "یادآور ثبت شد"
         PostCallSessionPolicy.isSessionComplete(state) -> "ثبت شد"
-        isMissed -> "ثبت یادآوری تماس"
-        hasOutcome || hasNote || state.followUpReminderEnabled -> "ثبت اطلاعات تماس"
+        isMissed -> "ثبت یادآوری"
+        hasOutcome || hasNote || state.followUpReminderEnabled -> "ثبت اطلاعات"
         else -> "بستن"
     }
 
-    if (canSubmit || (isMissed && !state.reminderSaved)) {
-        DfPrimaryButton(
-            text = primaryLabel,
-            onClick = {
-                if (canSubmit) viewModel.submitCallSession() else onDismiss()
-            },
-            enabled = canSubmit,
-            loading = state.isSubmittingSession,
-        )
-    }
-    if (!isMissed && contact?.id != null) {
-        DfSecondaryButton(
-            text = "مشاهده پرونده",
-            onClick = { contact.id.let(onOpenContact) },
-        )
-    }
-    if (!canSubmit && !(isMissed && !state.reminderSaved)) {
-        DfSecondaryButton(text = "بستن", onClick = onDismiss)
+    val showPrimary = canSubmit || (isMissed && !state.reminderSaved)
+    if (showPrimary) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            DfPrimaryButton(
+                text = primaryLabel,
+                onClick = {
+                    if (canSubmit) viewModel.submitCallSession() else onDismiss()
+                },
+                enabled = canSubmit,
+                loading = state.isSubmittingSession,
+                compact = true,
+                modifier = Modifier.weight(1f),
+            )
+            DfSecondaryButton(
+                text = "بعداً",
+                onClick = onDismiss,
+                compact = true,
+                modifier = Modifier.weight(0.42f),
+            )
+        }
+    } else if (!isMissed && contact?.id != null) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        ) {
+            DfSecondaryButton(
+                text = "مشاهده پرونده",
+                onClick = { contact.id.let(onOpenContact) },
+                compact = true,
+                modifier = Modifier.weight(1f),
+            )
+            DfSecondaryButton(
+                text = "بستن",
+                onClick = onDismiss,
+                compact = true,
+                modifier = Modifier.weight(0.42f),
+            )
+        }
     } else {
-        DfSecondaryButton(text = "بعداً", onClick = onDismiss)
+        DfSecondaryButton(
+            text = "بستن",
+            onClick = onDismiss,
+            compact = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }

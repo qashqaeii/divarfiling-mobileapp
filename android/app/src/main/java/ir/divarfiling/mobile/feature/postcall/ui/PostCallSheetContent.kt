@@ -16,7 +16,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +36,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
+import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.design.components.DfSheetSection
 import ir.divarfiling.mobile.feature.ai.voice.VoiceTextField
 import ir.divarfiling.mobile.feature.postcall.POST_CALL_LEAD_TYPES
@@ -230,8 +230,8 @@ fun PostCallSheetContent(
                                     label = { Text(outcome, style = AppTypography.labelSmall) },
                                     enabled = !state.outcomeSaved,
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = callVisual.container,
-                                        selectedLabelColor = callVisual.accent,
+                                        selectedContainerColor = callVisual.gradientEnd,
+                                        selectedLabelColor = callVisual.onContainer,
                                     ),
                                 )
                             }
@@ -293,7 +293,7 @@ fun PostCallSheetContent(
                     Text(
                         metadata.phone,
                         style = AppTypography.labelLarge,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = AppSpacing.xs),
                     )
                 }
@@ -310,22 +310,23 @@ fun PostCallSheetContent(
                                 onClick = { viewModel.onLeadTypeChange(type) },
                                 label = { Text(type, style = AppTypography.labelSmall) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = callVisual.container,
-                                    selectedLabelColor = callVisual.accent,
+                                    selectedContainerColor = callVisual.gradientEnd,
+                                    selectedLabelColor = callVisual.onContainer,
                                 ),
                             )
                         }
                     }
-                    OutlinedTextField(
+                    DfTextField(
                         value = state.leadName,
                         onValueChange = viewModel::onLeadNameChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("نام مخاطب") },
+                        label = "نام مخاطب",
+                        placeholder = "مثلاً علی محمدی",
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             capitalization = KeyboardCapitalization.Words,
                         ),
                         enabled = !state.isSubmittingLead && !state.leadSaved,
+                        modifier = Modifier.padding(top = AppSpacing.sm),
                     )
                     PostCallNoteSections(
                         noteHeader = state.noteHeader,
@@ -375,7 +376,7 @@ private fun MetaLine(label: String, value: String) {
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(label, style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
-        Text(value, style = AppTypography.labelSmall, fontWeight = FontWeight.Medium)
+        Text(value, style = AppTypography.labelSmall, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -391,8 +392,9 @@ private fun PostCallNoteSections(
         DfSheetSection("اطلاعات تماس") {
             Text(
                 noteHeader,
-                style = AppTypography.labelSmall,
-                color = DfThemeColors.textSecondary(),
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = DfThemeColors.textPrimary(),
             )
         }
     }

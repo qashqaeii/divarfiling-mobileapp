@@ -145,12 +145,14 @@ fun DfPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     loading: Boolean = false,
+    compact: Boolean = false,
 ) {
     val shape = DfShapes.Button
+    val minHeight = if (compact) DfComponentSpec.CompactButtonMinHeightDp else DfComponentSpec.PrimaryButtonMinHeightDp
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = DfComponentSpec.PrimaryButtonMinHeightDp.dp)
+            .defaultMinSize(minHeight = minHeight.dp)
             .liquidGlassSurface(
                 shape = shape,
                 variant = DfGlassButtonVariant.Primary,
@@ -175,7 +177,7 @@ fun DfPrimaryButton(
         } else {
             Text(
                 text,
-                style = AppTypography.button,
+                style = if (compact) AppTypography.labelLarge else AppTypography.button,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White.copy(alpha = if (enabled) 1f else 0.78f),
             )
@@ -190,11 +192,13 @@ fun DfSecondaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     loading: Boolean = false,
+    compact: Boolean = false,
 ) {
+    val minHeight = if (compact) DfComponentSpec.CompactButtonMinHeightDp else DfComponentSpec.PrimaryButtonMinHeightDp
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = DfComponentSpec.PrimaryButtonMinHeightDp.dp)
+            .defaultMinSize(minHeight = minHeight.dp)
             .liquidGlassSurface(
                 shape = DfShapes.Button,
                 variant = DfGlassButtonVariant.Secondary,
@@ -215,7 +219,7 @@ fun DfSecondaryButton(
         } else {
             Text(
                 text,
-                style = AppTypography.button,
+                style = if (compact) AppTypography.labelLarge else AppTypography.button,
                 fontWeight = FontWeight.SemiBold,
                 color = DfThemeColors.textPrimary(),
             )

@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -77,7 +78,9 @@ fun PostCallCompactCard(
                     .align(Alignment.CenterStart)
                     .width(5.dp)
                     .background(
-                        visual.accent,
+                        Brush.verticalGradient(
+                            listOf(visual.gradientStart, visual.gradientEnd),
+                        ),
                         RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp),
                     ),
             )
@@ -130,13 +133,15 @@ fun PostCallCompactCard(
                             Text(
                                 phone,
                                 style = AppTypography.labelSmall,
-                                color = DfThemeColors.textSecondary(),
+                                fontWeight = FontWeight.Bold,
+                                color = DfThemeColors.textPrimary(),
                                 maxLines = 1,
                             )
                         }
                         Text(
                             contextLine,
                             style = AppTypography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
                             color = DfThemeColors.textSecondary(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -185,12 +190,13 @@ fun PostCallCompactCard(
                             text = primaryText,
                             onClick = onPrimary,
                             enabled = primaryEnabled,
+                            compact = true,
                             modifier = Modifier.weight(1f),
                         )
                     }
                     if (mode != PostCallUiMode.Invalid && mode != PostCallUiMode.Error) {
                         TextButton(onClick = onDismiss) {
-                            Text("بعداً", style = AppTypography.labelLarge, color = DfThemeColors.textSecondary())
+                            Text("بعداً", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
                         }
                     }
                 }

@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,6 +11,7 @@ import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfTextField
 
 @Composable
 fun PostCallQuickLeadExtras(
@@ -33,6 +33,7 @@ fun PostCallQuickLeadExtras(
             text = if (expanded) "بستن اطلاعات تکمیلی" else "اطلاعات تکمیلی (اختیاری)",
             onClick = { onExpandedChange(!expanded) },
             enabled = enabled,
+            compact = true,
             modifier = Modifier.fillMaxWidth(),
         )
         AnimatedVisibility(visible = expanded) {
@@ -45,37 +46,36 @@ fun PostCallQuickLeadExtras(
                     style = AppTypography.labelSmall,
                     color = DfThemeColors.textSecondary(),
                 )
-                OutlinedTextField(
+                DfTextField(
                     value = budgetMin,
                     onValueChange = onBudgetMinChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("بودجه از (تومان)") },
+                    label = "بودجه از (تومان)",
                     enabled = enabled,
                     singleLine = true,
                 )
-                OutlinedTextField(
+                DfTextField(
                     value = budgetMax,
                     onValueChange = onBudgetMaxChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("بودجه تا (تومان)") },
+                    label = "بودجه تا (تومان)",
                     enabled = enabled,
                     singleLine = true,
                 )
-                OutlinedTextField(
+                DfTextField(
                     value = propertyType,
                     onValueChange = onPropertyTypeChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("نوع ملک") },
+                    label = "نوع ملک",
+                    placeholder = "آپارتمان، ویلا، …",
                     enabled = enabled,
                     singleLine = true,
                 )
-                OutlinedTextField(
+                DfTextField(
                     value = areas,
                     onValueChange = onAreasChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("محله‌های موردنظر") },
+                    label = "محله‌های موردنظر",
                     enabled = enabled,
+                    singleLine = false,
                     minLines = 2,
+                    maxLines = 4,
                 )
             }
         }
