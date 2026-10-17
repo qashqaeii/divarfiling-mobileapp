@@ -118,6 +118,12 @@ fun PostCallSetupScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    val callLogLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) {
+        refresh()
+        autoPermissionPassDone = true
+    }
     val phoneLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {
@@ -130,12 +136,6 @@ fun PostCallSetupScreen(
         } else {
             autoPermissionPassDone = true
         }
-    }
-    val callLogLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) {
-        refresh()
-        autoPermissionPassDone = true
     }
     val notificationsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
