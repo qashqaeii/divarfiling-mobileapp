@@ -37,19 +37,40 @@ object PostCallSessionPolicy {
         }
     }
 
+    fun hasPendingLeadFollowUp(state: PostCallUiState): Boolean {
+        if (!state.leadSaved) return false
+        if (state.note.isNotBlank() && !state.noteSaved) return true
+        if (!state.leadExtrasSaved && hasLeadExtrasInput(state)) return true
+        return false
+    }
+
+    fun hasLeadExtrasInput(state: PostCallUiState): Boolean =
+        state.leadBudgetMin.isNotBlank() ||
+            state.leadBudgetMax.isNotBlank() ||
+            state.leadPropertyType.isNotBlank() ||
+            state.leadAreas.isNotBlank()
+
     /** نشست از نظر Pending Inbox بسته شده — حداقل یک ثبت معتبر و بدون پیش‌نویس ذخیره‌نشده. */
     fun isSessionComplete(state: PostCallUiState): Boolean {
         if (hasUnsavedUserInput(state)) return false
+        if (hasPendingLeadFollowUp(state)) return false
         val savedSomething =
             state.leadSaved || state.noteSaved || state.outcomeSaved || state.reminderSaved
         if (!savedSomething) return false
-        if (state.mode == PostCallUiMode.New) return state.leadSaved
+        if (state.mode == PostCallUiMode.New) {
+            return state.leadSaved && state.leadExtrasSaved &&
+                (state.note.isBlank() || state.noteSaved)
+        }
+        if (state.leadSaved && state.mode == PostCallUiMode.Existing) {
+            return state.leadExtrasSaved && (state.note.isBlank() || state.noteSaved)
+        }
         return true
     }
 
-    fun shouldEnqueuePendingOnDismiss(state: PostCallUiState): Boolean =
-        !isSessionComplete(state) &&
-            state.mode != PostCallUiMode.Invalid &&
-            state.mode != PostCallUiMode.Loading &&
-            state.mode != PostCallUiMode.Error
+    fun shouldEnqueuePendingOnDismiss(state: PostCallUiState): Boolean {
+        if (isSessionComplete(state)) return false
+        if (state.mode == PostCallUiMode.Invalid) return false
+        if (state.phone.isBlank()) return false
+        return true
+    }
 }

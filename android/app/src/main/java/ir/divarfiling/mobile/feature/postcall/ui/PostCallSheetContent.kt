@@ -67,20 +67,15 @@ fun PostCallSheetContent(
     val isMissed = metadata.callEndKind == PostCallLogic.CallEndKind.Missed
     val isOutgoing = metadata.callEndKind == PostCallLogic.CallEndKind.Outgoing
     val isAnswered = metadata.callEndKind == PostCallLogic.CallEndKind.Answered
-    val dismissAndMaybeQueue: () -> Unit = {
-        viewModel.onDismissWithoutSave()
-        onDismiss()
-    }
-
     DfSheetScaffold(
         title = PostCallUiCopy.sheetTitle(state.mode, metadata.callEndKind),
         subtitle = headerSubtitle,
-        onClose = dismissAndMaybeQueue,
+        onClose = onDismiss,
         bodyHeightFraction = PostCallUiCopy.computeAdaptiveSheetHeightFraction(state),
         footer = {
             PostCallStickyActions(
                 state = state,
-                onDismiss = dismissAndMaybeQueue,
+                onDismiss = onDismiss,
                 onOpenContact = onOpenContact,
                 viewModel = viewModel,
             )

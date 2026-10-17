@@ -6,15 +6,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.rememberCoroutineScope
 import dagger.hilt.android.AndroidEntryPoint
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
 import ir.divarfiling.mobile.feature.postcall.presentation.PostCallNotifier
-import ir.divarfiling.mobile.feature.postcall.ui.PostCallSheetContent
-import kotlinx.coroutines.launch
+import ir.divarfiling.mobile.feature.postcall.ui.PostCallBottomSheetHost
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -22,7 +17,6 @@ class PostCallAssistantActivity : ComponentActivity() {
     @Inject lateinit var notifier: PostCallNotifier
     @Inject lateinit var eventHub: PostCallEventHub
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -34,30 +28,18 @@ class PostCallAssistantActivity : ComponentActivity() {
         notifier.cancel()
         setContent {
             DivarFilingTheme {
-                val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-                val scope = rememberCoroutineScope()
-                ModalBottomSheet(
-                    onDismissRequest = { finish() },
-                    sheetState = sheetState,
-                ) {
-                    PostCallSheetContent(
-                        metadata = metadata,
-                        onDismiss = {
-                            scope.launch {
-                                sheetState.hide()
-                                finish()
-                            }
-                        },
-                        onOpenContact = { contactId ->
-                            val main = Intent(this@PostCallAssistantActivity, ir.divarfiling.mobile.MainActivity::class.java).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                                putExtra(EXTRA_OPEN_CONTACT_ID, contactId)
-                            }
-                            startActivity(main)
-                            finish()
-                        },
-                    )
-                }
+                PostCallBottomSheetHost(
+                    metadata = metadata,
+                    onDismissed = { finish() },
+                    onOpenContact = { contactId ->
+                        val main = Intent(this@PostCallAssistantActivity, ir.divarfiling.mobile.MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            putExtra(EXTRA_OPEN_CONTACT_ID, contactId)
+                        }
+                        startActivity(main)
+                        finish()
+                    },
+                )
             }
         }
     }

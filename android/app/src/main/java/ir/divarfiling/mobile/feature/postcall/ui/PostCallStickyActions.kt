@@ -39,10 +39,16 @@ fun PostCallStickyActions(
                 PostCallExistingFooter(state, onDismiss, onOpenContact, viewModel)
             }
             state.mode == PostCallUiMode.New -> {
+                val needsFollowUp = state.leadSaved && !PostCallSessionPolicy.isSessionComplete(state)
                 DfPrimaryButton(
-                    text = if (state.isSubmittingLead) "در حال ثبت…" else "ثبت مخاطب",
+                    text = when {
+                        state.isSubmittingLead -> "در حال ثبت…"
+                        needsFollowUp -> "تلاش دوباره برای ثبت"
+                        else -> "ثبت مخاطب"
+                    },
                     onClick = viewModel::submitPrimaryAction,
-                    enabled = !state.isSubmittingLead && !state.leadSaved && state.leadName.isNotBlank(),
+                    enabled = !state.isSubmittingLead &&
+                        (needsFollowUp || (!state.leadSaved && state.leadName.isNotBlank())),
                     loading = state.isSubmittingLead,
                 )
                 DfSecondaryButton(text = "بعداً", onClick = onDismiss)

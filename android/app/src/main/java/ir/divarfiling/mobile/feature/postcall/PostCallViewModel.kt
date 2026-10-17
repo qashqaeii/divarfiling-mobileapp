@@ -80,6 +80,7 @@ data class PostCallUiState(
     val outcomeSaved: Boolean = false,
     val reminderSaved: Boolean = false,
     val leadSaved: Boolean = false,
+    val leadExtrasSaved: Boolean = true,
     val error: String? = null,
     val successMessage: String? = null,
     val partialSuccessMessage: String? = null,
@@ -105,7 +106,8 @@ class PostCallViewModel @Inject constructor(
         val defaultReminder = PostCallLogic.ReminderScheduling.tomorrowMorning(zone = ZoneId.systemDefault()).toEpochMilli()
         viewModelScope.launch {
             val userId = sessionStore.getUser()?.id
-            val draft = userId?.let { draftStore.read(it, metadata) } ?: readDraftFromSavedState(metadata)
+            val persisted = userId?.let { draftStore.read(it, metadata) }
+            val draft = persisted?.let { draftToSnapshot(it) } ?: readDraftFromSavedState(metadata)
             _uiState.value = PostCallUiState(
                 phone = normalizedPhone,
                 callEndKind = metadata.callEndKind,
@@ -247,7 +249,8 @@ class PostCallViewModel @Inject constructor(
     fun submitPrimaryAction() {
         val state = _uiState.value
         when {
-            state.mode == PostCallUiMode.New -> submitQuickLead()
+            state.mode == PostCallUiMode.New ||
+                (state.leadSaved && !PostCallSessionPolicy.isSessionComplete(state)) -> submitQuickLead()
             else -> submitCallSession()
         }
     }
@@ -368,7 +371,7 @@ class PostCallViewModel @Inject constructor(
                 contactId,
                 "پیگیری تماس",
                 due.toString(),
-                note = reminderNote,
+                note = reminderNote ?: "",
             )
         ) {
             is ApiResult.Success -> SaveStep.Ok
@@ -386,64 +389,30 @@ class PostCallViewModel @Inject constructor(
 
     fun submitQuickLead() {
         val state = _uiState.value
+        if (state.isSubmittingLead || state.isSubmittingSession) return
+        val contactId = state.contact?.id
+        if (state.leadSaved && contactId != null) {
+            retryLeadFollowUps(contactId)
+            return
+        }
         val name = state.leadName.trim()
         val phone = state.phone.trim()
-        val note = state.note.trim()
-        if (name.isBlank() || phone.isBlank() || state.isSubmittingLead || state.leadSaved) return
-        if (state.isSubmittingSession) return
+        if (name.isBlank() || phone.isBlank()) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingLead = true, isSubmittingSession = true, error = null) }
             when (val result = crmRepository.quickLead(name, phone, state.leadCustomerType)) {
                 is ApiResult.Success -> {
-                    val contactId = result.data.id
-                    val extrasError = applyLeadExtrasIfAny(contactId, state)
-                    if (note.isNotBlank()) {
-                        when (val noteResult = crmRepository.createNote(contactId, composeCrmNote(note))) {
-                            is ApiResult.Success -> {
-                                _uiState.update {
-                                    it.copy(
-                                        isSubmittingLead = false,
-                                        isSubmittingSession = false,
-                                        leadSaved = true,
-                                        noteSaved = true,
-                                        successMessage = "مخاطب و یادداشت ثبت شد",
-                                        partialSuccessMessage = extrasError,
-                                        mode = PostCallUiMode.Existing,
-                                        contact = result.data.toPostCallBrief(contactId),
-                                    )
-                                }
-                            }
-                            is ApiResult.Error -> {
-                                _uiState.update {
-                                    it.copy(
-                                        isSubmittingLead = false,
-                                        isSubmittingSession = false,
-                                        leadSaved = true,
-                                        successMessage = "مخاطب ثبت شد",
-                                        partialSuccessMessage = listOfNotNull(
-                                            "یادداشت ذخیره نشد: ${noteResult.message}",
-                                            extrasError,
-                                        ).joinToString("\n").ifBlank { null },
-                                        mode = PostCallUiMode.Existing,
-                                        contact = result.data.toPostCallBrief(contactId),
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                isSubmittingLead = false,
-                                isSubmittingSession = false,
-                                leadSaved = true,
-                                successMessage = "مخاطب ثبت شد",
-                                partialSuccessMessage = extrasError,
-                                mode = PostCallUiMode.Existing,
-                                contact = result.data.toPostCallBrief(contactId),
-                            )
-                        }
+                    val newContactId = result.data.id
+                    val brief = result.data.toPostCallBrief(newContactId)
+                    _uiState.update {
+                        it.copy(
+                            leadSaved = true,
+                            mode = PostCallUiMode.Existing,
+                            contact = brief,
+                            leadExtrasSaved = !PostCallSessionPolicy.hasLeadExtrasInput(it),
+                        )
                     }
-                    maybeFinalizeSession()
+                    completeLeadFollowUps(newContactId)
                 }
                 is ApiResult.Error -> _uiState.update {
                     it.copy(isSubmittingLead = false, isSubmittingSession = false, error = result.message)
@@ -452,12 +421,56 @@ class PostCallViewModel @Inject constructor(
         }
     }
 
-    private suspend fun applyLeadExtrasIfAny(contactId: Long, state: PostCallUiState): String? {
-        val hasExtras = state.leadBudgetMin.isNotBlank() ||
-            state.leadBudgetMax.isNotBlank() ||
-            state.leadPropertyType.isNotBlank() ||
-            state.leadAreas.isNotBlank()
-        if (!hasExtras) return null
+    private fun retryLeadFollowUps(contactId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingLead = true, isSubmittingSession = true, error = null) }
+            completeLeadFollowUps(contactId)
+        }
+    }
+
+    private suspend fun completeLeadFollowUps(contactId: Long) {
+        var state = _uiState.value
+        val errors = mutableListOf<String>()
+        var extrasSaved = state.leadExtrasSaved
+        var noteSaved = state.noteSaved
+
+        if (!extrasSaved && PostCallSessionPolicy.hasLeadExtrasInput(state)) {
+            when (val r = applyLeadExtras(contactId, state)) {
+                is SaveStep.Ok -> extrasSaved = true
+                is SaveStep.Fail -> errors += r.message
+            }
+        }
+
+        state = _uiState.value
+        val note = state.note.trim()
+        if (!noteSaved && note.isNotBlank()) {
+            when (val r = saveNote(contactId, note)) {
+                is SaveStep.Ok -> noteSaved = true
+                is SaveStep.Fail -> errors += r.message
+            }
+        }
+
+        _uiState.update {
+            it.copy(
+                isSubmittingLead = false,
+                isSubmittingSession = false,
+                leadExtrasSaved = extrasSaved,
+                noteSaved = noteSaved,
+                note = if (noteSaved) "" else it.note,
+                successMessage = when {
+                    errors.isEmpty() -> "ثبت اطلاعات تماس انجام شد"
+                    noteSaved || extrasSaved -> "بخشی از اطلاعات ثبت شد"
+                    else -> "مخاطب ثبت شد"
+                },
+                partialSuccessMessage = errors.joinToString("\n").ifBlank { null },
+            )
+        }
+        persistDraft(_uiState.value)
+        maybeFinalizeSession()
+    }
+
+    private suspend fun applyLeadExtras(contactId: Long, state: PostCallUiState): SaveStep {
+        if (!PostCallSessionPolicy.hasLeadExtrasInput(state)) return SaveStep.Ok
         val request = ContactUpdateRequest(
             budgetMin = FormatUtils.parseLocalizedLong(state.leadBudgetMin),
             budgetMax = FormatUtils.parseLocalizedLong(state.leadBudgetMax),
@@ -465,8 +478,8 @@ class PostCallViewModel @Inject constructor(
             areas = state.leadAreas.trim().ifBlank { null },
         )
         return when (val r = crmRepository.updateContact(contactId, request)) {
-            is ApiResult.Success -> null
-            is ApiResult.Error -> "اطلاعات تکمیلی ذخیره نشد: ${r.message}"
+            is ApiResult.Success -> SaveStep.Ok
+            is ApiResult.Error -> SaveStep.Fail("اطلاعات تکمیلی ذخیره نشد: ${r.message}")
         }
     }
 
@@ -503,6 +516,20 @@ class PostCallViewModel @Inject constructor(
         val leadPropertyType: String,
         val leadAreas: String,
     )
+
+    private fun draftToSnapshot(d: PostCallDraft): DraftSnapshot =
+        DraftSnapshot(
+            note = d.note,
+            leadName = d.leadName,
+            outcome = d.outcome,
+            reminderMillis = d.reminderMillis,
+            followUpReminderEnabled = d.followUpReminderEnabled,
+            leadCustomerType = d.leadCustomerType,
+            leadBudgetMin = d.leadBudgetMin,
+            leadBudgetMax = d.leadBudgetMax,
+            leadPropertyType = d.leadPropertyType,
+            leadAreas = d.leadAreas,
+        )
 
     private fun readDraftFromSavedState(metadata: PostCallCallMetadata): DraftSnapshot? {
         val key = draftKey(metadata)
