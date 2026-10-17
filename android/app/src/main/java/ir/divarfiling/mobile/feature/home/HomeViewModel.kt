@@ -16,14 +16,20 @@ import ir.divarfiling.mobile.data.repository.DashboardRepository
 import ir.divarfiling.mobile.data.repository.SyncRepository
 import ir.divarfiling.mobile.feature.postcall.PostCallController
 import ir.divarfiling.mobile.feature.postcall.PostCallFeatureFlags
+import ir.divarfiling.mobile.feature.postcall.PostCallPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val sessionStore: SessionStore,
@@ -31,6 +37,7 @@ class HomeViewModel @Inject constructor(
     private val crmRepository: CrmRepository,
     private val syncRepository: SyncRepository,
     private val postCallController: PostCallController,
+    private val postCallPreferences: PostCallPreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -53,7 +60,26 @@ class HomeViewModel @Inject constructor(
         }
         loadDashboard(refreshing = false)
         syncInBackground()
-        refreshPostCallPromo()
+        observePostCallPromo()
+    }
+
+    private fun observePostCallPromo() {
+        if (!PostCallFeatureFlags.ENABLED) return
+        viewModelScope.launch {
+            sessionStore.currentUser
+                .flatMapLatest { user ->
+                    val userId = user?.id
+                    if (userId == null) {
+                        flowOf(false)
+                    } else {
+                        postCallPreferences.shouldShowPromoFlow(userId)
+                    }
+                }
+                .distinctUntilChanged()
+                .collect { show ->
+                    _uiState.update { it.copy(showPostCallPromo = show) }
+                }
+        }
     }
 
     fun refreshPostCallPromo() {

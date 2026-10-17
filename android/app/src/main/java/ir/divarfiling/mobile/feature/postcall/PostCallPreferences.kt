@@ -60,6 +60,11 @@ class PostCallPreferences @Inject constructor(
         return prefs[enabledKey(userId)] != true && prefs[promoDismissedKey(userId)] != true
     }
 
+    fun shouldShowPromoFlow(userId: Long): Flow<Boolean> =
+        dataStore.data.map { prefs ->
+            prefs[enabledKey(userId)] != true && prefs[promoDismissedKey(userId)] != true
+        }
+
     suspend fun clearAll() {
         dataStore.edit { it.clear() }
         runtimePrefs.clear()

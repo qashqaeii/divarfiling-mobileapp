@@ -4,6 +4,7 @@ import ir.divarfiling.mobile.core.datastore.SessionStore
 import ir.divarfiling.mobile.feature.postcall.call.PostCallEventDedupStore
 import ir.divarfiling.mobile.feature.postcall.call.PostCallMonitor
 import ir.divarfiling.mobile.feature.postcall.permission.PostCallPermissionManager
+import ir.divarfiling.mobile.feature.postcall.permission.PostCallSetupReadiness
 import ir.divarfiling.mobile.feature.postcall.presentation.PostCallOverlayController
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -53,6 +54,12 @@ class PostCallController @Inject constructor(
     suspend fun setEnabled(enabled: Boolean): Boolean {
         if (!PostCallFeatureFlags.ENABLED) return false
         val user = sessionStore.getUser() ?: return false
+        if (enabled) {
+            val snap = permissionManager.snapshot()
+            if (!PostCallSetupReadiness.meetsMinimumForEnable(snap)) {
+                return false
+            }
+        }
         preferences.setEnabled(user.id, enabled)
         if (!enabled) {
             stopRuntimeOnly()

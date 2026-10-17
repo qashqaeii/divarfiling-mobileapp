@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfCard
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -32,16 +31,22 @@ fun PostCallOnboardingCard(
                 color = DfThemeColors.textPrimary(),
             )
             Text(
-                "بعد از تماس تلفنی، شماره را با CRM تطبیق دهید و سریع یادداشت یا سرنخ ثبت کنید.",
+                "بعد از هر تماس، فایلینگ دیوار مشتری را شناسایی می‌کند تا همان‌جا نتیجه صحبت‌هایت، یادداشت‌ها و پیگیری بعدی را ثبت کنی. اگر شماره جدید باشد، می‌توانی سریع به مخاطبانت اضافه‌اش کنی.",
                 style = AppTypography.bodyDescription,
                 color = DfThemeColors.textSecondary(),
+                lineHeight = AppTypography.bodyDescription.lineHeight,
+            )
+            Text(
+                "بدون ضبط مکالمه؛ فقط برای اینکه هیچ پیگیری‌ای فراموش نشود.",
+                style = AppTypography.labelSmall,
+                color = DfThemeColors.textMuted(),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
                 DfPrimaryButton(
-                    text = "فعال‌سازی",
+                    text = "فعال‌کردن دستیار",
                     onClick = onEnable,
                     modifier = Modifier.weight(1f),
                 )
@@ -51,11 +56,6 @@ fun PostCallOnboardingCard(
                     modifier = Modifier.weight(1f),
                 )
             }
-            Text(
-                "تا زمانی که فعال نکنید، مجوز تماس درخواست نمی‌شود.",
-                style = AppTypography.labelSmall,
-                color = DfColors.Purple,
-            )
         }
     }
 }

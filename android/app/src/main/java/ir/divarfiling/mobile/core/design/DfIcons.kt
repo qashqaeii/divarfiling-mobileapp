@@ -90,6 +90,7 @@ object DfIcons {
     val Lock: ImageVector = LucideIcons.Lock
     val SearchX: ImageVector = LucideIcons.SearchX
     val CircleAlert: ImageVector = LucideIcons.CircleAlert
+    val Info: ImageVector = LucideIcons.Info
     val Pencil: ImageVector = LucideIcons.Pencil
     val Paperclip: ImageVector = LucideIcons.Paperclip
     val Trash: ImageVector = LucideIcons.Trash2
