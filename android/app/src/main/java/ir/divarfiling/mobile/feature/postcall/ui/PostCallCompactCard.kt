@@ -1,11 +1,14 @@
 package ir.divarfiling.mobile.feature.postcall.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -18,12 +21,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
-import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
@@ -43,6 +46,7 @@ fun PostCallCompactCard(
     onRetryResolve: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val visual = PostCallCallKindVisuals.forKind(metadata.callEndKind)
     val phone = metadata.phone
     val title = displayName?.takeIf { it.isNotBlank() } ?: phone
     val showPhoneSubtitle = displayName != null && displayName.isNotBlank()
@@ -58,103 +62,136 @@ fun PostCallCompactCard(
     }
 
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(12.dp, RoundedCornerShape(22.dp), clip = false),
         shape = RoundedCornerShape(22.dp),
         color = DfThemeColors.surface(),
-        shadowElevation = 10.dp,
-        tonalElevation = 2.dp,
+        tonalElevation = 1.dp,
+        shadowElevation = 0.dp,
     ) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .align(Alignment.CenterStart)
+                    .width(5.dp)
+                    .background(
+                        visual.accent,
+                        RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp),
+                    ),
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = AppSpacing.sm + 5.dp, end = AppSpacing.md, top = AppSpacing.md, bottom = AppSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
             ) {
                 Surface(
-                    modifier = Modifier.size(48.dp).clip(CircleShape),
-                    color = DfColors.PurpleContainer,
-                ) {
-                    Icon(
-                        DfIcons.Phone,
-                        contentDescription = null,
-                        tint = DfColors.Purple,
-                        modifier = Modifier.padding(12.dp),
-                    )
-                }
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = AppSpacing.sm),
+                    shape = RoundedCornerShape(10.dp),
+                    color = visual.container,
                 ) {
                     Text(
-                        title,
-                        style = AppTypography.cardTitle,
+                        visual.kindLabel,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        style = AppTypography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        color = visual.onContainer,
                     )
-                    if (showPhoneSubtitle) {
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Surface(
+                        modifier = Modifier.size(48.dp).clip(CircleShape),
+                        color = visual.accent.copy(alpha = 0.14f),
+                    ) {
+                        Icon(
+                            visual.icon,
+                            contentDescription = null,
+                            tint = visual.accent,
+                            modifier = Modifier.padding(12.dp),
+                        )
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = AppSpacing.sm),
+                    ) {
                         Text(
-                            phone,
+                            title,
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (showPhoneSubtitle) {
+                            Text(
+                                phone,
+                                style = AppTypography.labelSmall,
+                                color = DfThemeColors.textSecondary(),
+                                maxLines = 1,
+                            )
+                        }
+                        Text(
+                            contextLine,
                             style = AppTypography.labelSmall,
                             color = DfThemeColors.textSecondary(),
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = AppSpacing.xxs),
                         )
                     }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = statusBadgeColor(mode, visual),
+                        ) {
+                            Text(
+                                statusLabel,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = AppTypography.labelSmall,
+                                color = statusBadgeTextColor(mode),
+                            )
+                        }
+                        IconButton(onClick = onDismiss) {
+                            Icon(DfIcons.X, contentDescription = "بستن", tint = DfThemeColors.textSecondary())
+                        }
+                    }
+                }
+                contact?.customerType?.takeIf { it.isNotBlank() }?.let {
                     Text(
-                        contextLine,
+                        "نقش: $it",
                         style = AppTypography.labelSmall,
-                        color = DfThemeColors.textSecondary(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = AppSpacing.xxs),
+                        color = visual.accent,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = statusBadgeColor(mode),
-                    ) {
-                        Text(
-                            statusLabel,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = AppTypography.labelSmall,
-                            color = statusBadgeTextColor(mode),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(vertical = AppSpacing.sm),
+                            color = visual.accent,
+                        )
+                    } else {
+                        DfPrimaryButton(
+                            text = primaryText,
+                            onClick = onPrimary,
+                            enabled = primaryEnabled,
+                            modifier = Modifier.weight(1f),
                         )
                     }
-                    IconButton(onClick = onDismiss) {
-                        Icon(DfIcons.X, contentDescription = "بستن", tint = DfThemeColors.textSecondary())
-                    }
-                }
-            }
-            contact?.customerType?.takeIf { it.isNotBlank() }?.let {
-                Text("نقش: $it", style = AppTypography.labelSmall, color = DfColors.Purple)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = AppSpacing.sm),
-                        color = DfColors.Purple,
-                    )
-                } else {
-                    DfPrimaryButton(
-                        text = primaryText,
-                        onClick = onPrimary,
-                        enabled = primaryEnabled,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                if (mode != PostCallUiMode.Invalid && mode != PostCallUiMode.Error) {
-                    TextButton(onClick = onDismiss) {
-                        Text("بعداً", style = AppTypography.labelLarge)
+                    if (mode != PostCallUiMode.Invalid && mode != PostCallUiMode.Error) {
+                        TextButton(onClick = onDismiss) {
+                            Text("بعداً", style = AppTypography.labelLarge, color = DfThemeColors.textSecondary())
+                        }
                     }
                 }
             }
@@ -163,8 +200,8 @@ fun PostCallCompactCard(
 }
 
 @Composable
-private fun statusBadgeColor(mode: PostCallUiMode) = when (mode) {
-    PostCallUiMode.Existing -> DfColors.PurpleContainer
+private fun statusBadgeColor(mode: PostCallUiMode, visual: PostCallCallKindVisual) = when (mode) {
+    PostCallUiMode.Existing -> visual.container
     PostCallUiMode.New -> DfThemeColors.surfaceVariant().copy(alpha = 0.7f)
     PostCallUiMode.Ambiguous -> DfThemeColors.surfaceVariant().copy(alpha = 0.7f)
     PostCallUiMode.Error -> DfThemeColors.errorContainer()
@@ -174,7 +211,7 @@ private fun statusBadgeColor(mode: PostCallUiMode) = when (mode) {
 
 @Composable
 private fun statusBadgeTextColor(mode: PostCallUiMode) = when (mode) {
-    PostCallUiMode.Existing -> DfColors.Purple
-    PostCallUiMode.Error, PostCallUiMode.Invalid -> DfThemeColors.error()
+    PostCallUiMode.Existing -> DfThemeColors.textSecondary()
+    PostCallUiMode.Error, PostCallUiMode.Invalid -> DfThemeColors.onError()
     else -> DfThemeColors.textSecondary()
 }

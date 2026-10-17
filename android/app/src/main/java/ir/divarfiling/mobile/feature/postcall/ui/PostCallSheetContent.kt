@@ -63,13 +63,18 @@ fun PostCallSheetContent(
         viewModel.load(metadata)
     }
 
-    val headerSubtitle = buildSheetSubtitle(metadata.phone, metadata.callEndKind)
+    val callVisual = PostCallCallKindVisuals.forKind(metadata.callEndKind)
+    val headerSubtitle = state.contact?.fullName?.takeIf { it.isNotBlank() } ?: metadata.phone
     val isMissed = metadata.callEndKind == PostCallLogic.CallEndKind.Missed
     val isOutgoing = metadata.callEndKind == PostCallLogic.CallEndKind.Outgoing
     val isAnswered = metadata.callEndKind == PostCallLogic.CallEndKind.Answered
     DfSheetScaffold(
         title = PostCallUiCopy.sheetTitle(state.mode, metadata.callEndKind),
         subtitle = headerSubtitle,
+        sectionLabel = callVisual.sheetSectionLabel,
+        icon = callVisual.icon,
+        iconContainerColor = callVisual.container,
+        iconTint = callVisual.accent,
         onClose = onDismiss,
         bodyHeightFraction = PostCallUiCopy.computeAdaptiveSheetHeightFraction(state),
         footer = {
@@ -81,6 +86,11 @@ fun PostCallSheetContent(
             )
         },
     ) {
+        PostCallKindBanner(
+            metadata = metadata,
+            phone = metadata.phone,
+            modifier = Modifier.padding(bottom = AppSpacing.xs),
+        )
         when {
             state.isResolving -> {
                 Row(
@@ -89,7 +99,7 @@ fun PostCallSheetContent(
                         .padding(vertical = AppSpacing.lg),
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    CircularProgressIndicator(color = DfColors.Purple)
+                    CircularProgressIndicator(color = callVisual.accent)
                 }
             }
             state.mode == PostCallUiMode.Invalid -> {
@@ -164,12 +174,12 @@ fun PostCallSheetContent(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape),
-                            color = DfThemeColors.primaryContainer(),
+                            color = callVisual.container,
                         ) {
                             Icon(
                                 DfIcons.User,
                                 contentDescription = null,
-                                tint = DfThemeColors.primary(),
+                                tint = callVisual.accent,
                                 modifier = Modifier.padding(12.dp),
                             )
                         }
@@ -182,7 +192,7 @@ fun PostCallSheetContent(
                             Text(
                                 "موجود در CRM",
                                 style = AppTypography.labelSmall,
-                                color = DfColors.Purple,
+                                color = callVisual.accent,
                                 modifier = Modifier.padding(top = AppSpacing.xxs),
                             )
                         }
@@ -220,8 +230,8 @@ fun PostCallSheetContent(
                                     label = { Text(outcome, style = AppTypography.labelSmall) },
                                     enabled = !state.outcomeSaved,
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = DfColors.PurpleContainer,
-                                        selectedLabelColor = DfColors.Purple,
+                                        selectedContainerColor = callVisual.container,
+                                        selectedLabelColor = callVisual.accent,
                                     ),
                                 )
                             }
@@ -266,7 +276,7 @@ fun PostCallSheetContent(
                     Text(it, color = DfThemeColors.error(), style = AppTypography.labelSmall)
                 }
                 state.successMessage?.let {
-                    Text(it, color = DfColors.Purple, style = AppTypography.labelSmall)
+                    Text(it, color = callVisual.accent, style = AppTypography.labelSmall)
                 }
             }
             state.mode == PostCallUiMode.New -> {
@@ -300,8 +310,8 @@ fun PostCallSheetContent(
                                 onClick = { viewModel.onLeadTypeChange(type) },
                                 label = { Text(type, style = AppTypography.labelSmall) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = DfColors.PurpleContainer,
-                                    selectedLabelColor = DfColors.Purple,
+                                    selectedContainerColor = callVisual.container,
+                                    selectedLabelColor = callVisual.accent,
                                 ),
                             )
                         }
@@ -345,7 +355,7 @@ fun PostCallSheetContent(
                     Text(it, color = DfThemeColors.error(), style = AppTypography.labelSmall)
                 }
                 state.successMessage?.let {
-                    Text(it, color = DfColors.Purple, style = AppTypography.labelSmall)
+                    Text(it, color = callVisual.accent, style = AppTypography.labelSmall)
                 }
             }
         }
@@ -396,14 +406,4 @@ private fun PostCallNoteSections(
             minLines = 2,
         )
     }
-}
-
-private fun buildSheetSubtitle(phone: String, kind: PostCallLogic.CallEndKind): String {
-    val kindLabel = when (kind) {
-        PostCallLogic.CallEndKind.Missed -> "تماس بی‌پاسخ"
-        PostCallLogic.CallEndKind.Outgoing -> "تماس خروجی"
-        PostCallLogic.CallEndKind.Answered -> "تماس ورودی"
-        PostCallLogic.CallEndKind.Ignored -> "تماس"
-    }
-    return "$kindLabel · $phone"
 }

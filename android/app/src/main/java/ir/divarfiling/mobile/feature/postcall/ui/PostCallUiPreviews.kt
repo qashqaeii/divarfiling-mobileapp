@@ -11,9 +11,9 @@ import ir.divarfiling.mobile.feature.postcall.PostCallCallMetadata
 import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.PostCallUiMode
 
-@Preview(name = "Compact · Existing", showBackground = true)
+@Preview(name = "Compact · Answered", showBackground = true)
 @Composable
-private fun PreviewCompactExisting() {
+private fun PreviewCompactAnswered() {
     DivarFilingTheme {
         Surface {
             PostCallCompactCard(
@@ -21,6 +21,44 @@ private fun PreviewCompactExisting() {
                 mode = PostCallUiMode.Existing,
                 contact = null,
                 displayName = "علی محمدی",
+                onDismiss = {},
+                onPrimaryAction = {},
+                onRetryResolve = {},
+                modifier = Modifier.padding(AppSpacing.md),
+            )
+        }
+    }
+}
+
+@Preview(name = "Compact · Missed", showBackground = true)
+@Composable
+private fun PreviewCompactMissed() {
+    DivarFilingTheme {
+        Surface {
+            PostCallCompactCard(
+                metadata = previewMetadata(PostCallLogic.CallEndKind.Missed, durationSec = 0L),
+                mode = PostCallUiMode.Existing,
+                contact = null,
+                displayName = "مشتری ناشناس",
+                onDismiss = {},
+                onPrimaryAction = {},
+                onRetryResolve = {},
+                modifier = Modifier.padding(AppSpacing.md),
+            )
+        }
+    }
+}
+
+@Preview(name = "Compact · Outgoing", showBackground = true)
+@Composable
+private fun PreviewCompactOutgoing() {
+    DivarFilingTheme {
+        Surface {
+            PostCallCompactCard(
+                metadata = previewMetadata(PostCallLogic.CallEndKind.Outgoing),
+                mode = PostCallUiMode.New,
+                contact = null,
+                displayName = null,
                 onDismiss = {},
                 onPrimaryAction = {},
                 onRetryResolve = {},
@@ -49,29 +87,39 @@ private fun PreviewCompactLoading() {
     }
 }
 
-@Preview(name = "Compact · Ambiguous", showBackground = true)
+@Preview(name = "Kind banner · Answered", showBackground = true)
 @Composable
-private fun PreviewCompactAmbiguous() {
+private fun PreviewKindBannerAnswered() {
     DivarFilingTheme {
-        Surface {
-            PostCallCompactCard(
-                metadata = previewMetadata(PostCallLogic.CallEndKind.Outgoing),
-                mode = PostCallUiMode.Ambiguous,
-                contact = null,
-                displayName = null,
-                onDismiss = {},
-                onPrimaryAction = {},
-                onRetryResolve = {},
-                modifier = Modifier.padding(AppSpacing.md),
+        Surface(modifier = Modifier.padding(AppSpacing.md)) {
+            PostCallKindBanner(
+                metadata = previewMetadata(PostCallLogic.CallEndKind.Answered),
+                phone = "09121234567",
             )
         }
     }
 }
 
-private fun previewMetadata(kind: PostCallLogic.CallEndKind) = PostCallCallMetadata(
+@Preview(name = "Kind banner · Missed", showBackground = true)
+@Composable
+private fun PreviewKindBannerMissed() {
+    DivarFilingTheme {
+        Surface(modifier = Modifier.padding(AppSpacing.md)) {
+            PostCallKindBanner(
+                metadata = previewMetadata(PostCallLogic.CallEndKind.Missed, durationSec = 0L),
+                phone = "09129876543",
+            )
+        }
+    }
+}
+
+private fun previewMetadata(
+    kind: PostCallLogic.CallEndKind,
+    durationSec: Long = 95L,
+) = PostCallCallMetadata(
     phone = "09121234567",
     callEndKind = kind,
     callLogDateMs = System.currentTimeMillis() - 120_000L,
-    durationSec = 95L,
+    durationSec = durationSec,
     callLogType = null,
 )

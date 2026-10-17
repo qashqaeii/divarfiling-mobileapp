@@ -15,6 +15,9 @@ object DfIcons {
     val Building: ImageVector = LucideIcons.Building2
     val File: ImageVector = LucideIcons.FileText
     val Phone: ImageVector = LucideIcons.Phone
+    val PhoneIncoming: ImageVector = LucideIcons.PhoneIncoming
+    val PhoneOutgoing: ImageVector = LucideIcons.PhoneOutgoing
+    val PhoneMissed: ImageVector = LucideIcons.PhoneMissed
     val Calendar: ImageVector = LucideIcons.Calendar
     val User: ImageVector = LucideIcons.User
     val MapPin: ImageVector = LucideIcons.MapPin
