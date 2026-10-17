@@ -59,6 +59,7 @@ object PostCallCallKindVisuals {
     }
 
     @Composable
+    @ReadOnlyComposable
     private fun softVisual(
         baseAccent: Color,
         icon: ImageVector,
