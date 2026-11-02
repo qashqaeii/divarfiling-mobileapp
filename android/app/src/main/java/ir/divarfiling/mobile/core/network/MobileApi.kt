@@ -447,9 +447,22 @@ interface MobileApi {
         @Query("transaction_status") transactionStatus: String? = null,
         @Query("folder_id") folderId: Long? = null,
         @Query("cabinet_id") cabinetId: String? = null,
+        @Query("archive_scope") archiveScope: String? = null,
         @Query("page") page: Int = 1,
         @Query("page_size") pageSize: Int = 20,
     ): ApiEnvelope
+
+    @POST("crm/properties/{id}/archive")
+    suspend fun archiveProperty(
+        @Path("id") propertyId: Long,
+        @Body body: PropertyArchiveRequest,
+    ): ApiEnvelope
+
+    @POST("crm/properties/{id}/restore")
+    suspend fun restoreProperty(@Path("id") propertyId: Long): ApiEnvelope
+
+    @POST("crm/properties/bulk-archive")
+    suspend fun bulkArchiveProperties(@Body body: PropertyBulkArchiveRequest): ApiEnvelope
 
     @GET("crm/property-folders")
     suspend fun getPropertyFolders(@Query("cabinet_id") cabinetId: String? = null): ApiEnvelope

@@ -86,6 +86,8 @@ fun PropertyDetailTabbedContent(
     onOpenLink: (() -> Unit)?,
     onStatusChange: (String) -> Unit,
     onDelete: () -> Unit,
+    onArchive: (() -> Unit)? = null,
+    onRestore: (() -> Unit)? = null,
     onDuplicate: (() -> Unit)? = null,
     onCreateDeal: (() -> Unit)? = null,
     onTeamShare: (() -> Unit)? = null,
@@ -250,13 +252,33 @@ fun PropertyDetailTabbedContent(
         }
 
         if (selectedTab == PropertyDetailTab.OVERVIEW) {
+            if (property.isArchived) {
+                item {
+                    PropertyArchivedInfoSection(
+                        property = property,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+            }
             item {
                 PropertyTxStatusSection(
                     currentStatus = txStatus,
                     isSubmitting = isSubmitting,
                     onStatusChange = onStatusChange,
+                    enabled = detail.canEdit && !property.isArchived,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
+            }
+            if (detail.canEdit) {
+                item {
+                    PropertyArchiveActionsSection(
+                        isArchived = property.isArchived,
+                        isSubmitting = isSubmitting,
+                        onArchive = onArchive,
+                        onRestore = onRestore,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
             }
             item {
                 PropertyLocationSection(
@@ -1144,5 +1166,75 @@ private fun PropertyDetailBadge(text: String, color: Color, bg: Color) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+@Composable
+fun PropertyArchivedInfoSection(
+    property: PropertyDto,
+    modifier: Modifier = Modifier,
+) {
+    val archivedLabel = DateUtils.formatJalaliDateTime(property.archivedAt)
+        ?: DateUtils.formatJalaliDate(property.archivedAt)
+    val reason = property.archiveReason?.trim().orEmpty()
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surfaceVariant(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                "این فایل در بایگانی است",
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = DfThemeColors.textSecondary(),
+            )
+            if (!archivedLabel.isNullOrBlank()) {
+                Text(
+                    "تاریخ بایگانی: $archivedLabel",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
+            }
+            if (reason.isNotBlank()) {
+                Text(
+                    "دلیل: $reason",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PropertyArchiveActionsSection(
+    isArchived: Boolean,
+    isSubmitting: Boolean,
+    onArchive: (() -> Unit)?,
+    onRestore: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        isArchived && onRestore != null -> {
+            DfSecondaryButton(
+                text = if (isSubmitting) "در حال بازیابی…" else "بازیابی فایل",
+                onClick = onRestore,
+                enabled = !isSubmitting,
+                modifier = modifier.fillMaxWidth(),
+            )
+        }
+        !isArchived && onArchive != null -> {
+            DfSecondaryButton(
+                text = "انتقال به بایگانی",
+                onClick = onArchive,
+                enabled = !isSubmitting,
+                modifier = modifier.fillMaxWidth(),
+            )
+        }
     }
 }

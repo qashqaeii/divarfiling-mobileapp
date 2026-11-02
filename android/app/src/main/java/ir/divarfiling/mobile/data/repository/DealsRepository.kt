@@ -35,6 +35,9 @@ import ir.divarfiling.mobile.core.network.PaginatedResult
 import ir.divarfiling.mobile.core.network.PropertyContactLinkDto
 import ir.divarfiling.mobile.core.network.ContactSuggestResponse
 import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
+import ir.divarfiling.mobile.core.network.PropertyArchiveRequest
+import ir.divarfiling.mobile.core.network.PropertyBulkArchiveRequest
+import ir.divarfiling.mobile.core.network.PropertyBulkArchiveResultDto
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
 import ir.divarfiling.mobile.core.network.PropertySuggestContactsRequest
 import ir.divarfiling.mobile.core.network.ListingPublicShareDto
@@ -246,6 +249,7 @@ class DealsRepository @Inject constructor(
         transactionStatus: String? = null,
         folderId: Long? = null,
         cabinetId: String? = null,
+        archiveScope: String? = null,
         page: Int = 1,
         pageSize: Int = 20,
     ): ApiResult<PaginatedResult<PropertyDto>> = paginatedProperties {
@@ -257,6 +261,7 @@ class DealsRepository @Inject constructor(
             transactionStatus = transactionStatus?.ifBlank { null },
             folderId = folderId,
             cabinetId = cabinetId?.ifBlank { null },
+            archiveScope = archiveScope?.ifBlank { null },
             page = page,
             pageSize = pageSize,
         )
@@ -421,6 +426,32 @@ class DealsRepository @Inject constructor(
     suspend fun duplicateProperty(propertyId: Long): ApiResult<PropertyDto> = try {
         val response = api.duplicateProperty(propertyId)
         if (!response.ok) ApiResult.Error(response.error ?: "کپی فایل ناموفق بود")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    suspend fun archiveProperty(propertyId: Long, reason: String = ""): ApiResult<PropertyDto> = single {
+        api.archiveProperty(propertyId, PropertyArchiveRequest(reason = reason))
+    }
+
+    suspend fun restoreProperty(propertyId: Long): ApiResult<PropertyDto> = single {
+        api.restoreProperty(propertyId)
+    }
+
+    suspend fun bulkArchiveProperties(
+        action: String,
+        propertyIds: List<Long>,
+        reason: String = "",
+    ): ApiResult<PropertyBulkArchiveResultDto> = try {
+        val response = api.bulkArchiveProperties(
+            PropertyBulkArchiveRequest(
+                action = action,
+                propertyIds = propertyIds,
+                reason = reason,
+            ),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "عملیات ناموفق بود")
         else ApiResult.Success(response.requireData(json))
     } catch (e: Exception) {
         ApiResult.Error(e.message ?: "خطای شبکه")

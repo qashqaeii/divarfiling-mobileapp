@@ -5,7 +5,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,7 +36,10 @@ import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import ir.divarfiling.mobile.core.design.AppTypography
+import ir.divarfiling.mobile.core.design.DfThemeColors
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
@@ -63,6 +68,9 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
+import ir.divarfiling.mobile.core.design.components.DfFilterOption
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.feature.share.PublicShareSettingsSheet
 import ir.divarfiling.mobile.core.design.components.DfSectionHeader
 import ir.divarfiling.mobile.feature.crm.components.PropertiesSearchFilterPanel
@@ -191,7 +199,7 @@ fun PropertiesScreen(
         }
     }
 
-    LaunchedEffect(state.error, state.exportMessage) {
+    LaunchedEffect(state.error, state.exportMessage, state.successMessage) {
         state.error?.let {
             snackbar.showSnackbar(it)
             viewModel.clearError()
@@ -200,11 +208,144 @@ fun PropertiesScreen(
             snackbar.showSnackbar(it)
             viewModel.clearExportMessage()
         }
+        state.successMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearSuccessMessage()
+        }
+    }
+
+    if (state.showBulkConfirm) {
+        val archiveScope = state.archiveScope
+        val selectedCount = state.selectedPropertyIds.size
+        when (archiveScope) {
+            PropertyArchiveScope.ARCHIVED -> {
+                DfConfirmBottomSheet(
+                    title = "بازیابی فایل‌های انتخاب‌شده",
+                    message = "${DateUtils.toPersianDigits(selectedCount.toString())} فایل به فهرست جاری بازگردانده می‌شود.",
+                    confirmText = "بازیابی",
+                    isSubmitting = state.bulkSubmitting,
+                    onConfirm = viewModel::confirmBulkRestore,
+                    onDismiss = viewModel::dismissBulkConfirm,
+                )
+            }
+            PropertyArchiveScope.ALL -> {
+                DfConfirmBottomSheet(
+                    title = "بایگانی فایل‌های جاری انتخاب‌شده",
+                    message = "فقط فایل‌های جاری (غیربایگانی) در انتخاب، بایگانی می‌شوند.",
+                    confirmText = "انتقال به بایگانی",
+                    isSubmitting = state.bulkSubmitting,
+                    onConfirm = viewModel::confirmBulkArchive,
+                    onDismiss = viewModel::dismissBulkConfirm,
+                )
+            }
+            else -> {
+                DfModalBottomSheet(onDismissRequest = viewModel::dismissBulkConfirm) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal)
+                            .padding(bottom = AppSpacing.lg)
+                            .navigationBarsPadding(),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    ) {
+                        Text(
+                            "بایگانی ${DateUtils.toPersianDigits(selectedCount.toString())} فایل",
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            "فایل‌ها از فهرست جاری خارج می‌شوند اما اطلاعاتشان حفظ می‌شود.",
+                            style = AppTypography.bodyDescription,
+                            color = DfThemeColors.textSecondary(),
+                        )
+                        OutlinedTextField(
+                            value = state.bulkArchiveReason,
+                            onValueChange = viewModel::onBulkArchiveReasonChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("دلیل (اختیاری)") },
+                            enabled = !state.bulkSubmitting,
+                            singleLine = true,
+                        )
+                        DfPrimaryButton(
+                            text = if (state.bulkSubmitting) "در حال ثبت…" else "انتقال به بایگانی",
+                            onClick = viewModel::confirmBulkArchive,
+                            enabled = !state.bulkSubmitting,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        DfSecondaryButton(
+                            text = "انصراف",
+                            onClick = viewModel::dismissBulkConfirm,
+                            enabled = !state.bulkSubmitting,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+        }
     }
 
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            if (state.selectMode && state.selectedPropertyIds.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(AppSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    Text(
+                        "${DateUtils.toPersianDigits(state.selectedPropertyIds.size.toString())} فایل انتخاب شده",
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                        when (state.archiveScope) {
+                            PropertyArchiveScope.ARCHIVED -> {
+                                DfPrimaryButton(
+                                    text = "بازیابی انتخاب‌شده‌ها",
+                                    onClick = viewModel::requestBulkConfirm,
+                                    enabled = !state.bulkSubmitting,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            PropertyArchiveScope.ALL -> {
+                                DfSecondaryButton(
+                                    text = "بایگانی جاری‌ها",
+                                    onClick = viewModel::requestBulkConfirm,
+                                    enabled = !state.bulkSubmitting,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                DfSecondaryButton(
+                                    text = "بازیابی بایگانی‌ها",
+                                    onClick = {
+                                        viewModel.confirmBulkRestore()
+                                    },
+                                    enabled = !state.bulkSubmitting,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            else -> {
+                                DfPrimaryButton(
+                                    text = "بایگانی انتخاب‌شده‌ها",
+                                    onClick = viewModel::requestBulkConfirm,
+                                    enabled = !state.bulkSubmitting,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        DfSecondaryButton(
+                            text = "لغو",
+                            onClick = viewModel::toggleSelectMode,
+                            enabled = !state.bulkSubmitting,
+                            modifier = Modifier.weight(0.6f),
+                        )
+                    }
+                }
+            }
+        },
         floatingActionButton = {
             Box(
                 Modifier
@@ -262,14 +403,28 @@ fun PropertiesScreen(
                     )
                 }
                 item {
+                    DfFilterChipRow(
+                        options = PropertyArchiveScope.entries.map { DfFilterOption(it, it.label) },
+                        selected = state.archiveScope,
+                        onSelect = viewModel::onArchiveScopeChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
+                item {
                     PropertyFilingNav(
                         cabinets = state.propertyCabinets,
                         folders = state.propertyFolders,
                         selectedCabinetId = state.selectedCabinetId,
                         selectedFolderId = state.selectedFolderId,
                         unassignedFolderCount = state.unassignedFolderCount,
-                        totalCount = state.propertiesTotal.takeIf { it > 0 }
-                            ?: state.propertyFolders.sumOf { it.propertyCount },
+                        totalCount = if (state.archiveScope == PropertyArchiveScope.ACTIVE) {
+                            state.propertiesTotal.takeIf { it > 0 }
+                                ?: state.propertyFolders.sumOf { it.propertyCount }
+                        } else {
+                            0
+                        },
                         onSelectAllCabinets = viewModel::clearPropertyCabinetFilter,
                         onSelectCabinet = viewModel::selectPropertyCabinet,
                         onSelectUnassigned = viewModel::selectUnassignedCabinet,
@@ -281,7 +436,7 @@ fun PropertiesScreen(
                         onManageFolders = viewModel::openManageFoldersSheet,
                     )
                 }
-                if (state.properties.isNotEmpty()) {
+                if (state.properties.isNotEmpty() && state.archiveScope == PropertyArchiveScope.ACTIVE) {
                     item {
                         PropertiesStatsRow(
                             totalCount = PropertyFilters.totalCount(state.properties),
@@ -358,36 +513,65 @@ fun PropertiesScreen(
                         state.dealMode != null ||
                         state.propertyType != null ||
                         state.selectedFolderId != null
+                    val emptyTitle = when {
+                        hasActiveFilters -> "نتیجه‌ای با این فیلتر نیست"
+                        state.archiveScope == PropertyArchiveScope.ARCHIVED -> "هنوز فایلی بایگانی نشده"
+                        else -> "اولین فایل شخصی را ثبت کنید"
+                    }
+                    val emptySubtitle = when {
+                        hasActiveFilters -> "فیلترها یا جستجو را تغییر دهید"
+                        state.archiveScope == PropertyArchiveScope.ARCHIVED ->
+                            "فایل‌هایی که فعلاً به آن‌ها نیاز ندارید، می‌توانند بدون حذف اطلاعات در بایگانی نگهداری شوند."
+                        else -> "با «فایل جدید» اضافه کنید یا از جزئیات آگهی تبدیل کنید"
+                    }
                     item {
                         DfEmptyState(
-                            title = if (hasActiveFilters) "نتیجه‌ای با این فیلتر نیست" else "اولین فایل شخصی را ثبت کنید",
-                            subtitle = if (hasActiveFilters) {
-                                "فیلترها یا جستجو را تغییر دهید"
-                            } else {
-                                "با «فایل جدید» اضافه کنید یا از جزئیات آگهی تبدیل کنید"
-                            },
+                            title = emptyTitle,
+                            subtitle = emptySubtitle,
                             variant = if (hasActiveFilters) DfEmptyVariant.NoResults else DfEmptyVariant.Empty,
-                            actionLabel = if (hasActiveFilters) null else "فایل جدید",
-                            onAction = if (hasActiveFilters) null else {
+                            actionLabel = if (!hasActiveFilters && state.archiveScope == PropertyArchiveScope.ACTIVE) {
+                                "فایل جدید"
+                            } else {
+                                null
+                            },
+                            onAction = if (!hasActiveFilters && state.archiveScope == PropertyArchiveScope.ACTIVE) {
                                 { viewModel.toggleCreate(true) }
+                            } else {
+                                null
                             },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 } else {
                     item {
-                        Box(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppSpacing.screenHorizontal),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             DfSectionHeader(
                                 title = "فایل‌ها",
                                 count = state.propertiesTotal.takeIf { it > 0 } ?: state.properties.size,
                             )
+                            TextButton(onClick = viewModel::toggleSelectMode) {
+                                Text(if (state.selectMode) "انصراف از انتخاب" else "انتخاب")
+                            }
                         }
                     }
                     items(state.properties, key = { it.id }) { prop ->
                         PropertyListCard(
                             property = prop,
-                            onClick = { onPropertyClick(prop.id) },
-                            onDuplicate = { viewModel.requestDuplicateProperty(prop.id) },
+                            onClick = { if (!state.selectMode) onPropertyClick(prop.id) },
+                            onDuplicate = if (state.selectMode || state.archiveScope != PropertyArchiveScope.ACTIVE) {
+                                null
+                            } else {
+                                { viewModel.requestDuplicateProperty(prop.id) }
+                            },
+                            selectionMode = state.selectMode,
+                            selected = prop.id in state.selectedPropertyIds,
+                            onToggleSelect = { viewModel.togglePropertySelected(prop.id) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
@@ -648,6 +832,16 @@ fun PropertyDetailScreen(
                         },
                         onStatusChange = viewModel::changeStatus,
                         onDelete = { viewModel.toggleDeleteDialog(true) },
+                        onArchive = if (detail.canEdit && !property.isArchived) {
+                            { viewModel.toggleArchiveSheet(true) }
+                        } else {
+                            null
+                        },
+                        onRestore = if (detail.canEdit && property.isArchived) {
+                            { viewModel.toggleRestoreConfirm(true) }
+                        } else {
+                            null
+                        },
                         onDuplicate = { viewModel.toggleDuplicateDialog(true) },
                         onLinkContact = { viewModel.toggleLinkContactSheet(true) },
                         onContactMatches = { viewModel.toggleContactMatchesSheet(true) },
@@ -808,6 +1002,58 @@ fun PropertyDetailScreen(
             initialLongitude = property.longitude,
             onConfirm = viewModel::updatePropertyLocation,
             onDismiss = { viewModel.toggleLocationMapPicker(false) },
+        )
+    }
+
+    if (state.showArchiveSheet && property != null) {
+        DfModalBottomSheet(onDismissRequest = { if (!state.isSubmitting) viewModel.toggleArchiveSheet(false) }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.screenHorizontal)
+                    .padding(bottom = AppSpacing.lg)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Text("بایگانی فایل", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+                Text(
+                    "این فایل از فهرست جاری خارج می‌شود، اما اطلاعات آن باقی می‌ماند و هر زمان می‌توانید بازیابی‌اش کنید.",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+                Text(property.title, style = AppTypography.labelSmall, fontWeight = FontWeight.SemiBold)
+                OutlinedTextField(
+                    value = state.archiveReason,
+                    onValueChange = viewModel::onArchiveReasonChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("دلیل (اختیاری)") },
+                    enabled = !state.isSubmitting,
+                    singleLine = true,
+                )
+                DfPrimaryButton(
+                    text = if (state.isSubmitting) "در حال ثبت…" else "انتقال به بایگانی",
+                    onClick = viewModel::archiveProperty,
+                    enabled = !state.isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                DfSecondaryButton(
+                    text = "انصراف",
+                    onClick = { viewModel.toggleArchiveSheet(false) },
+                    enabled = !state.isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+
+    if (state.showRestoreConfirm) {
+        DfConfirmBottomSheet(
+            title = "بازیابی فایل",
+            message = "این فایل دوباره در فهرست جاری نمایش داده می‌شود.",
+            confirmText = "بازیابی فایل",
+            isSubmitting = state.isSubmitting,
+            onConfirm = viewModel::restoreProperty,
+            onDismiss = { viewModel.toggleRestoreConfirm(false) },
         )
     }
 

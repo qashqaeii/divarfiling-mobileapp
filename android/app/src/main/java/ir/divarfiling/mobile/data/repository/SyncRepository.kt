@@ -54,28 +54,45 @@ class SyncRepository @Inject constructor(
         return try {
             val pushed = pushPending()
             val since = sessionStore.getLastSyncAt()
-            val response = api.syncPull(since = since)
-            if (!response.ok) {
-                return ApiResult.Error(response.error ?: "خطا در دریافت sync")
-            }
-            val data = response.requireData<SyncPullData>(json)
-            mergePull(data)
-            data.reminders?.let { batch ->
-                batch.deletedIds.forEach { reminderSyncManager.cancelReminder(it) }
-                if (batch.upserted.isNotEmpty()) {
-                    reminderSyncManager.applyReminders(batch.upserted)
+            var cursor: String? = null
+            var lastData: SyncPullData? = null
+            var contactsPulled = 0
+            var dealsPulled = 0
+            var propertiesPulled = 0
+            var remindersPulled = 0
+            do {
+                val response = api.syncPull(
+                    since = if (cursor == null) since else null,
+                    cursor = cursor,
+                )
+                if (!response.ok) {
+                    return ApiResult.Error(response.error ?: "خطا در دریافت sync")
                 }
-            }
-            sessionStore.setLastSyncAt(data.serverTime)
+                val data = response.requireData<SyncPullData>(json)
+                mergePull(data)
+                data.reminders?.let { batch ->
+                    batch.deletedIds.forEach { reminderSyncManager.cancelReminder(it) }
+                    if (batch.upserted.isNotEmpty()) {
+                        reminderSyncManager.applyReminders(batch.upserted)
+                    }
+                }
+                contactsPulled += data.contacts?.upserted?.size ?: 0
+                dealsPulled += data.deals?.upserted?.size ?: 0
+                propertiesPulled += data.properties?.upserted?.size ?: 0
+                remindersPulled += data.reminders?.upserted?.size ?: 0
+                lastData = data
+                cursor = if (data.hasMore) data.nextCursor else null
+            } while (cursor != null)
+            lastData?.serverTime?.let { sessionStore.setLastSyncAt(it) }
             ApiResult.Success(
                 SyncResult(
                     pushedCount = pushed.first,
                     conflictCount = pushed.second,
-                    contactsPulled = data.contacts?.upserted?.size ?: 0,
-                    dealsPulled = data.deals?.upserted?.size ?: 0,
-                    propertiesPulled = data.properties?.upserted?.size ?: 0,
-                    remindersPulled = data.reminders?.upserted?.size ?: 0,
-                    serverTime = data.serverTime,
+                    contactsPulled = contactsPulled,
+                    dealsPulled = dealsPulled,
+                    propertiesPulled = propertiesPulled,
+                    remindersPulled = remindersPulled,
+                    serverTime = lastData?.serverTime,
                 ),
             )
         } catch (e: Exception) {

@@ -1324,6 +1324,12 @@ class DealFinanceViewModel @Inject constructor(
     fun clearMessage() = _uiState.update { it.copy(successMessage = null, error = null) }
 }
 
+enum class PropertyArchiveScope(val apiValue: String, val label: String) {
+    ACTIVE("active", "جاری"),
+    ARCHIVED("archived", "بایگانی"),
+    ALL("all", "همه"),
+}
+
 data class PropertiesUiState(
     val properties: List<PropertyDto> = emptyList(),
     val propertyCabinets: List<PropertyCabinetDto> = emptyList(),
@@ -1391,12 +1397,19 @@ data class PropertiesUiState(
     val duplicateTargetId: Long? = null,
     val isDuplicating: Boolean = false,
     val duplicateNavigateId: Long? = null,
+    val archiveScope: PropertyArchiveScope = PropertyArchiveScope.ACTIVE,
+    val selectMode: Boolean = false,
+    val selectedPropertyIds: Set<Long> = emptySet(),
+    val showBulkConfirm: Boolean = false,
+    val bulkArchiveReason: String = "",
+    val bulkSubmitting: Boolean = false,
+    val successMessage: String? = null,
 )
 
 object PropertyConstants {
     val DEAL_MODES = listOf("فروش", "رهن و اجاره", "اجاره", "پیش‌فروش")
     val PROPERTY_TYPES = listOf("آپارتمان", "ویلا", "کلنگی", "اداری", "مغازه", "زمین", "سایر")
-    val TX_STATUSES = listOf("فعال", "در مذاکره", "قرارداد", "فروخته‌شده", "اجاره‌رفته", "بایگانی")
+    val TX_STATUSES = listOf("فعال", "در مذاکره", "قرارداد", "فروخته‌شده", "اجاره‌رفته")
     val PUBLISH_STATUSES = listOf("پیش‌نویس", "منتشرشده", "مخفی", "بایگانی")
     val BUSINESS_TYPES = listOf("شخصی", "مشاور املاک", "بنگاه")
 }
@@ -1443,6 +1456,7 @@ class PropertiesViewModel @Inject constructor(
     val uiState: StateFlow<PropertiesUiState> = _uiState.asStateFlow()
     private var currentPage = 1
     private val pageSize = 50
+    private var listLoadGeneration = 0
 
     init {
         viewModelScope.launch {
@@ -1511,32 +1525,31 @@ class PropertiesViewModel @Inject constructor(
 
     fun load(refreshing: Boolean = false) {
         viewModelScope.launch {
+            val gen = ++listLoadGeneration
             currentPage = 1
             _uiState.update {
                 it.copy(isLoading = !refreshing && it.properties.isEmpty(), isRefreshing = refreshing)
             }
+            val snapshot = _uiState.value
             when (val result = repository.getProperties(
-                query = _uiState.value.query,
-                dealMode = _uiState.value.dealMode,
-                propertyType = _uiState.value.propertyType,
-                city = _uiState.value.city,
-                transactionStatus = _uiState.value.transactionStatus,
+                query = snapshot.query,
+                dealMode = snapshot.dealMode,
+                propertyType = snapshot.propertyType,
+                city = snapshot.city,
+                transactionStatus = snapshot.transactionStatus,
                 folderId = folderIdParam(),
                 cabinetId = cabinetIdParam(),
-                page = if (refreshing) 1 else currentPage,
+                archiveScope = snapshot.archiveScope.apiValue,
+                page = 1,
                 pageSize = pageSize,
             )) {
                 is ApiResult.Success -> {
+                    if (gen != listLoadGeneration) return@launch
                     val page = result.data.page
                     currentPage = page
                     _uiState.update {
-                        val items = if (refreshing || page == 1) {
-                            result.data.items
-                        } else {
-                            it.properties + result.data.items
-                        }
                         it.copy(
-                            properties = items,
+                            properties = result.data.items,
                             propertiesTotal = result.data.total,
                             hasMore = result.data.hasMore,
                             isLoading = false,
@@ -1545,8 +1558,11 @@ class PropertiesViewModel @Inject constructor(
                         )
                     }
                 }
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, isRefreshing = false, isLoadingMore = false, error = result.message)
+                is ApiResult.Error -> {
+                    if (gen != listLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(isLoading = false, isRefreshing = false, isLoadingMore = false, error = result.message)
+                    }
                 }
             }
         }
@@ -1554,29 +1570,37 @@ class PropertiesViewModel @Inject constructor(
 
     fun loadMore() {
         if (_uiState.value.isLoadingMore || !_uiState.value.hasMore || _uiState.value.isLoading) return
+        val gen = listLoadGeneration
         currentPage += 1
+        val nextPage = currentPage
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingMore = true) }
+            val snapshot = _uiState.value
             when (val result = repository.getProperties(
-                query = _uiState.value.query,
-                dealMode = _uiState.value.dealMode,
-                propertyType = _uiState.value.propertyType,
-                city = _uiState.value.city,
-                transactionStatus = _uiState.value.transactionStatus,
+                query = snapshot.query,
+                dealMode = snapshot.dealMode,
+                propertyType = snapshot.propertyType,
+                city = snapshot.city,
+                transactionStatus = snapshot.transactionStatus,
                 folderId = folderIdParam(),
                 cabinetId = cabinetIdParam(),
-                page = currentPage,
+                archiveScope = snapshot.archiveScope.apiValue,
+                page = nextPage,
                 pageSize = pageSize,
             )) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        properties = (it.properties + result.data.items).distinctBy { property -> property.id },
-                        propertiesTotal = result.data.total,
-                        hasMore = result.data.hasMore,
-                        isLoadingMore = false,
-                    )
+                is ApiResult.Success -> {
+                    if (gen != listLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            properties = (it.properties + result.data.items).distinctBy { property -> property.id },
+                            propertiesTotal = result.data.total,
+                            hasMore = result.data.hasMore,
+                            isLoadingMore = false,
+                        )
+                    }
                 }
                 is ApiResult.Error -> {
+                    if (gen != listLoadGeneration) return@launch
                     currentPage -= 1
                     _uiState.update { it.copy(isLoadingMore = false, error = result.message) }
                 }
@@ -2104,16 +2128,27 @@ class PropertiesViewModel @Inject constructor(
 
     fun applySavedFilter(filter: SavedFilterDto) {
         val params = filter.resolvedParams
+        val tx = params["transaction_status"]?.ifBlank { null }
+        val scopeFromParams = params["archive_scope"]?.lowercase()?.trim()
+        val archiveScope = when {
+            tx == "بایگانی" -> PropertyArchiveScope.ARCHIVED
+            scopeFromParams == "archived" -> PropertyArchiveScope.ARCHIVED
+            scopeFromParams == "all" -> PropertyArchiveScope.ALL
+            else -> PropertyArchiveScope.ACTIVE
+        }
         _uiState.update {
             it.copy(
                 query = params["q"].orEmpty(),
-                transactionStatus = params["transaction_status"]?.ifBlank { null },
+                transactionStatus = if (tx == "بایگانی") null else tx,
                 dealMode = params["deal_mode"]?.ifBlank { null },
                 propertyType = params["property_type"]?.ifBlank { null },
                 city = params["city"]?.ifBlank { null },
                 cityQuery = params["city"].orEmpty(),
                 activeSavedFilterId = filter.id,
                 selectedFolderId = params["folder_id"]?.toLongOrNull(),
+                archiveScope = archiveScope,
+                selectedPropertyIds = emptySet(),
+                selectMode = false,
             )
         }
         load()
@@ -2139,6 +2174,9 @@ class PropertiesViewModel @Inject constructor(
             state.propertyType?.takeIf { it.isNotBlank() }?.let { put("property_type", it) }
             state.city?.takeIf { it.isNotBlank() }?.let { put("city", it) }
             state.selectedFolderId?.let { put("folder_id", it.toString()) }
+            if (state.archiveScope != PropertyArchiveScope.ACTIVE) {
+                put("archive_scope", state.archiveScope.apiValue)
+            }
         }
         if (params.isEmpty()) {
             _uiState.update { it.copy(error = "برای ذخیره، حداقل یک فیلتر لازم است") }
@@ -2390,6 +2428,117 @@ class PropertiesViewModel @Inject constructor(
     fun consumeDuplicateNavigate() {
         _uiState.update { it.copy(duplicateNavigateId = null) }
     }
+
+    fun onArchiveScopeChange(scope: PropertyArchiveScope) {
+        if (_uiState.value.archiveScope == scope) return
+        _uiState.update {
+            it.copy(
+                archiveScope = scope,
+                properties = emptyList(),
+                selectedPropertyIds = emptySet(),
+                selectMode = false,
+                showBulkConfirm = false,
+            )
+        }
+        load()
+    }
+
+    fun toggleSelectMode() {
+        _uiState.update {
+            it.copy(
+                selectMode = !it.selectMode,
+                selectedPropertyIds = emptySet(),
+                showBulkConfirm = false,
+                bulkArchiveReason = "",
+            )
+        }
+    }
+
+    fun togglePropertySelected(propertyId: Long) {
+        _uiState.update { state ->
+            val next = if (propertyId in state.selectedPropertyIds) {
+                state.selectedPropertyIds - propertyId
+            } else {
+                if (state.selectedPropertyIds.size >= 100) {
+                    return@update state.copy(error = "حداکثر ۱۰۰ فایل در هر عملیات")
+                }
+                state.selectedPropertyIds + propertyId
+            }
+            state.copy(selectedPropertyIds = next)
+        }
+    }
+
+    fun selectAllLoadedEligible(forArchive: Boolean) {
+        val ids = _uiState.value.properties
+            .filter { if (forArchive) !it.isArchived else it.isArchived }
+            .take(100)
+            .map { it.id }
+            .toSet()
+        _uiState.update { it.copy(selectedPropertyIds = ids) }
+    }
+
+    fun onBulkArchiveReasonChange(value: String) = _uiState.update { it.copy(bulkArchiveReason = value) }
+
+    fun requestBulkConfirm() = _uiState.update { it.copy(showBulkConfirm = true) }
+
+    fun dismissBulkConfirm() = _uiState.update { it.copy(showBulkConfirm = false) }
+
+    fun confirmBulkArchive() {
+        val state = _uiState.value
+        val ids = state.selectedPropertyIds.filter { id ->
+            val prop = state.properties.find { it.id == id }
+            prop != null && !prop.isArchived
+        }
+        if (ids.isEmpty()) {
+            _uiState.update { it.copy(error = "فایل جاری برای بایگانی انتخاب نشده") }
+            return
+        }
+        runBulkAction(action = "archive", ids = ids, reason = state.bulkArchiveReason.trim())
+    }
+
+    fun confirmBulkRestore() {
+        val state = _uiState.value
+        val ids = state.selectedPropertyIds.filter { id ->
+            state.properties.find { it.id == id }?.isArchived == true
+        }
+        if (ids.isEmpty()) {
+            _uiState.update { it.copy(error = "فایل بایگانی‌شده برای بازیابی انتخاب نشده") }
+            return
+        }
+        runBulkAction(action = "restore", ids = ids)
+    }
+
+    private fun runBulkAction(action: String, ids: List<Long>, reason: String = "") {
+        if (_uiState.value.bulkSubmitting) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(bulkSubmitting = true, showBulkConfirm = false) }
+            when (val result = repository.bulkArchiveProperties(action, ids, reason)) {
+                is ApiResult.Success -> {
+                    val msg = result.data.message.ifBlank {
+                        when (action) {
+                            "restore" -> "${result.data.restored} فایل بازیابی شد"
+                            else -> "${result.data.archived} فایل بایگانی شد"
+                        }
+                    }
+                    _uiState.update {
+                        it.copy(
+                            bulkSubmitting = false,
+                            selectMode = false,
+                            selectedPropertyIds = emptySet(),
+                            bulkArchiveReason = "",
+                            successMessage = msg,
+                        )
+                    }
+                    load(refreshing = true)
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(bulkSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun clearSuccessMessage() = _uiState.update { it.copy(successMessage = null) }
 }
 
 data class PropertyDetailUiState(
@@ -2459,6 +2608,9 @@ data class PropertyDetailUiState(
     val teamMemberQuery: String = "",
     val showAgencySpaceSheet: Boolean = false,
     val agencySpaceSubmitting: Boolean = false,
+    val showArchiveSheet: Boolean = false,
+    val archiveReason: String = "",
+    val showRestoreConfirm: Boolean = false,
 )
 
 enum class PropertyDetailTab(val label: String) {
@@ -2539,6 +2691,14 @@ class PropertyDetailViewModel @Inject constructor(
     }
 
     fun changeStatus(status: String) {
+        if (status == "بایگانی") {
+            _uiState.update { it.copy(showArchiveSheet = true) }
+            return
+        }
+        if (_uiState.value.detail?.property?.isArchived == true) {
+            _uiState.update { it.copy(error = "برای تغییر وضعیت، ابتدا فایل را بازیابی کنید.") }
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
             when (val result = repository.updatePropertyStatus(propertyId, status)) {
@@ -2554,6 +2714,58 @@ class PropertyDetailViewModel @Inject constructor(
     }
 
     fun toggleLocationMapPicker(show: Boolean) = _uiState.update { it.copy(showLocationMapPicker = show) }
+
+    fun toggleArchiveSheet(show: Boolean) = _uiState.update {
+        it.copy(showArchiveSheet = show, archiveReason = if (show) it.archiveReason else "")
+    }
+
+    fun onArchiveReasonChange(value: String) = _uiState.update { it.copy(archiveReason = value) }
+
+    fun archiveProperty() {
+        if (_uiState.value.isSubmitting || propertyId <= 0) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true) }
+            when (val result = repository.archiveProperty(propertyId, _uiState.value.archiveReason.trim())) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showArchiveSheet = false,
+                            archiveReason = "",
+                            successMessage = "فایل به بایگانی منتقل شد",
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun toggleRestoreConfirm(show: Boolean) = _uiState.update { it.copy(showRestoreConfirm = show) }
+
+    fun restoreProperty() {
+        if (_uiState.value.isSubmitting || propertyId <= 0) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, showRestoreConfirm = false) }
+            when (val result = repository.restoreProperty(propertyId)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            successMessage = "فایل به فهرست جاری بازگردانده شد.",
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
 
     fun updatePropertyLocation(latitude: Double, longitude: Double) {
         if (_uiState.value.isSubmitting) return

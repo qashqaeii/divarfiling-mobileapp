@@ -84,7 +84,7 @@ object CrmConstants {
         DEAL_FOLLOWUP_TYPES.firstOrNull { it.first == key }?.second ?: "تماس"
 
     val PROPERTY_TX_STATUSES = listOf(
-        "فعال", "در مذاکره", "قرارداد", "فروخته‌شده", "اجاره‌رفته", "بایگانی",
+        "فعال", "در مذاکره", "قرارداد", "فروخته‌شده", "اجاره‌رفته",
     )
 
     val PROPERTY_DEAL_MODES = listOf("فروش", "رهن و اجاره", "اجاره", "پیش‌فروش")

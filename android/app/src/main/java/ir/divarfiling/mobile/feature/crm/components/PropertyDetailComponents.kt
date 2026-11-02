@@ -866,6 +866,7 @@ fun PropertyTxStatusSection(
     isSubmitting: Boolean,
     onStatusChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -885,7 +886,7 @@ fun PropertyTxStatusSection(
             label = "انتخاب وضعیت",
             value = currentStatus,
             options = CrmConstants.PROPERTY_TX_STATUSES,
-            enabled = !isSubmitting,
+            enabled = enabled && !isSubmitting,
             onSelect = { status ->
                 if (status != currentStatus) onStatusChange(status)
             },

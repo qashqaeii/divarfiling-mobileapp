@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,6 +38,7 @@ import ir.divarfiling.mobile.core.design.DfColors
 import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.DivarFilingTheme
+import ir.divarfiling.mobile.core.design.DateUtils
 import ir.divarfiling.mobile.core.design.components.DfListingImage
 import ir.divarfiling.mobile.core.network.PropertyDto
 import ir.divarfiling.mobile.core.network.PropertyFolderBriefDto
@@ -48,8 +50,12 @@ fun PropertyListCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onDuplicate: (() -> Unit)? = null,
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onToggleSelect: (() -> Unit)? = null,
 ) {
     val txStatus = property.transactionStatus ?: "فعال"
+    val archived = property.isArchived
     val (statusColor, statusBg) = PropertyFilters.txStatusColors(txStatus)
     val dealAccent = PropertyFilters.dealModeAccent(property)
     val location = PropertyFilters.locationLabel(property)
@@ -57,11 +63,20 @@ fun PropertyListCard(
         ?: property.images.firstOrNull()
 
     Surface(
-        onClick = onClick,
+        onClick = {
+            if (selectionMode) {
+                onToggleSelect?.invoke()
+            } else {
+                onClick()
+            }
+        },
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
         color = DfThemeColors.surface(),
-        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        border = BorderStroke(
+            1.dp,
+            if (selected) DfThemeColors.primary().copy(alpha = 0.45f) else DfThemeColors.outlineSubtle(),
+        ),
         shadowElevation = AppElevations.subtle,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -82,6 +97,12 @@ fun PropertyListCard(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 verticalAlignment = Alignment.Top,
             ) {
+                if (selectionMode) {
+                    Checkbox(
+                        checked = selected,
+                        onCheckedChange = { onToggleSelect?.invoke() },
+                    )
+                }
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
@@ -94,6 +115,13 @@ fun PropertyListCard(
                             PropertyBadge(text = it, color = dealAccent, bg = dealAccent.copy(alpha = 0.12f))
                         }
                         PropertyBadge(text = txStatus, color = statusColor, bg = statusBg)
+                        if (archived) {
+                            PropertyBadge(
+                                text = "بایگانی",
+                                color = DfThemeColors.textSecondary(),
+                                bg = DfThemeColors.surfaceVariant(),
+                            )
+                        }
                         property.propertyType?.let {
                             PropertyBadge(
                                 text = it,
@@ -157,6 +185,18 @@ fun PropertyListCard(
                                 color = DfColors.TextSecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
+                    if (archived) {
+                        val archivedLabel = DateUtils.formatJalaliDateTime(property.archivedAt)
+                            ?: DateUtils.formatJalaliDate(property.archivedAt)
+                        if (!archivedLabel.isNullOrBlank()) {
+                            Text(
+                                text = "بایگانی: $archivedLabel",
+                                style = AppTypography.labelSmall,
+                                color = DfThemeColors.textMuted(),
                             )
                         }
                     }

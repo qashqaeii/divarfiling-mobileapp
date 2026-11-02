@@ -1155,9 +1155,35 @@ data class PropertyDto(
     @SerialName("thumbnail_url") val thumbnailUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("is_archived") val isArchived: Boolean = false,
+    @SerialName("archived_at") val archivedAt: String? = null,
+    @SerialName("archive_reason") val archiveReason: String? = null,
     val folders: List<PropertyFolderBriefDto> = emptyList(),
     @SerialName("already_added") val alreadyAdded: Boolean = false,
     val created: Boolean = true,
+)
+
+@Serializable
+data class PropertyArchiveRequest(
+    val reason: String = "",
+)
+
+@Serializable
+data class PropertyBulkArchiveRequest(
+    val action: String,
+    @SerialName("property_ids") val propertyIds: List<Long>,
+    val reason: String = "",
+)
+
+@Serializable
+data class PropertyBulkArchiveResultDto(
+    val archived: Int = 0,
+    val restored: Int = 0,
+    val skipped: Int = 0,
+    val errors: Int = 0,
+    val message: String = "",
+    val partial: Boolean = false,
+    val complete: Boolean = false,
 )
 
 @Serializable
