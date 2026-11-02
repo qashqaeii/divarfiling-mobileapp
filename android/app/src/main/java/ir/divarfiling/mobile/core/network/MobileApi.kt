@@ -1086,4 +1086,68 @@ interface MobileApi {
         @Query("cursor") cursor: String? = null,
         @Query("entities") entities: String = "contacts,deals,properties,reminders,activities",
     ): ApiEnvelope
+
+    @GET("forum/bootstrap")
+    suspend fun forumBootstrap(): ApiEnvelope
+
+    @GET("forum/messages")
+    suspend fun forumMessages(
+        @Query("before_id") beforeId: Long? = null,
+        @Query("after_id") afterId: Long? = null,
+    ): ApiEnvelope
+
+    @POST("forum/messages")
+    suspend fun forumSendMessage(@Body body: ForumSendMessageRequest): ApiEnvelope
+
+    @PATCH("forum/messages/{id}")
+    suspend fun forumEditMessage(
+        @Path("id") messageId: Long,
+        @Body body: ForumEditMessageRequest,
+    ): ApiEnvelope
+
+    @DELETE("forum/messages/{id}")
+    suspend fun forumDeleteMessage(@Path("id") messageId: Long): ApiEnvelope
+
+    @POST("forum/messages/{id}/reactions")
+    suspend fun forumSetReaction(
+        @Path("id") messageId: Long,
+        @Body body: ForumReactionRequest,
+    ): ApiEnvelope
+
+    @POST("forum/messages/{id}/report")
+    suspend fun forumReportMessage(
+        @Path("id") messageId: Long,
+        @Body body: ForumReportRequest,
+    ): ApiEnvelope
+
+    @POST("forum/messages/{id}/pin")
+    suspend fun forumPinMessage(
+        @Path("id") messageId: Long,
+        @Body body: ForumPinRequest,
+    ): ApiEnvelope
+
+    @POST("forum/read")
+    suspend fun forumUpdateRead(@Body body: ForumReadRequest): ApiEnvelope
+
+    @POST("forum/views")
+    suspend fun forumRecordViews(@Body body: ForumViewsRequest): ApiEnvelope
+
+    @GET("forum/search")
+    suspend fun forumSearch(
+        @Query("q") query: String,
+        @Query("page") page: Int = 1,
+    ): ApiEnvelope
+
+    @POST("forum/profile")
+    suspend fun forumUpdateProfile(@Body body: ForumProfileRequest): ApiEnvelope
+
+    @GET("forum/unread")
+    suspend fun forumUnread(): ApiEnvelope
+
+    @GET("forum/sync")
+    suspend fun forumSyncChanges(
+        @Query("since") since: String,
+        @Query("anchor_id") anchorId: Long,
+        @Query("cursor") cursor: Long = 0,
+    ): ApiEnvelope
 }

@@ -19,6 +19,7 @@ data class MoreHubUiState(
     val userName: String = "",
     val notificationBadgeCount: Int = 0,
     val teamUnreadCount: Int = 0,
+    val forumUnreadCount: Int = 0,
     val agencyFeaturedName: String? = null,
     val agencyFeaturedSubtitle: String = "",
     val showAgencyFeatured: Boolean = false,
@@ -33,6 +34,7 @@ class MoreHubViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val dashboardRepository: DashboardRepository,
     private val teamRepository: ir.divarfiling.mobile.data.repository.TeamRepository,
+    private val forumRepository: ir.divarfiling.mobile.data.repository.ForumRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MoreHubUiState())
     val uiState: StateFlow<MoreHubUiState> = _uiState.asStateFlow()
@@ -58,6 +60,10 @@ class MoreHubViewModel @Inject constructor(
                 is ApiResult.Success -> unread.data.total
                 is ApiResult.Error -> 0
             }
+            val forumUnread = when (val unread = forumRepository.unread()) {
+                is ApiResult.Success -> unread.data.unread
+                is ApiResult.Error -> 0
+            }
             val agencyHome = when (val home = teamRepository.getAgencyHome()) {
                 is ApiResult.Success -> home.data
                 is ApiResult.Error -> null
@@ -72,6 +78,7 @@ class MoreHubViewModel @Inject constructor(
                         it.copy(
                             notificationBadgeCount = dashboard.data.notificationsUnread,
                             teamUnreadCount = teamUnread,
+                            forumUnreadCount = forumUnread,
                             showAgencyFeatured = featured,
                             agencyFeaturedName = if (featured) agencyName else null,
                             agencyFeaturedSubtitle = agencySubtitle,
@@ -82,6 +89,7 @@ class MoreHubViewModel @Inject constructor(
                 is ApiResult.Error -> _uiState.update {
                     it.copy(
                         teamUnreadCount = teamUnread,
+                        forumUnreadCount = forumUnread,
                         showAgencyFeatured = featured,
                         agencyFeaturedName = if (featured) agencyName else null,
                         agencyFeaturedSubtitle = agencySubtitle,

@@ -99,6 +99,7 @@ fun MoreHubScreen(
     onNavigateProperties: () -> Unit = {},
     onNavigateCrm: () -> Unit = {},
     onNavigatePlans: () -> Unit = {},
+    onNavigateForum: () -> Unit = {},
     onLoggedOut: () -> Unit = {},
     viewModel: MoreHubViewModel = hiltViewModel(),
 ) {
@@ -151,6 +152,19 @@ fun MoreHubScreen(
         ),
         MoreHubSection("آژانس و ابزار", agencyToolsItems),
         MoreHubSection(
+            "جامعه",
+            listOf(
+                MoreHubItem(
+                    title = "تالار گفتگو",
+                    subtitle = "گفتگو و تبادل تجربه با کاربران فایلینگ",
+                    icon = DfIcons.MessageSquare,
+                    action = MoreHubAction.Navigate("forum"),
+                    badgeCount = state.forumUnreadCount,
+                    featured = true,
+                ),
+            ),
+        ),
+        MoreHubSection(
             "حساب و پشتیبانی",
             listOf(
                 MoreHubItem("حساب و اشتراک", "وضعیت لایسنس، پلن و تمدید", DfIcons.Lock, MoreHubAction.Navigate("plans"), featured = true),
@@ -196,6 +210,7 @@ fun MoreHubScreen(
                 "properties" -> onNavigateProperties()
                 "crm" -> onNavigateCrm()
                 "plans" -> onNavigatePlans()
+                "forum" -> onNavigateForum()
             }
             MoreHubAction.CheckUpdate -> updateViewModel.checkManually()
             MoreHubAction.Logout -> showLogoutConfirm = true

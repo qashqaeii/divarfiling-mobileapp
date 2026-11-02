@@ -67,6 +67,7 @@ import ir.divarfiling.mobile.feature.filing.map.CrmPropertyMapScreen
 import ir.divarfiling.mobile.feature.filing.map.DatasetMapScreen
 import ir.divarfiling.mobile.feature.search.GlobalSearchScreen
 import ir.divarfiling.mobile.feature.license.PlansScreen
+import ir.divarfiling.mobile.feature.forum.ForumScreen
 import ir.divarfiling.mobile.feature.more.MoreHubScreen
 import ir.divarfiling.mobile.feature.support.SupportTicketDetailScreen
 import ir.divarfiling.mobile.feature.support.SupportTicketsScreen
@@ -114,6 +115,7 @@ object Routes {
     const val PLANS = "plans"
     const val SETTINGS_INSTALL_HELP = "settings/install-help"
     const val MORE = "more"
+    const val FORUM = "forum"
     const val FILING_INSIGHTS = "filing/{datasetId}/insights"
     const val FILING_MAP = "filing/{datasetId}/map"
     const val TEMPLATES = "templates"
@@ -806,8 +808,12 @@ fun DivarFilingNavHost(
                             onNavigateProperties = { navController.navigate(Routes.CRM_PROPERTIES) },
                             onNavigateCrm = { navController.navigate(Routes.CRM) },
                             onNavigatePlans = { navController.navigate(Routes.PLANS) },
+                            onNavigateForum = { navController.navigate(Routes.FORUM) },
                             onLoggedOut = { isLoggedIn = false },
                         )
+                    }
+                    composable(Routes.FORUM) {
+                        ForumScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.TEAM) {
                         TeamHubScreen(
