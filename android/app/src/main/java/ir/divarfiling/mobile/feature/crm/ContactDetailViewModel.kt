@@ -96,6 +96,10 @@ data class ContactDetailUiState(
     val showMatchesSheet: Boolean = false,
     val matchesData: ContactMatchesData? = null,
     val matchesLoading: Boolean = false,
+    val matchesLoadingMoreCrm: Boolean = false,
+    val matchesLoadingMoreDivar: Boolean = false,
+    val matchesPaginationError: String? = null,
+    val matchesSelectionSession: Long = 0L,
     val matchSuggestNote: String = "",
     val showMatchTemplatePicker: Boolean = false,
     val showTeamAssignSheet: Boolean = false,
@@ -121,6 +125,8 @@ class ContactDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ContactDetailUiState())
     val uiState: StateFlow<ContactDetailUiState> = _uiState.asStateFlow()
     private var filingListingSearchJob: kotlinx.coroutines.Job? = null
+    private var matchesLoadGeneration = 0
+    private var pendingContactMatchRetry: ContactMatchPageSource? = null
 
     private val isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
@@ -168,7 +174,7 @@ class ContactDetailViewModel @Inject constructor(
                         )
                     }
                     if (openMatchesOnLoad || _uiState.value.showMatchesSheet) {
-                        loadMatches(openSheet = openMatchesOnLoad)
+                        loadMatches(openSheet = openMatchesOnLoad, reset = true)
                     }
                 }
                 is ApiResult.Error -> _uiState.update {
@@ -627,46 +633,163 @@ class ContactDetailViewModel @Inject constructor(
                 showMatchesSheet = show,
                 matchSuggestNote = if (show) it.matchSuggestNote else "",
                 showMatchTemplatePicker = false,
+                matchesData = null,
+                matchesPaginationError = null,
+                matchesLoadingMoreCrm = false,
+                matchesLoadingMoreDivar = false,
             )
         }
-        if (show && _uiState.value.matchesData == null) {
-            loadMatches(openSheet = true)
+        if (show) {
+            loadMatches(openSheet = true, reset = true)
+        } else {
+            matchesLoadGeneration += 1
         }
     }
 
-    fun loadMatches(openSheet: Boolean = false) {
+    fun loadMatches(openSheet: Boolean = false, reset: Boolean = false) {
+        if (_uiState.value.matchesLoading) return
         viewModelScope.launch {
+            val generation = if (reset) {
+                matchesLoadGeneration += 1
+                matchesLoadGeneration
+            } else {
+                matchesLoadGeneration
+            }
             _uiState.update {
                 it.copy(
                     matchesLoading = true,
                     showMatchesSheet = openSheet || it.showMatchesSheet,
                     error = null,
+                    matchesPaginationError = null,
+                    matchesLoadingMoreCrm = false,
+                    matchesLoadingMoreDivar = false,
                 )
             }
-            when (val result = crmRepository.getContactMatches(contactId)) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(matchesData = result.data, matchesLoading = false)
+            when (
+                val result = crmRepository.getContactMatches(
+                    contactId = contactId,
+                    crmPage = 1,
+                    divarPage = 1,
+                    pageSize = MATCH_PAGE_SIZE,
+                )
+            ) {
+                is ApiResult.Success -> {
+                    if (generation != matchesLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            matchesData = result.data,
+                            matchesLoading = false,
+                            matchesSelectionSession = it.matchesSelectionSession + 1,
+                        )
+                    }
                 }
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(matchesLoading = false, error = result.message)
+                is ApiResult.Error -> {
+                    if (generation != matchesLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(matchesLoading = false, error = result.message)
+                    }
+                }
+            }
+        }
+    }
+
+    fun loadMoreContactMatchesCrm() {
+        loadMoreContactMatches(source = ContactMatchPageSource.CRM)
+    }
+
+    fun loadMoreContactMatchesDivar() {
+        loadMoreContactMatches(source = ContactMatchPageSource.DIVAR)
+    }
+
+    fun retryContactMatchesPagination() {
+        when (pendingContactMatchRetry) {
+            ContactMatchPageSource.CRM -> loadMoreContactMatchesCrm()
+            ContactMatchPageSource.DIVAR -> loadMoreContactMatchesDivar()
+            null -> loadMatches(reset = true)
+        }
+    }
+
+    private fun loadMoreContactMatches(source: ContactMatchPageSource) {
+        val current = _uiState.value
+        val data = current.matchesData ?: return
+        val hasMore = when (source) {
+            ContactMatchPageSource.CRM -> resolveContactCrmHasMore(data)
+            ContactMatchPageSource.DIVAR -> resolveContactDivarHasMore(data)
+        }
+        if (!hasMore) return
+        if (current.matchesLoading || current.matchesLoadingMoreCrm || current.matchesLoadingMoreDivar) return
+
+        val nextCrmPage = if (source == ContactMatchPageSource.CRM) {
+            (data.crmPage.takeIf { it > 0 } ?: 1) + 1
+        } else {
+            data.crmPage.takeIf { it > 0 } ?: 1
+        }
+        val nextDivarPage = if (source == ContactMatchPageSource.DIVAR) {
+            (data.divarPage.takeIf { it > 0 } ?: 1) + 1
+        } else {
+            data.divarPage.takeIf { it > 0 } ?: 1
+        }
+        val generation = matchesLoadGeneration
+
+        viewModelScope.launch {
+            pendingContactMatchRetry = source
+            _uiState.update {
+                it.copy(
+                    matchesPaginationError = null,
+                    matchesLoadingMoreCrm = source == ContactMatchPageSource.CRM,
+                    matchesLoadingMoreDivar = source == ContactMatchPageSource.DIVAR,
+                )
+            }
+            when (
+                val result = crmRepository.getContactMatches(
+                    contactId = contactId,
+                    crmPage = nextCrmPage,
+                    divarPage = nextDivarPage,
+                    pageSize = MATCH_PAGE_SIZE,
+                )
+            ) {
+                is ApiResult.Success -> {
+                    if (generation != matchesLoadGeneration) return@launch
+                    pendingContactMatchRetry = null
+                    _uiState.update { state ->
+                        val merged = mergeContactMatchesPage(state.matchesData, result.data, source)
+                        state.copy(
+                            matchesData = merged,
+                            matchesLoadingMoreCrm = false,
+                            matchesLoadingMoreDivar = false,
+                            matchesPaginationError = null,
+                        )
+                    }
+                }
+                is ApiResult.Error -> {
+                    if (generation != matchesLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            matchesLoadingMoreCrm = false,
+                            matchesLoadingMoreDivar = false,
+                            matchesPaginationError = result.message,
+                        )
+                    }
                 }
             }
         }
     }
 
     fun suggestMatches(matches: List<PropertyMatchDto>, shareChannel: String? = null) {
-        if (matches.isEmpty()) return
+        val uniqueMatches = matches.distinctBy { contactMatchSelectionKey(it) }
+        if (uniqueMatches.isEmpty()) return
         val note = _uiState.value.matchSuggestNote.trim().ifBlank { null }
         val contact = _uiState.value.data?.contact
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (val result = crmRepository.suggestContactMatches(contactId, matches, note)) {
+            when (val result = crmRepository.suggestContactMatches(contactId, uniqueMatches, note)) {
                 is ApiResult.Success -> {
                     val shareText = result.data.whatsappText?.takeIf { it.isNotBlank() }
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             showMatchesSheet = false,
+                            matchesData = null,
                             matchSuggestNote = "",
                             showMatchTemplatePicker = false,
                             successMessage = "${result.data.suggestedCount} ملک پیشنهاد شد",

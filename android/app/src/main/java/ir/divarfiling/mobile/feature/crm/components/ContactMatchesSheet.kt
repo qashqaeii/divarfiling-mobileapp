@@ -63,6 +63,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.design.components.DfTextField
 import ir.divarfiling.mobile.core.network.ContactMatchGroupDto
@@ -72,6 +73,13 @@ import ir.divarfiling.mobile.core.network.PropertyMatchDto
 import androidx.compose.ui.res.painterResource
 import ir.divarfiling.mobile.feature.crm.ContactShareChannel
 import ir.divarfiling.mobile.feature.crm.ContactSocialShare
+import ir.divarfiling.mobile.feature.crm.contactMatchSelectionKey
+import ir.divarfiling.mobile.feature.crm.loadedCrmMatchCount
+import ir.divarfiling.mobile.feature.crm.loadedDivarMatchCount
+import ir.divarfiling.mobile.feature.crm.resolveContactCrmHasMore
+import ir.divarfiling.mobile.feature.crm.resolveContactDivarHasMore
+import ir.divarfiling.mobile.feature.crm.totalCrmMatchCount
+import ir.divarfiling.mobile.feature.crm.totalDivarMatchCount
 
 private enum class MatchFilter(val label: String) {
     ALL("همه"),
@@ -88,6 +96,10 @@ fun ContactMatchesSheet(
     visible: Boolean,
     matches: ContactMatchesData?,
     isLoading: Boolean,
+    isLoadingMoreCrm: Boolean,
+    isLoadingMoreDivar: Boolean,
+    paginationError: String?,
+    selectionSessionId: Long,
     isSubmitting: Boolean,
     contactPhone: String?,
     activeChannels: List<String> = emptyList(),
@@ -100,6 +112,9 @@ fun ContactMatchesSheet(
     onToggleTemplatePicker: (Boolean) -> Unit,
     onApplyTemplate: (MessageTemplateDto) -> Unit,
     onDismiss: () -> Unit,
+    onLoadMoreCrm: () -> Unit,
+    onLoadMoreDivar: () -> Unit,
+    onRetryPagination: () -> Unit,
     onSuggest: (List<PropertyMatchDto>, shareChannel: String?) -> Unit,
 ) {
     if (!visible) return
@@ -112,13 +127,20 @@ fun ContactMatchesSheet(
             matches?.crmMatches.orEmpty() + matches?.divarMatches.orEmpty()
         }.sortedByDescending { it.score }
     }
-    var selected by remember(allMatches) { mutableStateOf(emptySet<String>()) }
+    var selected by remember(selectionSessionId) { mutableStateOf(emptySet<String>()) }
     var activeFilter by remember { mutableStateOf(MatchFilter.ALL) }
     var messageExpanded by remember { mutableStateOf(false) }
     var shareExpanded by remember { mutableStateOf(false) }
 
-    fun matchKey(m: PropertyMatchDto): String =
-        if (m.source == "crm") "crm:${m.propertyId}" else "divar:${m.token}"
+    val crmTotalCount = remember(matches) { matches?.let { totalCrmMatchCount(it) } ?: 0 }
+    val divarTotalCount = remember(matches) { matches?.let { totalDivarMatchCount(it) } ?: 0 }
+    val loadedCrmCount = remember(matches) { matches?.let { loadedCrmMatchCount(it) } ?: 0 }
+    val loadedDivarCount = remember(matches) { matches?.let { loadedDivarMatchCount(it) } ?: 0 }
+    val crmHasMore = remember(matches) { matches?.let { resolveContactCrmHasMore(it) } ?: false }
+    val divarHasMore = remember(matches) { matches?.let { resolveContactDivarHasMore(it) } ?: false }
+    val serverTotalCount = remember(crmTotalCount, divarTotalCount, matches) {
+        matches?.totalCount?.takeIf { it > 0 } ?: (crmTotalCount + divarTotalCount)
+    }
 
     val filteredMatches = remember(allMatches, activeFilter) {
         when (activeFilter) {
@@ -130,7 +152,9 @@ fun ContactMatchesSheet(
     }
 
     val selectedCount = selected.size
-    val allSelected = filteredMatches.isNotEmpty() && filteredMatches.all { matchKey(it) in selected }
+    val allSelected = filteredMatches.isNotEmpty() && filteredMatches.all {
+        contactMatchSelectionKey(it) in selected
+    }
     val canSubmit = selectedCount > 0 && !isSubmitting
     val topMatches = remember(allMatches) { allMatches.take(3) }
 
@@ -163,20 +187,17 @@ fun ContactMatchesSheet(
                         shareExpanded = shareExpanded,
                         onToggleShareExpanded = { shareExpanded = !shareExpanded },
                         onToggleSelectAll = {
-                            selected = if (allSelected) {
-                                selected - filteredMatches.map { matchKey(it) }.toSet()
-                            } else {
-                                selected + filteredMatches.map { matchKey(it) }.toSet()
-                            }
+                            val keys = filteredMatches.map { contactMatchSelectionKey(it) }.toSet()
+                            selected = if (allSelected) selected - keys else selected + keys
                         },
                         onSelectTop = {
-                            selected = topMatches.map { matchKey(it) }.toSet()
+                            selected = topMatches.map { contactMatchSelectionKey(it) }.toSet()
                         },
                         onSuggest = {
-                            onSuggest(allMatches.filter { matchKey(it) in selected }, null)
+                            onSuggest(allMatches.filter { contactMatchSelectionKey(it) in selected }, null)
                         },
                         onSuggestViaChannel = { channel ->
-                            onSuggest(allMatches.filter { matchKey(it) in selected }, channel)
+                            onSuggest(allMatches.filter { contactMatchSelectionKey(it) in selected }, channel)
                         },
                     )
                 }
@@ -210,9 +231,9 @@ fun ContactMatchesSheet(
                 }
                 else -> {
                     MatchInsightHero(
-                        total = allMatches.size,
-                        crmCount = allMatches.count { it.source == "crm" },
-                        divarCount = allMatches.count { it.source == "divar" },
+                        serverTotal = serverTotalCount,
+                        crmTotal = crmTotalCount,
+                        divarTotal = divarTotalCount,
                         topScore = allMatches.maxOfOrNull { it.score } ?: 0,
                         selectedCount = selectedCount,
                         isBuilder = matches?.isBuilder == true,
@@ -224,10 +245,20 @@ fun ContactMatchesSheet(
 
                     MatchFilterBar(
                         activeFilter = activeFilter,
-                        crmCount = allMatches.count { it.source == "crm" },
-                        divarCount = allMatches.count { it.source == "divar" },
+                        crmCount = crmTotalCount,
+                        divarCount = divarTotalCount,
                         topCount = allMatches.count { it.score >= TOP_SCORE_THRESHOLD },
                         onFilterChange = { activeFilter = it },
+                    )
+
+                    MatchLoadedCountLine(
+                        activeFilter = activeFilter,
+                        loadedCrm = loadedCrmCount,
+                        totalCrm = crmTotalCount,
+                        loadedDivar = loadedDivarCount,
+                        totalDivar = divarTotalCount,
+                        loadedAll = allMatches.size,
+                        totalAll = serverTotalCount,
                     )
 
                     if (filteredMatches.isEmpty()) {
@@ -245,25 +276,47 @@ fun ContactMatchesSheet(
                             groupMatches.forEach { match ->
                                 SmartMatchCard(
                                     match = match,
-                                    selected = matchKey(match) in selected,
+                                    selected = contactMatchSelectionKey(match) in selected,
                                     onToggle = {
-                                        val key = matchKey(match)
+                                        val key = contactMatchSelectionKey(match)
                                         selected = if (key in selected) selected - key else selected + key
                                     },
                                 )
                             }
                         }
+                        ContactMatchPaginationSection(
+                            activeFilter = activeFilter,
+                            crmHasMore = crmHasMore,
+                            divarHasMore = divarHasMore,
+                            isLoadingMoreCrm = isLoadingMoreCrm,
+                            isLoadingMoreDivar = isLoadingMoreDivar,
+                            paginationError = paginationError,
+                            onLoadMoreCrm = onLoadMoreCrm,
+                            onLoadMoreDivar = onLoadMoreDivar,
+                            onRetryPagination = onRetryPagination,
+                        )
                     } else {
                         filteredMatches.forEach { match ->
                             SmartMatchCard(
                                 match = match,
-                                selected = matchKey(match) in selected,
+                                selected = contactMatchSelectionKey(match) in selected,
                                 onToggle = {
-                                    val key = matchKey(match)
+                                    val key = contactMatchSelectionKey(match)
                                     selected = if (key in selected) selected - key else selected + key
                                 },
                             )
                         }
+                        ContactMatchPaginationSection(
+                            activeFilter = activeFilter,
+                            crmHasMore = crmHasMore,
+                            divarHasMore = divarHasMore,
+                            isLoadingMoreCrm = isLoadingMoreCrm,
+                            isLoadingMoreDivar = isLoadingMoreDivar,
+                            paginationError = paginationError,
+                            onLoadMoreCrm = onLoadMoreCrm,
+                            onLoadMoreDivar = onLoadMoreDivar,
+                            onRetryPagination = onRetryPagination,
+                        )
                     }
 
                     MatchMessageSection(
@@ -595,9 +648,9 @@ private fun MatchSocialShareButton(
 
 @Composable
 private fun MatchInsightHero(
-    total: Int,
-    crmCount: Int,
-    divarCount: Int,
+    serverTotal: Int,
+    crmTotal: Int,
+    divarTotal: Int,
     topScore: Int,
     selectedCount: Int,
     isBuilder: Boolean,
@@ -681,22 +734,22 @@ private fun MatchInsightHero(
             ) {
                 InsightStat(
                     label = "پیشنهاد",
-                    value = DateUtils.toPersianDigits(total.toString()),
+                    value = DateUtils.toPersianDigits(serverTotal.toString()),
                     accent = DfThemeColors.primary(),
                     modifier = Modifier.weight(1f),
                 )
-                if (crmCount > 0) {
+                if (crmTotal > 0) {
                     InsightStat(
                         label = "شخصی",
-                        value = DateUtils.toPersianDigits(crmCount.toString()),
+                        value = DateUtils.toPersianDigits(crmTotal.toString()),
                         accent = DfThemeColors.primary(),
                         modifier = Modifier.weight(1f),
                     )
                 }
-                if (divarCount > 0) {
+                if (divarTotal > 0) {
                     InsightStat(
                         label = "دیوار",
-                        value = DateUtils.toPersianDigits(divarCount.toString()),
+                        value = DateUtils.toPersianDigits(divarTotal.toString()),
                         accent = DfThemeColors.info(),
                         modifier = Modifier.weight(1f),
                     )
@@ -1216,6 +1269,108 @@ private fun ColumnScope.TemplateQuickPicker(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MatchLoadedCountLine(
+    activeFilter: MatchFilter,
+    loadedCrm: Int,
+    totalCrm: Int,
+    loadedDivar: Int,
+    totalDivar: Int,
+    loadedAll: Int,
+    totalAll: Int,
+) {
+    val text = when (activeFilter) {
+        MatchFilter.CRM -> if (totalCrm > loadedCrm) {
+            "${DateUtils.toPersianDigits(loadedCrm.toString())} از ${DateUtils.toPersianDigits(totalCrm.toString())} فایل شخصی نمایش داده شده"
+        } else {
+            "${DateUtils.toPersianDigits(loadedCrm.toString())} فایل شخصی"
+        }
+        MatchFilter.DIVAR -> if (totalDivar > loadedDivar) {
+            "${DateUtils.toPersianDigits(loadedDivar.toString())} از ${DateUtils.toPersianDigits(totalDivar.toString())} آگهی دیوار نمایش داده شده"
+        } else {
+            "${DateUtils.toPersianDigits(loadedDivar.toString())} آگهی دیوار"
+        }
+        MatchFilter.TOP, MatchFilter.ALL -> if (totalAll > loadedAll) {
+            "${DateUtils.toPersianDigits(loadedAll.toString())} از ${DateUtils.toPersianDigits(totalAll.toString())} فایل نمایش داده شده"
+        } else {
+            "${DateUtils.toPersianDigits(loadedAll.toString())} فایل"
+        }
+    }
+    Text(
+        text,
+        style = AppTypography.labelSmall,
+        color = DfThemeColors.textMuted(),
+        modifier = Modifier.padding(top = 2.dp),
+    )
+}
+
+@Composable
+private fun ContactMatchPaginationSection(
+    activeFilter: MatchFilter,
+    crmHasMore: Boolean,
+    divarHasMore: Boolean,
+    isLoadingMoreCrm: Boolean,
+    isLoadingMoreDivar: Boolean,
+    paginationError: String?,
+    onLoadMoreCrm: () -> Unit,
+    onLoadMoreDivar: () -> Unit,
+    onRetryPagination: () -> Unit,
+) {
+    val showCrm = crmHasMore && activeFilter in setOf(MatchFilter.ALL, MatchFilter.CRM, MatchFilter.TOP)
+    val showDivar = divarHasMore && activeFilter in setOf(MatchFilter.ALL, MatchFilter.DIVAR, MatchFilter.TOP)
+    if (!showCrm && !showDivar && paginationError.isNullOrBlank()) return
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        paginationError?.takeIf { it.isNotBlank() }?.let { error ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.CardSmall,
+                color = DfThemeColors.errorContainer().copy(alpha = 0.35f),
+                border = BorderStroke(0.5.dp, DfThemeColors.error().copy(alpha = 0.25f)),
+            ) {
+                Row(
+                    modifier = Modifier.padding(AppSpacing.sm),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        error,
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.error(),
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    DfGlassTextButton(text = "تلاش مجدد", onClick = onRetryPagination, compact = true)
+                }
+            }
+        }
+        if (showCrm) {
+            DfSecondaryButton(
+                text = if (isLoadingMoreCrm) "در حال بارگذاری…" else "نمایش فایل‌های بیشتر CRM",
+                onClick = onLoadMoreCrm,
+                enabled = !isLoadingMoreCrm && !isLoadingMoreDivar,
+                loading = isLoadingMoreCrm,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (showDivar) {
+            DfSecondaryButton(
+                text = if (isLoadingMoreDivar) "در حال بارگذاری…" else "نمایش آگهی‌های بیشتر دیوار",
+                onClick = onLoadMoreDivar,
+                enabled = !isLoadingMoreCrm && !isLoadingMoreDivar,
+                loading = isLoadingMoreDivar,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

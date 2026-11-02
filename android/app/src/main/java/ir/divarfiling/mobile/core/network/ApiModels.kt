@@ -411,9 +411,16 @@ data class ContactMatchGroupDto(
     val id: String = "",
     val title: String = "",
     val hint: String? = null,
+    @SerialName("match_intent") val matchIntent: String? = null,
     @SerialName("crm_matches") val crmMatches: List<PropertyMatchDto> = emptyList(),
     @SerialName("divar_matches") val divarMatches: List<PropertyMatchDto> = emptyList(),
     @SerialName("total_count") val totalCount: Int = 0,
+    @SerialName("crm_total_count") val crmTotalCount: Int = 0,
+    @SerialName("divar_total_count") val divarTotalCount: Int = 0,
+    @SerialName("crm_page") val crmPage: Int = 1,
+    @SerialName("divar_page") val divarPage: Int = 1,
+    @SerialName("crm_has_more") val crmHasMore: Boolean = false,
+    @SerialName("divar_has_more") val divarHasMore: Boolean = false,
 )
 
 @Serializable
@@ -426,6 +433,14 @@ data class ContactMatchesData(
     @SerialName("crm_matches") val crmMatches: List<PropertyMatchDto> = emptyList(),
     @SerialName("divar_matches") val divarMatches: List<PropertyMatchDto> = emptyList(),
     @SerialName("total_count") val totalCount: Int = 0,
+    @SerialName("crm_total_count") val crmTotalCount: Int = 0,
+    @SerialName("divar_total_count") val divarTotalCount: Int = 0,
+    @SerialName("crm_page") val crmPage: Int = 1,
+    @SerialName("divar_page") val divarPage: Int = 1,
+    @SerialName("match_page_size") val matchPageSize: Int = 0,
+    @SerialName("crm_has_more") val crmHasMore: Boolean = false,
+    @SerialName("divar_has_more") val divarHasMore: Boolean = false,
+    @SerialName("matching_tolerance_percent") val matchingTolerancePercent: Int? = null,
 )
 
 @Serializable
@@ -2152,6 +2167,9 @@ data class SyncPullData(
     val properties: SyncEntityBatch<PropertyDto>? = null,
     val reminders: SyncEntityBatch<ReminderDto>? = null,
     val activities: SyncEntityBatch<ActivityDto>? = null,
+    @SerialName("has_more") val hasMore: Boolean = false,
+    @SerialName("next_cursor") val nextCursor: String? = null,
+    @SerialName("sync_protocol") val syncProtocol: Int = 1,
 )
 
 @Serializable
@@ -2266,6 +2284,9 @@ data class PropertyContactMatchesData(
     val message: String? = null,
     val matches: List<PropertyContactMatchItemDto> = emptyList(),
     @SerialName("total_count") val totalCount: Int = 0,
+    @SerialName("match_page") val matchPage: Int = 1,
+    @SerialName("match_page_size") val matchPageSize: Int = 0,
+    @SerialName("has_more") val hasMore: Boolean = false,
 )
 
 @Serializable

@@ -212,7 +212,12 @@ interface MobileApi {
     ): ApiEnvelope
 
     @GET("crm/contacts/{id}/matches")
-    suspend fun getContactMatches(@Path("id") contactId: Long): ApiEnvelope
+    suspend fun getContactMatches(
+        @Path("id") contactId: Long,
+        @Query("crm_page") crmPage: Int? = null,
+        @Query("divar_page") divarPage: Int? = null,
+        @Query("page_size") pageSize: Int? = null,
+    ): ApiEnvelope
 
     @POST("crm/contacts/{id}/suggest")
     suspend fun suggestContactMatches(
@@ -746,7 +751,11 @@ interface MobileApi {
     suspend fun getDatasetMap(@Path("id") datasetId: String): ApiEnvelope
 
     @GET("crm/properties/{id}/contact-matches")
-    suspend fun getPropertyContactMatches(@Path("id") propertyId: Long): ApiEnvelope
+    suspend fun getPropertyContactMatches(
+        @Path("id") propertyId: Long,
+        @Query("page") page: Int? = null,
+        @Query("page_size") pageSize: Int? = null,
+    ): ApiEnvelope
 
     @POST("crm/properties/{id}/suggest-contacts")
     suspend fun suggestPropertyContacts(
@@ -1039,6 +1048,7 @@ interface MobileApi {
     @GET("sync")
     suspend fun syncPull(
         @Query("since") since: String? = null,
+        @Query("cursor") cursor: String? = null,
         @Query("entities") entities: String = "contacts,deals,properties,reminders,activities",
     ): ApiEnvelope
 }

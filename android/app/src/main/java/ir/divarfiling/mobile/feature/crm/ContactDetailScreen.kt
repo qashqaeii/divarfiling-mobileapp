@@ -570,6 +570,10 @@ fun ContactDetailScreen(
         visible = state.showMatchesSheet,
         matches = state.matchesData,
         isLoading = state.matchesLoading,
+        isLoadingMoreCrm = state.matchesLoadingMoreCrm,
+        isLoadingMoreDivar = state.matchesLoadingMoreDivar,
+        paginationError = state.matchesPaginationError,
+        selectionSessionId = state.matchesSelectionSession,
         isSubmitting = state.isSubmitting,
         contactPhone = contact?.phone,
         activeChannels = contact?.activeChannels.orEmpty(),
@@ -582,6 +586,9 @@ fun ContactDetailScreen(
         onToggleTemplatePicker = viewModel::toggleMatchTemplatePicker,
         onApplyTemplate = viewModel::applyMatchMessageTemplate,
         onDismiss = { viewModel.toggleMatchesSheet(false) },
+        onLoadMoreCrm = viewModel::loadMoreContactMatchesCrm,
+        onLoadMoreDivar = viewModel::loadMoreContactMatchesDivar,
+        onRetryPagination = viewModel::retryContactMatchesPagination,
         onSuggest = { selected, shareChannel ->
             viewModel.suggestMatches(selected, shareChannel = shareChannel)
         },

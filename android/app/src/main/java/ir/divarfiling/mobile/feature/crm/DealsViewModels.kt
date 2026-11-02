@@ -2419,6 +2419,9 @@ data class PropertyDetailUiState(
     val showContactMatchesSheet: Boolean = false,
     val contactMatchesData: PropertyContactMatchesData? = null,
     val contactMatchesLoading: Boolean = false,
+    val contactMatchesLoadingMore: Boolean = false,
+    val contactMatchesPaginationError: String? = null,
+    val contactMatchesSelectionSession: Long = 0L,
     val contactSuggestionResult: ContactSuggestResponse? = null,
     val pendingSocialShare: PendingContactSocialShare? = null,
     val shareNote: String = "",
@@ -2479,6 +2482,7 @@ class PropertyDetailViewModel @Inject constructor(
     private var openEditHandled = false
     private val _uiState = MutableStateFlow(PropertyDetailUiState())
     val uiState: StateFlow<PropertyDetailUiState> = _uiState.asStateFlow()
+    private var contactMatchesLoadGeneration = 0
 
     init { if (propertyId > 0) load() }
 
@@ -2951,37 +2955,130 @@ class PropertyDetailViewModel @Inject constructor(
     }
 
     fun toggleContactMatchesSheet(show: Boolean) {
-        _uiState.update { it.copy(showContactMatchesSheet = show) }
-        if (show && _uiState.value.contactMatchesData == null) {
-            loadContactMatches(openSheet = true)
+        _uiState.update {
+            it.copy(
+                showContactMatchesSheet = show,
+                contactMatchesData = null,
+                contactMatchesPaginationError = null,
+                contactMatchesLoadingMore = false,
+            )
+        }
+        if (show) {
+            loadContactMatches(openSheet = true, reset = true)
+        } else {
+            contactMatchesLoadGeneration += 1
         }
     }
 
-    fun loadContactMatches(openSheet: Boolean = false) {
+    fun loadContactMatches(openSheet: Boolean = false, reset: Boolean = false) {
+        if (_uiState.value.contactMatchesLoading) return
         viewModelScope.launch {
+            val generation = if (reset) {
+                contactMatchesLoadGeneration += 1
+                contactMatchesLoadGeneration
+            } else {
+                contactMatchesLoadGeneration
+            }
             _uiState.update {
                 it.copy(
                     contactMatchesLoading = true,
                     showContactMatchesSheet = openSheet || it.showContactMatchesSheet,
                     error = null,
+                    contactMatchesPaginationError = null,
+                    contactMatchesLoadingMore = false,
                 )
             }
-            when (val result = repository.getPropertyContactMatches(propertyId)) {
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(contactMatchesData = result.data, contactMatchesLoading = false)
+            when (
+                val result = repository.getPropertyContactMatches(
+                    propertyId = propertyId,
+                    page = 1,
+                    pageSize = MATCH_PAGE_SIZE,
+                )
+            ) {
+                is ApiResult.Success -> {
+                    if (generation != contactMatchesLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            contactMatchesData = result.data,
+                            contactMatchesLoading = false,
+                            contactMatchesSelectionSession = it.contactMatchesSelectionSession + 1,
+                        )
+                    }
                 }
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(contactMatchesLoading = false, error = result.message)
+                is ApiResult.Error -> {
+                    if (generation != contactMatchesLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(contactMatchesLoading = false, error = result.message)
+                    }
                 }
             }
         }
     }
 
+    fun loadMorePropertyContactMatches() {
+        val current = _uiState.value
+        val data = current.contactMatchesData ?: return
+        if (!data.hasMore) return
+        if (current.contactMatchesLoading || current.contactMatchesLoadingMore) return
+        val nextPage = (data.matchPage.takeIf { it > 0 } ?: 1) + 1
+        val generation = contactMatchesLoadGeneration
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    contactMatchesLoadingMore = true,
+                    contactMatchesPaginationError = null,
+                )
+            }
+            when (
+                val result = repository.getPropertyContactMatches(
+                    propertyId = propertyId,
+                    page = nextPage,
+                    pageSize = MATCH_PAGE_SIZE,
+                )
+            ) {
+                is ApiResult.Success -> {
+                    if (generation != contactMatchesLoadGeneration) return@launch
+                    _uiState.update { state ->
+                        val merged = mergePropertyContactMatchesPage(
+                            existing = state.contactMatchesData,
+                            incoming = result.data,
+                            append = true,
+                        )
+                        state.copy(
+                            contactMatchesData = merged,
+                            contactMatchesLoadingMore = false,
+                            contactMatchesPaginationError = null,
+                        )
+                    }
+                }
+                is ApiResult.Error -> {
+                    if (generation != contactMatchesLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            contactMatchesLoadingMore = false,
+                            contactMatchesPaginationError = result.message,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun retryPropertyContactMatchesPagination() {
+        if (_uiState.value.contactMatchesData == null) {
+            loadContactMatches(reset = true)
+        } else {
+            loadMorePropertyContactMatches()
+        }
+    }
+
     fun suggestContactMatches(matches: List<PropertyContactMatchItemDto>, shareChannel: String? = null) {
         if (matches.isEmpty()) return
+        val customerIds = matches.map { it.customerId }.distinct()
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            when (val result = repository.suggestPropertyContacts(propertyId, matches.map { it.customerId })) {
+            when (val result = repository.suggestPropertyContacts(propertyId, customerIds)) {
                 is ApiResult.Success -> {
                     val response = result.data
                     val primarySuggestion = response.suggestions.firstOrNull()
@@ -2999,6 +3096,7 @@ class PropertyDetailViewModel @Inject constructor(
                         it.copy(
                             isSubmitting = false,
                             showContactMatchesSheet = false,
+                            contactMatchesData = null,
                             contactSuggestionResult = if (shareChannel == null) response else null,
                             pendingSocialShare = if (shareChannel != null && shareText != null && shareItem != null) {
                                 PendingContactSocialShare(

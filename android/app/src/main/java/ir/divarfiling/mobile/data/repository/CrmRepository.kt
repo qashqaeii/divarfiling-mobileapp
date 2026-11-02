@@ -120,9 +120,19 @@ class CrmRepository @Inject constructor(
         }
     }
 
-    suspend fun getContactMatches(contactId: Long): ApiResult<ContactMatchesData> {
+    suspend fun getContactMatches(
+        contactId: Long,
+        crmPage: Int = 1,
+        divarPage: Int = 1,
+        pageSize: Int = 24,
+    ): ApiResult<ContactMatchesData> {
         return try {
-            val response = api.getContactMatches(contactId)
+            val response = api.getContactMatches(
+                contactId = contactId,
+                crmPage = crmPage,
+                divarPage = divarPage,
+                pageSize = pageSize,
+            )
             if (!response.ok) return ApiResult.Error(response.error ?: "خطا در دریافت پیشنهادها")
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {

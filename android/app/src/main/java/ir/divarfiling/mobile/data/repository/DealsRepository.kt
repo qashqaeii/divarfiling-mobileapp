@@ -379,8 +379,16 @@ class DealsRepository @Inject constructor(
         api.updatePropertyPublicShare(propertyId, request)
     }
 
-    suspend fun getPropertyContactMatches(propertyId: Long): ApiResult<PropertyContactMatchesData> = try {
-        val response = api.getPropertyContactMatches(propertyId)
+    suspend fun getPropertyContactMatches(
+        propertyId: Long,
+        page: Int = 1,
+        pageSize: Int = 24,
+    ): ApiResult<PropertyContactMatchesData> = try {
+        val response = api.getPropertyContactMatches(
+            propertyId = propertyId,
+            page = page,
+            pageSize = pageSize,
+        )
         if (!response.ok) ApiResult.Error(response.error ?: "خطا در دریافت پیشنهادها")
         else ApiResult.Success(response.requireData(json))
     } catch (e: Exception) {

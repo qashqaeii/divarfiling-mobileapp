@@ -895,8 +895,13 @@ fun PropertyDetailScreen(
         visible = state.showContactMatchesSheet,
         matches = state.contactMatchesData,
         isLoading = state.contactMatchesLoading,
+        isLoadingMore = state.contactMatchesLoadingMore,
+        paginationError = state.contactMatchesPaginationError,
+        selectionSessionId = state.contactMatchesSelectionSession,
         isSubmitting = state.isSubmitting,
         onDismiss = { viewModel.toggleContactMatchesSheet(false) },
+        onLoadMore = viewModel::loadMorePropertyContactMatches,
+        onRetryPagination = viewModel::retryPropertyContactMatchesPagination,
         onSuggest = viewModel::suggestContactMatches,
     )
 

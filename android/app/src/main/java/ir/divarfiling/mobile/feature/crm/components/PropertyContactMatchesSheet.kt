@@ -62,6 +62,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfGlassTextButton
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfSheetScaffold
 import ir.divarfiling.mobile.core.network.PropertyContactMatchItemDto
 import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
@@ -74,8 +75,13 @@ fun PropertyContactMatchesSheet(
     visible: Boolean,
     matches: PropertyContactMatchesData?,
     isLoading: Boolean,
+    isLoadingMore: Boolean,
+    paginationError: String?,
+    selectionSessionId: Long,
     isSubmitting: Boolean,
     onDismiss: () -> Unit,
+    onLoadMore: () -> Unit,
+    onRetryPagination: () -> Unit,
     onSuggest: (List<PropertyContactMatchItemDto>, shareChannel: String?) -> Unit,
 ) {
     if (!visible) return
@@ -83,13 +89,17 @@ fun PropertyContactMatchesSheet(
     val allMatches = remember(matches) {
         matches?.matches.orEmpty().sortedByDescending { it.score }
     }
-    var selected by remember(allMatches) { mutableStateOf(emptySet<Long>()) }
+    var selected by remember(selectionSessionId) { mutableStateOf(emptySet<Long>()) }
     val selectedMatches = remember(allMatches, selected) {
         allMatches.filter { it.customerId in selected }
     }
     val selectedCount = selected.size
     val allSelected = allMatches.isNotEmpty() && selectedCount == allMatches.size
     val canSubmit = selectedCount > 0 && !isSubmitting
+    val serverTotal = remember(matches) {
+        matches?.totalCount?.takeIf { it > 0 } ?: allMatches.size
+    }
+    val hasMore = matches?.hasMore == true
     val topMatches = remember(allMatches) { allMatches.take(3) }
     var shareExpanded by remember { mutableStateOf(false) }
 
@@ -173,10 +183,18 @@ fun PropertyContactMatchesSheet(
                 }
                 else -> {
                     PropertyMatchInsightStrip(
-                        total = allMatches.size,
+                        serverTotal = serverTotal,
                         topScore = allMatches.maxOfOrNull { it.score } ?: 0,
                         selectedCount = selectedCount,
                     )
+                    if (serverTotal > allMatches.size) {
+                        Text(
+                            "${DateUtils.toPersianDigits(allMatches.size.toString())} از ${DateUtils.toPersianDigits(serverTotal.toString())} مخاطب نمایش داده شده",
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                            modifier = Modifier.padding(bottom = AppSpacing.xs),
+                        )
+                    }
                     allMatches.forEach { match ->
                         PropertySmartMatchCard(
                             match = match,
@@ -188,6 +206,41 @@ fun PropertyContactMatchesSheet(
                                     selected + match.customerId
                                 }
                             },
+                        )
+                    }
+                    paginationError?.takeIf { it.isNotBlank() }?.let { error ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = AppShapes.CardSmall,
+                            color = DfThemeColors.errorContainer().copy(alpha = 0.35f),
+                            border = BorderStroke(0.5.dp, DfThemeColors.error().copy(alpha = 0.25f)),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(AppSpacing.sm),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    error,
+                                    style = AppTypography.labelSmall,
+                                    color = DfThemeColors.error(),
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                DfGlassTextButton(text = "تلاش مجدد", onClick = onRetryPagination, compact = true)
+                            }
+                        }
+                    }
+                    if (hasMore) {
+                        DfSecondaryButton(
+                            text = if (isLoadingMore) "در حال بارگذاری…" else "نمایش مخاطبین بیشتر",
+                            onClick = onLoadMore,
+                            enabled = !isLoadingMore,
+                            loading = isLoadingMore,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = AppSpacing.sm),
                         )
                     }
                 }
@@ -303,7 +356,11 @@ private fun PropertyMatchSuggestFooter(
 }
 
 @Composable
-private fun PropertyMatchInsightStrip(total: Int, topScore: Int, selectedCount: Int) {
+private fun PropertyMatchInsightStrip(
+    serverTotal: Int,
+    topScore: Int,
+    selectedCount: Int,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -376,7 +433,7 @@ private fun PropertyMatchInsightStrip(total: Int, topScore: Int, selectedCount: 
         ) {
             PropertyInsightStat(
                 label = "مشتری",
-                value = DateUtils.toPersianDigits(total.toString()),
+                value = DateUtils.toPersianDigits(serverTotal.toString()),
                 accent = DfThemeColors.info(),
                 modifier = Modifier.weight(1f),
             )
