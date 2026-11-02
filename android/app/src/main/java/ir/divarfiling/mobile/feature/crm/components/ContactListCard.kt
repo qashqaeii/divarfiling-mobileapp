@@ -202,45 +202,47 @@ fun ContactListCard(
 
                 HorizontalDivider(color = DfThemeColors.outlineSubtle())
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    ContactActionButton(
-                        label = "تماس",
-                        icon = DfIcons.Phone,
-                        tint = DfThemeColors.primary(),
-                        container = DfThemeColors.primaryContainer(),
-                        onClick = onCallClick,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (onSmsClick != null) {
+                if (!selectionMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
                         ContactActionButton(
-                            label = "پیامک",
-                            icon = DfIcons.MessageSquare,
+                            label = "تماس",
+                            icon = DfIcons.Phone,
+                            tint = DfThemeColors.primary(),
+                            container = DfThemeColors.primaryContainer(),
+                            onClick = onCallClick,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (onSmsClick != null) {
+                            ContactActionButton(
+                                label = "پیامک",
+                                icon = DfIcons.MessageSquare,
+                                tint = DfThemeColors.textSecondary(),
+                                container = DfThemeColors.surfaceVariant(),
+                                onClick = onSmsClick,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        ContactActionButton(
+                            label = "واتساپ",
+                            icon = DfIcons.MessageCircle,
                             tint = DfThemeColors.textSecondary(),
                             container = DfThemeColors.surfaceVariant(),
-                            onClick = onSmsClick,
+                            onClick = onWhatsAppClick,
                             modifier = Modifier.weight(1f),
                         )
-                    }
-                    ContactActionButton(
-                        label = "واتساپ",
-                        icon = DfIcons.MessageCircle,
-                        tint = DfThemeColors.textSecondary(),
-                        container = DfThemeColors.surfaceVariant(),
-                        onClick = onWhatsAppClick,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (canSuggest && onSuggestClick != null) {
-                        ContactActionButton(
-                            label = "پیشنهاد",
-                            icon = DfIcons.WandSparkles,
-                            tint = DfThemeColors.warning(),
-                            container = DfThemeColors.warningContainer(),
-                            onClick = onSuggestClick,
-                            modifier = Modifier.weight(1f),
-                        )
+                        if (canSuggest && onSuggestClick != null) {
+                            ContactActionButton(
+                                label = "پیشنهاد",
+                                icon = DfIcons.WandSparkles,
+                                tint = DfThemeColors.warning(),
+                                container = DfThemeColors.warningContainer(),
+                                onClick = onSuggestClick,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
 

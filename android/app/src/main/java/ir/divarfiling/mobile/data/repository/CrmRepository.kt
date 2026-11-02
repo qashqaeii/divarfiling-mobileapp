@@ -21,6 +21,7 @@ import ir.divarfiling.mobile.core.network.ContactArchivePatchRequest
 import ir.divarfiling.mobile.core.network.ContactBulkArchiveRequest
 import ir.divarfiling.mobile.core.network.ContactBulkArchiveResultDto
 import ir.divarfiling.mobile.core.network.ContactRestorePatchRequest
+import ir.divarfiling.mobile.core.network.ContactUpdateRequest
 import ir.divarfiling.mobile.core.network.CrmNeighborhoodsData
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest

@@ -37,7 +37,6 @@ import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
-import androidx.compose.ui.text.font.FontWeight
 import ir.divarfiling.mobile.core.design.components.DfDropdown
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow

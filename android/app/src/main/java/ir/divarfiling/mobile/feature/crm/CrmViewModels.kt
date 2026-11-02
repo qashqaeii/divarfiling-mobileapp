@@ -241,11 +241,7 @@ class ContactsViewModel @Inject constructor(
     fun applySavedFilter(filter: ir.divarfiling.mobile.core.network.SavedFilterDto) {
         val params = filter.resolvedParams
         val savedStatus = params["status"]?.ifBlank { null }
-        val archiveScope = if (savedStatus == CrmConstants.LEGACY_ARCHIVE_STATUS) {
-            ContactArchiveScope.ARCHIVED
-        } else {
-            _uiState.value.archiveScope
-        }
+        val archiveScope = resolveContactArchiveScopeFromSavedParams(params, savedStatus)
         val statusFilter = if (savedStatus == CrmConstants.LEGACY_ARCHIVE_STATUS) null else savedStatus
         _uiState.update {
             it.copy(
@@ -263,12 +259,30 @@ class ContactsViewModel @Inject constructor(
         load(reset = true)
     }
 
+    private fun resolveContactArchiveScopeFromSavedParams(
+        params: Map<String, String>,
+        savedStatus: String?,
+    ): ContactArchiveScope {
+        if (savedStatus == CrmConstants.LEGACY_ARCHIVE_STATUS) {
+            return ContactArchiveScope.ARCHIVED
+        }
+        return when (params["archive_scope"]?.lowercase()?.trim()) {
+            "archived", "بایگانی" -> ContactArchiveScope.ARCHIVED
+            "all" -> ContactArchiveScope.ALL
+            "active", null, "" -> ContactArchiveScope.ACTIVE
+            else -> ContactArchiveScope.ACTIVE
+        }
+    }
+
     fun saveCurrentAsFilter(name: String) {
         val state = _uiState.value
         val params = buildMap {
             if (state.query.isNotBlank()) put("q", state.query.trim())
             state.statusFilter?.takeIf { it.isNotBlank() }?.let { put("status", it) }
             state.customerTypeFilter?.takeIf { it.isNotBlank() }?.let { put("customer_type", it) }
+            if (state.archiveScope != ContactArchiveScope.ACTIVE) {
+                put("archive_scope", state.archiveScope.apiValue)
+            }
         }
         if (params.isEmpty() || name.isBlank()) {
             _uiState.update { it.copy(error = "برای ذخیره، حداقل یک معیار و نام لازم است") }

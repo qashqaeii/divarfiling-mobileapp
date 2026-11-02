@@ -200,7 +200,12 @@ class ContactDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isSubmitting = true, error = null) }
             when (val result = crmRepository.createActivity(contactId, type, content, title)) {
                 is ApiResult.Success -> {
-                    val statusToApply = _uiState.value.selectedActivityStatus.takeIf { it.isNotBlank() }
+                    val isArchived = _uiState.value.data?.contact?.isArchived == true
+                    val statusToApply = if (isArchived) {
+                        null
+                    } else {
+                        _uiState.value.selectedActivityStatus.takeIf { it.isNotBlank() }
+                    }
                     val statusResult = if (statusToApply != null) {
                         crmRepository.updateContact(
                             contactId,
@@ -373,12 +378,13 @@ class ContactDetailViewModel @Inject constructor(
             val money = state.editMoney
             val prefs = state.editPrefs
             val builder = state.editBuilder
+            val isArchived = state.data?.contact?.isArchived == true
             when (val result = crmRepository.updateContact(
                 contactId,
                 ContactUpdateRequest(
                     fullName = state.editName.trim(),
                     phone = state.editPhone.trim(),
-                    status = state.editStatus.ifBlank { null },
+                    status = if (isArchived) null else state.editStatus.ifBlank { null },
                     customerType = state.editCustomerType.ifBlank { null },
                     priority = state.editPriority.ifBlank { null },
                     notes = state.editNotes,
