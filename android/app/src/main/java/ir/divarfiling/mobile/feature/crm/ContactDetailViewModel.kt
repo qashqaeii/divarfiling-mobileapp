@@ -110,6 +110,12 @@ data class ContactDetailUiState(
     val teamMembersLoading: Boolean = false,
     val showAgencySpaceSheet: Boolean = false,
     val agencySpaceSubmitting: Boolean = false,
+    val showArchiveSheet: Boolean = false,
+    val archiveReason: String = CrmConstants.ARCHIVE_REASONS[1],
+    val archiveNote: String = "",
+    val reactivationDueJalali: String = "",
+    val showRestoreSheet: Boolean = false,
+    val restoreStatus: String = CrmConstants.COMMUNICATION_STATUSES[1],
 )
 
 @HiltViewModel
@@ -434,9 +440,14 @@ class ContactDetailViewModel @Inject constructor(
     }
 
     fun changeStatus(newStatus: String) {
+        if (newStatus == CrmConstants.LEGACY_ARCHIVE_STATUS) {
+            toggleArchiveSheet(true)
+            return
+        }
+        if (_uiState.value.data?.contact?.isArchived == true) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (crmRepository.updateContact(contactId, ContactUpdateRequest(status = newStatus))) {
+            when (val result = crmRepository.updateContact(contactId, ContactUpdateRequest(status = newStatus))) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(isSubmitting = false, successMessage = "وضعیت به‌روز شد", editStatus = newStatus)
@@ -444,7 +455,98 @@ class ContactDetailViewModel @Inject constructor(
                     maybeOpenSmartMatchAfterStatus(newStatus)
                     load()
                 }
-                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false) }
+                is ApiResult.Error -> _uiState.update { it.copy(isSubmitting = false, error = result.message) }
+            }
+        }
+    }
+
+    fun toggleArchiveSheet(show: Boolean) {
+        if (show && _uiState.value.data?.canEdit != true) return
+        _uiState.update {
+            it.copy(
+                showArchiveSheet = show,
+                archiveReason = if (show) it.archiveReason.ifBlank { CrmConstants.ARCHIVE_REASONS[1] } else it.archiveReason,
+            )
+        }
+    }
+
+    fun onArchiveReasonChange(value: String) = _uiState.update { it.copy(archiveReason = value) }
+
+    fun onArchiveNoteChange(value: String) = _uiState.update { it.copy(archiveNote = value) }
+
+    fun onReactivationDueChange(value: String) = _uiState.update { it.copy(reactivationDueJalali = value) }
+
+    fun archiveContact() {
+        if (_uiState.value.isSubmitting) return
+        val state = _uiState.value
+        if (state.data?.canEdit != true) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (
+                val result = crmRepository.archiveContact(
+                    contactId = contactId,
+                    reason = state.archiveReason.trim(),
+                    note = state.archiveNote.trim(),
+                    reactivationDueJalali = state.reactivationDueJalali.trim(),
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showArchiveSheet = false,
+                            archiveNote = "",
+                            reactivationDueJalali = "",
+                            successMessage = "مخاطب بایگانی شد",
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun toggleRestoreSheet(show: Boolean) {
+        if (show && _uiState.value.data?.canEdit != true) return
+        _uiState.update { it.copy(showRestoreSheet = show) }
+    }
+
+    fun onRestoreStatusChange(value: String) = _uiState.update { it.copy(restoreStatus = value) }
+
+    fun restoreContact() {
+        if (_uiState.value.isSubmitting) return
+        val contact = _uiState.value.data?.contact ?: return
+        if (_uiState.value.data?.canEdit != true) return
+        val needsLegacy = CrmConstants.needsLegacyRestoreStatus(contact)
+        val restoreStatus = _uiState.value.restoreStatus.trim()
+        if (needsLegacy && restoreStatus !in CrmConstants.COMMUNICATION_STATUSES) {
+            _uiState.update { it.copy(error = "مرحله ارتباط برای بازیابی الزامی است") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            when (
+                val result = crmRepository.restoreContact(
+                    contactId = contactId,
+                    restoreStatus = if (needsLegacy) restoreStatus else "",
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            showRestoreSheet = false,
+                            successMessage = "مخاطب بازیابی شد",
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(isSubmitting = false, error = result.message)
+                }
             }
         }
     }

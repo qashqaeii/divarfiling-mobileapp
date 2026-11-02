@@ -77,6 +77,7 @@ fun ContactDetailHero(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier,
+    showEdit: Boolean = true,
 ) {
     val accent = contactAccentColor(contact.fullName)
 
@@ -124,11 +125,13 @@ fun ContactDetailHero(
                     contentDescription = "بازگشت",
                     onClick = onBack,
                 )
-                DfGlassIconButton(
-                    icon = DfIcons.Pencil,
-                    contentDescription = "ویرایش",
-                    onClick = onEdit,
-                )
+                if (showEdit) {
+                    DfGlassIconButton(
+                        icon = DfIcons.Pencil,
+                        contentDescription = "ویرایش",
+                        onClick = onEdit,
+                    )
+                }
             }
 
             Row(
@@ -505,6 +508,7 @@ fun ContactDetailStatusBar(
     currentStatus: String?,
     onStatusChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = modifier
@@ -524,10 +528,10 @@ fun ContactDetailStatusBar(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            CrmConstants.STATUSES.forEach { status ->
+            CrmConstants.COMMUNICATION_STATUSES.forEach { status ->
                 val selected = status == currentStatus
                 Surface(
-                    onClick = { if (!selected) onStatusChange(status) },
+                    onClick = { if (enabled && !selected) onStatusChange(status) },
                     shape = AppShapes.Chip,
                     color = if (selected) DfThemeColors.primary() else DfThemeColors.surface(),
                     border = BorderStroke(
@@ -540,7 +544,11 @@ fun ContactDetailStatusBar(
                         text = status,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         style = AppTypography.labelSmall,
-                        color = if (selected) Color.White else DfThemeColors.textSecondary(),
+                        color = when {
+                            !enabled -> DfThemeColors.textMuted()
+                            selected -> Color.White
+                            else -> DfThemeColors.textSecondary()
+                        },
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                         maxLines = 1,
                     )

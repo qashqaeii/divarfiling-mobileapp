@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.R
@@ -41,7 +42,18 @@ import ir.divarfiling.mobile.core.design.components.DfDetailSkeleton
 import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
-import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.font.FontWeight
+import ir.divarfiling.mobile.core.design.DateUtils
+import ir.divarfiling.mobile.core.design.components.DfDropdown
+import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
+import ir.divarfiling.mobile.core.design.components.DfFilterOption
+import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSheetActions
@@ -153,12 +165,14 @@ fun ContactDetailScreen(
                     )
                     val moreActions = buildMoreContactActions(
                         contact = contactInfo,
+                        canEdit = detail.canEdit,
                         agencySpace = detail.agencySpace,
                         context = context,
                         viewModel = viewModel,
                         pickDocument = documentPicker::launch,
                         onCreateDeal = { onCreateDeal(contactInfo.id) },
                     )
+                    val statusForBar = contactCommunicationStatus(contactInfo)
 
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -170,7 +184,13 @@ fun ContactDetailScreen(
                                 contact = contactInfo,
                                 onBack = onBack,
                                 onEdit = { viewModel.toggleEditSheet(true) },
+                                showEdit = detail.canEdit,
                             )
+                        }
+                        if (contactInfo.isArchived) {
+                            item {
+                                ContactArchivedSummary(contact = contactInfo)
+                            }
                         }
                         detail.agencySpaceProvenance?.let { prov ->
                             item {
@@ -211,8 +231,9 @@ fun ContactDetailScreen(
                         }
                         item {
                             ContactDetailStatusBar(
-                                currentStatus = contactInfo.status,
+                                currentStatus = statusForBar,
                                 onStatusChange = viewModel::changeStatus,
+                                enabled = !contactInfo.isArchived && detail.canEdit,
                             )
                         }
 
@@ -373,6 +394,7 @@ fun ContactDetailScreen(
                 socialLinks = state.editSocialLinks,
                 catalogNeighborhoods = state.editDatasetNeighborhoods,
                 isSubmitting = state.isSubmitting,
+                statusEditable = state.data?.contact?.isArchived != true,
                 onNameChange = viewModel::onEditNameChange,
                 onPhoneChange = viewModel::onEditPhoneChange,
                 onPhoneAltChange = viewModel::onEditPhoneAltChange,
@@ -600,6 +622,138 @@ fun ContactDetailScreen(
         visible = showSmartMessage,
         onDismiss = { showSmartMessage = false },
     )
+
+    if (state.showArchiveSheet) {
+        DfModalBottomSheet(onDismissRequest = { if (!state.isSubmitting) viewModel.toggleArchiveSheet(false) }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.screenHorizontal)
+                    .padding(bottom = AppSpacing.lg)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Text("بایگانی مخاطب", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+                Text(
+                    "مخاطب از فهرست جاری خارج می‌شود، اما سوابق، معاملات، یادداشت‌ها و اطلاعاتش حفظ خواهد شد.",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+                DfFilterChipRow(
+                    options = CrmConstants.ARCHIVE_REASONS.map { DfFilterOption(it, it) },
+                    selected = state.archiveReason,
+                    onSelect = viewModel::onArchiveReasonChange,
+                )
+                OutlinedTextField(
+                    value = state.archiveNote,
+                    onValueChange = viewModel::onArchiveNoteChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("یادداشت (اختیاری)") },
+                    enabled = !state.isSubmitting,
+                )
+                DfJalaliDateField(
+                    value = state.reactivationDueJalali,
+                    onValueChange = viewModel::onReactivationDueChange,
+                    label = "پیگیری مجدد (اختیاری)",
+                    enabled = !state.isSubmitting,
+                )
+                DfPrimaryButton(
+                    text = if (state.isSubmitting) "در حال ثبت…" else "انتقال به بایگانی",
+                    onClick = viewModel::archiveContact,
+                    enabled = !state.isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                DfSecondaryButton(
+                    text = "انصراف",
+                    onClick = { viewModel.toggleArchiveSheet(false) },
+                    enabled = !state.isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+
+    if (state.showRestoreSheet && contact != null) {
+        val needsLegacy = CrmConstants.needsLegacyRestoreStatus(contact)
+        DfModalBottomSheet(onDismissRequest = { if (!state.isSubmitting) viewModel.toggleRestoreSheet(false) }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.screenHorizontal)
+                    .padding(bottom = AppSpacing.lg)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Text("بازیابی مخاطب", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+                Text(
+                    "مخاطب دوباره در فهرست جاری نمایش داده می‌شود.",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+                if (needsLegacy) {
+                    DfDropdown(
+                        label = "مرحله ارتباط جدید",
+                        value = state.restoreStatus,
+                        options = CrmConstants.COMMUNICATION_STATUSES,
+                        enabled = !state.isSubmitting,
+                        onSelect = viewModel::onRestoreStatusChange,
+                    )
+                }
+                DfPrimaryButton(
+                    text = if (state.isSubmitting) "در حال ثبت…" else "بازیابی مخاطب",
+                    onClick = viewModel::restoreContact,
+                    enabled = !state.isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                DfSecondaryButton(
+                    text = "انصراف",
+                    onClick = { viewModel.toggleRestoreSheet(false) },
+                    enabled = !state.isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+private fun contactCommunicationStatus(contact: ir.divarfiling.mobile.core.network.ContactDto): String? {
+    if (contact.isArchived) {
+        return contact.lastCommunicationStatus?.takeIf { it.isNotBlank() }
+            ?: contact.status?.takeUnless { it == CrmConstants.LEGACY_ARCHIVE_STATUS }
+    }
+    return contact.status
+}
+
+@Composable
+private fun ContactArchivedSummary(contact: ir.divarfiling.mobile.core.network.ContactDto) {
+    val archivedLabel = DateUtils.formatJalaliDateTime(contact.archivedAt)
+        ?: DateUtils.formatJalaliDate(contact.archivedAt)
+    val reason = contact.archiveReason?.trim().orEmpty()
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AppSpacing.screenHorizontal),
+        shape = ir.divarfiling.mobile.core.design.AppShapes.CardSmall,
+        color = DfThemeColors.surfaceVariant(),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                contact.displayStatus ?: "بایگانی‌شده",
+                style = AppTypography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (reason.isNotBlank()) {
+                Text("دلیل: $reason", style = AppTypography.labelSmall, color = DfThemeColors.textSecondary())
+            }
+            if (!archivedLabel.isNullOrBlank()) {
+                Text("تاریخ بایگانی: $archivedLabel", style = AppTypography.labelSmall, color = DfThemeColors.textMuted())
+            }
+        }
+    }
 }
 
 private fun performContactNba(
@@ -659,7 +813,7 @@ private fun buildVisibleContactActions(
             onOpenSmartMessage()
         },
     )
-    if (CrmConstants.isMatchEligible(contact.customerType)) {
+    if (CrmConstants.isMatchEligible(contact.customerType) && !contact.isArchived) {
         add(
             ContactQuickActionItem("پیشنهادها", primary, icon = DfIcons.Sparkles) {
                 haptics.tick()
@@ -680,6 +834,7 @@ private fun buildVisibleContactActions(
 @Composable
 private fun buildMoreContactActions(
     contact: ir.divarfiling.mobile.core.network.ContactDto,
+    canEdit: Boolean,
     agencySpace: ir.divarfiling.mobile.core.network.AgencySpaceSourceContextDto?,
     context: android.content.Context,
     viewModel: ContactDetailViewModel,
@@ -704,7 +859,7 @@ private fun buildMoreContactActions(
     add(ContactQuickActionItem("ارسال فایل", info, icon = DfIcons.Share2) {
         viewModel.toggleSendFilingSheet(true)
     })
-    if (CrmConstants.isMatchEligible(contact.customerType)) {
+    if (CrmConstants.isMatchEligible(contact.customerType) && !contact.isArchived) {
         add(ContactQuickActionItem("یادآور", error, icon = DfIcons.Bell) {
             viewModel.toggleReminderDialog(true)
         })
@@ -739,5 +894,16 @@ private fun buildMoreContactActions(
     add(ContactQuickActionItem("فعالیت", info, icon = DfIcons.ClipboardList) {
         viewModel.openActivitySheet()
     })
+    if (canEdit) {
+        if (contact.isArchived) {
+            add(ContactQuickActionItem("بازیابی مخاطب", success, icon = DfIcons.RotateCcw) {
+                viewModel.toggleRestoreSheet(true)
+            })
+        } else {
+            add(ContactQuickActionItem("بایگانی مخاطب", muted, icon = DfIcons.Folder) {
+                viewModel.toggleArchiveSheet(true)
+            })
+        }
+    }
     }
 }

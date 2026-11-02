@@ -1,13 +1,25 @@
 package ir.divarfiling.mobile.feature.crm
 
+import ir.divarfiling.mobile.core.network.ContactDto
+
 object CrmConstants {
-    val STATUSES = listOf(
+    val COMMUNICATION_STATUSES = listOf(
         "جدید",
         "در حال پیگیری",
         "بازدید انجام شد",
         "قرارداد",
-        "بایگانی",
     )
+
+    const val LEGACY_ARCHIVE_STATUS = "بایگانی"
+
+    val ARCHIVE_REASONS = listOf(
+        "معامله انجام شد",
+        "عدم نیاز فعلی",
+        "پیگیری در آینده",
+        "سایر",
+    )
+
+    val STATUSES = COMMUNICATION_STATUSES + LEGACY_ARCHIVE_STATUS
 
     val CUSTOMER_TYPES = listOf(
         "خریدار",
@@ -113,5 +125,10 @@ object CrmConstants {
 
     /** Statuses where suggesting matched properties is a natural next step. */
     fun shouldPromptSmartMatch(status: String?): Boolean =
-        status == "در حال پیگیری" || status == "بازدید انجام شد"
+        !status.isNullOrBlank() &&
+            status != LEGACY_ARCHIVE_STATUS &&
+            (status == "در حال پیگیری" || status == "بازدید انجام شد")
+
+    fun needsLegacyRestoreStatus(contact: ContactDto): Boolean =
+        contact.isArchived && contact.status == LEGACY_ARCHIVE_STATUS
 }

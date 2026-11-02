@@ -29,6 +29,15 @@ fun resolveContactNba(
     deals: List<DealDto>,
     linkedListings: List<LinkedListingDto>,
 ): ContactNba {
+    if (contact.isArchived) {
+        return ContactNba(
+            kind = ContactNbaKind.AddFollowUp,
+            title = "مخاطب بایگانی‌شده",
+            subtitle = contact.displayStatus ?: "سوابق و معاملات همچنان در دسترس است",
+            cta = "مشاهده یادآورها",
+            tone = DfStatusTone.Info,
+        )
+    }
     val overdue = DateUtils.isOverdue(contact.nextFollowUpAt)
     if (overdue && !contact.phone.isNullOrBlank()) {
         return ContactNba(

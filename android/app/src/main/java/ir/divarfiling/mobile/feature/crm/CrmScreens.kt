@@ -29,7 +29,16 @@ import androidx.compose.ui.platform.LocalContext
 import ir.divarfiling.mobile.core.share.DossierShareActions
 import ir.divarfiling.mobile.feature.crm.components.ContactListCard
 import androidx.compose.foundation.lazy.rememberLazyListState
+import ir.divarfiling.mobile.core.design.components.DfConfirmBottomSheet
+import ir.divarfiling.mobile.core.design.components.DfFilterChipRow
+import ir.divarfiling.mobile.core.design.components.DfFilterOption
 import ir.divarfiling.mobile.core.design.components.DfModalBottomSheet
+import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.font.FontWeight
+import ir.divarfiling.mobile.core.design.components.DfDropdown
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import ir.divarfiling.mobile.feature.crm.components.ContactQuickLeadSheet
@@ -141,12 +150,16 @@ fun ContactsScreen(
         (state.statusFilter?.isNotBlank() == true) ||
         (state.customerTypeFilter?.isNotBlank() == true)
 
-    LaunchedEffect(state.exportMessage, state.error) {
+    LaunchedEffect(state.exportMessage, state.error, state.successMessage) {
         state.exportMessage?.let {
             snackbar.showSnackbar(it)
             viewModel.clearExportMessage()
         }
         state.error?.let { snackbar.showSnackbar(it) }
+        state.successMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearSuccessMessage()
+        }
     }
 
     LaunchedEffect(state.webBridgeUrl) {
@@ -159,6 +172,10 @@ fun ContactsScreen(
     LaunchedEffect(state.customerTypeFilter, state.statusFilter) {
         typeFilter = state.customerTypeFilter ?: ContactsFilters.ALL_TYPES
         statusFilter = state.statusFilter ?: ContactsFilters.ALL_STATUSES
+    }
+
+    LaunchedEffect(state.archiveScope) {
+        quickFilter = ContactsFilters.QuickFilter.ALL
     }
 
     if (showSaveFilterDialog) {
@@ -254,9 +271,176 @@ fun ContactsScreen(
         }
     }
 
+    if (state.showBulkConfirm) {
+        val eligibleCount = state.bulkConfirmEligibleCount
+        val legacyRestoreCount = state.selectedContactIds.count { id ->
+            state.contacts.find { it.id == id }?.let(CrmConstants::needsLegacyRestoreStatus) == true
+        }
+        when (state.bulkConfirmAction) {
+            ContactBulkConfirmAction.RESTORE -> {
+                if (legacyRestoreCount > 0) {
+                    DfModalBottomSheet(onDismissRequest = viewModel::dismissBulkConfirm) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppSpacing.screenHorizontal)
+                                .padding(bottom = AppSpacing.lg)
+                                .navigationBarsPadding(),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                        ) {
+                            Text(
+                                "بازیابی ${DateUtils.toPersianDigits(eligibleCount.toString())} مخاطب",
+                                style = AppTypography.cardTitle,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                "برای ${DateUtils.toPersianDigits(legacyRestoreCount.toString())} مخاطب Legacy، مرحله ارتباط جدید لازم است.",
+                                style = AppTypography.bodyDescription,
+                                color = DfThemeColors.textSecondary(),
+                            )
+                            DfDropdown(
+                                label = "مرحله ارتباط",
+                                value = state.bulkRestoreStatus,
+                                options = CrmConstants.COMMUNICATION_STATUSES,
+                                enabled = !state.bulkSubmitting,
+                                onSelect = viewModel::onBulkRestoreStatusChange,
+                            )
+                            DfPrimaryButton(
+                                text = if (state.bulkSubmitting) "در حال ثبت…" else "بازیابی",
+                                onClick = viewModel::confirmBulkRestore,
+                                enabled = !state.bulkSubmitting,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            DfSecondaryButton(
+                                text = "انصراف",
+                                onClick = viewModel::dismissBulkConfirm,
+                                enabled = !state.bulkSubmitting,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                } else {
+                    DfConfirmBottomSheet(
+                        title = "بازیابی مخاطبین انتخاب‌شده",
+                        message = "${DateUtils.toPersianDigits(eligibleCount.toString())} مخاطب بایگانی‌شده به فهرست جاری بازگردانده می‌شود.",
+                        confirmText = "بازیابی",
+                        isSubmitting = state.bulkSubmitting,
+                        onConfirm = viewModel::confirmBulkRestore,
+                        onDismiss = viewModel::dismissBulkConfirm,
+                    )
+                }
+            }
+            ContactBulkConfirmAction.ARCHIVE -> {
+                DfModalBottomSheet(onDismissRequest = viewModel::dismissBulkConfirm) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal)
+                            .padding(bottom = AppSpacing.lg)
+                            .navigationBarsPadding(),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    ) {
+                        Text(
+                            "بایگانی ${DateUtils.toPersianDigits(eligibleCount.toString())} مخاطب",
+                            style = AppTypography.cardTitle,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            if (state.archiveScope == ContactArchiveScope.ALL) {
+                                "فقط مخاطبین جاری (غیربایگانی) در انتخاب، بایگانی می‌شوند."
+                            } else {
+                                "مخاطبین از فهرست جاری خارج می‌شوند اما اطلاعاتشان حفظ می‌شود."
+                            },
+                            style = AppTypography.bodyDescription,
+                            color = DfThemeColors.textSecondary(),
+                        )
+                        OutlinedTextField(
+                            value = state.bulkArchiveReason,
+                            onValueChange = viewModel::onBulkArchiveReasonChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("دلیل (اختیاری)") },
+                            enabled = !state.bulkSubmitting,
+                            singleLine = true,
+                        )
+                        DfPrimaryButton(
+                            text = if (state.bulkSubmitting) "در حال ثبت…" else "انتقال به بایگانی",
+                            onClick = viewModel::confirmBulkArchive,
+                            enabled = !state.bulkSubmitting,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        DfSecondaryButton(
+                            text = "انصراف",
+                            onClick = viewModel::dismissBulkConfirm,
+                            enabled = !state.bulkSubmitting,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+            null -> Unit
+        }
+    }
+
     Scaffold(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            if (state.selectMode && state.selectedContactIds.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(AppSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                ) {
+                    Text(
+                        "${DateUtils.toPersianDigits(state.selectedContactIds.size.toString())} مخاطب انتخاب شده",
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
+                        when (state.archiveScope) {
+                            ContactArchiveScope.ARCHIVED -> {
+                                DfPrimaryButton(
+                                    text = "بازیابی انتخاب‌شده‌ها",
+                                    onClick = viewModel::requestBulkRestoreConfirm,
+                                    enabled = !state.bulkSubmitting,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            ContactArchiveScope.ALL -> {
+                                DfSecondaryButton(
+                                    text = "بایگانی جاری‌ها",
+                                    onClick = viewModel::requestBulkArchiveConfirm,
+                                    enabled = !state.bulkSubmitting,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                DfSecondaryButton(
+                                    text = "بازیابی بایگانی‌ها",
+                                    onClick = viewModel::requestBulkRestoreConfirm,
+                                    enabled = !state.bulkSubmitting,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            else -> {
+                                DfPrimaryButton(
+                                    text = "بایگانی انتخاب‌شده‌ها",
+                                    onClick = viewModel::requestBulkArchiveConfirm,
+                                    enabled = !state.bulkSubmitting,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        DfSecondaryButton(
+                            text = "لغو",
+                            onClick = viewModel::toggleSelectMode,
+                            enabled = !state.bulkSubmitting,
+                            modifier = Modifier.weight(0.6f),
+                        )
+                    }
+                }
+            }
+        },
         floatingActionButton = {
             Box(
                 Modifier
@@ -294,8 +478,14 @@ fun ContactsScreen(
                         onMenuClick = onNavigateSettings,
                         onBack = onBack,
                         subtitle = buildString {
-                            append(DateUtils.toPersianDigits(filteredContacts.size.toString()))
-                            append(" مخاطب در نمای فعلی")
+                            val totalLabel = state.contactsTotal.takeIf { it > 0 } ?: filteredContacts.size
+                            append(DateUtils.toPersianDigits(totalLabel.toString()))
+                            append(" مخاطب")
+                            when (state.archiveScope) {
+                                ContactArchiveScope.ARCHIVED -> append(" بایگانی")
+                                ContactArchiveScope.ALL -> append(" (همه)")
+                                else -> append(" جاری")
+                            }
                             if (hasActiveListFilters) append(" · فیلترشده")
                         },
                     )
@@ -350,14 +540,26 @@ fun ContactsScreen(
                     }
                 }
                 item {
-                    ContactsStatsRow(
-                        todayCount = ContactsFilters.todayCount(state.contacts),
-                        newCount = ContactsFilters.newCount(state.contacts),
-                        followUpCount = ContactsFilters.followUpCount(state.contacts),
-                        totalCount = ContactsFilters.totalCount(state.contacts),
-                        selectedFilter = quickFilter,
-                        onFilterSelect = { quickFilter = it },
+                    DfFilterChipRow(
+                        options = ContactArchiveScope.entries.map { DfFilterOption(it, it.label) },
+                        selected = state.archiveScope,
+                        onSelect = viewModel::onArchiveScopeChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
                     )
+                }
+                if (state.archiveScope == ContactArchiveScope.ACTIVE) {
+                    item {
+                        ContactsStatsRow(
+                            todayCount = ContactsFilters.todayCount(state.contacts),
+                            newCount = ContactsFilters.newCount(state.contacts),
+                            followUpCount = ContactsFilters.followUpCount(state.contacts),
+                            totalCount = ContactsFilters.totalCount(state.contacts),
+                            selectedFilter = quickFilter,
+                            onFilterSelect = { quickFilter = it },
+                        )
+                    }
                 }
                 item {
                     ContactsToolsPanel(
@@ -381,11 +583,18 @@ fun ContactsScreen(
                         selectedType = typeFilter,
                         onPriorityChange = { priorityFilter = it },
                         onStatusChange = { status ->
-                            statusFilter = status
-                            quickFilter = ContactsFilters.QuickFilter.ALL
-                            viewModel.onStatusFilterChange(
-                                if (status == ContactsFilters.ALL_STATUSES) null else status,
-                            )
+                            if (status == CrmConstants.LEGACY_ARCHIVE_STATUS) {
+                                statusFilter = ContactsFilters.ALL_STATUSES
+                                quickFilter = ContactsFilters.QuickFilter.ALL
+                                viewModel.onArchiveScopeChange(ContactArchiveScope.ARCHIVED)
+                            } else {
+                                statusFilter = status
+                                quickFilter = ContactsFilters.QuickFilter.ALL
+                                viewModel.onStatusFilterChange(
+                                    if (status == ContactsFilters.ALL_STATUSES) null else status,
+                                )
+                                viewModel.search()
+                            }
                         },
                         onTypeChange = { type ->
                             typeFilter = type
@@ -443,32 +652,65 @@ fun ContactsScreen(
                     item {
                         DfEmptyState(
                             title = if (state.contacts.isEmpty()) {
-                                if (ownerMode) "اولین مالک را ثبت کنید" else "اولین مخاطب را ثبت کنید"
+                                when (state.archiveScope) {
+                                    ContactArchiveScope.ARCHIVED -> "هنوز مخاطبی بایگانی نشده"
+                                    ContactArchiveScope.ALL -> if (ownerMode) "مالکی ثبت نشده" else "مخاطبی ثبت نشده"
+                                    else -> if (ownerMode) "اولین مالک را ثبت کنید" else "اولین مخاطب را ثبت کنید"
+                                }
                             } else {
                                 "نتیجه‌ای با این فیلتر نیست"
                             },
                             subtitle = if (state.contacts.isEmpty()) {
-                                if (ownerMode) {
-                                    "مالک را برای اتصال به فایل شخصی اضافه کنید"
-                                } else {
-                                    "با دکمه پایین صفحه شروع کنید"
+                                when (state.archiveScope) {
+                                    ContactArchiveScope.ARCHIVED ->
+                                        "مخاطبین بایگانی‌شده اینجا نمایش داده می‌شوند"
+                                    ContactArchiveScope.ALL ->
+                                        "فهرست کامل مخاطبین جاری و بایگانی"
+                                    else -> if (ownerMode) {
+                                        "مالک را برای اتصال به فایل شخصی اضافه کنید"
+                                    } else {
+                                        "با دکمه پایین صفحه شروع کنید"
+                                    }
                                 }
                             } else {
                                 "فیلترها یا جستجو را تغییر دهید"
                             },
                             variant = if (state.contacts.isEmpty()) DfEmptyVariant.Empty else DfEmptyVariant.NoResults,
-                            actionLabel = if (ownerMode) "مالک جدید" else "مخاطب جدید",
-                            onAction = { showCreateMenu = true },
+                            actionLabel = if (
+                                !hasActiveListFilters &&
+                                state.archiveScope == ContactArchiveScope.ACTIVE
+                            ) {
+                                if (ownerMode) "مالک جدید" else "مخاطب جدید"
+                            } else {
+                                null
+                            },
+                            onAction = if (
+                                !hasActiveListFilters &&
+                                state.archiveScope == ContactArchiveScope.ACTIVE
+                            ) {
+                                { showCreateMenu = true }
+                            } else {
+                                null
+                            },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
                 } else if (filteredContacts.isNotEmpty()) {
                     item {
-                        Box(modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AppSpacing.screenHorizontal),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             DfSectionHeader(
                                 title = "لیست مخاطبین",
-                                count = filteredContacts.size,
+                                count = state.contactsTotal.takeIf { it > 0 } ?: filteredContacts.size,
                             )
+                            TextButton(onClick = viewModel::toggleSelectMode) {
+                                Text(if (state.selectMode) "انصراف از انتخاب" else "انتخاب")
+                            }
                         }
                     }
                     items(
@@ -477,8 +719,13 @@ fun ContactsScreen(
                     ) { contact ->
                         ContactListCard(
                             contact = contact,
-                            onClick = { onContactClick(contact.id) },
-                            onSuggestClick = if (CrmConstants.isMatchEligible(contact.customerType)) {
+                            onClick = {
+                                if (!state.selectMode) onContactClick(contact.id)
+                            },
+                            onSuggestClick = if (
+                                !contact.isArchived &&
+                                CrmConstants.isMatchEligible(contact.customerType)
+                            ) {
                                 { onContactSuggest(contact.id) }
                             } else {
                                 null
@@ -503,6 +750,9 @@ fun ContactsScreen(
                                     DossierShareActions.openWhatsApp(context, "سلام", phone)
                                 }
                             },
+                            selectionMode = state.selectMode,
+                            selected = contact.id in state.selectedContactIds,
+                            onToggleSelect = { viewModel.toggleContactSelected(contact.id) },
                             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }

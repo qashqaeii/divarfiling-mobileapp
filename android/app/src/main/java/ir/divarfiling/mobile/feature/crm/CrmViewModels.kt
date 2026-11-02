@@ -29,8 +29,21 @@ import ir.divarfiling.mobile.feature.crm.components.ContactEditPrefsState
 import ir.divarfiling.mobile.core.WorkspaceBridgePaths
 import javax.inject.Inject
 
+enum class ContactArchiveScope(val apiValue: String, val label: String) {
+    ACTIVE("active", "جاری"),
+    ARCHIVED("archived", "بایگانی"),
+    ALL("all", "همه"),
+}
+
+enum class ContactBulkConfirmAction {
+    ARCHIVE,
+    RESTORE,
+}
+
 data class ContactsUiState(
     val contacts: List<ContactDto> = emptyList(),
+    val contactsTotal: Int = 0,
+    val archiveScope: ContactArchiveScope = ContactArchiveScope.ACTIVE,
     val query: String = "",
     val statusFilter: String? = null,
     val customerTypeFilter: String? = null,
@@ -72,6 +85,14 @@ data class ContactsUiState(
     val savedFilters: List<ir.divarfiling.mobile.core.network.SavedFilterDto> = emptyList(),
     val activeSavedFilterId: Long? = null,
     val webBridgeUrl: String? = null,
+    val selectMode: Boolean = false,
+    val selectedContactIds: Set<Long> = emptySet(),
+    val showBulkConfirm: Boolean = false,
+    val bulkConfirmAction: ContactBulkConfirmAction? = null,
+    val bulkConfirmEligibleCount: Int = 0,
+    val bulkArchiveReason: String = "",
+    val bulkRestoreStatus: String = "",
+    val bulkSubmitting: Boolean = false,
 )
 
 @HiltViewModel
@@ -84,6 +105,7 @@ class ContactsViewModel @Inject constructor(
     private val extrasRepository: ir.divarfiling.mobile.data.repository.WorkspaceExtrasRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+    private var listLoadGeneration = 0
     private val initialCustomerType = savedStateHandle.get<String>("customerType")
         ?.takeIf { it.isNotBlank() }
     private val _uiState = MutableStateFlow(
@@ -124,28 +146,38 @@ class ContactsViewModel @Inject constructor(
 
     fun load(reset: Boolean = false) {
         viewModelScope.launch {
+            val gen = if (reset) ++listLoadGeneration else listLoadGeneration
             val page = if (reset) 1 else _uiState.value.page
             val state = _uiState.value
             _uiState.update {
                 it.copy(
                     isLoading = reset && it.contacts.isEmpty(),
                     isLoadingMore = !reset,
-                    error = null,
+                    error = if (reset) null else it.error,
                 )
+            }
+            val apiStatus = state.statusFilter?.takeUnless { it == CrmConstants.LEGACY_ARCHIVE_STATUS }
+            val archiveScopeParam = when {
+                state.statusFilter == CrmConstants.LEGACY_ARCHIVE_STATUS -> ContactArchiveScope.ARCHIVED.apiValue
+                state.archiveScope != ContactArchiveScope.ACTIVE -> state.archiveScope.apiValue
+                else -> null
             }
             when (
                 val result = crmRepository.getContacts(
                     query = state.query,
                     page = page,
-                    status = state.statusFilter,
+                    status = apiStatus,
                     customerType = state.customerTypeFilter,
+                    archiveScope = archiveScopeParam,
                 )
             ) {
                 is ApiResult.Success -> {
+                    if (gen != listLoadGeneration) return@launch
                     val merged = if (reset) result.data.items else _uiState.value.contacts + result.data.items
                     _uiState.update {
                         it.copy(
                             contacts = merged,
+                            contactsTotal = result.data.total,
                             page = page,
                             hasMore = result.data.hasMore,
                             isLoading = false,
@@ -154,14 +186,17 @@ class ContactsViewModel @Inject constructor(
                         )
                     }
                 }
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        isRefreshing = false,
-                        isLoadingMore = false,
-                        page = if (!reset && it.page > 1) it.page - 1 else it.page,
-                        error = result.message,
-                    )
+                is ApiResult.Error -> {
+                    if (gen != listLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            isLoadingMore = false,
+                            page = if (!reset && it.page > 1) it.page - 1 else it.page,
+                            error = result.message,
+                        )
+                    }
                 }
             }
         }
@@ -180,8 +215,23 @@ class ContactsViewModel @Inject constructor(
     }
 
     fun onQueryChange(q: String) = _uiState.update { it.copy(query = q) }
-    fun onStatusFilterChange(status: String?) = _uiState.update {
-        it.copy(statusFilter = status, activeSavedFilterId = null)
+    fun onStatusFilterChange(status: String?) {
+        if (status == CrmConstants.LEGACY_ARCHIVE_STATUS) {
+            _uiState.update {
+                it.copy(
+                    statusFilter = null,
+                    archiveScope = ContactArchiveScope.ARCHIVED,
+                    activeSavedFilterId = null,
+                    page = 1,
+                    contacts = emptyList(),
+                    selectedContactIds = emptySet(),
+                    selectMode = false,
+                )
+            }
+            load(reset = true)
+        } else {
+            _uiState.update { it.copy(statusFilter = status, activeSavedFilterId = null) }
+        }
     }
 
     fun onCustomerTypeFilterChange(type: String?) = _uiState.update {
@@ -190,13 +240,24 @@ class ContactsViewModel @Inject constructor(
 
     fun applySavedFilter(filter: ir.divarfiling.mobile.core.network.SavedFilterDto) {
         val params = filter.resolvedParams
+        val savedStatus = params["status"]?.ifBlank { null }
+        val archiveScope = if (savedStatus == CrmConstants.LEGACY_ARCHIVE_STATUS) {
+            ContactArchiveScope.ARCHIVED
+        } else {
+            _uiState.value.archiveScope
+        }
+        val statusFilter = if (savedStatus == CrmConstants.LEGACY_ARCHIVE_STATUS) null else savedStatus
         _uiState.update {
             it.copy(
                 query = params["q"].orEmpty(),
-                statusFilter = params["status"]?.ifBlank { null },
+                statusFilter = statusFilter,
                 customerTypeFilter = params["customer_type"]?.ifBlank { null },
                 activeSavedFilterId = filter.id,
+                archiveScope = archiveScope,
                 page = 1,
+                contacts = emptyList(),
+                selectedContactIds = emptySet(),
+                selectMode = false,
             )
         }
         load(reset = true)
@@ -566,6 +627,182 @@ class ContactsViewModel @Inject constructor(
             }
         }
     }
+
+    fun onArchiveScopeChange(scope: ContactArchiveScope) {
+        if (_uiState.value.archiveScope == scope) return
+        _uiState.update {
+            it.copy(
+                archiveScope = scope,
+                contacts = emptyList(),
+                page = 1,
+                selectedContactIds = emptySet(),
+                selectMode = false,
+                showBulkConfirm = false,
+            )
+        }
+        load(reset = true)
+    }
+
+    fun toggleSelectMode() {
+        _uiState.update {
+            it.copy(
+                selectMode = !it.selectMode,
+                selectedContactIds = emptySet(),
+                showBulkConfirm = false,
+                bulkArchiveReason = "",
+                bulkRestoreStatus = "",
+            )
+        }
+    }
+
+    fun toggleContactSelected(contactId: Long) {
+        _uiState.update { state ->
+            val next = if (contactId in state.selectedContactIds) {
+                state.selectedContactIds - contactId
+            } else {
+                if (state.selectedContactIds.size >= 100) {
+                    return@update state.copy(error = "حداکثر ۱۰۰ مخاطب در هر عملیات")
+                }
+                state.selectedContactIds + contactId
+            }
+            state.copy(selectedContactIds = next)
+        }
+    }
+
+    fun onBulkArchiveReasonChange(value: String) = _uiState.update { it.copy(bulkArchiveReason = value) }
+
+    fun onBulkRestoreStatusChange(value: String) = _uiState.update { it.copy(bulkRestoreStatus = value) }
+
+    private fun eligibleBulkArchiveIds(state: ContactsUiState = _uiState.value): List<Long> =
+        state.selectedContactIds.filter { id ->
+            state.contacts.find { it.id == id }?.isArchived == false
+        }
+
+    private fun eligibleBulkRestoreIds(state: ContactsUiState = _uiState.value): List<Long> =
+        state.selectedContactIds.filter { id ->
+            state.contacts.find { it.id == id }?.isArchived == true
+        }
+
+    private fun selectedLegacyRestoreCount(state: ContactsUiState = _uiState.value): Int =
+        eligibleBulkRestoreIds(state).count { id ->
+            state.contacts.find { it.id == id }?.let(CrmConstants::needsLegacyRestoreStatus) == true
+        }
+
+    fun requestBulkArchiveConfirm() {
+        val ids = eligibleBulkArchiveIds()
+        if (ids.isEmpty()) {
+            _uiState.update { it.copy(error = "مخاطب جاری برای بایگانی انتخاب نشده") }
+            return
+        }
+        _uiState.update {
+            it.copy(
+                showBulkConfirm = true,
+                bulkConfirmAction = ContactBulkConfirmAction.ARCHIVE,
+                bulkConfirmEligibleCount = ids.size,
+            )
+        }
+    }
+
+    fun requestBulkRestoreConfirm() {
+        val ids = eligibleBulkRestoreIds()
+        if (ids.isEmpty()) {
+            _uiState.update { it.copy(error = "مخاطب بایگانی‌شده برای بازیابی انتخاب نشده") }
+            return
+        }
+        _uiState.update {
+            it.copy(
+                showBulkConfirm = true,
+                bulkConfirmAction = ContactBulkConfirmAction.RESTORE,
+                bulkConfirmEligibleCount = ids.size,
+            )
+        }
+    }
+
+    fun dismissBulkConfirm() = _uiState.update {
+        it.copy(
+            showBulkConfirm = false,
+            bulkConfirmAction = null,
+            bulkConfirmEligibleCount = 0,
+        )
+    }
+
+    fun confirmBulkArchive() {
+        val state = _uiState.value
+        val ids = eligibleBulkArchiveIds(state)
+        if (ids.isEmpty()) {
+            _uiState.update { it.copy(error = "مخاطب جاری برای بایگانی انتخاب نشده") }
+            return
+        }
+        runBulkAction(action = "archive", ids = ids, reason = state.bulkArchiveReason.trim())
+    }
+
+    fun confirmBulkRestore() {
+        val state = _uiState.value
+        val ids = eligibleBulkRestoreIds(state)
+        if (ids.isEmpty()) {
+            _uiState.update { it.copy(error = "مخاطب بایگانی‌شده برای بازیابی انتخاب نشده") }
+            return
+        }
+        val legacyCount = selectedLegacyRestoreCount(state)
+        val restoreStatus = state.bulkRestoreStatus.trim()
+        if (legacyCount > 0 && restoreStatus !in CrmConstants.COMMUNICATION_STATUSES) {
+            _uiState.update { it.copy(error = "مرحله ارتباط برای بازیابی مخاطبین Legacy الزامی است") }
+            return
+        }
+        runBulkAction(action = "restore", ids = ids, restoreStatus = restoreStatus)
+    }
+
+    private fun runBulkAction(
+        action: String,
+        ids: List<Long>,
+        reason: String = "",
+        restoreStatus: String = "",
+    ) {
+        if (_uiState.value.bulkSubmitting) return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    bulkSubmitting = true,
+                    showBulkConfirm = false,
+                    bulkConfirmAction = null,
+                    bulkConfirmEligibleCount = 0,
+                )
+            }
+            when (
+                val result = crmRepository.bulkArchiveContacts(
+                    action = action,
+                    contactIds = ids,
+                    reason = reason,
+                    restoreStatus = restoreStatus,
+                )
+            ) {
+                is ApiResult.Success -> {
+                    val msg = result.data.message.ifBlank {
+                        when (action) {
+                            "restore" -> "${result.data.restored} مخاطب بازیابی شد"
+                            else -> "${result.data.archived} مخاطب بایگانی شد"
+                        }
+                    }
+                    _uiState.update {
+                        it.copy(
+                            bulkSubmitting = false,
+                            selectMode = false,
+                            selectedContactIds = emptySet(),
+                            bulkArchiveReason = "",
+                            bulkRestoreStatus = "",
+                            successMessage = msg,
+                        )
+                    }
+                    refresh()
+                }
+                is ApiResult.Error -> _uiState.update {
+                    it.copy(bulkSubmitting = false, error = result.message)
+                }
+            }
+        }
+    }
+
+    fun clearSuccessMessage() = _uiState.update { it.copy(successMessage = null) }
 }
 
 data class TodayUiState(

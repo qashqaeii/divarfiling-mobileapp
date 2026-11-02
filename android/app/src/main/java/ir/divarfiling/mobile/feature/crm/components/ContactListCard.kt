@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -56,21 +57,44 @@ fun ContactListCard(
     onSmsClick: (() -> Unit)? = null,
     onSuggestClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onToggleSelect: (() -> Unit)? = null,
 ) {
     val typeVisual = ContactTypeVisuals.visualFor(contact.customerType)
-    val statusStyle = statusColors(contact.status.orEmpty())
-    val followUpLabel = contact.nextFollowUpAt?.let { next ->
-        DateUtils.formatRelativeTimeUntil(next)
-            ?: DateUtils.formatJalaliDateTime(next)
+    val archived = contact.isArchived
+    val statusStyle = statusColors(
+        if (archived) contact.displayStatus.orEmpty() else contact.status.orEmpty(),
+    )
+    val followUpLabel = if (archived) {
+        contact.archivedAt?.let {
+            DateUtils.formatJalaliDateTime(it) ?: DateUtils.formatJalaliDate(it)
+        }?.let { "بایگانی: $it" }
+    } else {
+        contact.nextFollowUpAt?.let { next ->
+            DateUtils.formatRelativeTimeUntil(next)
+                ?: DateUtils.formatJalaliDateTime(next)
+        }
     }
-    val canSuggest = CrmConstants.isMatchEligible(contact.customerType) && onSuggestClick != null
+    val canSuggest = !archived &&
+        CrmConstants.isMatchEligible(contact.customerType) &&
+        onSuggestClick != null
 
     Surface(
-        onClick = onClick,
+        onClick = {
+            if (selectionMode) {
+                onToggleSelect?.invoke()
+            } else {
+                onClick()
+            }
+        },
         modifier = modifier.fillMaxWidth(),
         shape = AppShapes.Card,
         color = DfThemeColors.surface(),
-        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+        border = BorderStroke(
+            1.dp,
+            if (selected) DfThemeColors.primary().copy(alpha = 0.45f) else DfThemeColors.outlineSubtle(),
+        ),
         shadowElevation = AppElevations.subtle,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -96,6 +120,12 @@ fun ContactListCard(
                     horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (selectionMode) {
+                        Checkbox(
+                            checked = selected,
+                            onCheckedChange = { onToggleSelect?.invoke() },
+                        )
+                    }
                     AppContactAvatar(contact = contact, size = AppAvatarSize.Medium)
                     Column(
                         modifier = Modifier.weight(1f),
@@ -131,7 +161,16 @@ fun ContactListCard(
                             }
                         }
                     }
-                    ContactStatusBadge(status = contact.status)
+                    if (archived) {
+                        ContactMetaChip(
+                            text = "بایگانی",
+                            color = DfThemeColors.textSecondary(),
+                            background = DfThemeColors.surfaceVariant(),
+                        )
+                    }
+                    ContactStatusBadge(
+                        status = if (archived) contact.displayStatus else contact.status,
+                    )
                 }
 
                 FlowRow(

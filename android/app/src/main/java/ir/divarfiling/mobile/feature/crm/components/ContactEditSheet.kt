@@ -87,6 +87,7 @@ fun ContactEditSheet(
     socialLinks: Map<String, String> = emptyMap(),
     catalogNeighborhoods: List<String> = emptyList(),
     isSubmitting: Boolean,
+    statusEditable: Boolean = true,
     onNameChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onPhoneAltChange: (String) -> Unit = {},
@@ -290,9 +291,9 @@ fun ContactEditSheet(
         DfSheetSection(title = "طبقه‌بندی CRM") {
             DfDropdown(
                 label = "وضعیت پیگیری",
-                value = status.ifBlank { CrmConstants.STATUSES.first() },
-                options = CrmConstants.STATUSES,
-                enabled = !isSubmitting,
+                value = status.ifBlank { CrmConstants.COMMUNICATION_STATUSES.first() },
+                options = CrmConstants.COMMUNICATION_STATUSES,
+                enabled = !isSubmitting && statusEditable,
                 onSelect = onStatusChange,
             )
             DfDropdown(

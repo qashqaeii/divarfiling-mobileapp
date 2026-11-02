@@ -384,6 +384,11 @@ data class ContactDto(
     @SerialName("active_channels") val activeChannels: List<String> = emptyList(),
     @SerialName("photo_url") val photoUrl: String? = null,
     @SerialName("avatar_key") val avatarKey: String? = null,
+    @SerialName("is_archived") val isArchived: Boolean = false,
+    @SerialName("archived_at") val archivedAt: String? = null,
+    @SerialName("archive_reason") val archiveReason: String? = null,
+    @SerialName("display_status") val displayStatus: String? = null,
+    @SerialName("last_communication_status") val lastCommunicationStatus: String? = null,
 )
 
 @Serializable
@@ -827,6 +832,7 @@ data class ContactDetailData(
     val documents: List<CustomerDocumentDto> = emptyList(),
     @SerialName("agency_space") val agencySpace: AgencySpaceSourceContextDto? = null,
     @SerialName("agency_space_provenance") val agencySpaceProvenance: AgencySpaceProvenanceDto? = null,
+    @SerialName("can_edit") val canEdit: Boolean = false,
 )
 
 @Serializable
@@ -2141,6 +2147,39 @@ data class ContactUpdateRequest(
     @SerialName("want_elevator") val wantElevator: Boolean? = null,
     @SerialName("social_links") val socialLinks: Map<String, String>? = null,
     @SerialName("active_channels") val activeChannels: List<String>? = null,
+)
+
+@Serializable
+data class ContactArchivePatchRequest(
+    @SerialName("is_archived") val isArchived: Boolean = true,
+    @SerialName("archive_reason") val archiveReason: String = "",
+    @SerialName("archive_note") val archiveNote: String = "",
+    @SerialName("reactivation_due_jalali") val reactivationDueJalali: String = "",
+)
+
+@Serializable
+data class ContactRestorePatchRequest(
+    @SerialName("is_archived") val isArchived: Boolean = false,
+    @SerialName("restore_status") val restoreStatus: String = "",
+)
+
+@Serializable
+data class ContactBulkArchiveRequest(
+    val action: String,
+    @SerialName("contact_ids") val contactIds: List<Long>,
+    val reason: String = "",
+    @SerialName("restore_status") val restoreStatus: String = "",
+)
+
+@Serializable
+data class ContactBulkArchiveResultDto(
+    val archived: Int = 0,
+    val restored: Int = 0,
+    val skipped: Int = 0,
+    val errors: Int = 0,
+    val message: String = "",
+    val partial: Boolean = false,
+    val complete: Boolean = false,
 )
 
 @Serializable

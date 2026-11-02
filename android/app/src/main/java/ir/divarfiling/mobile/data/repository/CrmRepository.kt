@@ -17,7 +17,10 @@ import ir.divarfiling.mobile.core.network.ContactDto
 import ir.divarfiling.mobile.core.network.ContactMatchesData
 import ir.divarfiling.mobile.core.network.ContactSuggestRequest
 import ir.divarfiling.mobile.core.network.ContactSuggestResponse
-import ir.divarfiling.mobile.core.network.ContactUpdateRequest
+import ir.divarfiling.mobile.core.network.ContactArchivePatchRequest
+import ir.divarfiling.mobile.core.network.ContactBulkArchiveRequest
+import ir.divarfiling.mobile.core.network.ContactBulkArchiveResultDto
+import ir.divarfiling.mobile.core.network.ContactRestorePatchRequest
 import ir.divarfiling.mobile.core.network.CrmNeighborhoodsData
 import ir.divarfiling.mobile.core.network.CustomerDocumentDto
 import ir.divarfiling.mobile.core.network.LinkListingRequest
@@ -70,7 +73,9 @@ class CrmRepository @Inject constructor(
         due: String? = null,
         sort: String? = null,
         tag: String? = null,
+        archiveScope: String? = null,
     ): ApiResult<PaginatedResult<ContactDto>> {
+        val scopeAllowsActiveCache = archiveScope.isNullOrBlank() || archiveScope == "active"
         return try {
             val response = api.getContacts(
                 query = query?.ifBlank { null },
@@ -82,9 +87,10 @@ class CrmRepository @Inject constructor(
                 due = due?.ifBlank { null },
                 sort = sort?.ifBlank { null },
                 tag = tag?.ifBlank { null },
+                archiveScope = archiveScope?.ifBlank { null },
             )
             if (!response.ok) {
-                if (page == 1) {
+                if (page == 1 && scopeAllowsActiveCache) {
                     val cached = contactCache.getAll().map { it.toDto() }
                     if (cached.isNotEmpty()) {
                         return ApiResult.Success(PaginatedResult(cached, 1, cached.size, false))
@@ -95,12 +101,12 @@ class CrmRepository @Inject constructor(
             val list = response.data?.let {
                 json.decodeFromJsonElement(ListSerializer(ContactDto.serializer()), it)
             }.orEmpty()
-            if (page == 1) contactCache.upsertAll(list.map { it.toEntity() })
+            if (page == 1 && scopeAllowsActiveCache) contactCache.upsertAll(list.map { it.toEntity() })
             val total = response.meta?.total ?: list.size
             val hasMore = page * pageSize < total
             ApiResult.Success(PaginatedResult(list, page, total, hasMore))
         } catch (e: Exception) {
-            if (page == 1) {
+            if (page == 1 && scopeAllowsActiveCache) {
                 val cached = contactCache.getAll().map { it.toDto() }
                 if (cached.isNotEmpty()) {
                     return ApiResult.Success(PaginatedResult(cached, 1, cached.size, false))
@@ -403,6 +409,62 @@ class CrmRepository @Inject constructor(
             enqueueSync("contact", "update", payload)
             ApiResult.Error(e.message ?: "خطای شبکه — در صف آفلاین")
         }
+    }
+
+    suspend fun archiveContact(
+        contactId: Long,
+        reason: String,
+        note: String = "",
+        reactivationDueJalali: String = "",
+    ): ApiResult<ContactDto> = contactPatch {
+        api.patchContactArchive(
+            contactId,
+            ContactArchivePatchRequest(
+                archiveReason = reason,
+                archiveNote = note,
+                reactivationDueJalali = reactivationDueJalali,
+            ),
+        )
+    }
+
+    suspend fun restoreContact(
+        contactId: Long,
+        restoreStatus: String = "",
+    ): ApiResult<ContactDto> = contactPatch {
+        api.patchContactRestore(
+            contactId,
+            ContactRestorePatchRequest(restoreStatus = restoreStatus),
+        )
+    }
+
+    suspend fun bulkArchiveContacts(
+        action: String,
+        contactIds: List<Long>,
+        reason: String = "",
+        restoreStatus: String = "",
+    ): ApiResult<ContactBulkArchiveResultDto> = try {
+        val response = api.bulkArchiveContacts(
+            ContactBulkArchiveRequest(
+                action = action,
+                contactIds = contactIds,
+                reason = reason,
+                restoreStatus = restoreStatus,
+            ),
+        )
+        if (!response.ok) ApiResult.Error(response.error ?: "عملیات ناموفق بود")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
+    }
+
+    private suspend inline fun contactPatch(
+        crossinline call: suspend () -> ir.divarfiling.mobile.core.network.ApiEnvelope,
+    ): ApiResult<ContactDto> = try {
+        val response = call()
+        if (!response.ok) ApiResult.Error(response.error ?: "عملیات ناموفق بود")
+        else ApiResult.Success(response.requireData(json))
+    } catch (e: Exception) {
+        ApiResult.Error(e.message ?: "خطای شبکه")
     }
 
     suspend fun getToday(): ApiResult<TodayData> {

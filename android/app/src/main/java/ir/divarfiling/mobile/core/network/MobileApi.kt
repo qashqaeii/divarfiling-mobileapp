@@ -142,7 +142,11 @@ interface MobileApi {
         @Query("due") due: String? = null,
         @Query("sort") sort: String? = null,
         @Query("tag") tag: String? = null,
+        @Query("archive_scope") archiveScope: String? = null,
     ): ApiEnvelope
+
+    @POST("crm/contacts/bulk-archive")
+    suspend fun bulkArchiveContacts(@Body body: ContactBulkArchiveRequest): ApiEnvelope
 
     @GET("crm/neighborhoods")
     suspend fun getCrmNeighborhoods(): ApiEnvelope
@@ -154,6 +158,18 @@ interface MobileApi {
     suspend fun updateContact(
         @Path("id") contactId: Long,
         @Body body: ContactUpdateRequest,
+    ): ApiEnvelope
+
+    @PATCH("crm/contacts/{id}")
+    suspend fun patchContactArchive(
+        @Path("id") contactId: Long,
+        @Body body: ContactArchivePatchRequest,
+    ): ApiEnvelope
+
+    @PATCH("crm/contacts/{id}")
+    suspend fun patchContactRestore(
+        @Path("id") contactId: Long,
+        @Body body: ContactRestorePatchRequest,
     ): ApiEnvelope
 
     @POST("crm/contacts/quick-lead")
