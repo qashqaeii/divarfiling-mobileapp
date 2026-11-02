@@ -54,6 +54,7 @@ import ir.divarfiling.mobile.feature.filing.components.AdvertiserAnalysisSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailGallerySection
 import ir.divarfiling.mobile.feature.filing.components.ListingGalleryActionsRow
 import ir.divarfiling.mobile.feature.filing.components.ListingDetailHeader
+import ir.divarfiling.mobile.feature.filing.components.ListingPersonalFolderPickerSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingEditSheet
 import ir.divarfiling.mobile.feature.filing.components.ListingLocationSection
 import ir.divarfiling.mobile.feature.filing.components.ListingAiSummarySection
@@ -162,7 +163,7 @@ fun ListingDetailScreen(
                             { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
                         },
                         onSetReminder = viewModel::openReminderSheet,
-                        onSaveAsPersonal = viewModel::saveAsPersonalProperty,
+                        onSaveAsPersonal = viewModel::openPersonalFolderPicker,
                         onViewPersonalProperty = listing.personalPropertyId?.let { id ->
                             { onOpenCreatedProperty(id) }
                         },
@@ -419,6 +420,42 @@ fun ListingDetailScreen(
                 onShowNearbyPoisChange = viewModel::onShareShowNearbyPoisChange,
                 onSave = viewModel::savePublicShareSettings,
                 onDismiss = { viewModel.togglePublicShareSettingsSheet(false) },
+            )
+        }
+    }
+
+    if (state.showPersonalFolderPicker && listing != null) {
+        DfModalBottomSheet(
+            onDismissRequest = viewModel::dismissPersonalFolderPicker,
+            dismissOnScrimOrSwipe = !state.isSavingProperty,
+        ) {
+            ListingPersonalFolderPickerSheet(
+                listing = listing,
+                folders = state.personalFolders,
+                searchQuery = state.personalFolderSearchQuery,
+                isLoadingFolders = state.isLoadingPersonalFolders,
+                foldersError = state.personalFoldersError,
+                selectedFolderId = state.selectedPersonalFolderId,
+                choiceExplicit = state.personalFolderChoiceExplicit,
+                withoutFolderSelected = state.personalFolderChoiceExplicit && state.selectedPersonalFolderId == null,
+                showCreateForm = state.showCreatePersonalFolderForm,
+                newFolderName = state.newPersonalFolderName,
+                isCreatingFolder = state.isCreatingPersonalFolder,
+                createFolderError = state.createPersonalFolderError,
+                isSubmitting = state.isSavingProperty,
+                transferError = state.personalTransferError,
+                folderAssignFailed = state.folderAssignFailed,
+                onSearchChange = viewModel::onPersonalFolderSearchChange,
+                onSelectFolder = viewModel::selectPersonalFolder,
+                onSelectWithoutFolder = viewModel::selectWithoutFolder,
+                onOpenCreateForm = viewModel::openCreatePersonalFolderForm,
+                onDismissCreateForm = viewModel::dismissCreatePersonalFolderForm,
+                onNewFolderNameChange = viewModel::onNewPersonalFolderNameChange,
+                onCreateFolder = viewModel::createPersonalFolder,
+                onRetryLoadFolders = viewModel::loadPersonalFolders,
+                onConfirm = viewModel::confirmSaveAsPersonalProperty,
+                onRetryFolderAssign = viewModel::retryPersonalFolderAssignment,
+                onDismiss = viewModel::dismissPersonalFolderPicker,
             )
         }
     }

@@ -1301,6 +1301,7 @@ data class PropertyCreateRequest(
     @SerialName("owner_name") val ownerName: String = "",
     val notes: String = "",
     @SerialName("feature_data") val featureData: Map<String, String> = emptyMap(),
+    @SerialName("folder_id") val folderId: Long? = null,
 )
 
 @Serializable

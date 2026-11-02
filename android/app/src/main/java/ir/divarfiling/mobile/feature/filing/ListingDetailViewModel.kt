@@ -16,6 +16,9 @@ import ir.divarfiling.mobile.core.network.ListingMetaUpdateRequest
 import ir.divarfiling.mobile.core.network.AiSummarizeListingRequest
 import ir.divarfiling.mobile.core.network.ListingUpdateRequest
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyDto
+import ir.divarfiling.mobile.core.network.PropertyFolderCreateRequest
+import ir.divarfiling.mobile.core.network.PropertyFolderDto
 import ir.divarfiling.mobile.core.network.SendListingRequest
 import ir.divarfiling.mobile.core.util.PhoneNormalizer
 import ir.divarfiling.mobile.data.repository.ApiResult
@@ -133,6 +136,22 @@ data class ListingDetailUiState(
     val isDeleting: Boolean = false,
     val showAdvertiserAnalysisSheet: Boolean = false,
     val isSubmittingAdvertiserFeedback: Boolean = false,
+    val showPersonalFolderPicker: Boolean = false,
+    val personalFolders: List<PropertyFolderDto> = emptyList(),
+    val isLoadingPersonalFolders: Boolean = false,
+    val personalFoldersError: String? = null,
+    val selectedPersonalFolderId: Long? = null,
+    val personalFolderChoiceExplicit: Boolean = false,
+    val showCreatePersonalFolderForm: Boolean = false,
+    val newPersonalFolderName: String = "",
+    val isCreatingPersonalFolder: Boolean = false,
+    val createPersonalFolderError: String? = null,
+    val personalFolderSearchQuery: String = "",
+    val personalTransferError: String? = null,
+    val folderAssignFailed: Boolean = false,
+    val pendingFolderAssignPropertyId: Long? = null,
+    val pendingFolderAssignFolderId: Long? = null,
+    val pendingFolderAssignFolderName: String = "",
 )
 
 @HiltViewModel
@@ -148,6 +167,7 @@ class ListingDetailViewModel @Inject constructor(
     private val isoFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
     private val _uiState = MutableStateFlow(ListingDetailUiState())
     val uiState: StateFlow<ListingDetailUiState> = _uiState.asStateFlow()
+    private var personalFoldersLoadGeneration = 0
 
     init {
         if (token.isNotBlank()) load()
@@ -677,7 +697,329 @@ class ListingDetailViewModel @Inject constructor(
     }
 
     fun saveAsPersonalProperty() {
-        val listing = _uiState.value.listing ?: return
+        openPersonalFolderPicker()
+    }
+
+    fun openPersonalFolderPicker() {
+        _uiState.update {
+            it.copy(
+                showPersonalFolderPicker = true,
+                selectedPersonalFolderId = null,
+                personalFolderChoiceExplicit = false,
+                showCreatePersonalFolderForm = false,
+                newPersonalFolderName = "",
+                createPersonalFolderError = null,
+                personalTransferError = null,
+                folderAssignFailed = false,
+                pendingFolderAssignPropertyId = null,
+                pendingFolderAssignFolderId = null,
+                pendingFolderAssignFolderName = "",
+                personalFolderSearchQuery = "",
+            )
+        }
+        loadPersonalFolders()
+    }
+
+    fun dismissPersonalFolderPicker() {
+        if (_uiState.value.isSavingProperty) return
+        personalFoldersLoadGeneration += 1
+        _uiState.update {
+            it.copy(
+                showPersonalFolderPicker = false,
+                selectedPersonalFolderId = null,
+                personalFolderChoiceExplicit = false,
+                showCreatePersonalFolderForm = false,
+                newPersonalFolderName = "",
+                createPersonalFolderError = null,
+                personalTransferError = null,
+                folderAssignFailed = false,
+                pendingFolderAssignPropertyId = null,
+                pendingFolderAssignFolderId = null,
+                pendingFolderAssignFolderName = "",
+                personalFolderSearchQuery = "",
+            )
+        }
+    }
+
+    fun loadPersonalFolders() {
+        val generation = ++personalFoldersLoadGeneration
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isLoadingPersonalFolders = true, personalFoldersError = null)
+            }
+            when (val result = extrasRepository.getPropertyFolders()) {
+                is ApiResult.Success -> {
+                    if (generation != personalFoldersLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            isLoadingPersonalFolders = false,
+                            personalFolders = result.data,
+                        )
+                    }
+                }
+                is ApiResult.Error -> {
+                    if (generation != personalFoldersLoadGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            isLoadingPersonalFolders = false,
+                            personalFoldersError = result.message,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun onPersonalFolderSearchChange(query: String) {
+        _uiState.update { it.copy(personalFolderSearchQuery = query) }
+    }
+
+    fun selectPersonalFolder(folderId: Long) {
+        _uiState.update {
+            it.copy(
+                selectedPersonalFolderId = folderId,
+                personalFolderChoiceExplicit = true,
+                folderAssignFailed = false,
+                personalTransferError = null,
+            )
+        }
+    }
+
+    fun selectWithoutFolder() {
+        _uiState.update {
+            it.copy(
+                selectedPersonalFolderId = null,
+                personalFolderChoiceExplicit = true,
+                folderAssignFailed = false,
+                personalTransferError = null,
+            )
+        }
+    }
+
+    fun openCreatePersonalFolderForm() {
+        _uiState.update {
+            it.copy(
+                showCreatePersonalFolderForm = true,
+                createPersonalFolderError = null,
+            )
+        }
+    }
+
+    fun dismissCreatePersonalFolderForm() {
+        _uiState.update {
+            it.copy(
+                showCreatePersonalFolderForm = false,
+                createPersonalFolderError = null,
+            )
+        }
+    }
+
+    fun onNewPersonalFolderNameChange(name: String) {
+        _uiState.update { it.copy(newPersonalFolderName = name) }
+    }
+
+    fun createPersonalFolder() {
+        val name = _uiState.value.newPersonalFolderName.trim()
+        if (name.isBlank()) {
+            _uiState.update { it.copy(createPersonalFolderError = "نام زونکن را وارد کنید") }
+            return
+        }
+        if (_uiState.value.isCreatingPersonalFolder) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCreatingPersonalFolder = true, createPersonalFolderError = null) }
+            when (val result = extrasRepository.createPropertyFolder(PropertyFolderCreateRequest(name = name))) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isCreatingPersonalFolder = false,
+                            showCreatePersonalFolderForm = false,
+                            newPersonalFolderName = "",
+                            selectedPersonalFolderId = result.data.id,
+                            personalFolderChoiceExplicit = true,
+                        )
+                    }
+                    loadPersonalFolders()
+                }
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isCreatingPersonalFolder = false,
+                            createPersonalFolderError = result.message,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun confirmSaveAsPersonalProperty() {
+        val state = _uiState.value
+        if (state.isSavingProperty || !state.personalFolderChoiceExplicit || state.folderAssignFailed) return
+        val listing = state.listing ?: return
+        val targetFolderId = state.selectedPersonalFolderId
+        val targetFolderName = state.personalFolders.find { it.id == targetFolderId }?.name.orEmpty()
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isSavingProperty = true, personalTransferError = null, error = null)
+            }
+            when (val result = dealsRepository.createProperty(buildPropertyCreateRequest(listing, targetFolderId))) {
+                is ApiResult.Success -> handlePersonalPropertyTransferResult(
+                    property = result.data,
+                    targetFolderId = targetFolderId,
+                    targetFolderName = targetFolderName,
+                )
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isSavingProperty = false,
+                            personalTransferError = result.message,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun retryPersonalFolderAssignment() {
+        val state = _uiState.value
+        val propertyId = state.pendingFolderAssignPropertyId ?: return
+        val folderId = state.pendingFolderAssignFolderId ?: return
+        if (state.isSavingProperty) return
+        val folderName = state.pendingFolderAssignFolderName.ifBlank {
+            state.personalFolders.find { it.id == folderId }?.name.orEmpty()
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingProperty = true, personalTransferError = null) }
+            when (val result = ensurePropertyInFolder(propertyId, folderId)) {
+                is ApiResult.Success -> {
+                    if (result.data) {
+                        _uiState.update {
+                            it.copy(
+                                isSavingProperty = false,
+                                showPersonalFolderPicker = false,
+                                folderAssignFailed = false,
+                                pendingFolderAssignPropertyId = null,
+                                pendingFolderAssignFolderId = null,
+                                pendingFolderAssignFolderName = "",
+                                successMessage = "فایل موجود به زونکن «${folderName.ifBlank { "زونکن" }}» اضافه شد.",
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSavingProperty = false,
+                                personalTransferError = "ثبت در زونکن انتخاب‌شده انجام نشد.",
+                            )
+                        }
+                    }
+                }
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isSavingProperty = false,
+                            personalTransferError = result.message,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun handlePersonalPropertyTransferResult(
+        property: PropertyDto,
+        targetFolderId: Long?,
+        targetFolderName: String,
+    ) {
+        val alreadyAdded = property.alreadyAdded
+        var folderConfirmed = targetFolderId == null
+        if (targetFolderId != null) {
+            folderConfirmed = property.folders.any { it.id == targetFolderId }
+            if (!folderConfirmed) {
+                when (val ensure = ensurePropertyInFolder(property.id, targetFolderId)) {
+                    is ApiResult.Success -> folderConfirmed = ensure.data
+                    is ApiResult.Error -> folderConfirmed = false
+                }
+            }
+        }
+        val listingUpdate = _uiState.value.listing?.copy(
+            isAddedToPersonal = true,
+            personalPropertyId = property.id,
+        )
+        val navigateToProperty = !alreadyAdded && (targetFolderId == null || folderConfirmed)
+        when {
+            targetFolderId != null && !folderConfirmed -> {
+                _uiState.update {
+                    it.copy(
+                        isSavingProperty = false,
+                        listing = listingUpdate,
+                        folderAssignFailed = true,
+                        pendingFolderAssignPropertyId = property.id,
+                        pendingFolderAssignFolderId = targetFolderId,
+                        pendingFolderAssignFolderName = targetFolderName,
+                        pendingCreatedPropertyId = null,
+                        successMessage = "فایل به فایل‌های شخصی منتقل شد، اما ثبت در زونکن انتخاب‌شده انجام نشد.",
+                    )
+                }
+            }
+            targetFolderId != null && folderConfirmed -> {
+                val message = if (alreadyAdded) {
+                    "فایل موجود به زونکن «${targetFolderName.ifBlank { "زونکن" }}» اضافه شد."
+                } else {
+                    "فایل به زونکن «${targetFolderName.ifBlank { "زونکن" }}» منتقل شد."
+                }
+                _uiState.update {
+                    it.copy(
+                        isSavingProperty = false,
+                        showPersonalFolderPicker = false,
+                        listing = listingUpdate,
+                        pendingCreatedPropertyId = if (navigateToProperty) property.id else null,
+                        successMessage = message,
+                        selectedPersonalFolderId = null,
+                        personalFolderChoiceExplicit = false,
+                        folderAssignFailed = false,
+                        pendingFolderAssignPropertyId = null,
+                        pendingFolderAssignFolderId = null,
+                        pendingFolderAssignFolderName = "",
+                    )
+                }
+            }
+            else -> {
+                val message = if (alreadyAdded) {
+                    "این فایل قبلاً به فایل‌های شخصی اضافه شده است."
+                } else {
+                    "فایل به فایل‌های شخصی اضافه شد."
+                }
+                _uiState.update {
+                    it.copy(
+                        isSavingProperty = false,
+                        showPersonalFolderPicker = false,
+                        listing = listingUpdate,
+                        pendingCreatedPropertyId = if (navigateToProperty) property.id else null,
+                        successMessage = message,
+                        selectedPersonalFolderId = null,
+                        personalFolderChoiceExplicit = false,
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun ensurePropertyInFolder(propertyId: Long, folderId: Long): ApiResult<Boolean> {
+        suspend fun hasFolderMembership(): Boolean {
+            return when (val detail = dealsRepository.getProperty(propertyId)) {
+                is ApiResult.Success -> detail.data.property.folders.any { it.id == folderId }
+                is ApiResult.Error -> false
+            }
+        }
+        if (hasFolderMembership()) return ApiResult.Success(true)
+        when (val addResult = extrasRepository.togglePropertyFolderMembership(folderId, propertyId, add = true)) {
+            is ApiResult.Error -> return addResult
+            is ApiResult.Success -> Unit
+        }
+        return ApiResult.Success(hasFolderMembership())
+    }
+
+    private fun buildPropertyCreateRequest(listing: ListingDetailDto, folderId: Long?): PropertyCreateRequest {
         val dealMode = when {
             listing.rent != null || listing.deposit != null -> "رهن و اجاره"
             else -> "فروش"
@@ -690,54 +1032,28 @@ class ListingDetailViewModel @Inject constructor(
             listing.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { add(it) }
             addAll(listing.images.filter { it.isNotBlank() })
         }.distinct()
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSavingProperty = true) }
-            when (val result = dealsRepository.createProperty(
-                PropertyCreateRequest(
-                    title = listing.title.orEmpty().ifBlank { "فایل شخصی" },
-                    dealMode = dealMode,
-                    city = listing.city.orEmpty(),
-                    district = listing.district.orEmpty(),
-                    salePrice = listing.price,
-                    deposit = listing.deposit,
-                    rent = listing.rent,
-                    area = listing.area?.toDouble(),
-                    rooms = listing.rooms?.toString().orEmpty(),
-                    floor = listing.floor?.filter { it.isDigit() }?.toIntOrNull(),
-                    buildYear = buildYear,
-                    hasParking = listing.hasParking,
-                    hasStorage = listing.hasStorage,
-                    hasElevator = listing.hasElevator,
-                    images = images,
-                    token = listing.token,
-                    link = listing.shareLink.orEmpty(),
-                    ownerPhone = listing.ownerPhone.orEmpty(),
-                    ownerName = listing.ownerName.orEmpty(),
-                ),
-            )) {
-                is ApiResult.Success -> {
-                    val alreadyAdded = result.data.alreadyAdded
-                    _uiState.update {
-                        it.copy(
-                            isSavingProperty = false,
-                            pendingCreatedPropertyId = if (!alreadyAdded) result.data.id else null,
-                            successMessage = if (alreadyAdded) {
-                                "این فایل قبلاً به فایل‌های شخصی اضافه شده است."
-                            } else {
-                                "به فایل‌های شخصی اضافه شد"
-                            },
-                            listing = it.listing?.copy(
-                                isAddedToPersonal = true,
-                                personalPropertyId = result.data.id,
-                            ),
-                        )
-                    }
-                }
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(isSavingProperty = false, error = result.message)
-                }
-            }
-        }
+        return PropertyCreateRequest(
+            title = listing.title.orEmpty().ifBlank { "فایل شخصی" },
+            dealMode = dealMode,
+            city = listing.city.orEmpty(),
+            district = listing.district.orEmpty(),
+            salePrice = listing.price,
+            deposit = listing.deposit,
+            rent = listing.rent,
+            area = listing.area?.toDouble(),
+            rooms = listing.rooms?.toString().orEmpty(),
+            floor = listing.floor?.filter { it.isDigit() }?.toIntOrNull(),
+            buildYear = buildYear,
+            hasParking = listing.hasParking,
+            hasStorage = listing.hasStorage,
+            hasElevator = listing.hasElevator,
+            images = images,
+            token = listing.token,
+            link = listing.shareLink.orEmpty(),
+            ownerPhone = listing.ownerPhone.orEmpty(),
+            ownerName = listing.ownerName.orEmpty(),
+            folderId = folderId,
+        )
     }
 
     fun requestDelete() {
