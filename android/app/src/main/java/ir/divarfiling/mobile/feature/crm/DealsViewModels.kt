@@ -1330,6 +1330,11 @@ enum class PropertyArchiveScope(val apiValue: String, val label: String) {
     ALL("all", "همه"),
 }
 
+enum class PropertyBulkConfirmAction {
+    ARCHIVE,
+    RESTORE,
+}
+
 data class PropertiesUiState(
     val properties: List<PropertyDto> = emptyList(),
     val propertyCabinets: List<PropertyCabinetDto> = emptyList(),
@@ -1401,6 +1406,8 @@ data class PropertiesUiState(
     val selectMode: Boolean = false,
     val selectedPropertyIds: Set<Long> = emptySet(),
     val showBulkConfirm: Boolean = false,
+    val bulkConfirmAction: PropertyBulkConfirmAction? = null,
+    val bulkConfirmEligibleCount: Int = 0,
     val bulkArchiveReason: String = "",
     val bulkSubmitting: Boolean = false,
     val successMessage: String? = null,
@@ -2479,16 +2486,57 @@ class PropertiesViewModel @Inject constructor(
 
     fun onBulkArchiveReasonChange(value: String) = _uiState.update { it.copy(bulkArchiveReason = value) }
 
-    fun requestBulkConfirm() = _uiState.update { it.copy(showBulkConfirm = true) }
+    private fun eligibleBulkArchiveIds(state: PropertiesUiState = _uiState.value): List<Long> =
+        state.selectedPropertyIds.filter { id ->
+            state.properties.find { it.id == id }?.isArchived == false
+        }
 
-    fun dismissBulkConfirm() = _uiState.update { it.copy(showBulkConfirm = false) }
+    private fun eligibleBulkRestoreIds(state: PropertiesUiState = _uiState.value): List<Long> =
+        state.selectedPropertyIds.filter { id ->
+            state.properties.find { it.id == id }?.isArchived == true
+        }
+
+    fun requestBulkArchiveConfirm() {
+        val ids = eligibleBulkArchiveIds()
+        if (ids.isEmpty()) {
+            _uiState.update { it.copy(error = "فایل جاری برای بایگانی انتخاب نشده") }
+            return
+        }
+        _uiState.update {
+            it.copy(
+                showBulkConfirm = true,
+                bulkConfirmAction = PropertyBulkConfirmAction.ARCHIVE,
+                bulkConfirmEligibleCount = ids.size,
+            )
+        }
+    }
+
+    fun requestBulkRestoreConfirm() {
+        val ids = eligibleBulkRestoreIds()
+        if (ids.isEmpty()) {
+            _uiState.update { it.copy(error = "فایل بایگانی‌شده برای بازیابی انتخاب نشده") }
+            return
+        }
+        _uiState.update {
+            it.copy(
+                showBulkConfirm = true,
+                bulkConfirmAction = PropertyBulkConfirmAction.RESTORE,
+                bulkConfirmEligibleCount = ids.size,
+            )
+        }
+    }
+
+    fun dismissBulkConfirm() = _uiState.update {
+        it.copy(
+            showBulkConfirm = false,
+            bulkConfirmAction = null,
+            bulkConfirmEligibleCount = 0,
+        )
+    }
 
     fun confirmBulkArchive() {
         val state = _uiState.value
-        val ids = state.selectedPropertyIds.filter { id ->
-            val prop = state.properties.find { it.id == id }
-            prop != null && !prop.isArchived
-        }
+        val ids = eligibleBulkArchiveIds(state)
         if (ids.isEmpty()) {
             _uiState.update { it.copy(error = "فایل جاری برای بایگانی انتخاب نشده") }
             return
@@ -2498,9 +2546,7 @@ class PropertiesViewModel @Inject constructor(
 
     fun confirmBulkRestore() {
         val state = _uiState.value
-        val ids = state.selectedPropertyIds.filter { id ->
-            state.properties.find { it.id == id }?.isArchived == true
-        }
+        val ids = eligibleBulkRestoreIds(state)
         if (ids.isEmpty()) {
             _uiState.update { it.copy(error = "فایل بایگانی‌شده برای بازیابی انتخاب نشده") }
             return
@@ -2511,7 +2557,14 @@ class PropertiesViewModel @Inject constructor(
     private fun runBulkAction(action: String, ids: List<Long>, reason: String = "") {
         if (_uiState.value.bulkSubmitting) return
         viewModelScope.launch {
-            _uiState.update { it.copy(bulkSubmitting = true, showBulkConfirm = false) }
+            _uiState.update {
+                it.copy(
+                    bulkSubmitting = true,
+                    showBulkConfirm = false,
+                    bulkConfirmAction = null,
+                    bulkConfirmEligibleCount = 0,
+                )
+            }
             when (val result = repository.bulkArchiveProperties(action, ids, reason)) {
                 is ApiResult.Success -> {
                     val msg = result.data.message.ifBlank {
@@ -3167,23 +3220,33 @@ class PropertyDetailViewModel @Inject constructor(
     }
 
     fun toggleContactMatchesSheet(show: Boolean) {
-        _uiState.update {
-            it.copy(
-                showContactMatchesSheet = show,
-                contactMatchesData = null,
-                contactMatchesPaginationError = null,
-                contactMatchesLoadingMore = false,
-            )
-        }
         if (show) {
+            _uiState.update {
+                it.copy(
+                    showContactMatchesSheet = true,
+                    contactMatchesData = null,
+                    contactMatchesPaginationError = null,
+                    contactMatchesLoadingMore = false,
+                    contactMatchesLoading = false,
+                )
+            }
             loadContactMatches(openSheet = true, reset = true)
         } else {
             contactMatchesLoadGeneration += 1
+            _uiState.update {
+                it.copy(
+                    showContactMatchesSheet = false,
+                    contactMatchesData = null,
+                    contactMatchesPaginationError = null,
+                    contactMatchesLoadingMore = false,
+                    contactMatchesLoading = false,
+                )
+            }
         }
     }
 
     fun loadContactMatches(openSheet: Boolean = false, reset: Boolean = false) {
-        if (_uiState.value.contactMatchesLoading) return
+        if (!reset && _uiState.value.contactMatchesLoading) return
         viewModelScope.launch {
             val generation = if (reset) {
                 contactMatchesLoadGeneration += 1
@@ -3208,7 +3271,19 @@ class PropertyDetailViewModel @Inject constructor(
                 )
             ) {
                 is ApiResult.Success -> {
-                    if (generation != contactMatchesLoadGeneration) return@launch
+                    if (generation != contactMatchesLoadGeneration) {
+                        _uiState.update { state ->
+                            if (!state.showContactMatchesSheet) {
+                                state.copy(
+                                    contactMatchesLoading = false,
+                                    contactMatchesLoadingMore = false,
+                                )
+                            } else {
+                                state
+                            }
+                        }
+                        return@launch
+                    }
                     _uiState.update {
                         it.copy(
                             contactMatchesData = result.data,
@@ -3218,7 +3293,19 @@ class PropertyDetailViewModel @Inject constructor(
                     }
                 }
                 is ApiResult.Error -> {
-                    if (generation != contactMatchesLoadGeneration) return@launch
+                    if (generation != contactMatchesLoadGeneration) {
+                        _uiState.update { state ->
+                            if (!state.showContactMatchesSheet) {
+                                state.copy(
+                                    contactMatchesLoading = false,
+                                    contactMatchesLoadingMore = false,
+                                )
+                            } else {
+                                state
+                            }
+                        }
+                        return@launch
+                    }
                     _uiState.update {
                         it.copy(contactMatchesLoading = false, error = result.message)
                     }

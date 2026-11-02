@@ -628,26 +628,39 @@ class ContactDetailViewModel @Inject constructor(
     }
 
     fun toggleMatchesSheet(show: Boolean) {
-        _uiState.update {
-            it.copy(
-                showMatchesSheet = show,
-                matchSuggestNote = if (show) it.matchSuggestNote else "",
-                showMatchTemplatePicker = false,
-                matchesData = null,
-                matchesPaginationError = null,
-                matchesLoadingMoreCrm = false,
-                matchesLoadingMoreDivar = false,
-            )
-        }
         if (show) {
+            _uiState.update {
+                it.copy(
+                    showMatchesSheet = true,
+                    matchSuggestNote = it.matchSuggestNote,
+                    showMatchTemplatePicker = false,
+                    matchesData = null,
+                    matchesPaginationError = null,
+                    matchesLoadingMoreCrm = false,
+                    matchesLoadingMoreDivar = false,
+                    matchesLoading = false,
+                )
+            }
             loadMatches(openSheet = true, reset = true)
         } else {
             matchesLoadGeneration += 1
+            _uiState.update {
+                it.copy(
+                    showMatchesSheet = false,
+                    matchSuggestNote = "",
+                    showMatchTemplatePicker = false,
+                    matchesData = null,
+                    matchesPaginationError = null,
+                    matchesLoadingMoreCrm = false,
+                    matchesLoadingMoreDivar = false,
+                    matchesLoading = false,
+                )
+            }
         }
     }
 
     fun loadMatches(openSheet: Boolean = false, reset: Boolean = false) {
-        if (_uiState.value.matchesLoading) return
+        if (!reset && _uiState.value.matchesLoading) return
         viewModelScope.launch {
             val generation = if (reset) {
                 matchesLoadGeneration += 1
@@ -674,7 +687,20 @@ class ContactDetailViewModel @Inject constructor(
                 )
             ) {
                 is ApiResult.Success -> {
-                    if (generation != matchesLoadGeneration) return@launch
+                    if (generation != matchesLoadGeneration) {
+                        _uiState.update { state ->
+                            if (!state.showMatchesSheet) {
+                                state.copy(
+                                    matchesLoading = false,
+                                    matchesLoadingMoreCrm = false,
+                                    matchesLoadingMoreDivar = false,
+                                )
+                            } else {
+                                state
+                            }
+                        }
+                        return@launch
+                    }
                     _uiState.update {
                         it.copy(
                             matchesData = result.data,
@@ -684,7 +710,20 @@ class ContactDetailViewModel @Inject constructor(
                     }
                 }
                 is ApiResult.Error -> {
-                    if (generation != matchesLoadGeneration) return@launch
+                    if (generation != matchesLoadGeneration) {
+                        _uiState.update { state ->
+                            if (!state.showMatchesSheet) {
+                                state.copy(
+                                    matchesLoading = false,
+                                    matchesLoadingMoreCrm = false,
+                                    matchesLoadingMoreDivar = false,
+                                )
+                            } else {
+                                state
+                            }
+                        }
+                        return@launch
+                    }
                     _uiState.update {
                         it.copy(matchesLoading = false, error = result.message)
                     }

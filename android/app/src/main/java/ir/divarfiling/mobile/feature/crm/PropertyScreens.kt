@@ -215,30 +215,19 @@ fun PropertiesScreen(
     }
 
     if (state.showBulkConfirm) {
-        val archiveScope = state.archiveScope
-        val selectedCount = state.selectedPropertyIds.size
-        when (archiveScope) {
-            PropertyArchiveScope.ARCHIVED -> {
+        val eligibleCount = state.bulkConfirmEligibleCount
+        when (state.bulkConfirmAction) {
+            PropertyBulkConfirmAction.RESTORE -> {
                 DfConfirmBottomSheet(
                     title = "بازیابی فایل‌های انتخاب‌شده",
-                    message = "${DateUtils.toPersianDigits(selectedCount.toString())} فایل به فهرست جاری بازگردانده می‌شود.",
+                    message = "${DateUtils.toPersianDigits(eligibleCount.toString())} فایل بایگانی‌شده به فهرست جاری بازگردانده می‌شود.",
                     confirmText = "بازیابی",
                     isSubmitting = state.bulkSubmitting,
                     onConfirm = viewModel::confirmBulkRestore,
                     onDismiss = viewModel::dismissBulkConfirm,
                 )
             }
-            PropertyArchiveScope.ALL -> {
-                DfConfirmBottomSheet(
-                    title = "بایگانی فایل‌های جاری انتخاب‌شده",
-                    message = "فقط فایل‌های جاری (غیربایگانی) در انتخاب، بایگانی می‌شوند.",
-                    confirmText = "انتقال به بایگانی",
-                    isSubmitting = state.bulkSubmitting,
-                    onConfirm = viewModel::confirmBulkArchive,
-                    onDismiss = viewModel::dismissBulkConfirm,
-                )
-            }
-            else -> {
+            PropertyBulkConfirmAction.ARCHIVE -> {
                 DfModalBottomSheet(onDismissRequest = viewModel::dismissBulkConfirm) {
                     Column(
                         modifier = Modifier
@@ -249,12 +238,16 @@ fun PropertiesScreen(
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     ) {
                         Text(
-                            "بایگانی ${DateUtils.toPersianDigits(selectedCount.toString())} فایل",
+                            "بایگانی ${DateUtils.toPersianDigits(eligibleCount.toString())} فایل",
                             style = AppTypography.cardTitle,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            "فایل‌ها از فهرست جاری خارج می‌شوند اما اطلاعاتشان حفظ می‌شود.",
+                            if (state.archiveScope == PropertyArchiveScope.ALL) {
+                                "فقط فایل‌های جاری (غیربایگانی) در انتخاب، بایگانی می‌شوند."
+                            } else {
+                                "فایل‌ها از فهرست جاری خارج می‌شوند اما اطلاعاتشان حفظ می‌شود."
+                            },
                             style = AppTypography.bodyDescription,
                             color = DfThemeColors.textSecondary(),
                         )
@@ -281,6 +274,7 @@ fun PropertiesScreen(
                     }
                 }
             }
+            null -> Unit
         }
     }
 
@@ -306,7 +300,7 @@ fun PropertiesScreen(
                             PropertyArchiveScope.ARCHIVED -> {
                                 DfPrimaryButton(
                                     text = "بازیابی انتخاب‌شده‌ها",
-                                    onClick = viewModel::requestBulkConfirm,
+                                    onClick = viewModel::requestBulkRestoreConfirm,
                                     enabled = !state.bulkSubmitting,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -314,15 +308,13 @@ fun PropertiesScreen(
                             PropertyArchiveScope.ALL -> {
                                 DfSecondaryButton(
                                     text = "بایگانی جاری‌ها",
-                                    onClick = viewModel::requestBulkConfirm,
+                                    onClick = viewModel::requestBulkArchiveConfirm,
                                     enabled = !state.bulkSubmitting,
                                     modifier = Modifier.weight(1f),
                                 )
                                 DfSecondaryButton(
                                     text = "بازیابی بایگانی‌ها",
-                                    onClick = {
-                                        viewModel.confirmBulkRestore()
-                                    },
+                                    onClick = viewModel::requestBulkRestoreConfirm,
                                     enabled = !state.bulkSubmitting,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -330,7 +322,7 @@ fun PropertiesScreen(
                             else -> {
                                 DfPrimaryButton(
                                     text = "بایگانی انتخاب‌شده‌ها",
-                                    onClick = viewModel::requestBulkConfirm,
+                                    onClick = viewModel::requestBulkArchiveConfirm,
                                     enabled = !state.bulkSubmitting,
                                     modifier = Modifier.weight(1f),
                                 )
