@@ -82,6 +82,7 @@ fun ListingPersonalFolderPickerSheet(
         folder.cabinet?.name?.takeIf { it.isNotBlank() } ?: "بدون کمد"
     }
     val canConfirm = choiceExplicit && !isLoadingFolders && !isCreatingFolder
+    val folderSelectionEnabled = !folderAssignFailed
     val primaryText = when {
         isSubmitting -> "لطفاً صبر کنید…"
         folderAssignFailed -> "تلاش مجدد برای ثبت در زونکن"
@@ -127,12 +128,12 @@ fun ListingPersonalFolderPickerSheet(
                 placeholder = { Text("نام زونکن یا کمد") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                enabled = !isSubmitting && !isLoadingFolders,
+                enabled = !isSubmitting && !isLoadingFolders && folderSelectionEnabled,
             )
 
             WithoutFolderOptionRow(
                 selected = withoutFolderSelected,
-                enabled = !isSubmitting,
+                enabled = !isSubmitting && folderSelectionEnabled,
                 onClick = onSelectWithoutFolder,
             )
 
@@ -164,7 +165,7 @@ fun ListingPersonalFolderPickerSheet(
                     DfEmptyState(
                         title = "هنوز زونکنی ندارید",
                         subtitle = "می‌توانید زونکن بسازید یا بدون زونکن منتقل کنید.",
-                        variant = DfEmptyVariant.Default,
+                        variant = DfEmptyVariant.Empty,
                         actionLabel = "ساخت زونکن",
                         onAction = onOpenCreateForm,
                     )
@@ -195,7 +196,7 @@ fun ListingPersonalFolderPickerSheet(
                                 PersonalFolderSelectRow(
                                     folder = folder,
                                     selected = choiceExplicit && selectedFolderId == folder.id,
-                                    enabled = !isSubmitting,
+                                    enabled = !isSubmitting && folderSelectionEnabled,
                                     onClick = { onSelectFolder(folder.id) },
                                 )
                             }
@@ -204,11 +205,13 @@ fun ListingPersonalFolderPickerSheet(
                 }
             }
 
-            DfGlassTextButton(
-                text = "+ زونکن جدید",
-                onClick = onOpenCreateForm,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (folderSelectionEnabled) {
+                DfGlassTextButton(
+                    text = "+ زونکن جدید",
+                    onClick = onOpenCreateForm,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

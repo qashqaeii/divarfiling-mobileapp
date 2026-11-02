@@ -152,6 +152,7 @@ data class ListingDetailUiState(
     val pendingFolderAssignPropertyId: Long? = null,
     val pendingFolderAssignFolderId: Long? = null,
     val pendingFolderAssignFolderName: String = "",
+    val pendingFolderAssignWasNewProperty: Boolean = false,
 )
 
 @HiltViewModel
@@ -714,6 +715,7 @@ class ListingDetailViewModel @Inject constructor(
                 pendingFolderAssignPropertyId = null,
                 pendingFolderAssignFolderId = null,
                 pendingFolderAssignFolderName = "",
+                pendingFolderAssignWasNewProperty = false,
                 personalFolderSearchQuery = "",
             )
         }
@@ -736,6 +738,7 @@ class ListingDetailViewModel @Inject constructor(
                 pendingFolderAssignPropertyId = null,
                 pendingFolderAssignFolderId = null,
                 pendingFolderAssignFolderName = "",
+                pendingFolderAssignWasNewProperty = false,
                 personalFolderSearchQuery = "",
             )
         }
@@ -775,28 +778,29 @@ class ListingDetailViewModel @Inject constructor(
     }
 
     fun selectPersonalFolder(folderId: Long) {
+        if (_uiState.value.pendingFolderAssignPropertyId != null) return
         _uiState.update {
             it.copy(
                 selectedPersonalFolderId = folderId,
                 personalFolderChoiceExplicit = true,
-                folderAssignFailed = false,
                 personalTransferError = null,
             )
         }
     }
 
     fun selectWithoutFolder() {
+        if (_uiState.value.pendingFolderAssignPropertyId != null) return
         _uiState.update {
             it.copy(
                 selectedPersonalFolderId = null,
                 personalFolderChoiceExplicit = true,
-                folderAssignFailed = false,
                 personalTransferError = null,
             )
         }
     }
 
     fun openCreatePersonalFolderForm() {
+        if (_uiState.value.pendingFolderAssignPropertyId != null) return
         _uiState.update {
             it.copy(
                 showCreatePersonalFolderForm = true,
@@ -819,6 +823,7 @@ class ListingDetailViewModel @Inject constructor(
     }
 
     fun createPersonalFolder() {
+        if (_uiState.value.pendingFolderAssignPropertyId != null) return
         val name = _uiState.value.newPersonalFolderName.trim()
         if (name.isBlank()) {
             _uiState.update { it.copy(createPersonalFolderError = "نام زونکن را وارد کنید") }
@@ -854,7 +859,8 @@ class ListingDetailViewModel @Inject constructor(
 
     fun confirmSaveAsPersonalProperty() {
         val state = _uiState.value
-        if (state.isSavingProperty || !state.personalFolderChoiceExplicit || state.folderAssignFailed) return
+        if (state.isSavingProperty || state.pendingFolderAssignPropertyId != null) return
+        if (!state.personalFolderChoiceExplicit) return
         val listing = state.listing ?: return
         val targetFolderId = state.selectedPersonalFolderId
         val targetFolderName = state.personalFolders.find { it.id == targetFolderId }?.name.orEmpty()
@@ -888,11 +894,17 @@ class ListingDetailViewModel @Inject constructor(
         val folderName = state.pendingFolderAssignFolderName.ifBlank {
             state.personalFolders.find { it.id == folderId }?.name.orEmpty()
         }
+        val wasNewProperty = state.pendingFolderAssignWasNewProperty
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingProperty = true, personalTransferError = null) }
             when (val result = ensurePropertyInFolder(propertyId, folderId)) {
                 is ApiResult.Success -> {
                     if (result.data) {
+                        val message = if (wasNewProperty) {
+                            "فایل به زونکن «${folderName.ifBlank { "زونکن" }}» منتقل شد."
+                        } else {
+                            "فایل موجود به زونکن «${folderName.ifBlank { "زونکن" }}» اضافه شد."
+                        }
                         _uiState.update {
                             it.copy(
                                 isSavingProperty = false,
@@ -901,7 +913,9 @@ class ListingDetailViewModel @Inject constructor(
                                 pendingFolderAssignPropertyId = null,
                                 pendingFolderAssignFolderId = null,
                                 pendingFolderAssignFolderName = "",
-                                successMessage = "فایل موجود به زونکن «${folderName.ifBlank { "زونکن" }}» اضافه شد.",
+                                pendingFolderAssignWasNewProperty = false,
+                                pendingCreatedPropertyId = if (wasNewProperty) propertyId else null,
+                                successMessage = message,
                             )
                         }
                     } else {
@@ -956,6 +970,7 @@ class ListingDetailViewModel @Inject constructor(
                         pendingFolderAssignPropertyId = property.id,
                         pendingFolderAssignFolderId = targetFolderId,
                         pendingFolderAssignFolderName = targetFolderName,
+                        pendingFolderAssignWasNewProperty = !alreadyAdded,
                         pendingCreatedPropertyId = null,
                         successMessage = "فایل به فایل‌های شخصی منتقل شد، اما ثبت در زونکن انتخاب‌شده انجام نشد.",
                     )
@@ -980,6 +995,7 @@ class ListingDetailViewModel @Inject constructor(
                         pendingFolderAssignPropertyId = null,
                         pendingFolderAssignFolderId = null,
                         pendingFolderAssignFolderName = "",
+                        pendingFolderAssignWasNewProperty = false,
                     )
                 }
             }
