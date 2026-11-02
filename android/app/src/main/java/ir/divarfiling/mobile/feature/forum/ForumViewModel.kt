@@ -279,7 +279,10 @@ class ForumViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSending = true) }
             when (val result = repository.editMessage(messageId, body)) {
-                is ApiResult.Error -> showError(result.message)
+                is ApiResult.Error -> {
+                    _uiState.update { it.copy(isSending = false) }
+                    showError(result.message)
+                }
                 is ApiResult.Success -> {
                     mergeMessages(listOf(result.data.message))
                     _uiState.update {

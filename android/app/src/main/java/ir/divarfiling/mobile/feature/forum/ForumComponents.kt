@@ -1,5 +1,7 @@
 package ir.divarfiling.mobile.feature.forum
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -46,13 +48,13 @@ fun ForumNoticeStrip(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
         notices.forEach { notice ->
             Surface(
-                shape = AppShapes.medium,
+                shape = AppShapes.CardSmall,
                 color = DfThemeColors.primaryContainer().copy(alpha = 0.45f),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     text = notice.body,
-                    style = AppTypography.bodySmall,
+                    style = AppTypography.meta,
                     modifier = Modifier.padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
@@ -73,7 +75,7 @@ fun ForumPinnedBar(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle),
-        shape = AppShapes.medium,
+        shape = AppShapes.CardSmall,
         color = DfThemeColors.surfaceVariant().copy(alpha = 0.7f),
     ) {
         Column(Modifier.padding(AppSpacing.sm)) {
@@ -86,7 +88,7 @@ fun ForumPinnedBar(
                 )
                 Text(
                     text = "پیام سنجاق‌شده",
-                    style = AppTypography.labelMedium,
+                    style = AppTypography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(start = AppSpacing.xs),
                 )
@@ -94,7 +96,7 @@ fun ForumPinnedBar(
             val preview = if (message.isDeleted) "پیام حذف شده" else message.body
             Text(
                 text = if (expanded) preview else preview.take(80),
-                style = AppTypography.bodySmall,
+                style = AppTypography.meta,
                 maxLines = if (expanded) 8 else 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = AppSpacing.xxs),
@@ -129,7 +131,7 @@ fun ForumMessageRow(
         if (!isMine) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = AppSpacing.xxxs),
+                modifier = Modifier.padding(bottom = AppSpacing.xxs),
             ) {
                 ForumAvatar(url = message.avatarUrl, label = message.senderLabel)
                 Text(
@@ -153,7 +155,7 @@ fun ForumMessageRow(
                 color = DfThemeColors.surfaceVariant().copy(alpha = 0.35f),
                 modifier = Modifier
                     .fillMaxWidth(0.82f)
-                    .padding(bottom = AppSpacing.xxxs),
+                    .padding(bottom = AppSpacing.xxs),
             ) {
                 Column(Modifier.padding(AppSpacing.sm)) {
                     Text(
@@ -164,7 +166,7 @@ fun ForumMessageRow(
                     if (!reply.unavailable) {
                         Text(
                             text = reply.bodyPreview.orEmpty(),
-                            style = AppTypography.bodySmall,
+                            style = AppTypography.meta,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -173,7 +175,7 @@ fun ForumMessageRow(
             }
         }
         Surface(
-            shape = AppShapes.large,
+            shape = AppShapes.Card,
             color = bubbleColor,
             border = if (selected) androidx.compose.foundation.BorderStroke(1.dp, DfThemeColors.primary()) else null,
             modifier = Modifier.fillMaxWidth(if (isMine) 0.88f else 0.92f),
@@ -181,8 +183,8 @@ fun ForumMessageRow(
             Column(Modifier.padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm)) {
                 Text(
                     text = if (message.isDeleted) "این پیام حذف شده است" else message.body,
-                    style = AppTypography.bodyMedium,
-                    color = if (message.isDeleted) DfThemeColors.onSurfaceVariant() else MaterialTheme.colorScheme.onSurface,
+                    style = AppTypography.body,
+                    color = if (message.isDeleted) DfThemeColors.textSecondary() else MaterialTheme.colorScheme.onSurface,
                 )
                 Row(
                     modifier = Modifier
@@ -195,13 +197,13 @@ fun ForumMessageRow(
                         Text(
                             text = DateUtils.formatRelativeTimeAgo(message.createdAt),
                             style = AppTypography.labelSmall,
-                            color = DfThemeColors.onSurfaceVariant(),
+                            color = DfThemeColors.textSecondary(),
                         )
                         if (message.isEdited && !message.isDeleted) {
                             Text(
                                 text = "ویرایش‌شده",
                                 style = AppTypography.labelSmall,
-                                color = DfThemeColors.onSurfaceVariant(),
+                                color = DfThemeColors.textSecondary(),
                             )
                         }
                     }
@@ -209,7 +211,7 @@ fun ForumMessageRow(
                         Text(
                             text = DateUtils.toPersianDigits(message.viewCount.toString()) + " بازدید",
                             style = AppTypography.labelSmall,
-                            color = DfThemeColors.onSurfaceVariant(),
+                            color = DfThemeColors.textSecondary(),
                         )
                     }
                 }
@@ -254,12 +256,13 @@ fun ForumAvatar(url: String?, label: String, modifier: Modifier = Modifier) {
     ) {
         if (!url.isNullOrBlank()) {
             DfAsyncImage(
-                model = url,
+                url = url,
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
+                shape = CircleShape,
             )
         } else {
-            Text(text = initial, style = AppTypography.labelMedium, color = DfThemeColors.primary())
+            Text(text = initial, style = AppTypography.labelLarge, color = DfThemeColors.primary())
         }
     }
 }
@@ -302,7 +305,7 @@ fun ForumComposerBar(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("ویرایش پیام", style = AppTypography.labelMedium)
+                Text("ویرایش پیام", style = AppTypography.labelLarge)
                 TextButton(onClick = onCancelEdit) { Text("لغو") }
             }
         }
@@ -322,7 +325,7 @@ fun ForumComposerBar(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onCancelReply, modifier = Modifier.size(32.dp)) {
-                    Icon(DfIcons.X, contentDescription = "لغو پاسخ", tint = DfThemeColors.onSurfaceVariant())
+                    Icon(DfIcons.X, contentDescription = "لغو پاسخ", tint = DfThemeColors.textSecondary())
                 }
             }
         }
@@ -343,7 +346,7 @@ fun ForumComposerBar(
                 Icon(
                     DfIcons.Send,
                     contentDescription = "ارسال",
-                    tint = if (sendEnabled) DfThemeColors.primary() else DfThemeColors.onSurfaceVariant(),
+                    tint = if (sendEnabled) DfThemeColors.primary() else DfThemeColors.textSecondary(),
                 )
             }
         }
@@ -351,8 +354,8 @@ fun ForumComposerBar(
             Text(
                 text = "در حال ارسال…",
                 style = AppTypography.labelSmall,
-                color = DfThemeColors.onSurfaceVariant(),
-                modifier = Modifier.padding(top = AppSpacing.xxxs),
+                color = DfThemeColors.textSecondary(),
+                modifier = Modifier.padding(top = AppSpacing.xxs),
             )
         }
     }
@@ -418,7 +421,7 @@ fun ForumReactionPicker(
         FORUM_ALLOWED_REACTIONS.forEach { emoji ->
             Text(
                 text = emoji,
-                style = AppTypography.titleLarge,
+                style = AppTypography.pageTitle,
                 modifier = Modifier
                     .clip(CircleShape)
                     .clickable {

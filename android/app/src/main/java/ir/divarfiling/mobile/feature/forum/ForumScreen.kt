@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.animateScrollToItem
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -118,10 +117,10 @@ fun ForumScreen(
     if (state.showWelcomeSheet) {
         DfModalBottomSheet(onDismissRequest = { viewModel.dismissWelcome() }) {
             Column(Modifier.padding(AppSpacing.lg)) {
-                Text("به تالار گفتگو خوش آمدید", style = AppTypography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("به تالار گفتگو خوش آمدید", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
                 Text(
                     "در این فضا با سایر کاربران فایلینگ تجربه‌ها را مبادله کنید. از انتشار اطلاعات شخصی خودداری کنید.",
-                    style = AppTypography.bodyMedium,
+                    style = AppTypography.body,
                     modifier = Modifier.padding(vertical = AppSpacing.md),
                 )
                 TextButton(onClick = { viewModel.dismissWelcome() }) {
@@ -181,11 +180,11 @@ fun ForumScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("تالار گفتگو", style = AppTypography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("تالار گفتگو", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
                         Text(
                             "جامعه کاربران فایلینگ",
                             style = AppTypography.labelSmall,
-                            color = DfThemeColors.onSurfaceVariant(),
+                            color = DfThemeColors.textSecondary(),
                         )
                     }
                 },
@@ -392,6 +391,7 @@ private fun ForumSearchPanel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ForumProfileSheet(
     member: ir.divarfiling.mobile.core.network.ForumMemberDto?,
