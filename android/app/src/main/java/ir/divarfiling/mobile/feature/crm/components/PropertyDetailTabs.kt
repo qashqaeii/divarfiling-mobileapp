@@ -1191,7 +1191,8 @@ fun PropertyRentalRenewalSection(
     val statusText = when {
         !renewal.hasContractEnd -> "تاریخ پایان قرارداد ثبت نشده است."
         renewal.reminderState == "scheduled" -> "یادآور تمدید تنظیم شده است."
-        renewal.reminderState == "done" -> "یادآور تمدید انجام شده است."
+        renewal.reminderState == "done" ->
+            "یادآور فعالی وجود ندارد؛ پیگیری قبلی پایان یافته یا غیرفعال شده است."
         else -> "تاریخ قرارداد ثبت شده؛ یادآوری فعال نیست."
     }
     val cta = when {
@@ -1228,8 +1229,13 @@ fun PropertyRentalRenewalSection(
                     color = DfThemeColors.textMuted(),
                 )
                 if (renewal.followupJalali.isNotBlank()) {
+                    val followupLabel = if (renewal.reminderState == "scheduled") {
+                        "پیگیری تمدید"
+                    } else {
+                        "تاریخ پیشنهادی پیگیری"
+                    }
                     Text(
-                        "پیگیری تمدید: ${renewal.followupJalali}",
+                        "$followupLabel: ${renewal.followupJalali}",
                         style = AppTypography.labelSmall,
                         color = DfThemeColors.textMuted(),
                     )
