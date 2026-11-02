@@ -2,6 +2,8 @@ package ir.divarfiling.mobile.feature.forum
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -383,8 +385,9 @@ fun ForumMessageActionBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
                 .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xxs),
         ) {
             ForumActionChip("پاسخ", onReply)
             ForumActionChip("واکنش", onReaction)

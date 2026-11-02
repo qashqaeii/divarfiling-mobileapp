@@ -10,6 +10,7 @@ import ir.divarfiling.mobile.core.network.ForumSendMessageRequest
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.data.repository.ForumRepository
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -79,9 +80,13 @@ class ForumViewModel @Inject constructor(
     private val messageMap = linkedMapOf<Long, ForumMessageDto>()
     private var lastSyncSince: String = Instant.now().toString()
     private var pollJob: Job? = null
+    private var loadOlderJob: Job? = null
     private var pollBusy = false
     private var pollBackoffUntil: Long = 0L
     private val viewMutex = Mutex()
+    private val sendMutex = Mutex()
+    private var syncResumeCursor: Long = 0L
+    private var syncInProgress = false
     private val pendingViewIds = linkedSetOf<Long>()
     private var viewFlushJob: Job? = null
     private var screenActive = false
@@ -89,12 +94,21 @@ class ForumViewModel @Inject constructor(
     private var searchRequestId = 0
 
     fun setScreenActive(active: Boolean) {
-        screenActive = active
         if (active) {
+            if (screenActive) return
+            screenActive = true
             startPolling()
+            viewModelScope.launch {
+                if (_uiState.value.access == ForumAccessKind.Ready) {
+                    pollOnce()
+                }
+            }
         } else {
+            if (!screenActive) return
+            screenActive = false
             pollJob?.cancel()
             pollJob = null
+            loadOlderJob?.cancel()
         }
     }
 
@@ -160,19 +174,26 @@ class ForumViewModel @Inject constructor(
     fun loadOlderMessages() {
         val before = _uiState.value.nextBeforeId ?: return
         if (_uiState.value.loadingOlder) return
-        viewModelScope.launch {
+        if (loadOlderJob?.isActive == true) return
+        loadOlderJob = viewModelScope.launch {
             _uiState.update { it.copy(loadingOlder = true) }
-            when (val result = repository.loadMessages(beforeId = before)) {
-                is ApiResult.Error -> showError(result.message)
-                is ApiResult.Success -> {
-                    prependMessages(result.data.messages)
-                    _uiState.update {
-                        it.copy(
-                            nextBeforeId = result.data.nextBeforeId,
-                            loadingOlder = false,
-                        )
+            try {
+                when (val result = repository.loadMessages(beforeId = before)) {
+                    is ApiResult.Error -> showError(result.message)
+                    is ApiResult.Success -> {
+                        val page = result.data
+                        if (page.messages.isNotEmpty()) {
+                            prependMessages(page.messages)
+                        }
+                        val next = page.nextBeforeId
+                        val stuck = page.messages.isEmpty() && (next == null || next == before)
+                        _uiState.update {
+                            it.copy(nextBeforeId = if (stuck) null else next)
+                        }
                     }
                 }
+            } finally {
+                _uiState.update { it.copy(loadingOlder = false) }
             }
         }
     }
@@ -222,52 +243,70 @@ class ForumViewModel @Inject constructor(
             saveEdit(editId, text)
             return
         }
-        sendNew(text, state.replyTo?.id, state.pendingSend?.clientMessageId)
+        val pending = state.pendingSend
+        if (pending != null) {
+            val sameDraft = text == pending.body.trim() &&
+                state.replyTo?.id == pending.replyToId
+            if (pending.failed && sameDraft) {
+                retryPendingSend()
+                return
+            }
+            showError("ابتدا ارسال ناموفق قبلی را لغو کنید یا «تلاش مجدد» بزنید.")
+            return
+        }
+        sendNew(text, state.replyTo?.id, clientMessageId = null)
     }
 
-    private fun sendNew(body: String, replyToId: Long?, existingClientId: String?) {
-        val clientId = existingClientId ?: UUID.randomUUID().toString()
+    private fun sendNew(body: String, replyToId: Long?, clientMessageId: String?) {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isSending = true,
-                    pendingSend = PendingSend(clientId, body, replyToId),
-                    errorBanner = null,
+            if (!sendMutex.tryLock()) return@launch
+            try {
+                if (_uiState.value.isSending) return@launch
+                val clientId = clientMessageId ?: UUID.randomUUID().toString()
+                _uiState.update {
+                    it.copy(
+                        isSending = true,
+                        pendingSend = PendingSend(clientId, body, replyToId),
+                        errorBanner = null,
+                    )
+                }
+                val request = ForumSendMessageRequest(
+                    body = body,
+                    replyToId = replyToId,
+                    clientMessageId = clientId,
                 )
-            }
-            val request = ForumSendMessageRequest(
-                body = body,
-                replyToId = replyToId,
-                clientMessageId = clientId,
-            )
-            when (val result = repository.sendMessage(request)) {
-                is ApiResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isSending = false,
-                            pendingSend = PendingSend(clientId, body, replyToId, failed = true),
-                            errorBanner = result.message,
-                        )
+                when (val result = repository.sendMessage(request)) {
+                    is ApiResult.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isSending = false,
+                                pendingSend = PendingSend(clientId, body, replyToId, failed = true),
+                                errorBanner = result.message,
+                            )
+                        }
+                    }
+                    is ApiResult.Success -> {
+                        mergeMessages(listOf(result.data.message))
+                        _uiState.update {
+                            it.copy(
+                                isSending = false,
+                                pendingSend = null,
+                                composerText = "",
+                                replyTo = null,
+                            )
+                        }
+                        if (userAtBottom) markReadIfNeeded() else bumpNewBelow(1)
                     }
                 }
-                is ApiResult.Success -> {
-                    mergeMessages(listOf(result.data.message))
-                    _uiState.update {
-                        it.copy(
-                            isSending = false,
-                            pendingSend = null,
-                            composerText = "",
-                            replyTo = null,
-                        )
-                    }
-                    if (userAtBottom) markReadIfNeeded() else bumpNewBelow(1)
-                }
+            } finally {
+                sendMutex.unlock()
             }
         }
     }
 
     fun retryPendingSend() {
         val pending = _uiState.value.pendingSend ?: return
+        if (_uiState.value.isSending) return
         sendNew(pending.body, pending.replyToId, pending.clientMessageId)
     }
 
@@ -606,27 +645,47 @@ class ForumViewModel @Inject constructor(
     }
 
     private suspend fun syncChanges() {
+        if (syncInProgress) return
         val anchor = messageMap.keys.maxOrNull() ?: return
-        var cursor = 0L
+        syncInProgress = true
+        val sinceAtCycleStart = lastSyncSince
+        var cursor = syncResumeCursor
         var loops = 0
-        val since = lastSyncSince
-        while (loops < 10) {
-            loops++
-            when (val sync = repository.syncChanges(since, anchor, cursor)) {
-                is ApiResult.Error -> break
-                is ApiResult.Success -> {
-                    if (sync.data.messages.isNotEmpty()) {
-                        mergeMessages(sync.data.messages)
-                    }
-                    if (sync.data.hasMore && sync.data.nextCursor != null) {
-                        cursor = sync.data.nextCursor
-                    } else {
-                        break
+        var advanceCheckpoint = false
+        try {
+            while (loops < SYNC_MAX_PAGES) {
+                loops++
+                when (val sync = repository.syncChanges(sinceAtCycleStart, anchor, cursor)) {
+                    is ApiResult.Error -> return
+                    is ApiResult.Success -> {
+                        if (sync.data.messages.isNotEmpty()) {
+                            mergeMessages(sync.data.messages)
+                        }
+                        val hasMore = sync.data.hasMore && sync.data.nextCursor != null
+                        if (hasMore) {
+                            cursor = sync.data.nextCursor
+                            if (loops >= SYNC_MAX_PAGES) {
+                                syncResumeCursor = cursor
+                                return
+                            }
+                        } else {
+                            syncResumeCursor = 0L
+                            advanceCheckpoint = true
+                            return
+                        }
                     }
                 }
             }
+        } finally {
+            syncInProgress = false
+            if (advanceCheckpoint) {
+                lastSyncSince = Instant.now().minus(2, ChronoUnit.SECONDS).toString()
+            }
         }
-        lastSyncSince = Instant.now().toString()
+    }
+
+    companion object {
+        private const val SYNC_MAX_PAGES = 10
     }
 
     private fun mergeMessages(items: List<ForumMessageDto>, replace: Boolean = false) {
@@ -655,6 +714,7 @@ class ForumViewModel @Inject constructor(
 
     override fun onCleared() {
         pollJob?.cancel()
+        loadOlderJob?.cancel()
         viewFlushJob?.cancel()
         messageMap.clear()
         super.onCleared()

@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,8 +36,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
 import ir.divarfiling.mobile.core.design.AppTypography
@@ -68,10 +72,26 @@ fun ForumScreen(
     val scope = rememberCoroutineScope()
     var deleteTarget by remember { mutableLongStateOf(0L) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var didInitialScroll by remember { mutableStateOf(false) }
+    var userAtBottom by remember { mutableStateOf(true) }
+    var scrollAnchorMessageId by remember { mutableLongStateOf(0L) }
+    var scrollAnchorOffset by remember { mutableIntStateOf(0) }
+    var wasLoadingOlder by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(Unit) {
-        viewModel.setScreenActive(true)
-        onDispose { viewModel.setScreenActive(false) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.setScreenActive(true)
+                Lifecycle.Event.ON_STOP -> viewModel.setScreenActive(false)
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.setScreenActive(false)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -82,10 +102,39 @@ fun ForumScreen(
         state.snackbar?.let { snackbar.showDfMessage(it); viewModel.clearSnackbar() }
     }
 
-    LaunchedEffect(state.messages.size, state.access) {
-        if (state.access == ForumAccessKind.Ready && state.messages.isNotEmpty()) {
-            listState.scrollToItem(state.messages.lastIndex.coerceAtLeast(0))
+    LaunchedEffect(state.access, state.messages.size) {
+        if (
+            state.access == ForumAccessKind.Ready &&
+            state.messages.isNotEmpty() &&
+            !didInitialScroll
+        ) {
+            listState.scrollToItem(state.messages.lastIndex)
+            didInitialScroll = true
+            userAtBottom = true
+            viewModel.setUserAtBottom(true)
         }
+    }
+
+    LaunchedEffect(state.messages.lastOrNull()?.id, userAtBottom) {
+        if (!didInitialScroll || state.messages.isEmpty()) return@LaunchedEffect
+        if (userAtBottom) {
+            listState.animateScrollToItem(state.messages.lastIndex)
+        }
+    }
+
+    LaunchedEffect(state.loadingOlder) {
+        if (state.loadingOlder && !wasLoadingOlder) {
+            val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+            scrollAnchorMessageId = state.messages.getOrNull(first?.index ?: 0)?.id ?: 0L
+            scrollAnchorOffset = first?.offset ?: 0
+        } else if (!state.loadingOlder && wasLoadingOlder && scrollAnchorMessageId != 0L) {
+            val idx = state.messages.indexOfFirst { it.id == scrollAnchorMessageId }
+            if (idx >= 0) {
+                listState.scrollToItem(idx, scrollAnchorOffset)
+            }
+            scrollAnchorMessageId = 0L
+        }
+        wasLoadingOlder = state.loadingOlder
     }
 
     LaunchedEffect(listState) {
@@ -95,12 +144,17 @@ fun ForumScreen(
             val total = info.totalItemsCount
             lastVisible >= total - 2 && total > 0
         }.distinctUntilChanged().collect { atBottom ->
+            userAtBottom = atBottom
             viewModel.setUserAtBottom(atBottom)
         }
     }
 
-    LaunchedEffect(listState.firstVisibleItemIndex) {
-        if (listState.firstVisibleItemIndex == 0 && state.nextBeforeId != null) {
+    LaunchedEffect(listState.firstVisibleItemIndex, state.nextBeforeId, state.loadingOlder) {
+        if (
+            listState.firstVisibleItemIndex == 0 &&
+            state.nextBeforeId != null &&
+            !state.loadingOlder
+        ) {
             viewModel.loadOlderMessages()
         }
     }
