@@ -88,6 +88,8 @@ fun PropertyDetailTabbedContent(
     onDelete: () -> Unit,
     onArchive: (() -> Unit)? = null,
     onRestore: (() -> Unit)? = null,
+    rentalRenewal: ir.divarfiling.mobile.core.network.PropertyRentalRenewalDto? = null,
+    onRentalRenewalSetup: (() -> Unit)? = null,
     onDuplicate: (() -> Unit)? = null,
     onCreateDeal: (() -> Unit)? = null,
     onTeamShare: (() -> Unit)? = null,
@@ -268,6 +270,16 @@ fun PropertyDetailTabbedContent(
                     enabled = detail.canEdit && !property.isArchived,
                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                 )
+            }
+            if (rentalRenewal?.isRental == true) {
+                item {
+                    PropertyRentalRenewalSection(
+                        renewal = rentalRenewal,
+                        canEdit = detail.canEdit,
+                        onSetup = onRentalRenewalSetup,
+                        modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                }
             }
             if (detail.canEdit) {
                 item {
@@ -1166,6 +1178,71 @@ private fun PropertyDetailBadge(text: String, color: Color, bg: Color) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+@Composable
+fun PropertyRentalRenewalSection(
+    renewal: ir.divarfiling.mobile.core.network.PropertyRentalRenewalDto,
+    canEdit: Boolean,
+    onSetup: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val statusText = when {
+        !renewal.hasContractEnd -> "تاریخ پایان قرارداد ثبت نشده است."
+        renewal.reminderState == "scheduled" -> "یادآور تمدید تنظیم شده است."
+        renewal.reminderState == "done" -> "یادآور تمدید انجام شده است."
+        else -> "تاریخ قرارداد ثبت شده؛ یادآوری فعال نیست."
+    }
+    val cta = when {
+        !canEdit || onSetup == null -> null
+        !renewal.hasContractEnd || renewal.reminderState != "scheduled" -> {
+            if (renewal.hasContractEnd) "ویرایش پیگیری" else "تنظیم یادآور تمدید"
+        }
+        else -> "ویرایش پیگیری"
+    }
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = AppShapes.Card,
+        color = DfThemeColors.surface(),
+        border = BorderStroke(1.dp, DfThemeColors.outlineSubtle()),
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+        ) {
+            Text(
+                "تمدید قرارداد اجاره",
+                style = AppTypography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                statusText,
+                style = AppTypography.bodyDescription,
+                color = DfThemeColors.textSecondary(),
+            )
+            if (renewal.hasContractEnd) {
+                Text(
+                    "پایان قرارداد: ${renewal.contractEndJalali}",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
+                if (renewal.followupJalali.isNotBlank()) {
+                    Text(
+                        "پیگیری تمدید: ${renewal.followupJalali}",
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textMuted(),
+                    )
+                }
+            }
+            if (cta != null && onSetup != null) {
+                DfSecondaryButton(
+                    text = cta,
+                    onClick = onSetup,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
     }
 }
 

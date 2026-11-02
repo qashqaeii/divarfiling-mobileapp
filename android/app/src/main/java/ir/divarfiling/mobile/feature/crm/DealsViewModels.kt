@@ -2663,8 +2663,22 @@ data class PropertyDetailUiState(
     val agencySpaceSubmitting: Boolean = false,
     val showArchiveSheet: Boolean = false,
     val archiveReason: String = "",
+    val archiveRentalMode: PropertyArchiveRentalMode = PropertyArchiveRentalMode.UNCHANGED,
+    val archiveRentalContractEndJalali: String = "",
+    val archiveRentalReminderEnabled: Boolean = true,
+    val showRentalRenewalSheet: Boolean = false,
+    val rentalContractEndJalali: String = "",
+    val rentalReminderEnabled: Boolean = true,
+    val rentalRenewalSubmitting: Boolean = false,
+    val rentalRenewalError: String? = null,
     val showRestoreConfirm: Boolean = false,
 )
+
+enum class PropertyArchiveRentalMode {
+    UNCHANGED,
+    CONFIGURE,
+    SKIP,
+}
 
 enum class PropertyDetailTab(val label: String) {
     OVERVIEW("پرونده"),
@@ -2688,6 +2702,7 @@ class PropertyDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PropertyDetailUiState())
     val uiState: StateFlow<PropertyDetailUiState> = _uiState.asStateFlow()
     private var contactMatchesLoadGeneration = 0
+    private var rentalRenewalSaveGeneration = 0
 
     init { if (propertyId > 0) load() }
 
@@ -2769,22 +2784,153 @@ class PropertyDetailViewModel @Inject constructor(
     fun toggleLocationMapPicker(show: Boolean) = _uiState.update { it.copy(showLocationMapPicker = show) }
 
     fun toggleArchiveSheet(show: Boolean) = _uiState.update {
-        it.copy(showArchiveSheet = show, archiveReason = if (show) it.archiveReason else "")
+        if (!show) {
+            it.copy(
+                showArchiveSheet = false,
+                archiveReason = "",
+                archiveRentalMode = PropertyArchiveRentalMode.UNCHANGED,
+                archiveRentalContractEndJalali = "",
+            )
+        } else {
+            val renewal = it.detail?.rentalRenewal
+            val initialDate = if (renewal?.isRental == true) {
+                renewal.contractEndJalali.takeIf { date -> date.isNotBlank() }
+                    ?: renewal.suggestedContractEndJalali
+            } else {
+                ""
+            }
+            val reminderDefault = when (renewal?.reminderState) {
+                "scheduled" -> true
+                "done" -> false
+                else -> renewal?.hasContractEnd != true
+            }
+            it.copy(
+                showArchiveSheet = true,
+                archiveRentalMode = PropertyArchiveRentalMode.UNCHANGED,
+                archiveRentalContractEndJalali = initialDate,
+                archiveRentalReminderEnabled = reminderDefault,
+            )
+        }
     }
 
     fun onArchiveReasonChange(value: String) = _uiState.update { it.copy(archiveReason = value) }
 
+    fun onArchiveRentalModeChange(mode: PropertyArchiveRentalMode) = _uiState.update {
+        it.copy(archiveRentalMode = mode)
+    }
+
+    fun onArchiveRentalContractEndChange(value: String) = _uiState.update {
+        it.copy(archiveRentalContractEndJalali = value)
+    }
+
+    fun onArchiveRentalReminderEnabledChange(enabled: Boolean) = _uiState.update {
+        it.copy(archiveRentalReminderEnabled = enabled)
+    }
+
+    fun openRentalRenewalSheet() {
+        val renewal = _uiState.value.detail?.rentalRenewal ?: return
+        val date = renewal.contractEndJalali.takeIf { it.isNotBlank() }
+            ?: renewal.suggestedContractEndJalali
+        val reminderEnabled = when (renewal.reminderState) {
+            "scheduled" -> true
+            "done" -> false
+            else -> !renewal.hasContractEnd
+        }
+        _uiState.update {
+            it.copy(
+                showRentalRenewalSheet = true,
+                rentalContractEndJalali = date,
+                rentalReminderEnabled = reminderEnabled,
+                rentalRenewalError = null,
+            )
+        }
+    }
+
+    fun dismissRentalRenewalSheet() = _uiState.update {
+        it.copy(showRentalRenewalSheet = false, rentalRenewalError = null)
+    }
+
+    fun onRentalContractEndChange(value: String) = _uiState.update {
+        it.copy(rentalContractEndJalali = value)
+    }
+
+    fun onRentalReminderEnabledChange(enabled: Boolean) = _uiState.update {
+        it.copy(rentalReminderEnabled = enabled)
+    }
+
+    fun saveRentalRenewal() {
+        if (_uiState.value.rentalRenewalSubmitting || propertyId <= 0) return
+        val date = _uiState.value.rentalContractEndJalali.trim()
+        if (date.isBlank()) {
+            _uiState.update { it.copy(rentalRenewalError = "تاریخ پایان قرارداد را انتخاب کنید.") }
+            return
+        }
+        val generation = ++rentalRenewalSaveGeneration
+        viewModelScope.launch {
+            _uiState.update { it.copy(rentalRenewalSubmitting = true, rentalRenewalError = null) }
+            when (
+                val result = repository.savePropertyRentalReminder(
+                    propertyId,
+                    date,
+                    _uiState.value.rentalReminderEnabled,
+                )
+            ) {
+                is ApiResult.Success -> {
+                    if (generation != rentalRenewalSaveGeneration) return@launch
+                    _uiState.update {
+                        it.copy(
+                            rentalRenewalSubmitting = false,
+                            showRentalRenewalSheet = false,
+                            successMessage = "تمدید اجاره ذخیره شد",
+                        )
+                    }
+                    load()
+                }
+                is ApiResult.Error -> {
+                    if (generation != rentalRenewalSaveGeneration) return@launch
+                    _uiState.update {
+                        it.copy(rentalRenewalSubmitting = false, rentalRenewalError = result.message)
+                    }
+                }
+            }
+        }
+    }
+
     fun archiveProperty() {
         if (_uiState.value.isSubmitting || propertyId <= 0) return
+        val state = _uiState.value
+        val renewal = state.detail?.rentalRenewal
+        val isRental = renewal?.isRental == true
+        if (isRental && state.archiveRentalMode == PropertyArchiveRentalMode.CONFIGURE) {
+            if (state.archiveRentalContractEndJalali.trim().isBlank()) {
+                _uiState.update { it.copy(error = "تاریخ پایان قرارداد را انتخاب کنید.") }
+                return
+            }
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            when (val result = repository.archiveProperty(propertyId, _uiState.value.archiveReason.trim())) {
+            val skipContract = isRental && state.archiveRentalMode == PropertyArchiveRentalMode.SKIP
+            val configure = isRental && state.archiveRentalMode == PropertyArchiveRentalMode.CONFIGURE
+            when (
+                val result = repository.archiveProperty(
+                    propertyId = propertyId,
+                    reason = state.archiveReason.trim(),
+                    contractEndJalali = if (configure) {
+                        state.archiveRentalContractEndJalali.trim()
+                    } else {
+                        null
+                    },
+                    createReminder = if (configure) state.archiveRentalReminderEnabled else null,
+                    skipContractEnd = if (skipContract) true else null,
+                )
+            ) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             showArchiveSheet = false,
                             archiveReason = "",
+                            archiveRentalMode = PropertyArchiveRentalMode.UNCHANGED,
                             successMessage = "فایل به بایگانی منتقل شد",
                         )
                     }

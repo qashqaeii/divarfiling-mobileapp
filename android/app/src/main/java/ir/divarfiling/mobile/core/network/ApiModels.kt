@@ -1164,6 +1164,7 @@ data class PropertyDto(
     @SerialName("is_archived") val isArchived: Boolean = false,
     @SerialName("archived_at") val archivedAt: String? = null,
     @SerialName("archive_reason") val archiveReason: String? = null,
+    @SerialName("rental_contract_end_date") val rentalContractEndDate: String? = null,
     val folders: List<PropertyFolderBriefDto> = emptyList(),
     @SerialName("already_added") val alreadyAdded: Boolean = false,
     val created: Boolean = true,
@@ -1172,6 +1173,36 @@ data class PropertyDto(
 @Serializable
 data class PropertyArchiveRequest(
     val reason: String = "",
+    @SerialName("contract_end_jalali") val contractEndJalali: String? = null,
+    @SerialName("create_reminder") val createReminder: Boolean? = null,
+    @SerialName("skip_contract_end") val skipContractEnd: Boolean? = null,
+)
+
+@Serializable
+data class PropertyRentalRenewalDto(
+    @SerialName("is_rental") val isRental: Boolean = false,
+    @SerialName("has_contract_end") val hasContractEnd: Boolean = false,
+    @SerialName("contract_end_jalali") val contractEndJalali: String = "",
+    @SerialName("followup_jalali") val followupJalali: String = "",
+    @SerialName("suggested_contract_end_jalali") val suggestedContractEndJalali: String = "",
+    @SerialName("reminder_id") val reminderId: Long? = null,
+    @SerialName("reminder_state") val reminderState: String = "none",
+    @SerialName("days_until_followup") val daysUntilFollowup: Int? = null,
+    @SerialName("tracking_missing") val trackingMissing: Boolean = false,
+)
+
+@Serializable
+data class PropertyRentalReminderRequest(
+    @SerialName("contract_end_jalali") val contractEndJalali: String,
+    @SerialName("create_reminder") val createReminder: Boolean = true,
+)
+
+@Serializable
+data class PropertyRentalReminderResponse(
+    @SerialName("rental_renewal") val rentalRenewal: PropertyRentalRenewalDto? = null,
+    @SerialName("reminder_id") val reminderId: Long? = null,
+    @SerialName("contract_end_jalali") val contractEndJalali: String? = null,
+    @SerialName("followup_jalali") val followupJalali: String? = null,
 )
 
 @Serializable
@@ -1514,6 +1545,7 @@ data class PropertyDetailData(
     @SerialName("nearby_pois_ctx") val nearbyPoisCtx: NearbyPoisContextDto? = null,
     @SerialName("agency_space") val agencySpace: AgencySpaceSourceContextDto? = null,
     @SerialName("agency_space_provenance") val agencySpaceProvenance: AgencySpaceProvenanceDto? = null,
+    @SerialName("rental_renewal") val rentalRenewal: PropertyRentalRenewalDto? = null,
 )
 
 @Serializable

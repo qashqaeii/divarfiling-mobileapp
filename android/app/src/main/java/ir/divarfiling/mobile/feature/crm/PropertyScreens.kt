@@ -65,6 +65,9 @@ import ir.divarfiling.mobile.core.export.ExportFormat
 import ir.divarfiling.mobile.feature.export.ExportSecurityGate
 import ir.divarfiling.mobile.feature.crm.components.PropertiesHeader
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
+import ir.divarfiling.mobile.core.design.components.DfJalaliDateField
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import androidx.compose.material3.Switch
 import ir.divarfiling.mobile.core.design.components.DfPullRefresh
 import ir.divarfiling.mobile.core.design.components.DfScreenContainerColor
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
@@ -834,6 +837,12 @@ fun PropertyDetailScreen(
                         } else {
                             null
                         },
+                        rentalRenewal = detail.rentalRenewal,
+                        onRentalRenewalSetup = if (detail.canEdit) {
+                            viewModel::openRentalRenewalSheet
+                        } else {
+                            null
+                        },
                         onDuplicate = { viewModel.toggleDuplicateDialog(true) },
                         onLinkContact = { viewModel.toggleLinkContactSheet(true) },
                         onContactMatches = { viewModel.toggleContactMatchesSheet(true) },
@@ -998,6 +1007,8 @@ fun PropertyDetailScreen(
     }
 
     if (state.showArchiveSheet && property != null) {
+        val rentalRenewal = detail?.rentalRenewal
+        val isRentalArchive = rentalRenewal?.isRental == true
         DfModalBottomSheet(onDismissRequest = { if (!state.isSubmitting) viewModel.toggleArchiveSheet(false) }) {
             Column(
                 modifier = Modifier
@@ -1022,6 +1033,91 @@ fun PropertyDetailScreen(
                     enabled = !state.isSubmitting,
                     singleLine = true,
                 )
+                if (isRentalArchive) {
+                    Text(
+                        "پیگیری تمدید اجاره",
+                        style = AppTypography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "ثبت پیگیری همراه بایگانی",
+                            style = AppTypography.bodyDescription,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = state.archiveRentalMode == PropertyArchiveRentalMode.CONFIGURE,
+                            onCheckedChange = { enabled ->
+                                viewModel.onArchiveRentalModeChange(
+                                    if (enabled) {
+                                        PropertyArchiveRentalMode.CONFIGURE
+                                    } else {
+                                        PropertyArchiveRentalMode.UNCHANGED
+                                    },
+                                )
+                            },
+                            enabled = !state.isSubmitting &&
+                                state.archiveRentalMode != PropertyArchiveRentalMode.SKIP,
+                        )
+                    }
+                    if (state.archiveRentalMode == PropertyArchiveRentalMode.CONFIGURE) {
+                        DfJalaliDateField(
+                            value = state.archiveRentalContractEndJalali,
+                            onValueChange = viewModel::onArchiveRentalContractEndChange,
+                            label = "تاریخ پایان قرارداد",
+                            enabled = !state.isSubmitting,
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "یادآوری یک ماه قبل از پایان قرارداد",
+                                style = AppTypography.bodyDescription,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Switch(
+                                checked = state.archiveRentalReminderEnabled,
+                                onCheckedChange = viewModel::onArchiveRentalReminderEnabledChange,
+                                enabled = !state.isSubmitting,
+                            )
+                        }
+                        Text(
+                            "تاریخ پیگیری به‌صورت خودکار، یک ماه شمسی قبل از تاریخ پایان قرارداد محاسبه می‌شود.",
+                            style = AppTypography.labelSmall,
+                            color = DfThemeColors.textMuted(),
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "فعلاً تنظیم نمی‌کنم",
+                            style = AppTypography.bodyDescription,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(
+                            checked = state.archiveRentalMode == PropertyArchiveRentalMode.SKIP,
+                            onCheckedChange = { skip ->
+                                viewModel.onArchiveRentalModeChange(
+                                    if (skip) {
+                                        PropertyArchiveRentalMode.SKIP
+                                    } else {
+                                        PropertyArchiveRentalMode.UNCHANGED
+                                    },
+                                )
+                            },
+                            enabled = !state.isSubmitting,
+                        )
+                    }
+                }
                 DfPrimaryButton(
                     text = if (state.isSubmitting) "در حال ثبت…" else "انتقال به بایگانی",
                     onClick = viewModel::archiveProperty,
@@ -1032,6 +1128,88 @@ fun PropertyDetailScreen(
                     text = "انصراف",
                     onClick = { viewModel.toggleArchiveSheet(false) },
                     enabled = !state.isSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+
+    if (state.showRentalRenewalSheet && detail?.rentalRenewal != null) {
+        val renewal = detail.rentalRenewal
+        val followupPreview = renewal.followupJalali.takeIf {
+            renewal.reminderState == "scheduled" && it.isNotBlank()
+        }
+        val saveLabel = if (state.rentalReminderEnabled) {
+            "ذخیره تاریخ و یادآور"
+        } else {
+            "ذخیره تاریخ"
+        }
+        DfModalBottomSheet(
+            onDismissRequest = {
+                if (!state.rentalRenewalSubmitting) viewModel.dismissRentalRenewalSheet()
+            },
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppSpacing.screenHorizontal)
+                    .padding(bottom = AppSpacing.lg)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            ) {
+                Text("یادآوری تمدید اجاره", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+                Text(
+                    "پیش از پایان قرارداد، زمان پیگیری را از دست ندهید.",
+                    style = AppTypography.bodyDescription,
+                    color = DfThemeColors.textSecondary(),
+                )
+                DfJalaliDateField(
+                    value = state.rentalContractEndJalali,
+                    onValueChange = viewModel::onRentalContractEndChange,
+                    label = "تاریخ پایان قرارداد",
+                    enabled = !state.rentalRenewalSubmitting,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "یادآوری یک ماه قبل از پایان قرارداد",
+                        style = AppTypography.bodyDescription,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(
+                        checked = state.rentalReminderEnabled,
+                        onCheckedChange = viewModel::onRentalReminderEnabledChange,
+                        enabled = !state.rentalRenewalSubmitting,
+                    )
+                }
+                Text(
+                    "تاریخ پیگیری به‌صورت خودکار، یک ماه شمسی قبل از تاریخ پایان قرارداد محاسبه می‌شود.",
+                    style = AppTypography.labelSmall,
+                    color = DfThemeColors.textMuted(),
+                )
+                if (!followupPreview.isNullOrBlank()) {
+                    Text(
+                        "تاریخ پیگیری فعلی: $followupPreview",
+                        style = AppTypography.labelSmall,
+                        color = DfThemeColors.textSecondary(),
+                    )
+                }
+                state.rentalRenewalError?.let { msg ->
+                    DfErrorBanner(msg)
+                }
+                DfPrimaryButton(
+                    text = if (state.rentalRenewalSubmitting) "در حال ذخیره…" else saveLabel,
+                    onClick = viewModel::saveRentalRenewal,
+                    enabled = !state.rentalRenewalSubmitting,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                DfSecondaryButton(
+                    text = "انصراف",
+                    onClick = viewModel::dismissRentalRenewalSheet,
+                    enabled = !state.rentalRenewalSubmitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

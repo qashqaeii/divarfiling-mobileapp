@@ -36,6 +36,8 @@ import ir.divarfiling.mobile.core.network.PropertyContactLinkDto
 import ir.divarfiling.mobile.core.network.ContactSuggestResponse
 import ir.divarfiling.mobile.core.network.PropertyContactMatchesData
 import ir.divarfiling.mobile.core.network.PropertyArchiveRequest
+import ir.divarfiling.mobile.core.network.PropertyRentalReminderRequest
+import ir.divarfiling.mobile.core.network.PropertyRentalReminderResponse
 import ir.divarfiling.mobile.core.network.PropertyBulkArchiveRequest
 import ir.divarfiling.mobile.core.network.PropertyBulkArchiveResultDto
 import ir.divarfiling.mobile.core.network.PropertyCreateRequest
@@ -431,8 +433,36 @@ class DealsRepository @Inject constructor(
         ApiResult.Error(e.message ?: "خطای شبکه")
     }
 
-    suspend fun archiveProperty(propertyId: Long, reason: String = ""): ApiResult<PropertyDto> = single {
-        api.archiveProperty(propertyId, PropertyArchiveRequest(reason = reason))
+    suspend fun archiveProperty(
+        propertyId: Long,
+        reason: String = "",
+        contractEndJalali: String? = null,
+        createReminder: Boolean? = null,
+        skipContractEnd: Boolean? = null,
+    ): ApiResult<PropertyDto> = single {
+        api.archiveProperty(
+            propertyId,
+            PropertyArchiveRequest(
+                reason = reason,
+                contractEndJalali = contractEndJalali,
+                createReminder = createReminder,
+                skipContractEnd = skipContractEnd,
+            ),
+        )
+    }
+
+    suspend fun savePropertyRentalReminder(
+        propertyId: Long,
+        contractEndJalali: String,
+        createReminder: Boolean,
+    ): ApiResult<PropertyRentalReminderResponse> = single {
+        api.savePropertyRentalReminder(
+            propertyId,
+            PropertyRentalReminderRequest(
+                contractEndJalali = contractEndJalali,
+                createReminder = createReminder,
+            ),
+        )
     }
 
     suspend fun restoreProperty(propertyId: Long): ApiResult<PropertyDto> = single {

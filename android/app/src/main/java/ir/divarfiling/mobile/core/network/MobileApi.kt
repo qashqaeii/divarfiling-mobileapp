@@ -474,6 +474,12 @@ interface MobileApi {
         @Body body: PropertyArchiveRequest,
     ): ApiEnvelope
 
+    @POST("crm/properties/{id}/rental-reminder")
+    suspend fun savePropertyRentalReminder(
+        @Path("id") propertyId: Long,
+        @Body body: PropertyRentalReminderRequest,
+    ): ApiEnvelope
+
     @POST("crm/properties/{id}/restore")
     suspend fun restoreProperty(@Path("id") propertyId: Long): ApiEnvelope
 
