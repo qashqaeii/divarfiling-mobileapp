@@ -3,6 +3,7 @@ package ir.divarfiling.mobile.data.repository
 import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.core.network.ApiEnvelope
 import ir.divarfiling.mobile.core.network.ContentStudioDraftPutRequest
+import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsStudioBrand
 import ir.divarfiling.mobile.core.network.ContentStudioDraftResponse
 import ir.divarfiling.mobile.core.network.ContentStudioManifestData
 import ir.divarfiling.mobile.core.network.ContentStudioSessionData
@@ -86,6 +87,34 @@ class ContentStudioRepository @Inject constructor(
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
             val failure = e.toApiFailure("خطا در ذخیره")
+            ApiResult.Error(failure.message, failure.code)
+        }
+    }
+
+    suspend fun saveUserBrand(
+        propertyId: Long,
+        brand: PcsStudioBrand,
+    ): ApiResult<PcsStudioBrand> {
+        return try {
+            val body = mapOf(
+                "brand_name" to brand.brandName,
+                "consultant_name" to brand.consultantName,
+                "contact_phone" to brand.contactPhone,
+                "instagram" to brand.instagram,
+                "logo_url" to brand.logoUrl,
+            )
+            val response = api.putContentStudioBrand(propertyId, body)
+            if (!response.ok) {
+                return ApiResult.Error(response.error ?: "خطا در ذخیره برند", response.code)
+            }
+            val el = response.data
+            val brandJson = (el as? kotlinx.serialization.json.JsonObject)?.get("brand") ?: el
+            val decoded = brandJson?.let {
+                runCatching { json.decodeFromJsonElement(PcsStudioBrand.serializer(), it) }.getOrNull()
+            } ?: brand
+            ApiResult.Success(decoded)
+        } catch (e: Exception) {
+            val failure = e.toApiFailure("خطا در ذخیره برند")
             ApiResult.Error(failure.message, failure.code)
         }
     }

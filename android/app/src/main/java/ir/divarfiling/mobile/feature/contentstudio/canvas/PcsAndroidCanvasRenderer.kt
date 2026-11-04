@@ -3,15 +3,10 @@ package ir.divarfiling.mobile.feature.contentstudio.canvas
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
-import android.graphics.RenderEffect
-import android.graphics.Shader
 import android.graphics.Typeface
-import android.os.Build
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -127,51 +122,34 @@ class PcsAndroidCanvasRenderer @Inject constructor(
         drawBitmapInRect(canvas, bmp, layer, rect, alpha)
     }
 
+    private fun imagePaint(style: PcsTextStyle?, alpha: Int): Paint {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        PcsBitmapEffects.configureImagePaint(paint, style, alpha)
+        return paint
+    }
+
     private fun drawBitmapInRect(canvas: Canvas, bmp: Bitmap, layer: PcsLayer, rect: RectF, alpha: Int) {
         if (bmp.isRecycled) return
         val style = layer.style
         val radius = style?.borderRadius ?: layer.borderRadius ?: 0f
+        val blur = style?.blur ?: 0f
+        val workingBmp = if (blur > 0.5f && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
+            PcsBitmapEffects.blurredBitmapSource(bmp, blur)
+        } else {
+            bmp
+        }
         val paint = imagePaint(style, alpha)
-        val src = PcsImageCrop.computeCropSrc(bmp, rect, style, layer.objectFit)
+        val src = PcsImageCrop.computeCropSrc(workingBmp, rect, style, layer.objectFit)
         if (radius > 0f) {
             canvas.save()
             val path = Path().apply { addRoundRect(rect, radius, radius, Path.Direction.CW) }
             canvas.clipPath(path)
-            canvas.drawBitmap(bmp, src, rect, paint)
+            canvas.drawBitmap(workingBmp, src, rect, paint)
             canvas.restore()
         } else {
-            canvas.drawBitmap(bmp, src, rect, paint)
+            canvas.drawBitmap(workingBmp, src, rect, paint)
         }
-    }
-
-    private fun imagePaint(style: PcsTextStyle?, alpha: Int): Paint {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.alpha = alpha }
-        val brightness = style?.brightness ?: 100f
-        if (brightness != 100f) {
-            val scale = (brightness / 100f).coerceIn(0.4f, 1.6f)
-            val matrix = ColorMatrix(
-                floatArrayOf(
-                    scale, 0f, 0f, 0f, 0f,
-                    0f, scale, 0f, 0f, 0f,
-                    0f, 0f, scale, 0f, 0f,
-                    0f, 0f, 0f, 1f, 0f,
-                ),
-            )
-            paint.colorFilter = ColorMatrixColorFilter(matrix)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val blurRadius = style?.blur ?: 0f
-            if (blurRadius > 0.5f) {
-                paint.setRenderEffect(
-                    RenderEffect.createBlurEffect(
-                        blurRadius.coerceAtMost(12f),
-                        blurRadius.coerceAtMost(12f),
-                        Shader.TileMode.CLAMP,
-                    ),
-                )
-            }
-        }
-        return paint
+        if (workingBmp !== bmp && !workingBmp.isRecycled) workingBmp.recycle()
     }
 
     private fun drawTextLayer(

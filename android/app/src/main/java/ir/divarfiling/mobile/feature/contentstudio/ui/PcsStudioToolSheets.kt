@@ -39,7 +39,11 @@ import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsStudioBrand
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsStudioProperty
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsTextStyle
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsCanvasInteractionMode
+import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsBrandColors
+import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsFontResolver
+import ir.divarfiling.mobile.feature.contentstudio.draft.PcsBrandOverrideDraft
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerEditorRules
+import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerTreeBuilder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +52,10 @@ fun PcsStudioToolSheets(
     onDismiss: () -> Unit,
     property: PcsStudioProperty?,
     brand: PcsStudioBrand?,
-    layers: List<PcsLayer>,
+    userBrandDefaults: PcsStudioBrand?,
+    posterBrandOverride: PcsBrandOverrideDraft,
+    expandedLayerGroups: Set<String>,
+    editableScene: PcsSceneDocument?,
     layerOrder: List<String>,
     selectedLayerId: String?,
     selectedLayer: PcsLayer?,
@@ -77,10 +84,16 @@ fun PcsStudioToolSheets(
     onLayerOpacityChange: (Float) -> Unit,
     onCropChange: (Float?, Float?, Float?) -> Unit,
     onObjectFitChange: (String) -> Unit,
+    onEnterCrop: () -> Unit,
+    onPosterBrandChange: ((PcsBrandOverrideDraft) -> PcsBrandOverrideDraft) -> Unit,
+    onSaveUserBrandDefaults: () -> Unit,
+    onClearPosterBrandOverride: () -> Unit,
+    onToggleGroupExpanded: (String) -> Unit,
+    onResetTextStyle: () -> Unit,
+    layers: List<PcsLayer>,
 ) {
     if (activeTool == null || activeTool == PcsStudioToolTab.Templates) return
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val selectedLayer = selectedLayerId?.let { id -> layers.find { it.id == id } }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         when (activeTool) {
             PcsStudioToolTab.Images -> ImageSheet(
@@ -92,6 +105,7 @@ fun PcsStudioToolSheets(
                 onObjectFitChange = onObjectFitChange,
                 onLayerOpacityChange = onLayerOpacityChange,
                 onLayerStyleChange = onLayerStyleChange,
+                onEnterCrop = onEnterCrop,
             )
             PcsStudioToolTab.Text -> TextSheet(
                 headline = headline,
@@ -103,10 +117,11 @@ fun PcsStudioToolSheets(
                 onLayerTextChange = onLayerTextChange,
                 onLayerStyleChange = onLayerStyleChange,
                 onRestoreLinkedText = onRestoreLinkedText,
+                onResetTextStyle = onResetTextStyle,
             )
             PcsStudioToolTab.Layers -> LayersSheet(
-                layers = layers,
-                layerOrder = layerOrder,
+                scene = editableScene,
+                expandedGroupIds = expandedLayerGroups,
                 selectedLayerId = selectedLayerId,
                 canEdit = canEdit,
                 snapEnabled = snapEnabled,
@@ -116,8 +131,17 @@ fun PcsStudioToolSheets(
                 onReorder = onReorder,
                 onToggleSnap = onToggleSnap,
                 onResetLayer = onResetLayer,
+                onToggleGroupExpanded = onToggleGroupExpanded,
             )
-            PcsStudioToolTab.Brand -> BrandSheet(brand)
+            PcsStudioToolTab.Brand -> BrandSheet(
+                effective = brand,
+                userDefaults = userBrandDefaults,
+                override = posterBrandOverride,
+                canEdit = canEdit,
+                onPosterChange = onPosterBrandChange,
+                onSaveUserDefaults = onSaveUserBrandDefaults,
+                onClearOverride = onClearPosterBrandOverride,
+            )
             PcsStudioToolTab.Ai -> AiSheet(aiLoading, aiSuggestions, canEdit, onRunAi, onRunAiAction, onApplyAi)
             else -> Unit
         }
@@ -135,6 +159,7 @@ private fun TextSheet(
     onLayerTextChange: (String) -> Unit,
     onLayerStyleChange: (PcsTextStyle) -> Unit,
     onRestoreLinkedText: () -> Unit,
+    onResetTextStyle: () -> Unit,
 ) {
     Column(Modifier.padding(AppSpacing.screenHorizontal).padding(bottom = AppSpacing.lg)) {
         Text("ویرایش متن")
@@ -184,6 +209,49 @@ private fun TextSheet(
                 valueRange = 12f..96f,
                 enabled = canEdit,
             )
+            Text("فونت: ${PcsFontResolver.resolvedFontLabel(style?.fontKey)}")
+            var weight by remember(layer.id) { mutableFloatStateOf((style?.fontWeight ?: 400).toFloat()) }
+            Text("Weight: ${weight.toInt()}")
+            Slider(weight, { weight = it; if (canEdit) onLayerStyleChange(PcsTextStyle(fontWeight = it.toInt())) }, 400f..900f, enabled = canEdit)
+            var fill by remember(layer.id) { mutableStateOf(style?.fill.orEmpty()) }
+            OutlinedTextField(fill, { fill = it; if (canEdit) onLayerStyleChange(PcsTextStyle(fill = it)) }, label = { Text("رنگ متن") }, modifier = Modifier.fillMaxWidth(), enabled = canEdit)
+            var lineH by remember(layer.id) { mutableFloatStateOf(style?.lineHeight ?: 1.2f) }
+            Text("Line height")
+            Slider(lineH, { lineH = it; if (canEdit) onLayerStyleChange(PcsTextStyle(lineHeight = it)) }, 0.8f..3f, enabled = canEdit)
+            Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                DfSecondaryButton(
+                    text = "Bold",
+                    onClick = { if (canEdit) onLayerStyleChange(PcsTextStyle(fontWeight = 800)) },
+                    modifier = Modifier.weight(1f),
+                    enabled = canEdit,
+                )
+                DfSecondaryButton(
+                    text = "Italic",
+                    onClick = { if (canEdit) onLayerStyleChange(PcsTextStyle(fontStyle = "italic")) },
+                    modifier = Modifier.weight(1f),
+                    enabled = canEdit,
+                )
+                DfSecondaryButton(
+                    text = "Underline",
+                    onClick = { if (canEdit) onLayerStyleChange(PcsTextStyle(textDecoration = "underline")) },
+                    modifier = Modifier.weight(1f),
+                    enabled = canEdit,
+                )
+            }
+            var bg by remember(layer.id) { mutableStateOf(style?.background.orEmpty()) }
+            OutlinedTextField(
+                value = bg,
+                onValueChange = { bg = it; if (canEdit) onLayerStyleChange(PcsTextStyle(background = it)) },
+                label = { Text("پس‌زمینه متن") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = canEdit,
+            )
+            DfSecondaryButton(
+                text = "Reset Style",
+                onClick = onResetTextStyle,
+                modifier = Modifier.fillMaxWidth().padding(top = AppSpacing.xs),
+                enabled = canEdit,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
                 DfSecondaryButton(
                     text = "RTL",
@@ -215,10 +283,17 @@ private fun ImageSheet(
     onObjectFitChange: (String) -> Unit,
     onLayerOpacityChange: (Float) -> Unit,
     onLayerStyleChange: (PcsTextStyle) -> Unit,
+    onEnterCrop: () -> Unit,
 ) {
     val images = property?.images.orEmpty()
     Column(Modifier.padding(AppSpacing.screenHorizontal).padding(bottom = AppSpacing.lg)) {
         Text("تصاویر و Crop")
+        DfPrimaryButton(
+            text = "Crop تعاملی روی بوم",
+            onClick = onEnterCrop,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = canEdit && selectedLayer != null,
+        )
         if (selectedLayer == null || selectedLayer.type !in setOf("image", "decor", "logo")) {
             Text("یک لایه تصویر را انتخاب کنید.")
             return@Column
@@ -289,8 +364,8 @@ private fun ImageSheet(
 
 @Composable
 private fun LayersSheet(
-    layers: List<PcsLayer>,
-    layerOrder: List<String>,
+    scene: PcsSceneDocument?,
+    expandedGroupIds: Set<String>,
     selectedLayerId: String?,
     canEdit: Boolean,
     snapEnabled: Boolean,
@@ -300,8 +375,9 @@ private fun LayersSheet(
     onReorder: (String, Int) -> Unit,
     onToggleSnap: () -> Unit,
     onResetLayer: () -> Unit,
+    onToggleGroupExpanded: (String) -> Unit,
 ) {
-    val order = layerOrder.ifEmpty { layers.map { it.id } }
+    val rows = scene?.let { PcsLayerTreeBuilder.buildRows(it, expandedGroupIds) }.orEmpty()
     Column(Modifier.padding(AppSpacing.screenHorizontal).padding(bottom = AppSpacing.lg)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("لایه‌ها")
@@ -310,45 +386,44 @@ private fun LayersSheet(
                 Switch(checked = snapEnabled, onCheckedChange = { onToggleSnap() })
             }
         }
-        LazyColumn(modifier = Modifier.height(320.dp)) {
-            items(order) { id ->
-                val layer = layers.find { it.id == id } ?: return@items
+        LazyColumn(modifier = Modifier.height(360.dp)) {
+            items(rows, key = { it.layer.id }) { row ->
+                val layer = row.layer
                 val protected = PcsLayerEditorRules.isStructureProtected(layer)
+                val pad = (row.depth * 16).dp
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = AppSpacing.xs),
+                    modifier = Modifier.fillMaxWidth().padding(start = pad, top = AppSpacing.xs, bottom = AppSpacing.xs),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    TextButton(onClick = { onSelect(id) }) {
-                        Text(
-                            buildString {
-                                if (selectedLayerId == id) append("● ")
-                                append(layer.name ?: layer.type)
-                                append(" · ")
-                                append(layer.type)
-                                if (!layer.visible) append(" · مخفی")
-                                if (layer.locked) append(" · قفل")
-                            },
-                        )
+                    Row(modifier = Modifier.weight(1f)) {
+                        if (row.isGroup) {
+                            TextButton(onClick = { onToggleGroupExpanded(layer.id) }) {
+                                Text(if (layer.id in expandedGroupIds) "▼" else "▶")
+                            }
+                        }
+                        TextButton(onClick = { onSelect(layer.id) }) {
+                            Text(
+                                buildString {
+                                    if (selectedLayerId == layer.id) append("● ")
+                                    append(layer.name ?: layer.type)
+                                    append(" · ")
+                                    append(layer.type)
+                                    if (protected) append(" · محافظت")
+                                    if (!layer.visible) append(" · مخفی")
+                                    if (layer.locked) append(" · قفل")
+                                },
+                            )
+                        }
                     }
                     Row {
-                        TextButton(
-                            onClick = { if (canEdit) onReorder(id, 1) },
-                            enabled = canEdit && PcsLayerEditorRules.canReorder(layer),
-                        ) { Text("↑") }
-                        TextButton(
-                            onClick = { if (canEdit) onReorder(id, -1) },
-                            enabled = canEdit && PcsLayerEditorRules.canReorder(layer),
-                        ) { Text("↓") }
-                        TextButton(
-                            onClick = { if (canEdit) onToggleVisibility(id) },
-                            enabled = canEdit && PcsLayerEditorRules.canToggleVisibility(layer),
-                        ) {
+                        if (row.depth == 0) {
+                            TextButton(onClick = { if (canEdit) onReorder(layer.id, 1) }, enabled = canEdit && PcsLayerEditorRules.canReorder(layer)) { Text("↑") }
+                            TextButton(onClick = { if (canEdit) onReorder(layer.id, -1) }, enabled = canEdit && PcsLayerEditorRules.canReorder(layer)) { Text("↓") }
+                        }
+                        TextButton(onClick = { if (canEdit) onToggleVisibility(layer.id) }, enabled = canEdit && PcsLayerEditorRules.canToggleVisibility(layer)) {
                             Text(if (layer.visible) "مخفی" else "نمایش")
                         }
-                        TextButton(
-                            onClick = { if (canEdit) onToggleLock(id) },
-                            enabled = canEdit && PcsLayerEditorRules.canToggleLock(layer) && !protected,
-                        ) {
+                        TextButton(onClick = { if (canEdit) onToggleLock(layer.id) }, enabled = canEdit && PcsLayerEditorRules.canToggleLock(layer) && !protected) {
                             Text(if (layer.locked) "باز" else "قفل")
                         }
                     }
@@ -365,12 +440,32 @@ private fun LayersSheet(
 }
 
 @Composable
-private fun BrandSheet(brand: PcsStudioBrand?) {
+private fun BrandSheet(
+    effective: PcsStudioBrand?,
+    userDefaults: PcsStudioBrand?,
+    override: PcsBrandOverrideDraft,
+    canEdit: Boolean,
+    onPosterChange: ((PcsBrandOverrideDraft) -> PcsBrandOverrideDraft) -> Unit,
+    onSaveUserDefaults: () -> Unit,
+    onClearOverride: () -> Unit,
+) {
+    val e = effective ?: PcsStudioBrand()
+    var brandName by remember(e.brandName) { mutableStateOf(e.brandName) }
+    var consultant by remember(e.consultantName) { mutableStateOf(e.consultantName) }
+    var phone by remember(e.contactPhone) { mutableStateOf(e.contactPhone) }
+    var instagram by remember(e.instagram) { mutableStateOf(e.instagram) }
+    var primary by remember(e.colors?.primary.orEmpty()) { mutableStateOf(e.colors?.primary.orEmpty()) }
     Column(Modifier.padding(AppSpacing.screenHorizontal).padding(bottom = AppSpacing.lg)) {
-        Text("برند")
-        Text("نام: ${brand?.consultantName.orEmpty().ifBlank { brand?.brandName.orEmpty() }}")
-        Text("تلفن: ${brand?.contactPhone.orEmpty()}")
-        Text("نمایش بر اساس تنظیمات workspace و visibility سرور.")
+        Text("برند — فقط این پوستر (Draft Override)")
+        Text("پیش‌فرض کاربر: ${userDefaults?.consultantName.orEmpty().ifBlank { userDefaults?.brandName.orEmpty() }}", style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+        OutlinedTextField(brandName, { brandName = it; if (canEdit) onPosterChange { o -> o.copy(brandName = it) } }, label = { Text("نام برند") }, modifier = Modifier.fillMaxWidth(), enabled = canEdit)
+        OutlinedTextField(consultant, { consultant = it; if (canEdit) onPosterChange { o -> o.copy(consultantName = it) } }, label = { Text("نام مشاور") }, modifier = Modifier.fillMaxWidth(), enabled = canEdit)
+        OutlinedTextField(phone, { phone = it; if (canEdit) onPosterChange { o -> o.copy(contactPhone = it) } }, label = { Text("تماس") }, modifier = Modifier.fillMaxWidth(), enabled = canEdit)
+        OutlinedTextField(instagram, { instagram = it; if (canEdit) onPosterChange { o -> o.copy(instagram = it) } }, label = { Text("Instagram") }, modifier = Modifier.fillMaxWidth(), enabled = canEdit)
+        OutlinedTextField(primary, { primary = it; if (canEdit) onPosterChange { o -> o.copy(colors = PcsBrandColors(primary = it, accent = e.colors?.accent)) } }, label = { Text("رنگ primary (#RRGGBB)") }, modifier = Modifier.fillMaxWidth(), enabled = canEdit)
+        DfSecondaryButton("ذخیره به‌عنوان پیش‌فرض حساب", onSaveUserDefaults, Modifier.fillMaxWidth().padding(top = AppSpacing.sm), canEdit)
+        DfSecondaryButton("حذف Override پوستر", onClearOverride, Modifier.fillMaxWidth().padding(top = AppSpacing.xs), canEdit)
+        Text("Override در draft ذخیره می‌شود و تنظیمات عمومی را عوض نمی‌کند.", modifier = Modifier.padding(top = AppSpacing.sm))
     }
 }
 

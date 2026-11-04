@@ -9,6 +9,7 @@ import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsTextStyle
 enum class PcsCanvasInteractionMode {
     PanZoom,
     EditLayer,
+    CropImage,
 }
 
 class PcsSceneHistory(private val maxDepth: Int = 40) {

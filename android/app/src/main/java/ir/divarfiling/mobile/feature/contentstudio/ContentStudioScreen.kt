@@ -42,6 +42,7 @@ import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerHitTest
 import ir.divarfiling.mobile.feature.contentstudio.ui.PcsEditorPosterCanvas
 import ir.divarfiling.mobile.feature.contentstudio.ui.PcsStudioToolSheets
 import ir.divarfiling.mobile.feature.contentstudio.ui.PcsStudioToolbar
+import ir.divarfiling.mobile.feature.contentstudio.ui.PcsStudioTopBar
 import ir.divarfiling.mobile.feature.contentstudio.ui.TemplatePickerSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,6 +103,9 @@ fun ContentStudioScreen(
         onDismiss = { viewModel.setActiveTool(null) },
         property = state.property,
         brand = state.brand,
+        userBrandDefaults = state.userBrandDefaults,
+        posterBrandOverride = state.posterBrandOverride,
+        expandedLayerGroups = state.expandedLayerGroups,
         layers = state.editableScene?.layers.orEmpty(),
         layerOrder = state.editableScene?.layerOrder.orEmpty(),
         selectedLayerId = state.selectedLayerId,
@@ -130,51 +134,31 @@ fun ContentStudioScreen(
         onLayerOpacityChange = viewModel::updateSelectedLayerOpacity,
         onCropChange = viewModel::updateSelectedCrop,
         onObjectFitChange = viewModel::setSelectedObjectFit,
+        onEnterCrop = viewModel::enterInteractiveCropMode,
+        onPosterBrandChange = { viewModel.updatePosterBrandOverride(it) },
+        onSaveUserBrandDefaults = viewModel::saveUserBrandDefaults,
+        onClearPosterBrandOverride = viewModel::clearPosterBrandOverride,
+        onToggleGroupExpanded = viewModel::toggleLayerGroupExpanded,
+        onResetTextStyle = viewModel::resetSelectedTextStyleFromTemplate,
         baseScene = state.baseScene,
+        editableScene = state.editableScene,
     )
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("استودیوی تولید محتوا", style = AppTypography.sectionTitle)
-                        Text(
-                            state.projectTitle.ifBlank { "فایل شخصی" },
-                            style = AppTypography.labelSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(DfIcons.ChevronLeft, contentDescription = "بازگشت")
-                    }
-                },
-                actions = {
-                    Text(
-                        when (state.saveStatus) {
-                            PcsSaveStatus.Saving -> "در حال ذخیره…"
-                            PcsSaveStatus.Unsaved -> "ذخیره نشده"
-                            PcsSaveStatus.Error -> "خطای ذخیره"
-                            PcsSaveStatus.Saved -> "ذخیره شد"
-                        },
-                        style = AppTypography.labelSmall,
-                        modifier = Modifier.padding(end = AppSpacing.xs),
-                    )
-                    TextButton(onClick = viewModel::saveNow, enabled = state.canEditDraft && state.saveStatus == PcsSaveStatus.Unsaved) {
-                        Text("ذخیره")
-                    }
-                    TextButton(onClick = viewModel::undo, enabled = state.canUndo) { Text("Undo") }
-                    TextButton(onClick = viewModel::redo, enabled = state.canRedo) { Text("Redo") }
-                    TextButton(
-                        onClick = viewModel::exportPng,
-                        enabled = state.editableScene != null && !state.exporting && !state.assetsLoading,
-                    ) {
-                        Text(if (state.exporting) "…" else "PNG")
-                    }
-                },
+            PcsStudioTopBar(
+                projectTitle = state.projectTitle,
+                saveStatus = state.saveStatus,
+                canEdit = state.canEditDraft,
+                canUndo = state.canUndo,
+                canRedo = state.canRedo,
+                exporting = state.exporting,
+                canExport = state.editableScene != null && !state.assetsLoading,
+                onBack = onBack,
+                onSave = viewModel::saveNow,
+                onUndo = viewModel::undo,
+                onRedo = viewModel::redo,
+                onExport = viewModel::exportPng,
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -232,12 +216,37 @@ fun ContentStudioScreen(
                             onDragSceneStart = viewModel::beginCanvasGesture,
                             onDragScene = { dx, dy -> viewModel.continueCanvasGesture(dx, dy) },
                             onDragSceneEnd = viewModel::endCanvasGesture,
+                            onCropPan = viewModel::continueCropGesture,
+                            onCropZoom = viewModel::continueCropZoom,
+                            showCropFrame = state.interactionMode == PcsCanvasInteractionMode.CropImage,
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = AppSpacing.screenHorizontal),
                         )
                     }
-                    PcsStudioToolbar(
+                    if (state.interactionMode == PcsCanvasInteractionMode.CropImage) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = AppSpacing.screenHorizontal),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                        ) {
+                            DfSecondaryButton(
+                                text = "لغو",
+                                onClick = viewModel::cancelInteractiveCrop,
+                                modifier = Modifier.weight(1f),
+                            )
+                            DfSecondaryButton(
+                                text = "Reset",
+                                onClick = viewModel::resetInteractiveCropValues,
+                                modifier = Modifier.weight(1f),
+                            )
+                            DfPrimaryButton(
+                                text = "اعمال",
+                                onClick = viewModel::applyInteractiveCrop,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    } else {
+                        PcsStudioToolbar(
                         activeTool = state.activeTool,
                         onToolSelected = { tab ->
                             when (tab) {
@@ -263,6 +272,14 @@ fun ContentStudioScreen(
                             },
                             modifier = Modifier.weight(1f),
                         )
+                        if (selectedLayer?.type in setOf("image", "decor", "logo")) {
+                            DfSecondaryButton(
+                                text = "Crop روی بوم",
+                                onClick = viewModel::enterInteractiveCropMode,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        }
                     }
                 }
             }

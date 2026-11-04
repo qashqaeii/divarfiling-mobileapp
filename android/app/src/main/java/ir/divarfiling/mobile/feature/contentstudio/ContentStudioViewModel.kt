@@ -21,12 +21,17 @@ import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsStudioProperty
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsTextStyle
 import ir.divarfiling.mobile.feature.contentstudio.ai.PcsAiResponseParser
 import ir.divarfiling.mobile.feature.contentstudio.draft.ContentStudioDraftPersistence
+import ir.divarfiling.mobile.feature.contentstudio.draft.PcsBrandDraftPersistence
+import ir.divarfiling.mobile.feature.contentstudio.draft.PcsBrandMerge
+import ir.divarfiling.mobile.feature.contentstudio.draft.PcsBrandOverrideDraft
+import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsCropGestureMath
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsAlignmentSnap
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsCanvasInteractionMode
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsGuideLine
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsHandleKind
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerEditorRules
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerHitTest
+import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerTreeBuilder
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsSceneHistory
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsSceneMutator
 import ir.divarfiling.mobile.feature.contentstudio.export.PcsPngExporter
@@ -87,6 +92,9 @@ data class ContentStudioUiState(
     val snapEnabled: Boolean = true,
     val alignmentGuides: List<PcsGuideLine> = emptyList(),
     val rotateHintDegrees: Float? = null,
+    val userBrandDefaults: PcsStudioBrand? = null,
+    val posterBrandOverride: PcsBrandOverrideDraft = PcsBrandOverrideDraft(),
+    val expandedLayerGroups: Set<String> = emptySet(),
 )
 
 @HiltViewModel
@@ -119,6 +127,8 @@ class ContentStudioViewModel @Inject constructor(
     private var gestureSceneY: Float = 0f
     private var gestureRenderJob: Job? = null
     private val touchRadiusScene = 36f
+    private var cropBackupStyle: PcsTextStyle? = null
+    private var cropBackupObjectFit: String? = null
 
     init {
         refresh()
@@ -140,9 +150,11 @@ class ContentStudioViewModel @Inject constructor(
         val property = session.property?.let { el ->
             runCatching { json.decodeFromJsonElement(PcsStudioProperty.serializer(), el) }.getOrNull()
         }
-        val brand = (session.brandEffective ?: session.brand)?.let { el ->
+        val userDefaults = session.brand?.let { el ->
             runCatching { json.decodeFromJsonElement(PcsStudioBrand.serializer(), el) }.getOrNull()
         }
+        val brandOverride = PcsBrandDraftPersistence.readOverride(session.draft, json) ?: PcsBrandOverrideDraft()
+        val brand = PcsBrandMerge.effective(userDefaults, brandOverride.takeIf { hasBrandOverride(it) })
         val templates = session.templatesCatalog.orEmpty()
         if (templates.isEmpty()) {
             _uiState.update {
@@ -163,6 +175,9 @@ class ContentStudioViewModel @Inject constructor(
                 session = session,
                 property = property,
                 brand = brand,
+                userBrandDefaults = userDefaults,
+                posterBrandOverride = brandOverride,
+                expandedLayerGroups = emptySet(),
                 templates = templates,
                 selectedTemplateId = templateId,
                 selectedFormat = format,
@@ -286,12 +301,14 @@ class ContentStudioViewModel @Inject constructor(
                         json,
                     )
                     val editable = PcsSceneMutator.mergeBaseWithDraft(baseScene ?: return@launch, savedScene)
+                    val groupIds = PcsLayerTreeBuilder.collectGroupIds(editable).toSet()
                     _uiState.update {
                         it.copy(
                             manifest = manifest,
                             baseScene = baseScene,
                             editableScene = editable,
                             manifestVersion = manifest.manifestVersion,
+                            expandedLayerGroups = groupIds,
                             error = null,
                             errorCode = null,
                         )
@@ -616,13 +633,13 @@ class ContentStudioViewModel @Inject constructor(
 
     fun toggleLayerVisibility(layerId: String) {
         val scene = _uiState.value.editableScene ?: return
-        val layer = scene.layers.find { it.id == layerId } ?: return
+        val layer = PcsLayerHitTest.findLayer(scene, layerId) ?: return
         applySceneChange(PcsSceneMutator.setLayerVisible(scene, layerId, !layer.visible))
     }
 
     fun toggleLayerLock(layerId: String) {
         val scene = _uiState.value.editableScene ?: return
-        val layer = scene.layers.find { it.id == layerId } ?: return
+        val layer = PcsLayerHitTest.findLayer(scene, layerId) ?: return
         applySceneChange(PcsSceneMutator.setLayerLocked(scene, layerId, !layer.locked))
     }
 
@@ -659,16 +676,160 @@ class ContentStudioViewModel @Inject constructor(
             if (!immediate) delay(2_000)
             val state = _uiState.value
             val scene = state.editableScene ?: return@launch
-            val patch = ContentStudioDraftPersistence.buildPosterPatch(
-                templateId = state.selectedTemplateId,
-                format = state.selectedFormat,
-                headline = state.posterConfHeadline,
-                scene = scene,
-                existingDraft = state.session?.draft,
-                json = json,
-            )
+            val patch = buildFullDraftPatch(state)
             flushDraftPatch(patch)
         }
+    }
+
+    private fun buildFullDraftPatch(state: ContentStudioUiState): JsonObject {
+        val scene = state.editableScene ?: return PcsBrandDraftPersistence.buildOverridePatch(state.posterBrandOverride)
+        val poster = ContentStudioDraftPersistence.buildPosterPatch(
+            templateId = state.selectedTemplateId,
+            format = state.selectedFormat,
+            headline = state.posterConfHeadline,
+            scene = scene,
+            existingDraft = state.session?.draft,
+            json = json,
+        )
+        val brandPatch = PcsBrandDraftPersistence.buildOverridePatch(
+            state.posterBrandOverride.takeIf { hasBrandOverride(it) },
+        )
+        return ContentStudioDraftPersistence.mergePatches(poster, brandPatch)
+    }
+
+    private fun hasBrandOverride(override: PcsBrandOverrideDraft): Boolean {
+        return override.brandName != null || override.consultantName != null || override.contactPhone != null ||
+            override.instagram != null || override.logoUrl != null || override.colors != null || override.visibility != null
+    }
+
+    private fun refreshBrandFooterFromState() {
+        val effective = PcsBrandMerge.effective(_uiState.value.userBrandDefaults, _uiState.value.posterBrandOverride.takeIf { hasBrandOverride(it) })
+        _uiState.update {
+            it.copy(brand = effective, brandFooter = PcsBrandFooter.resolve(effective))
+        }
+        renderPreview()
+    }
+
+    fun updatePosterBrandOverride(update: (PcsBrandOverrideDraft) -> PcsBrandOverrideDraft) {
+        if (!_uiState.value.canEditDraft) return
+        _uiState.update {
+            val next = update(it.posterBrandOverride)
+            it.copy(posterBrandOverride = next, saveStatus = PcsSaveStatus.Unsaved)
+        }
+        refreshBrandFooterFromState()
+        scheduleFullAutosave()
+    }
+
+    fun saveUserBrandDefaults() {
+        if (!_uiState.value.canEditDraft) return
+        viewModelScope.launch {
+            val effective = _uiState.value.brand ?: return@launch
+            when (val result = repository.saveUserBrand(propertyId, effective)) {
+                is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            userBrandDefaults = result.data,
+                            successMessage = "تنظیمات برند کاربر ذخیره شد",
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun clearPosterBrandOverride() {
+        updatePosterBrandOverride { PcsBrandOverrideDraft() }
+        viewModelScope.launch {
+            flushDraftPatch(PcsBrandDraftPersistence.buildOverridePatch(null, clear = true))
+        }
+    }
+
+    fun toggleLayerGroupExpanded(groupId: String) {
+        _uiState.update {
+            val next = it.expandedLayerGroups.toMutableSet()
+            if (groupId in next) next.remove(groupId) else next.add(groupId)
+            it.copy(expandedLayerGroups = next)
+        }
+    }
+
+    fun enterInteractiveCropMode() {
+        val id = _uiState.value.selectedLayerId ?: return
+        val layer = _uiState.value.editableScene?.let { PcsLayerHitTest.findLayer(it, id) } ?: return
+        if (layer.type !in setOf("image", "decor", "logo")) return
+        cropBackupStyle = layer.style?.copy()
+        cropBackupObjectFit = layer.objectFit
+        _uiState.value.editableScene?.let { sceneHistory.pushBeforeChange(it) }
+        _uiState.update { it.copy(interactionMode = PcsCanvasInteractionMode.CropImage) }
+    }
+
+    fun cancelInteractiveCrop() {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        val restored = PcsSceneMutator.setCropStyle(
+            scene,
+            id,
+            cropBackupStyle?.cropPanX,
+            cropBackupStyle?.cropPanY,
+            cropBackupStyle?.cropZoom,
+        )
+        _uiState.update {
+            it.copy(
+                editableScene = restored,
+                interactionMode = PcsCanvasInteractionMode.EditLayer,
+            )
+        }
+        cropBackupStyle = null
+        cropBackupObjectFit = null
+        renderPreview()
+    }
+
+    fun applyInteractiveCrop() {
+        cropBackupStyle = null
+        cropBackupObjectFit = null
+        _uiState.update { it.copy(interactionMode = PcsCanvasInteractionMode.EditLayer) }
+        renderPreview()
+        scheduleFullAutosave()
+    }
+
+    fun resetInteractiveCropValues() {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        val (px, py) = PcsCropGestureMath.defaultPan()
+        val updated = PcsSceneMutator.setCropStyle(scene, id, px, py, PcsCropGestureMath.defaultZoom())
+        applyGestureScene(updated)
+    }
+
+    fun continueCropGesture(sceneDx: Float, sceneDy: Float) {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        val layer = PcsLayerHitTest.findLayer(scene, id) ?: return
+        val (ldx, ldy) = PcsLayerHitTest.sceneDeltaToLocal(layer, sceneDx, sceneDy)
+        val style = layer.style
+        val panX = style?.cropPanX ?: 50f
+        val panY = style?.cropPanY ?: 50f
+        val (nx, ny) = PcsCropGestureMath.panFromLocalDelta(layer.width, layer.height, ldx, ldy, panX, panY)
+        val updated = PcsSceneMutator.setCropStyle(scene, id, nx, ny, null)
+        applyGestureScene(updated)
+    }
+
+    fun continueCropZoom(pinchFactor: Float) {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        val layer = PcsLayerHitTest.findLayer(scene, id) ?: return
+        val zoom = PcsCropGestureMath.zoomFromPinch(layer.style?.cropZoom ?: 1f, pinchFactor)
+        val updated = PcsSceneMutator.setCropStyle(scene, id, null, null, zoom)
+        applyGestureScene(updated)
+    }
+
+    fun resetSelectedTextStyleFromTemplate() {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        val base = _uiState.value.baseScene ?: return
+        val baseLayer = PcsLayerHitTest.findLayer(base, id) ?: return
+        applySceneChange(
+            PcsSceneMutator.updateLayer(scene, id) { it.copy(style = baseLayer.style?.copy()) },
+        )
     }
 
     private suspend fun flushDraftPatch(patch: JsonObject) {
@@ -681,10 +842,15 @@ class ContentStudioViewModel @Inject constructor(
             }
             is ApiResult.Success -> {
                 if (reqId != saveRequestId) return
+                val override = PcsBrandDraftPersistence.readOverride(result.data.draft, json) ?: PcsBrandOverrideDraft()
+                val effective = PcsBrandMerge.effective(_uiState.value.userBrandDefaults, override.takeIf { hasBrandOverride(it) })
                 _uiState.update {
                     it.copy(
                         saveStatus = PcsSaveStatus.Saved,
                         session = it.session?.let { s -> s.copy(draft = result.data.draft) },
+                        posterBrandOverride = override,
+                        brand = effective,
+                        brandFooter = PcsBrandFooter.resolve(effective),
                         successMessage = null,
                     )
                 }

@@ -42,6 +42,9 @@ fun PcsEditorPosterCanvas(
     onDragSceneStart: (x: Float, y: Float) -> Unit,
     onDragScene: (dx: Float, dy: Float) -> Unit,
     onDragSceneEnd: () -> Unit,
+    onCropPan: (dx: Float, dy: Float) -> Unit = { _, _ -> },
+    onCropZoom: (pinchFactor: Float) -> Unit = {},
+    showCropFrame: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     var userScale by remember { mutableFloatStateOf(1f) }
@@ -109,6 +112,25 @@ fun PcsEditorPosterCanvas(
                                 }
                             }
                         }
+                        PcsCanvasInteractionMode.CropImage -> {
+                            launch {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    val vp = viewport() ?: return@detectDragGestures
+                                    val (dx, dy) = PcsPosterViewportTransform.screenDeltaToScene(
+                                        dragAmount.x,
+                                        dragAmount.y,
+                                        vp,
+                                    )
+                                    onCropPan(dx, dy)
+                                }
+                            }
+                            launch {
+                                detectTransformGestures { _, _, zoom, _ ->
+                                    onCropZoom(zoom)
+                                }
+                            }
+                        }
                         PcsCanvasInteractionMode.PanZoom -> {
                             launch {
                                 detectTransformGestures { _, panChange, zoom, _ ->
@@ -146,7 +168,7 @@ fun PcsEditorPosterCanvas(
                     },
             )
             PcsEditorSelectionOverlay(
-                selectedLayer = selectedLayer,
+                selectedLayer = if (showCropFrame) null else selectedLayer,
                 viewport = viewport(),
                 sceneWidth = sceneWidth,
                 sceneHeight = sceneHeight,
@@ -154,6 +176,13 @@ fun PcsEditorPosterCanvas(
                 rotateHintDegrees = rotateHintDegrees,
                 modifier = Modifier.fillMaxSize(),
             )
+            if (showCropFrame && selectedLayer != null) {
+                PcsCropFrameOverlay(
+                    layer = selectedLayer,
+                    viewport = viewport(),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
     }
 }

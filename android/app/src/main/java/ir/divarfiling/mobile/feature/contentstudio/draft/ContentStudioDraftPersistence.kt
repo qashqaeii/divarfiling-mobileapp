@@ -95,6 +95,14 @@ object ContentStudioDraftPersistence {
         }
     }
 
+    fun mergePatches(vararg patches: JsonObject): JsonObject {
+        return buildJsonObject {
+            patches.forEach { patch ->
+                patch.forEach { (key, value) -> put(key, value) }
+            }
+        }
+    }
+
     fun buildPosterPatch(
         templateId: String,
         format: String,

@@ -8,14 +8,24 @@ data class PcsStudioBrand(
     @SerialName("brand_name") val brandName: String = "",
     @SerialName("consultant_name") val consultantName: String = "",
     @SerialName("contact_phone") val contactPhone: String = "",
+    val instagram: String = "",
     @SerialName("logo_url") val logoUrl: String = "",
+    val colors: PcsBrandColors? = null,
     val visibility: PcsBrandVisibility? = null,
+)
+
+@Serializable
+data class PcsBrandColors(
+    val primary: String? = null,
+    val accent: String? = null,
+    @SerialName("text_on_primary") val textOnPrimary: String? = null,
 )
 
 @Serializable
 data class PcsBrandVisibility(
     @SerialName("consultant_name") val consultantName: Boolean? = null,
     @SerialName("contact_phone") val contactPhone: Boolean? = null,
+    val instagram: Boolean? = null,
 )
 
 object PcsBrandFooter {
