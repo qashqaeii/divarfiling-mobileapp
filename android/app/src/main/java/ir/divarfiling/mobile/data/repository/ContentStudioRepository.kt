@@ -1,7 +1,7 @@
 package ir.divarfiling.mobile.data.repository
 
+import ir.divarfiling.mobile.data.repository.ApiResult
 import ir.divarfiling.mobile.core.network.ApiEnvelope
-import ir.divarfiling.mobile.core.network.ApiResult
 import ir.divarfiling.mobile.core.network.ContentStudioDraftPutRequest
 import ir.divarfiling.mobile.core.network.ContentStudioDraftResponse
 import ir.divarfiling.mobile.core.network.ContentStudioManifestData

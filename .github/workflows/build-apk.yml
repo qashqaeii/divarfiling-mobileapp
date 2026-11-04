@@ -51,6 +51,9 @@ jobs:
       - name: Run lint
         run: ./gradlew lintDebug --no-daemon
 
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
   release:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest

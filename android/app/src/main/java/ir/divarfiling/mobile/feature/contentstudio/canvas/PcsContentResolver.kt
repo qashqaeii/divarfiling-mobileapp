@@ -8,7 +8,7 @@ object PcsContentResolver {
     fun resolveLayerText(
         layer: PcsLayer,
         property: PcsStudioProperty,
-        posterHeadline: String = "",
+        posterConfHeadline: String = "",
         brandFooter: String = "",
     ): String {
         val contract = layer.contentContract?.resolver
@@ -58,8 +58,8 @@ object PcsContentResolver {
             "poster_headline" -> headline
             "overlay_meta_summary" -> overlayMetaSummary(property, headline)
             "pearlescent_meta_lines" -> pearlescentMetaLines(property, headline)
-            "property_deal_badge" -> property.dealMode
-            "property_price" -> property.price?.label.orEmpty()
+            "property_deal_badge" -> posterDealBadgeLabel(property.dealMode)
+            "property_price" -> propertyPriceLabel(property)
             "brand_contact_footer" -> brandFooter
             "property_location_line" -> property.locationLine.ifBlank { property.city }
             else -> layerFallback(binding, property, brandFooter)
@@ -68,8 +68,8 @@ object PcsContentResolver {
 
     private fun layerFallback(binding: PcsBinding?, property: PcsStudioProperty, brandFooter: String): String {
         return when (binding?.field) {
-            "price" -> property.price?.label.orEmpty()
-            "deal_mode" -> property.dealMode
+            "price" -> propertyPriceLabel(property)
+            "deal_mode" -> posterDealBadgeLabel(property.dealMode)
             "location_line" -> property.locationLine
             "contact_footer" -> brandFooter
             "headline" -> property.headline.ifBlank { property.title }
@@ -140,5 +140,22 @@ object PcsContentResolver {
         val f = fragment.trim().lowercase()
         if (h.isEmpty() || f.isEmpty()) return false
         return h.contains(f) || f.contains(h)
+    }
+
+    fun posterDealBadgeLabel(dealMode: String): String {
+        val mode = dealMode.trim()
+        if (mode.isEmpty()) return ""
+        return when (mode) {
+            "فروش" -> "آگهی فروش"
+            "رهن و اجاره" -> "آگهی رهن و اجاره"
+            "اجاره" -> "آگهی اجاره"
+            "پیش‌فروش" -> "آگهی پیش‌فروش"
+            else -> if (mode.startsWith("آگهی")) mode else "آگهی $mode"
+        }
+    }
+
+    fun propertyPriceLabel(property: PcsStudioProperty): String {
+        val price = property.price ?: return ""
+        return if (price.show) price.label else ""
     }
 }

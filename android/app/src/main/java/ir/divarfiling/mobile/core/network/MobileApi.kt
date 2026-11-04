@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.core.network
 
+import retrofit2.http.PUT
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET

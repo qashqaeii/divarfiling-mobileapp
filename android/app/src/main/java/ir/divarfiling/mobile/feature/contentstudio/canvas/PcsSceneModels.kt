@@ -35,6 +35,7 @@ data class PcsLayer(
     val binding: PcsBinding? = null,
     val style: PcsTextStyle? = null,
     val text: String? = null,
+    @SerialName("imageIndex") val imageIndex: Int? = null,
     @SerialName("templateRole") val templateRole: String? = null,
     @SerialName("contentContract") val contentContract: PcsContentContract? = null,
     @SerialName("assetRef") val assetRef: String? = null,
@@ -69,6 +70,13 @@ data class PcsTextStyle(
     val align: String? = null,
     val direction: String? = null,
     @SerialName("lineHeight") val lineHeight: Float? = null,
+    val background: String? = null,
+    @SerialName("borderRadius") val borderRadius: Float? = null,
+    @SerialName("objectFit") val objectFit: String? = null,
+    @SerialName("cropPanX") val cropPanX: Float? = null,
+    @SerialName("cropPanY") val cropPanY: Float? = null,
+    @SerialName("cropZoom") val cropZoom: Float? = null,
+    @SerialName("textPreset") val textPreset: String? = null,
 )
 
 @Serializable
@@ -84,6 +92,8 @@ data class PcsStudioProperty(
     @SerialName("build_year_label") val buildYearLabel: String = "",
     @SerialName("location_line") val locationLine: String = "",
     val city: String = "",
+    val images: List<String> = emptyList(),
+    @SerialName("cover_image") val coverImage: String = "",
     @SerialName("detail_chips") val detailChips: List<String> = emptyList(),
     val price: PcsPriceBlock? = null,
     @SerialName("editor_features") val editorFeatures: List<PcsEditorFeature> = emptyList(),

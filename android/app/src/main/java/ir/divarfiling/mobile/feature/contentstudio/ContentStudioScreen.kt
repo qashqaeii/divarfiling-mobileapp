@@ -11,15 +11,18 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.divarfiling.mobile.core.design.AppSpacing
@@ -29,7 +32,9 @@ import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
-import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsSceneCanvasView
+import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.feature.contentstudio.ui.PcsZoomablePosterPreview
+import ir.divarfiling.mobile.feature.contentstudio.ui.TemplatePickerSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +43,24 @@ fun ContentStudioScreen(
     viewModel: ContentStudioViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.successMessage, state.error) {
+        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
+        state.error?.let { msg ->
+            if (state.previewBitmap == null || !state.assetsLoading) {
+                snackbar.showSnackbar(msg)
+            }
+        }
+    }
+
+    TemplatePickerSheet(
+        visible = state.showTemplatePicker,
+        templates = state.templates,
+        selectedTemplateId = state.selectedTemplateId,
+        onSelect = viewModel::selectTemplate,
+        onDismiss = { viewModel.toggleTemplatePicker(false) },
+    )
 
     Scaffold(
         topBar = {
@@ -59,33 +82,29 @@ fun ContentStudioScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = viewModel::saveDraft, enabled = !state.saving) {
-                        Text(if (state.saving) "…" else "ذخیره")
+                    TextButton(
+                        onClick = viewModel::saveSelection,
+                        enabled = state.canSaveSelection && !state.saving,
+                    ) {
+                        Text(if (state.saving) "…" else "ذخیره انتخاب")
+                    }
+                    TextButton(
+                        onClick = viewModel::exportPng,
+                        enabled = state.previewBitmap != null && !state.exporting && !state.assetsLoading,
+                    ) {
+                        Text(if (state.exporting) "…" else "PNG")
                     }
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbar) },
         containerColor = DfThemeColors.background(),
     ) { padding ->
         when {
-            state.loading -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    CircularProgressIndicator()
-                    Text("در حال بارگذاری استودیو…", modifier = Modifier.padding(top = AppSpacing.md))
-                }
-            }
+            state.loading -> LoadingBlock(Modifier.fillMaxSize().padding(padding))
             state.errorCode == "MANIFEST_VERSION_MISMATCH" || state.errorCode == "MANIFEST_UNAVAILABLE" -> {
                 DfEmptyState(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(AppSpacing.screenHorizontal),
+                    modifier = Modifier.fillMaxSize().padding(padding).padding(AppSpacing.screenHorizontal),
                     title = "Manifest در دسترس نیست",
                     subtitle = state.error ?: "نسخه قالب با سرور هماهنگ نیست.",
                     actionLabel = "تلاش مجدد",
@@ -93,31 +112,20 @@ fun ContentStudioScreen(
                     variant = DfEmptyVariant.Offline,
                 )
             }
-            state.error != null -> {
-                DfEmptyState(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(AppSpacing.screenHorizontal),
-                    title = "خطا",
-                    subtitle = state.error.orEmpty(),
-                    actionLabel = "تلاش مجدد",
-                    onAction = viewModel::refresh,
-                    variant = DfEmptyVariant.Error,
-                )
-            }
             state.scene != null && state.property != null -> {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AppSpacing.screenHorizontal),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = AppSpacing.screenHorizontal),
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     ) {
+                        DfSecondaryButton(
+                            text = "قالب‌ها",
+                            onClick = { viewModel.toggleTemplatePicker(true) },
+                            modifier = Modifier.weight(1f),
+                        )
                         listOf("story", "post", "square").forEach { fmt ->
                             DfPrimaryButton(
                                 text = when (fmt) {
@@ -131,22 +139,32 @@ fun ContentStudioScreen(
                             )
                         }
                     }
-                    PcsSceneCanvasView(
-                        scene = state.scene!!,
-                        property = state.property!!,
-                        posterConfHeadline = "",
-                        brandFooter = "",
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(AppSpacing.screenHorizontal),
-                    )
+                    if (state.assetsLoading) {
+                        LoadingBlock(Modifier.weight(1f))
+                    } else {
+                        PcsZoomablePosterPreview(
+                            bitmap = state.previewBitmap,
+                            overlayLoading = false,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
                 }
+            }
+            state.error != null -> {
+                DfEmptyState(
+                    modifier = Modifier.fillMaxSize().padding(padding).padding(AppSpacing.screenHorizontal),
+                    title = "خطا",
+                    subtitle = state.error.orEmpty(),
+                    actionLabel = "تلاش مجدد",
+                    onAction = viewModel::refresh,
+                    variant = DfEmptyVariant.Error,
+                )
             }
             else -> {
                 DfEmptyState(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = Modifier.fillMaxSize().padding(padding),
                     title = "صحنه بارگذاری نشد",
                     subtitle = "قالب یا Manifest نامعتبر است.",
                     actionLabel = "بارگذاری مجدد",
@@ -154,5 +172,17 @@ fun ContentStudioScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LoadingBlock(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        CircularProgressIndicator()
+        Text("در حال بارگذاری…", modifier = Modifier.padding(top = AppSpacing.md))
     }
 }

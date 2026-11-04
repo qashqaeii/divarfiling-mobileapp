@@ -9,7 +9,8 @@ data class ContentStudioSessionData(
     val property: JsonElement? = null,
     val draft: JsonElement? = null,
     val brand: JsonElement? = null,
-    val templatesCatalog: List<ContentStudioTemplateCatalogItem>? = null,
+    @SerialName("brand_effective") val brandEffective: JsonElement? = null,
+    @SerialName("templates_catalog") val templatesCatalog: List<ContentStudioTemplateCatalogItem>? = null,
     @SerialName("can_edit_property") val canEditProperty: Boolean = false,
     @SerialName("property_fingerprint") val propertyFingerprint: String? = null,
     @SerialName("draft_stale") val draftStale: Boolean? = null,
@@ -34,8 +35,13 @@ data class ContentStudioManifestData(
     val format: String = "story",
     val canvas: PcsCanvasSpec = PcsCanvasSpec(),
     @SerialName("overlay_url") val overlayUrl: String = "",
+    @SerialName("overlay_path") val overlayPath: String = "",
+    @SerialName("overlay_asset_ref") val overlayAssetRef: String = "",
+    val background: String = "",
     val scene: JsonElement? = null,
     @SerialName("dynamic_content") val dynamicContent: JsonElement? = null,
+    @SerialName("image_slots") val imageSlots: JsonElement? = null,
+    @SerialName("layout_calibration") val layoutCalibration: JsonElement? = null,
 )
 
 @Serializable
