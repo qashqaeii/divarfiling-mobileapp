@@ -1,0 +1,607 @@
+{
+  "template_id": "sculptural",
+  "schema_version": 2,
+  "manifest_version": "pcs-manifest-2f44b2db01773784",
+  "layout_revision": "2f44b2db01773784",
+  "format": "square",
+  "canvas": {
+    "width": 1080,
+    "height": 1080
+  },
+  "overlay_path": "images/Sculptural ivory olive real estate story template-4.webp",
+  "overlay_asset_ref": "tpl:sculptural",
+  "background": "#ebe6dc",
+  "scene": {
+    "schemaVersion": 2,
+    "canvas": {
+      "width": 1080,
+      "height": 1080,
+      "format": "square"
+    },
+    "templateId": "sculptural",
+    "renderMode": "layers",
+    "layers": [
+      {
+        "id": "bg-fill",
+        "type": "shape",
+        "name": "پس‌زمینه",
+        "visible": true,
+        "locked": true,
+        "parentId": null,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1080,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": null,
+        "style": {
+          "background": "#ebe6dc"
+        }
+      },
+      {
+        "id": "hero-image",
+        "type": "image",
+        "name": "تصویر زمینه",
+        "visible": true,
+        "locked": false,
+        "parentId": null,
+        "x": 0,
+        "y": 2,
+        "width": 886,
+        "height": 527,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": null,
+        "style": {
+          "borderRadius": 0,
+          "objectFit": "cover",
+          "cropPanX": 44.94818652849741,
+          "cropPanY": 50,
+          "cropZoom": 1
+        },
+        "imageIndex": 0,
+        "templateRole": "hero"
+      },
+      {
+        "id": "circle-image-1",
+        "type": "image",
+        "name": "دایره 1",
+        "visible": true,
+        "locked": false,
+        "parentId": null,
+        "x": 41,
+        "y": 493,
+        "width": 316,
+        "height": 316,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": null,
+        "style": {
+          "borderRadius": 158,
+          "objectFit": "cover",
+          "cropPanX": 50,
+          "cropPanY": 50,
+          "cropZoom": 1
+        },
+        "imageIndex": 0,
+        "templateRole": "circle"
+      },
+      {
+        "id": "circle-image-2",
+        "type": "image",
+        "name": "دایره 2",
+        "visible": true,
+        "locked": false,
+        "parentId": null,
+        "x": 369,
+        "y": 608,
+        "width": 312,
+        "height": 312,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": null,
+        "style": {
+          "borderRadius": 156,
+          "objectFit": "cover",
+          "cropPanX": 50,
+          "cropPanY": 50,
+          "cropZoom": 1
+        },
+        "imageIndex": 0,
+        "templateRole": "circle"
+      },
+      {
+        "id": "circle-image-3",
+        "type": "image",
+        "name": "دایره 3",
+        "visible": true,
+        "locked": false,
+        "parentId": null,
+        "x": 44,
+        "y": 716,
+        "width": 318,
+        "height": 318,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": null,
+        "style": {
+          "borderRadius": 159,
+          "objectFit": "cover",
+          "cropPanX": 50,
+          "cropPanY": 50,
+          "cropZoom": 1
+        },
+        "imageIndex": 0,
+        "templateRole": "circle"
+      },
+      {
+        "id": "template-frame",
+        "type": "template_frame",
+        "name": "قاب قالب",
+        "visible": true,
+        "locked": true,
+        "parentId": null,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1080,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": null,
+        "style": {},
+        "assetRef": "tpl:sculptural"
+      },
+      {
+        "id": "headline-1",
+        "type": "text",
+        "name": "عنوان",
+        "visible": true,
+        "locked": false,
+        "parentId": null,
+        "x": 636,
+        "y": 521,
+        "width": 407,
+        "height": 182,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": null,
+        "style": {
+          "fontKey": "vazirmatn",
+          "fontSize": 45,
+          "fontWeight": 900,
+          "fill": "#f7f4ec",
+          "align": "right",
+          "direction": "rtl",
+          "lineHeight": 1.2
+        },
+        "text": "",
+        "templateRole": "headline",
+        "contentContract": {
+          "schema_version": 1,
+          "resolver": "poster_headline",
+          "template_role": "headline"
+        }
+      },
+      {
+        "id": "deal-1",
+        "type": "bound_text",
+        "name": "نوع معامله",
+        "visible": true,
+        "locked": false,
+        "parentId": null,
+        "x": 627,
+        "y": 34,
+        "width": 197,
+        "height": 44,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": {
+          "source": "property",
+          "field": "deal_mode",
+          "mode": "linked"
+        },
+        "style": {
+          "fontKey": "vazirmatn",
+          "fontSize": 15,
+          "fontWeight": 800,
+          "fill": "#ffffff",
+          "align": "center",
+          "direction": "rtl",
+          "lineHeight": 1.1,
+          "background": "linear-gradient(135deg,rgba(0,0,",
+          "borderRadius": 999,
+          "textPreset": "capsule"
+        },
+        "text": "",
+        "contentContract": {
+          "schema_version": 1,
+          "resolver": "property_deal_badge",
+          "template_role": "",
+          "default_binding": {
+            "source": "property",
+            "field": "deal_mode",
+            "mode": "linked"
+          }
+        }
+      },
+      {
+        "id": "meta-1",
+        "type": "text",
+        "name": "مشخصات",
+        "visible": true,
+        "locked": false,
+        "parentId": null,
+        "x": 636,
+        "y": 703,
+        "width": 407,
+        "height": 124,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": null,
+        "style": {
+          "fontKey": "vazirmatn",
+          "fontSize": 21,
+          "fontWeight": 700,
+          "fill": "rgba(255,255,255,.9)",
+          "align": "right",
+          "direction": "rtl",
+          "lineHeight": 1.45
+        },
+        "text": "",
+        "templateRole": "meta",
+        "contentContract": {
+          "schema_version": 1,
+          "resolver": "overlay_meta_summary",
+          "template_role": "meta"
+        }
+      },
+      {
+        "id": "price-1",
+        "type": "bound_text",
+        "name": "قیمت",
+        "visible": true,
+        "locked": false,
+        "parentId": null,
+        "x": 636,
+        "y": 827,
+        "width": 407,
+        "height": 108,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": {
+          "source": "property",
+          "field": "price",
+          "mode": "linked"
+        },
+        "style": {
+          "fontKey": "vazirmatn",
+          "fontSize": 30,
+          "fontWeight": 900,
+          "fill": "#ffffff",
+          "align": "right",
+          "direction": "rtl",
+          "lineHeight": 1.15
+        },
+        "text": "",
+        "templateRole": "price",
+        "contentContract": {
+          "schema_version": 1,
+          "resolver": "property_price",
+          "template_role": "price",
+          "default_binding": {
+            "source": "property",
+            "field": "price",
+            "mode": "linked"
+          }
+        }
+      },
+      {
+        "id": "footer-1",
+        "type": "bound_text",
+        "name": "تماس مشاور",
+        "visible": true,
+        "locked": false,
+        "parentId": null,
+        "x": 60,
+        "y": 996,
+        "width": 959,
+        "height": 76,
+        "rotation": 0,
+        "opacity": 1,
+        "binding": {
+          "source": "brand",
+          "field": "contact_footer",
+          "mode": "linked"
+        },
+        "style": {
+          "fontKey": "vazirmatn",
+          "fontSize": 17,
+          "fontWeight": 800,
+          "fill": "rgba(255,255,255,.92)",
+          "align": "right",
+          "direction": "rtl"
+        },
+        "text": "",
+        "templateRole": "footer",
+        "contentContract": {
+          "schema_version": 1,
+          "resolver": "brand_contact_footer",
+          "template_role": "footer",
+          "default_binding": {
+            "source": "brand",
+            "field": "contact_footer",
+            "mode": "linked"
+          }
+        }
+      }
+    ],
+    "layerOrder": [
+      "bg-fill",
+      "hero-image",
+      "circle-image-1",
+      "circle-image-2",
+      "circle-image-3",
+      "template-frame",
+      "headline-1",
+      "meta-1",
+      "price-1",
+      "footer-1",
+      "deal-1"
+    ],
+    "migratedAt": null,
+    "templateBuild": 12
+  },
+  "dynamic_content": {
+    "schema_version": 1,
+    "resolvers": {
+      "poster_headline": {
+        "engine": "posterHeadline",
+        "sources": [
+          {
+            "origin": "poster_conf",
+            "field": "headline"
+          },
+          {
+            "origin": "property",
+            "field": "headline"
+          }
+        ],
+        "binding_modes": [
+          "linked",
+          "override",
+          "detached"
+        ]
+      },
+      "overlay_meta_summary": {
+        "engine": "overlayMetaSummary",
+        "property_fields": [
+          "location_line",
+          "city",
+          "property_type",
+          "area_label",
+          "floor_label",
+          "detail_chips"
+        ],
+        "max_parts": 4,
+        "headline_sources": [
+          {
+            "origin": "poster_conf",
+            "field": "headline"
+          },
+          {
+            "origin": "property",
+            "field": "headline"
+          }
+        ],
+        "binding_modes": [
+          "linked",
+          "override",
+          "detached"
+        ]
+      },
+      "pearlescent_meta_lines": {
+        "engine": "pearlescentMetaLines",
+        "feature_source": "editor_features",
+        "skip_feature_keys": [
+          "location_line",
+          "price",
+          "deal_mode",
+          "file_code",
+          "area_label",
+          "rooms_label"
+        ],
+        "binding_modes": [
+          "linked",
+          "override",
+          "detached"
+        ]
+      },
+      "property_deal_badge": {
+        "engine": "posterDealBadgeLabel",
+        "binding": {
+          "source": "property",
+          "field": "deal_mode",
+          "mode": "linked"
+        }
+      },
+      "property_price": {
+        "binding": {
+          "source": "property",
+          "field": "price",
+          "mode": "linked"
+        }
+      },
+      "brand_contact_footer": {
+        "binding": {
+          "source": "brand",
+          "field": "contact_footer",
+          "mode": "linked"
+        }
+      },
+      "property_location_line": {
+        "binding": {
+          "source": "property",
+          "field": "location_line",
+          "mode": "linked"
+        }
+      }
+    },
+    "layers": {
+      "headline-1": {
+        "schema_version": 1,
+        "resolver": "poster_headline",
+        "template_role": "headline",
+        "layer_type": "text"
+      },
+      "deal-1": {
+        "schema_version": 1,
+        "resolver": "property_deal_badge",
+        "template_role": "",
+        "layer_type": "bound_text",
+        "default_binding": {
+          "source": "property",
+          "field": "deal_mode",
+          "mode": "linked"
+        }
+      },
+      "meta-1": {
+        "schema_version": 1,
+        "resolver": "overlay_meta_summary",
+        "template_role": "meta",
+        "layer_type": "text"
+      },
+      "price-1": {
+        "schema_version": 1,
+        "resolver": "property_price",
+        "template_role": "price",
+        "layer_type": "bound_text",
+        "default_binding": {
+          "source": "property",
+          "field": "price",
+          "mode": "linked"
+        }
+      },
+      "footer-1": {
+        "schema_version": 1,
+        "resolver": "brand_contact_footer",
+        "template_role": "footer",
+        "layer_type": "bound_text",
+        "default_binding": {
+          "source": "brand",
+          "field": "contact_footer",
+          "mode": "linked"
+        }
+      }
+    }
+  },
+  "image_slots": [
+    {
+      "id": "hero-image",
+      "templateRole": "hero",
+      "imageIndex": 0,
+      "x": 0,
+      "y": 2,
+      "width": 886,
+      "height": 527,
+      "zIndex": 1,
+      "style": {
+        "borderRadius": 0,
+        "objectFit": "cover",
+        "cropPanX": 44.94818652849741,
+        "cropPanY": 50,
+        "cropZoom": 1
+      }
+    },
+    {
+      "id": "circle-image-1",
+      "templateRole": "circle",
+      "imageIndex": 0,
+      "x": 41,
+      "y": 493,
+      "width": 316,
+      "height": 316,
+      "zIndex": 2,
+      "style": {
+        "borderRadius": 158,
+        "objectFit": "cover",
+        "cropPanX": 50,
+        "cropPanY": 50,
+        "cropZoom": 1
+      },
+      "mask": {
+        "kind": "circle",
+        "borderRadius": 158
+      }
+    },
+    {
+      "id": "circle-image-2",
+      "templateRole": "circle",
+      "imageIndex": 0,
+      "x": 369,
+      "y": 608,
+      "width": 312,
+      "height": 312,
+      "zIndex": 3,
+      "style": {
+        "borderRadius": 156,
+        "objectFit": "cover",
+        "cropPanX": 50,
+        "cropPanY": 50,
+        "cropZoom": 1
+      },
+      "mask": {
+        "kind": "circle",
+        "borderRadius": 156
+      }
+    },
+    {
+      "id": "circle-image-3",
+      "templateRole": "circle",
+      "imageIndex": 0,
+      "x": 44,
+      "y": 716,
+      "width": 318,
+      "height": 318,
+      "zIndex": 4,
+      "style": {
+        "borderRadius": 159,
+        "objectFit": "cover",
+        "cropPanX": 50,
+        "cropPanY": 50,
+        "cropZoom": 1
+      },
+      "mask": {
+        "kind": "circle",
+        "borderRadius": 159
+      }
+    }
+  ],
+  "layout_calibration": {
+    "circles": [
+      {
+        "cx": 199,
+        "cy": 651,
+        "d": 316
+      },
+      {
+        "cx": 525,
+        "cy": 764,
+        "d": 312
+      },
+      {
+        "cx": 203,
+        "cy": 875,
+        "d": 318
+      }
+    ],
+    "hero": {
+      "x": 0,
+      "y": 2,
+      "width": 886,
+      "height": 527,
+      "objX": 44.94818652849741,
+      "objY": 51.10294117647059
+    }
+  }
+}

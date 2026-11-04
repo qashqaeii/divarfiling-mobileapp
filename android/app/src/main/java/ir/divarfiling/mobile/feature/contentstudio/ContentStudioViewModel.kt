@@ -19,6 +19,7 @@ import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsSceneDocument
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsStudioBrand
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsStudioProperty
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsTextStyle
+import ir.divarfiling.mobile.feature.contentstudio.ai.PcsAiResponseParser
 import ir.divarfiling.mobile.feature.contentstudio.draft.ContentStudioDraftPersistence
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsCanvasInteractionMode
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsSceneHistory
@@ -34,9 +35,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import javax.inject.Inject
@@ -104,6 +103,7 @@ class ContentStudioViewModel @Inject constructor(
     private var loadNonce = 0
     private var autosaveJob: Job? = null
     private var saveRequestId = 0
+    private var dragHistoryCaptured = false
 
     init {
         refresh()
@@ -182,18 +182,40 @@ class ContentStudioViewModel @Inject constructor(
     }
 
     fun selectFormat(format: String) {
-        _uiState.update {
-            it.copy(
-                selectedFormat = format,
-                saveStatus = if (it.canEditDraft) PcsSaveStatus.Unsaved else it.saveStatus,
-            )
+        if (format == _uiState.value.selectedFormat) return
+        viewModelScope.launch {
+            flushCurrentScenePatchIfNeeded()
+            _uiState.update {
+                it.copy(
+                    selectedFormat = format,
+                    saveStatus = if (it.canEditDraft) PcsSaveStatus.Unsaved else it.saveStatus,
+                )
+            }
+            if (_uiState.value.canEditDraft) {
+                scheduleAutosave(
+                    ContentStudioDraftPersistence.buildSelectionPatch(
+                        _uiState.value.selectedTemplateId,
+                        format,
+                    ),
+                )
+            }
+            loadManifest(_uiState.value.selectedTemplateId, format, _uiState.value.session?.draft)
         }
-        if (_uiState.value.canEditDraft) {
-            scheduleAutosave(
-                ContentStudioDraftPersistence.buildSelectionPatch(_uiState.value.selectedTemplateId, format),
-            )
-        }
-        loadManifest(_uiState.value.selectedTemplateId, format, _uiState.value.session?.draft)
+    }
+
+    private suspend fun flushCurrentScenePatchIfNeeded() {
+        val state = _uiState.value
+        if (!state.canEditDraft) return
+        val scene = state.editableScene ?: return
+        val patch = ContentStudioDraftPersistence.buildPosterPatch(
+            templateId = state.selectedTemplateId,
+            format = state.selectedFormat,
+            headline = state.posterConfHeadline,
+            scene = scene,
+            existingDraft = state.session?.draft,
+            json = json,
+        )
+        flushDraftPatch(patch)
     }
 
     fun toggleTemplatePicker(open: Boolean) {
@@ -233,7 +255,12 @@ class ContentStudioViewModel @Inject constructor(
                         _uiState.update { it.copy(error = msg, baseScene = null, editableScene = null, previewBitmap = null) }
                         return@launch
                     }
-                    val savedScene = ContentStudioDraftPersistence.readPosterScene(draft, templateId, json)
+                    val savedScene = ContentStudioDraftPersistence.readPosterScene(
+                        draft,
+                        templateId,
+                        format,
+                        json,
+                    )
                     val editable = PcsSceneMutator.mergeBaseWithDraft(baseScene ?: return@launch, savedScene)
                     _uiState.update {
                         it.copy(
@@ -348,12 +375,39 @@ class ContentStudioViewModel @Inject constructor(
         _uiState.update { it.copy(selectedLayerId = id) }
     }
 
+    fun beginLayerDrag() {
+        if (!_uiState.value.canEditDraft) return
+        val id = _uiState.value.selectedLayerId ?: return
+        val layer = _uiState.value.editableScene?.layers?.find { it.id == id } ?: return
+        if (layer.locked) return
+        if (!dragHistoryCaptured) {
+            _uiState.value.editableScene?.let { sceneHistory.pushBeforeChange(it) }
+            dragHistoryCaptured = true
+        }
+    }
+
     fun moveSelectedLayer(dx: Float, dy: Float) {
         val id = _uiState.value.selectedLayerId ?: return
         val scene = _uiState.value.editableScene ?: return
         val layer = scene.layers.find { it.id == id } ?: return
-        if (layer.locked) return
-        applySceneChange(PcsSceneMutator.moveLayer(scene, id, dx, dy))
+        if (layer.locked || !_uiState.value.canEditDraft) return
+        val moved = PcsSceneMutator.moveLayer(scene, id, dx, dy)
+        _uiState.update {
+            it.copy(
+                editableScene = moved,
+                saveStatus = PcsSaveStatus.Unsaved,
+            )
+        }
+        renderPreview()
+    }
+
+    fun endLayerDrag() {
+        if (!dragHistoryCaptured) return
+        dragHistoryCaptured = false
+        _uiState.update {
+            it.copy(canUndo = sceneHistory.canUndo(), canRedo = sceneHistory.canRedo())
+        }
+        scheduleFullAutosave()
     }
 
     fun updateHeadline(text: String) {
@@ -417,6 +471,7 @@ class ContentStudioViewModel @Inject constructor(
                 format = state.selectedFormat,
                 headline = state.posterConfHeadline,
                 scene = scene,
+                existingDraft = state.session?.draft,
                 json = json,
             )
             flushDraftPatch(patch)
@@ -488,29 +543,32 @@ class ContentStudioViewModel @Inject constructor(
         }
     }
 
-    fun runPosterHeadlineAi() {
+    fun runAiAction(action: String) {
         if (!_uiState.value.canEditDraft) return
         viewModelScope.launch {
             _uiState.update { it.copy(aiLoading = true, aiSuggestions = emptyList(), error = null) }
-            when (val result = repository.runAiAction(propertyId, "poster-headlines")) {
+            when (val result = repository.runAiAction(propertyId, action)) {
                 is ApiResult.Error -> _uiState.update { it.copy(aiLoading = false, error = result.message) }
                 is ApiResult.Success -> {
-                    val list = parseAiStringList(result.data)
+                    val list = when (action) {
+                        "divar-body" -> listOf(PcsAiResponseParser.parseDivarBody(result.data)).filter { it.isNotBlank() }
+                        "social" -> PcsAiResponseParser.parseSocialPack(result.data)
+                        else -> PcsAiResponseParser.parseTitleSuggestions(result.data, action)
+                    }
                     _uiState.update { it.copy(aiLoading = false, aiSuggestions = list) }
                 }
             }
         }
     }
 
+    fun runPosterHeadlineAi() = runAiAction("poster-headlines")
+
     fun applyAiHeadline(suggestion: String) {
         updateHeadline(suggestion)
         _uiState.update { it.copy(aiSuggestions = emptyList(), activeTool = null) }
     }
 
-    private fun parseAiStringList(element: JsonElement): List<String> {
-        val arr = element as? JsonArray ?: (element as? JsonObject)?.get("headlines") as? JsonArray ?: return emptyList()
-        return arr.mapNotNull { (it as? JsonPrimitive)?.content?.takeIf { s -> s.isNotBlank() } }
-    }
+    fun hasUnsavedChanges(): Boolean = _uiState.value.saveStatus == PcsSaveStatus.Unsaved
 
     fun clearMessage() {
         _uiState.update { it.copy(successMessage = null, error = null) }

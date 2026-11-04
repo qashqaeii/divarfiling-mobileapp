@@ -48,6 +48,7 @@ fun PcsStudioToolSheets(
     onReorder: (String, Int) -> Unit,
     onImageIndex: (Int) -> Unit,
     onRunAi: () -> Unit,
+    onRunAiAction: (String) -> Unit,
     onApplyAi: (String) -> Unit,
     onOpenTemplates: () -> Unit,
     onInteractionMode: (PcsCanvasInteractionMode) -> Unit,
@@ -60,7 +61,7 @@ fun PcsStudioToolSheets(
             PcsStudioToolTab.Text -> TextSheet(headline, selectedLayerId, layers, canEdit, onHeadlineChange, onInteractionMode)
             PcsStudioToolTab.Layers -> LayersSheet(layers, layerOrder, selectedLayerId, canEdit, onLayerSelect, onToggleVisibility, onToggleLock, onReorder)
             PcsStudioToolTab.Brand -> BrandSheet(brand)
-            PcsStudioToolTab.Ai -> AiSheet(aiLoading, aiSuggestions, canEdit, onRunAi, onApplyAi)
+            PcsStudioToolTab.Ai -> AiSheet(aiLoading, aiSuggestions, canEdit, onRunAi, onRunAiAction, onApplyAi)
             else -> Unit
         }
     }
@@ -178,17 +179,30 @@ private fun AiSheet(
     loading: Boolean,
     suggestions: List<String>,
     canEdit: Boolean,
-    onRun: () -> Unit,
+    onRunHeadlines: () -> Unit,
+    onRunAction: (String) -> Unit,
     onApply: (String) -> Unit,
 ) {
     Column(Modifier.padding(AppSpacing.screenHorizontal).padding(bottom = AppSpacing.lg)) {
-        Text("پیشنهاد عنوان پوستر")
+        Text("هوش مصنوعی")
         DfPrimaryButton(
-            text = if (loading) "در حال تولید…" else "دریافت پیشنهاد",
-            onClick = onRun,
+            text = if (loading) "…" else "عناوین پوستر",
+            onClick = onRunHeadlines,
             enabled = canEdit && !loading,
-            modifier = Modifier.fillMaxWidth().padding(vertical = AppSpacing.sm),
+            modifier = Modifier.fillMaxWidth().padding(vertical = AppSpacing.xs),
         )
+        listOf(
+            "divar-titles" to "عناوین دیوار",
+            "divar-body" to "متن دیوار",
+            "social" to "بسته شبکه‌های اجتماعی",
+        ).forEach { (action, label) ->
+            DfPrimaryButton(
+                text = label,
+                onClick = { onRunAction(action) },
+                enabled = canEdit && !loading,
+                modifier = Modifier.fillMaxWidth().padding(vertical = AppSpacing.xs),
+            )
+        }
         suggestions.forEach { s ->
             TextButton(onClick = { onApply(s) }, modifier = Modifier.fillMaxWidth()) {
                 Text(s)

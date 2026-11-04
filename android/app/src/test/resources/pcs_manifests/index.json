@@ -1,0 +1,245 @@
+{
+  "manifest_version": "pcs-manifest-2f44b2db01773784",
+  "layout_revision": "2f44b2db01773784",
+  "schema_version": 2,
+  "source_hashes": {
+    "pcs-schema.js": "f19d0c50c3c6bd18ce7886ee43f6f98af97e466fed2883683da0ec6bbae13a85",
+    "pcs-template-scenes.js": "377dafb9b87f111c695bc28b4b33927019a88c2ecca00da53d0ae8473d41cb19",
+    "pcs-assets.js": "c102002069ab399628f70c5cc99cb04ee25e9dab3b925818bb32407c219d4de9",
+    "pcs-bindings.js": "af142bfa7507e578a04b533d1722d60b7824e4e4f22a4779addb1c43fd58cd9c",
+    "scripts/generate_pcs_manifests.mjs": "33f44d82774fbd56cd55afcc01904899ddc6471c77cb0f178983fbc9cb81334c",
+    "scripts/pcs_manifest_sanitize.mjs": "fafd01aa9718139a5aeb01a1f28b86f1b86d7bd3a5d07502fc013d7f88dcea8b",
+    "scripts/pcs_manifest_enrich.mjs": "f60d28256dcf7c00bdb2fc9e975c5365886f88facea2198d9e7a139d57bd98e3",
+    "scripts/pcs_manifest_content_contract.mjs": "3fd10274f27cf3f9dc46e73e89008d9a6b91b27d661d8c154d2f253bc44dd4ac",
+    "overlay/pearlescent": "c633653658f203829eef725814f807a32d5164df3c113dc206d9452325fec157",
+    "overlay/pearlescent_ribbon": "5a13e7defc42324c8d7d59cfb0707977d2a96166672b615330fef0143228f3e1",
+    "overlay/sculptural": "ac5b2f32fbea72e3904031371c3f50520e63e7bbe7122717f4b7a0efe371ab07",
+    "overlay/sculpted_travertine": "fcc1f467b21304d2589b5faa363d8403a1547793cf9d1ed12640f83d002077ef",
+    "overlay/emerald_atelier": "6efddb8a139f87a52e8863fcb8ab7546ab05ec125d3ee9b65381dbe2699d0133",
+    "overlay/pearl_gallery": "9a1efeaa1309d9764e03c4f07386075971c0e6f963fdce7ccb8250dbced81714",
+    "overlay/burgundy_alabaster": "5e201a79098a17925425aa57354902b4335060906027a12b301c29d1376bb3d0",
+    "overlay/amethyst_ceramic": "6bda1c20a88ee9bdade173ce9fcc326a4cebb72c130cad437d704adbd9e72d3c",
+    "overlay/champagne_origami": "b5e1c274c0f73fed8d7495a2dd3fa652b26641214b9fd684f57088d425463648",
+    "overlay/glacier_prism": "17e262f9cf659c0947b802e21252ff6b195dc258a1d9789fd944e68551928114",
+    "overlay/mediterranean_papercut": "ba725cccbb5f8464a51b49cb353b0a977185bb72a4f1611ab14e2cd33682138c",
+    "overlay/terracotta_terrace": "28d28e1c2b49d9c6b6661a08ad7f2a50dc1810896be38f31504805fdde880f82",
+    "overlay/brutalist_concrete": "68fe5e6d767484d715372982309e531691385b91954d6f9fec9c543b2726b8d3"
+  },
+  "templates": [
+    "pearlescent",
+    "pearlescent_ribbon",
+    "sculptural",
+    "sculpted_travertine",
+    "emerald_atelier",
+    "pearl_gallery",
+    "burgundy_alabaster",
+    "amethyst_ceramic",
+    "champagne_origami",
+    "glacier_prism",
+    "mediterranean_papercut",
+    "terracotta_terrace",
+    "brutalist_concrete"
+  ],
+  "formats": [
+    "story",
+    "post",
+    "square"
+  ],
+  "entries": [
+    {
+      "template_id": "pearlescent",
+      "format": "story",
+      "path": "manifests/pearlescent/story.json"
+    },
+    {
+      "template_id": "pearlescent",
+      "format": "post",
+      "path": "manifests/pearlescent/post.json"
+    },
+    {
+      "template_id": "pearlescent",
+      "format": "square",
+      "path": "manifests/pearlescent/square.json"
+    },
+    {
+      "template_id": "pearlescent_ribbon",
+      "format": "story",
+      "path": "manifests/pearlescent_ribbon/story.json"
+    },
+    {
+      "template_id": "pearlescent_ribbon",
+      "format": "post",
+      "path": "manifests/pearlescent_ribbon/post.json"
+    },
+    {
+      "template_id": "pearlescent_ribbon",
+      "format": "square",
+      "path": "manifests/pearlescent_ribbon/square.json"
+    },
+    {
+      "template_id": "sculptural",
+      "format": "story",
+      "path": "manifests/sculptural/story.json"
+    },
+    {
+      "template_id": "sculptural",
+      "format": "post",
+      "path": "manifests/sculptural/post.json"
+    },
+    {
+      "template_id": "sculptural",
+      "format": "square",
+      "path": "manifests/sculptural/square.json"
+    },
+    {
+      "template_id": "sculpted_travertine",
+      "format": "story",
+      "path": "manifests/sculpted_travertine/story.json"
+    },
+    {
+      "template_id": "sculpted_travertine",
+      "format": "post",
+      "path": "manifests/sculpted_travertine/post.json"
+    },
+    {
+      "template_id": "sculpted_travertine",
+      "format": "square",
+      "path": "manifests/sculpted_travertine/square.json"
+    },
+    {
+      "template_id": "emerald_atelier",
+      "format": "story",
+      "path": "manifests/emerald_atelier/story.json"
+    },
+    {
+      "template_id": "emerald_atelier",
+      "format": "post",
+      "path": "manifests/emerald_atelier/post.json"
+    },
+    {
+      "template_id": "emerald_atelier",
+      "format": "square",
+      "path": "manifests/emerald_atelier/square.json"
+    },
+    {
+      "template_id": "pearl_gallery",
+      "format": "story",
+      "path": "manifests/pearl_gallery/story.json"
+    },
+    {
+      "template_id": "pearl_gallery",
+      "format": "post",
+      "path": "manifests/pearl_gallery/post.json"
+    },
+    {
+      "template_id": "pearl_gallery",
+      "format": "square",
+      "path": "manifests/pearl_gallery/square.json"
+    },
+    {
+      "template_id": "burgundy_alabaster",
+      "format": "story",
+      "path": "manifests/burgundy_alabaster/story.json"
+    },
+    {
+      "template_id": "burgundy_alabaster",
+      "format": "post",
+      "path": "manifests/burgundy_alabaster/post.json"
+    },
+    {
+      "template_id": "burgundy_alabaster",
+      "format": "square",
+      "path": "manifests/burgundy_alabaster/square.json"
+    },
+    {
+      "template_id": "amethyst_ceramic",
+      "format": "story",
+      "path": "manifests/amethyst_ceramic/story.json"
+    },
+    {
+      "template_id": "amethyst_ceramic",
+      "format": "post",
+      "path": "manifests/amethyst_ceramic/post.json"
+    },
+    {
+      "template_id": "amethyst_ceramic",
+      "format": "square",
+      "path": "manifests/amethyst_ceramic/square.json"
+    },
+    {
+      "template_id": "champagne_origami",
+      "format": "story",
+      "path": "manifests/champagne_origami/story.json"
+    },
+    {
+      "template_id": "champagne_origami",
+      "format": "post",
+      "path": "manifests/champagne_origami/post.json"
+    },
+    {
+      "template_id": "champagne_origami",
+      "format": "square",
+      "path": "manifests/champagne_origami/square.json"
+    },
+    {
+      "template_id": "glacier_prism",
+      "format": "story",
+      "path": "manifests/glacier_prism/story.json"
+    },
+    {
+      "template_id": "glacier_prism",
+      "format": "post",
+      "path": "manifests/glacier_prism/post.json"
+    },
+    {
+      "template_id": "glacier_prism",
+      "format": "square",
+      "path": "manifests/glacier_prism/square.json"
+    },
+    {
+      "template_id": "mediterranean_papercut",
+      "format": "story",
+      "path": "manifests/mediterranean_papercut/story.json"
+    },
+    {
+      "template_id": "mediterranean_papercut",
+      "format": "post",
+      "path": "manifests/mediterranean_papercut/post.json"
+    },
+    {
+      "template_id": "mediterranean_papercut",
+      "format": "square",
+      "path": "manifests/mediterranean_papercut/square.json"
+    },
+    {
+      "template_id": "terracotta_terrace",
+      "format": "story",
+      "path": "manifests/terracotta_terrace/story.json"
+    },
+    {
+      "template_id": "terracotta_terrace",
+      "format": "post",
+      "path": "manifests/terracotta_terrace/post.json"
+    },
+    {
+      "template_id": "terracotta_terrace",
+      "format": "square",
+      "path": "manifests/terracotta_terrace/square.json"
+    },
+    {
+      "template_id": "brutalist_concrete",
+      "format": "story",
+      "path": "manifests/brutalist_concrete/story.json"
+    },
+    {
+      "template_id": "brutalist_concrete",
+      "format": "post",
+      "path": "manifests/brutalist_concrete/post.json"
+    },
+    {
+      "template_id": "brutalist_concrete",
+      "format": "square",
+      "path": "manifests/brutalist_concrete/square.json"
+    }
+  ]
+}

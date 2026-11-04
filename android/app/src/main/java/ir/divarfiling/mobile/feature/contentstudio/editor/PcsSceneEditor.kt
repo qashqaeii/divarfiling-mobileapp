@@ -51,8 +51,7 @@ object PcsSceneMutator {
     )
 
     fun mergeBaseWithDraft(base: PcsSceneDocument, draft: PcsSceneDocument?): PcsSceneDocument {
-        if (draft == null) return copyScene(base)
-        return copyScene(draft)
+        return PcsSceneMerger.mergeManifestWithDraft(base, draft)
     }
 
     private fun copyLayer(layer: PcsLayer): PcsLayer = layer.copy(

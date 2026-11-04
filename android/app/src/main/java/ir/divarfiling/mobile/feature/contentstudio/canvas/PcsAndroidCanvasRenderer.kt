@@ -112,7 +112,7 @@ class PcsAndroidCanvasRenderer @Inject constructor(
     }
 
     private fun drawLogoLayer(canvas: Canvas, layer: PcsLayer, rect: RectF, alpha: Int, assets: PcsLoadedAssets) {
-        val bmp = assets.brandLogo ?: assets.propertyImages.firstNotNullOfOrNull { it } ?: return
+        val bmp = assets.brandLogo ?: return
         drawBitmapInRect(canvas, bmp, layer, rect, alpha)
     }
 

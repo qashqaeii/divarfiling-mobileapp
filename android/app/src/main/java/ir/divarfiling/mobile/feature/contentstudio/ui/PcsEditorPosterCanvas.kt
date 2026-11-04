@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.IntSize
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
+import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsPosterViewportTransform
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsCanvasInteractionMode
 
 @Composable
@@ -30,39 +31,31 @@ fun PcsEditorPosterCanvas(
     sceneWidth: Int,
     sceneHeight: Int,
     interactionMode: PcsCanvasInteractionMode,
-    onTapScene: (Float, Float) -> Unit,
-    onDragScene: (Float, Float) -> Unit,
+    onTapScene: (x: Float, y: Float) -> Unit,
+    onDragSceneStart: () -> Unit,
+    onDragScene: (dx: Float, dy: Float) -> Unit,
+    onDragSceneEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    var userScale by remember { mutableFloatStateOf(1f) }
+    var pan by remember { mutableStateOf(Offset.Zero) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
+
+    fun viewport(): PcsPosterViewportTransform.Viewport? =
+        PcsPosterViewportTransform.computeViewport(
+            boxSize.width,
+            boxSize.height,
+            sceneWidth,
+            sceneHeight,
+            userScale,
+            pan.x,
+            pan.y,
+        )
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .onSizeChanged { boxSize = it }
-            .pointerInput(interactionMode) {
-                if (interactionMode == PcsCanvasInteractionMode.EditLayer) {
-                    detectTapGestures { tap ->
-                        mapTapToScene(tap, boxSize, sceneWidth, sceneHeight, scale, offset)?.let(onTapScene)
-                    }
-                    detectDragGestures { change, drag ->
-                        change.consume()
-                        val factor = sceneWidth.toFloat() / boxSize.width.coerceAtLeast(1)
-                        onDragScene(drag.x * factor / scale, drag.y * factor / scale)
-                    }
-                } else {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(1f, 4f)
-                        offset = if (scale > 1f) offset + pan else Offset.Zero
-                    }
-                    detectTapGestures(onDoubleTap = {
-                        scale = 1f
-                        offset = Offset.Zero
-                    })
-                }
-            },
+            .onSizeChanged { boxSize = it },
         contentAlignment = Alignment.Center,
     ) {
         if (bitmap != null) {
@@ -73,32 +66,55 @@ fun PcsEditorPosterCanvas(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        translationX = offset.x
-                        translationY = offset.y
+                        scaleX = userScale
+                        scaleY = userScale
+                        translationX = pan.x
+                        translationY = pan.y
+                    }
+                    .pointerInput(interactionMode, sceneWidth, sceneHeight, boxSize, userScale, pan) {
+                        when (interactionMode) {
+                            PcsCanvasInteractionMode.EditLayer -> {
+                                detectTapGestures { tap ->
+                                    val vp = viewport() ?: return@detectTapGestures
+                                    val mapped = PcsPosterViewportTransform.screenToScene(
+                                        tap.x,
+                                        tap.y,
+                                        vp,
+                                        sceneWidth,
+                                        sceneHeight,
+                                    ) ?: return@detectTapGestures
+                                    onTapScene(mapped.first, mapped.second)
+                                }
+                                detectDragGestures(
+                                    onDragStart = { onDragSceneStart() },
+                                    onDragEnd = { onDragSceneEnd() },
+                                    onDragCancel = { onDragSceneEnd() },
+                                ) { change, dragAmount ->
+                                    change.consume()
+                                    val vp = viewport() ?: return@detectDragGestures
+                                    val (dx, dy) = PcsPosterViewportTransform.screenDeltaToScene(
+                                        dragAmount.x,
+                                        dragAmount.y,
+                                        vp,
+                                    )
+                                    onDragScene(dx, dy)
+                                }
+                            }
+                            PcsCanvasInteractionMode.PanZoom -> {
+                                detectTransformGestures { _, panChange, zoom, _ ->
+                                    userScale = (userScale * zoom).coerceIn(1f, 4f)
+                                    pan = if (userScale > 1f) pan + panChange else Offset.Zero
+                                }
+                                detectTapGestures(
+                                    onDoubleTap = {
+                                        userScale = 1f
+                                        pan = Offset.Zero
+                                    },
+                                )
+                            }
+                        }
                     },
             )
         }
     }
-}
-
-private fun mapTapToScene(
-    tap: Offset,
-    boxSize: IntSize,
-    sceneW: Int,
-    sceneH: Int,
-    scale: Float,
-    offset: Offset,
-): Offset? {
-    if (boxSize.width == 0 || boxSize.height == 0) return null
-    val fitScale = minOf(boxSize.width / sceneW.toFloat(), boxSize.height / sceneH.toFloat()) * scale
-    val drawnW = sceneW * fitScale
-    val drawnH = sceneH * fitScale
-    val left = (boxSize.width - drawnW) / 2f + offset.x
-    val top = (boxSize.height - drawnH) / 2f + offset.y
-    val x = (tap.x - left) / fitScale
-    val y = (tap.y - top) / fitScale
-    if (x < 0 || y < 0 || x > sceneW || y > sceneH) return null
-    return Offset(x, y)
 }

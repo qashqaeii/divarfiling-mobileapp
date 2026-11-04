@@ -48,11 +48,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Run lint
-        run: ./gradlew lintDirectDebug --no-daemon
-
       - name: Run unit tests
-        run: ./gradlew testDirectDebugUnitTest --no-daemon
+        run: ./gradlew lintDirectDebug testDirectDebugUnitTest assembleDirectDebug --no-daemon
 
   release:
     if: github.event_name != 'pull_request'
@@ -80,8 +77,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Run quality gate (lint + unit tests)
-        run: ./gradlew lintDirectDebug testDirectDebugUnitTest --no-daemon
+      - name: Run quality gate (lint + unit tests + debug assemble)
+        run: ./gradlew lintDirectDebug testDirectDebugUnitTest assembleDirectDebug --no-daemon
 
       - name: Prepare google-services.json
         run: |

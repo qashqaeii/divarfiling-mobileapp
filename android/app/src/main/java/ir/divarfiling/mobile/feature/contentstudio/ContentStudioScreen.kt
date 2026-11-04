@@ -15,11 +15,15 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +51,29 @@ fun ContentStudioScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = state.saveStatus == PcsSaveStatus.Unsaved) {
+        showExitDialog = true
+    }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("تغییرات ذخیره نشده") },
+            text = { Text("قبل از خروج تغییرات را ذخیره کنید یا بدون ذخیره خارج شوید.") },
+            confirmButton = {
+                TextButton(onClick = { showExitDialog = false; viewModel.saveNow() }) {
+                    Text("ذخیره")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false; onBack() }) {
+                    Text("خروج")
+                }
+            },
+        )
+    }
 
     LaunchedEffect(state.successMessage, state.error) {
         state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
@@ -84,6 +111,7 @@ fun ContentStudioScreen(
         onReorder = viewModel::reorderLayer,
         onImageIndex = viewModel::setImageSlotForSelected,
         onRunAi = viewModel::runPosterHeadlineAi,
+        onRunAiAction = viewModel::runAiAction,
         onApplyAi = viewModel::applyAiHeadline,
         onOpenTemplates = { viewModel.toggleTemplatePicker(true) },
         onInteractionMode = viewModel::setInteractionMode,
@@ -179,7 +207,9 @@ fun ContentStudioScreen(
                             sceneHeight = state.manifest?.canvas?.height ?: 1920,
                             interactionMode = state.interactionMode,
                             onTapScene = { x, y -> viewModel.selectLayerAt(x, y) },
+                            onDragSceneStart = viewModel::beginLayerDrag,
                             onDragScene = { dx, dy -> viewModel.moveSelectedLayer(dx, dy) },
+                            onDragSceneEnd = viewModel::endLayerDrag,
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = AppSpacing.screenHorizontal),
