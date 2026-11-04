@@ -38,6 +38,7 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsCanvasInteractionMode
+import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerHitTest
 import ir.divarfiling.mobile.feature.contentstudio.ui.PcsEditorPosterCanvas
 import ir.divarfiling.mobile.feature.contentstudio.ui.PcsStudioToolSheets
 import ir.divarfiling.mobile.feature.contentstudio.ui.PcsStudioToolbar
@@ -92,6 +93,10 @@ fun ContentStudioScreen(
         onDismiss = { viewModel.toggleTemplatePicker(false) },
     )
 
+    val selectedLayer = state.selectedLayerId?.let { id ->
+        state.editableScene?.let { scene -> PcsLayerHitTest.findLayer(scene, id) }
+    }
+
     PcsStudioToolSheets(
         activeTool = state.activeTool,
         onDismiss = { viewModel.setActiveTool(null) },
@@ -100,6 +105,7 @@ fun ContentStudioScreen(
         layers = state.editableScene?.layers.orEmpty(),
         layerOrder = state.editableScene?.layerOrder.orEmpty(),
         selectedLayerId = state.selectedLayerId,
+        selectedLayer = selectedLayer,
         headline = state.posterConfHeadline,
         aiLoading = state.aiLoading,
         aiSuggestions = state.aiSuggestions,
@@ -115,6 +121,16 @@ fun ContentStudioScreen(
         onApplyAi = viewModel::applyAiHeadline,
         onOpenTemplates = { viewModel.toggleTemplatePicker(true) },
         onInteractionMode = viewModel::setInteractionMode,
+        snapEnabled = state.snapEnabled,
+        onToggleSnap = viewModel::toggleSnapEnabled,
+        onRestoreLinkedText = viewModel::restoreSelectedLayerTextLinked,
+        onResetLayer = viewModel::resetSelectedLayerFromTemplate,
+        onLayerTextChange = viewModel::updateSelectedLayerText,
+        onLayerStyleChange = viewModel::updateSelectedLayerStyle,
+        onLayerOpacityChange = viewModel::updateSelectedLayerOpacity,
+        onCropChange = viewModel::updateSelectedCrop,
+        onObjectFitChange = viewModel::setSelectedObjectFit,
+        baseScene = state.baseScene,
     )
 
     Scaffold(
@@ -201,15 +217,21 @@ fun ContentStudioScreen(
                     if (state.assetsLoading && state.previewBitmap == null) {
                         LoadingBlock(Modifier.weight(1f))
                     } else {
+                        val selectedLayer = state.selectedLayerId?.let { id ->
+                            state.editableScene?.let { scene -> PcsLayerHitTest.findLayer(scene, id) }
+                        }
                         PcsEditorPosterCanvas(
                             bitmap = state.previewBitmap,
                             sceneWidth = state.manifest?.canvas?.width ?: 1080,
                             sceneHeight = state.manifest?.canvas?.height ?: 1920,
                             interactionMode = state.interactionMode,
-                            onTapScene = { x, y -> viewModel.selectLayerAt(x, y) },
-                            onDragSceneStart = viewModel::beginLayerDrag,
-                            onDragScene = { dx, dy -> viewModel.moveSelectedLayer(dx, dy) },
-                            onDragSceneEnd = viewModel::endLayerDrag,
+                            selectedLayer = selectedLayer,
+                            activeGuides = state.alignmentGuides,
+                            rotateHintDegrees = state.rotateHintDegrees,
+                            onTapScene = viewModel::selectLayerAt,
+                            onDragSceneStart = viewModel::beginCanvasGesture,
+                            onDragScene = { dx, dy -> viewModel.continueCanvasGesture(dx, dy) },
+                            onDragSceneEnd = viewModel::endCanvasGesture,
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = AppSpacing.screenHorizontal),

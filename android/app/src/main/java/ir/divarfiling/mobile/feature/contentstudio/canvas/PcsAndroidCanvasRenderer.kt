@@ -3,9 +3,15 @@ package ir.divarfiling.mobile.feature.contentstudio.canvas
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.graphics.Typeface
+import android.os.Build
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -125,7 +131,7 @@ class PcsAndroidCanvasRenderer @Inject constructor(
         if (bmp.isRecycled) return
         val style = layer.style
         val radius = style?.borderRadius ?: layer.borderRadius ?: 0f
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.alpha = alpha }
+        val paint = imagePaint(style, alpha)
         val src = PcsImageCrop.computeCropSrc(bmp, rect, style, layer.objectFit)
         if (radius > 0f) {
             canvas.save()
@@ -136,6 +142,36 @@ class PcsAndroidCanvasRenderer @Inject constructor(
         } else {
             canvas.drawBitmap(bmp, src, rect, paint)
         }
+    }
+
+    private fun imagePaint(style: PcsTextStyle?, alpha: Int): Paint {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.alpha = alpha }
+        val brightness = style?.brightness ?: 100f
+        if (brightness != 100f) {
+            val scale = (brightness / 100f).coerceIn(0.4f, 1.6f)
+            val matrix = ColorMatrix(
+                floatArrayOf(
+                    scale, 0f, 0f, 0f, 0f,
+                    0f, scale, 0f, 0f, 0f,
+                    0f, 0f, scale, 0f, 0f,
+                    0f, 0f, 0f, 1f, 0f,
+                ),
+            )
+            paint.colorFilter = ColorMatrixColorFilter(matrix)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val blurRadius = style?.blur ?: 0f
+            if (blurRadius > 0.5f) {
+                paint.setRenderEffect(
+                    RenderEffect.createBlurEffect(
+                        blurRadius.coerceAtMost(12f),
+                        blurRadius.coerceAtMost(12f),
+                        Shader.TileMode.CLAMP,
+                    ),
+                )
+            }
+        }
+        return paint
     }
 
     private fun drawTextLayer(
@@ -159,6 +195,20 @@ class PcsAndroidCanvasRenderer @Inject constructor(
             this.alpha = alpha
             textSize = fontSize
             typeface = PcsFontResolver.typeface(context, style?.fontKey, style?.fontWeight)
+            if (style?.fontStyle == "italic") {
+                typeface = Typeface.create(typeface, Typeface.ITALIC)
+            }
+            isUnderlineText = style?.textDecoration == "underline"
+        }
+        val alignment = when (style?.align?.lowercase()) {
+            "center" -> Layout.Alignment.ALIGN_CENTER
+            "left" -> Layout.Alignment.ALIGN_NORMAL
+            else -> Layout.Alignment.ALIGN_OPPOSITE
+        }
+        val direction = if (style?.direction == "ltr") {
+            TextDirectionHeuristics.LTR
+        } else {
+            TextDirectionHeuristics.RTL
         }
         val bgRaw = style?.background
         if (!bgRaw.isNullOrBlank()) {
@@ -167,16 +217,11 @@ class PcsAndroidCanvasRenderer @Inject constructor(
             val radius = style.borderRadius ?: if (style.textPreset == "capsule") rect.height() / 2f else 0f
             canvas.drawRoundRect(rect, radius, radius, bgPaint)
         }
-        val alignment = when (style?.align?.lowercase()) {
-            "center" -> Layout.Alignment.ALIGN_CENTER
-            "left" -> Layout.Alignment.ALIGN_NORMAL
-            else -> Layout.Alignment.ALIGN_OPPOSITE
-        }
         val staticLayout = StaticLayout.Builder
             .obtain(text, 0, text.length, textPaint, rect.width().toInt().coerceAtLeast(1))
             .setAlignment(alignment)
             .setLineSpacing(0f, style?.lineHeight ?: 1.2f)
-            .setTextDirection(TextDirectionHeuristics.RTL)
+            .setTextDirection(direction)
             .build()
         canvas.save()
         canvas.translate(rect.left, rect.top)

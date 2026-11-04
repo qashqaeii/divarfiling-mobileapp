@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.contentstudio.editor
 
+import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsBinding
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsLayer
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsSceneDocument
 import org.junit.Assert.assertEquals
@@ -42,5 +43,45 @@ class PcsSceneEditorTest {
         val restored = history.undo(v2)
         assertNotNull(restored)
         assertEquals(1f, restored!!.layers.first().x)
+    }
+
+    @Test
+    fun textOverrideSwitchesBindingMode() {
+        val scene = PcsSceneDocument(
+            layers = listOf(
+                PcsLayer(
+                    id = "t",
+                    type = "bound_text",
+                    binding = PcsBinding(source = "poster", field = "headline", mode = "linked"),
+                    x = 0f,
+                    y = 0f,
+                    width = 10f,
+                    height = 10f,
+                ),
+            ),
+        )
+        val updated = PcsSceneMutator.setLayerTextOverride(scene, "t", "سلام")
+        assertEquals("override", updated.layers.first().binding?.mode)
+    }
+
+    @Test
+    fun restoreLinkedTextFromBase() {
+        val base = PcsSceneDocument(
+            layers = listOf(
+                PcsLayer(
+                    id = "t",
+                    type = "bound_text",
+                    text = null,
+                    binding = PcsBinding(mode = "linked", source = "poster", field = "headline"),
+                    x = 0f,
+                    y = 0f,
+                    width = 10f,
+                    height = 10f,
+                ),
+            ),
+        )
+        val edited = PcsSceneMutator.setLayerTextDetached(base, "t", "دستی")
+        val restored = PcsSceneMutator.restoreLayerTextLinked(edited, base, "t")
+        assertEquals("linked", restored.layers.first().binding?.mode)
     }
 }

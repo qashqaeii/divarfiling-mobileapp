@@ -5,8 +5,6 @@ import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsBinding
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsLayer
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsSceneDocument
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsTextStyle
-import kotlin.math.abs
-import kotlin.math.max
 
 enum class PcsCanvasInteractionMode {
     PanZoom,
@@ -63,21 +61,27 @@ object PcsSceneMutator {
     )
 
     fun updateLayer(scene: PcsSceneDocument, layerId: String, transform: (PcsLayer) -> PcsLayer): PcsSceneDocument {
-        return copyScene(scene).copy(
-            layers = scene.layers.map { layer ->
-                if (layer.id == layerId) transform(copyLayer(layer)) else copyLayer(layer)
-            },
-        )
+        return PcsSceneLayerTree.updateLayer(scene, layerId, transform)
     }
 
     fun moveLayer(scene: PcsSceneDocument, layerId: String, dx: Float, dy: Float): PcsSceneDocument {
         return updateLayer(scene, layerId) { it.copy(x = it.x + dx, y = it.y + dy) }
     }
 
-    fun resizeLayer(scene: PcsSceneDocument, layerId: String, dw: Float, dh: Float): PcsSceneDocument {
-        return updateLayer(scene, layerId) {
-            it.copy(width = max(8f, it.width + dw), height = max(8f, it.height + dh))
+    fun resizeLayerWithHandle(
+        scene: PcsSceneDocument,
+        layerId: String,
+        handle: PcsHandleKind,
+        localDx: Float,
+        localDy: Float,
+    ): PcsSceneDocument {
+        return updateLayer(scene, layerId) { layer ->
+            PcsLayerTransformOps.resizeLayer(layer, handle, localDx, localDy)
         }
+    }
+
+    fun setLayerRotation(scene: PcsSceneDocument, layerId: String, degrees: Float): PcsSceneDocument {
+        return updateLayer(scene, layerId) { it.copy(rotation = degrees) }
     }
 
     fun rotateLayer(scene: PcsSceneDocument, layerId: String, deltaDeg: Float): PcsSceneDocument {
@@ -85,14 +89,20 @@ object PcsSceneMutator {
     }
 
     fun setLayerVisible(scene: PcsSceneDocument, layerId: String, visible: Boolean): PcsSceneDocument {
+        val layer = PcsSceneLayerTree.findLayer(scene, layerId) ?: return copyScene(scene)
+        if (!PcsLayerEditorRules.canToggleVisibility(layer)) return copyScene(scene)
         return updateLayer(scene, layerId) { it.copy(visible = visible) }
     }
 
     fun setLayerLocked(scene: PcsSceneDocument, layerId: String, locked: Boolean): PcsSceneDocument {
+        val layer = PcsSceneLayerTree.findLayer(scene, layerId) ?: return copyScene(scene)
+        if (!PcsLayerEditorRules.canToggleLock(layer)) return copyScene(scene)
         return updateLayer(scene, layerId) { it.copy(locked = locked) }
     }
 
     fun reorderLayer(scene: PcsSceneDocument, layerId: String, direction: Int): PcsSceneDocument {
+        val layer = PcsSceneLayerTree.findLayer(scene, layerId) ?: return copyScene(scene)
+        if (!PcsLayerEditorRules.canReorder(layer)) return copyScene(scene)
         val order = scene.layerOrder.ifEmpty { scene.layers.map { it.id } }.toMutableList()
         val idx = order.indexOf(layerId)
         if (idx < 0) return copyScene(scene)
@@ -103,49 +113,84 @@ object PcsSceneMutator {
         return copyScene(scene).copy(layerOrder = order)
     }
 
+    fun setLayerTextOverride(scene: PcsSceneDocument, layerId: String, text: String): PcsSceneDocument {
+        return updateLayer(scene, layerId) { layer ->
+            val binding = layer.binding ?: PcsBinding(source = "poster", field = "headline", mode = "linked")
+            val mode = when (binding.mode) {
+                "linked" -> "override"
+                else -> binding.mode
+            }
+            layer.copy(text = text, binding = binding.copy(mode = mode))
+        }
+    }
+
     fun setLayerTextDetached(scene: PcsSceneDocument, layerId: String, text: String): PcsSceneDocument {
         return updateLayer(scene, layerId) { layer ->
             val binding = layer.binding ?: PcsBinding(source = "poster", field = "headline", mode = "linked")
+            layer.copy(text = text, binding = binding.copy(mode = "detached"))
+        }
+    }
+
+    fun restoreLayerTextLinked(scene: PcsSceneDocument, baseScene: PcsSceneDocument, layerId: String): PcsSceneDocument {
+        val baseLayer = PcsSceneLayerTree.findLayer(baseScene, layerId) ?: return copyScene(scene)
+        return updateLayer(scene, layerId) { layer ->
             layer.copy(
-                text = text,
-                binding = binding.copy(mode = "detached"),
+                text = baseLayer.text,
+                binding = baseLayer.binding?.copy(mode = "linked") ?: layer.binding?.copy(mode = "linked"),
             )
         }
     }
 
+    fun resetLayerFromBase(scene: PcsSceneDocument, baseScene: PcsSceneDocument, layerId: String): PcsSceneDocument {
+        val baseLayer = PcsSceneLayerTree.findLayer(baseScene, layerId) ?: return copyScene(scene)
+        return updateLayer(scene, layerId) { copyLayer(baseLayer) }
+    }
+
     fun setLayerStyle(scene: PcsSceneDocument, layerId: String, style: PcsTextStyle): PcsSceneDocument {
-        return updateLayer(scene, layerId) { it.copy(style = style) }
-    }
-
-    fun setImageIndex(scene: PcsSceneDocument, layerId: String, index: Int): PcsSceneDocument {
-        return updateLayer(scene, layerId) { it.copy(imageIndex = index.coerceAtLeast(0)) }
-    }
-
-    fun hitTestLayer(scene: PcsSceneDocument, x: Float, y: Float): String? {
-        val order = scene.layerOrder.ifEmpty { scene.layers.map { it.id } }
-        for (id in order.asReversed()) {
-            val layer = scene.layers.find { it.id == id } ?: continue
-            if (!layer.visible || layer.locked) continue
-            if (containsPoint(layer, x, y)) return layer.id
+        return updateLayer(scene, layerId) { layer ->
+            layer.copy(style = PcsLayerTransformOps.mergeStylePatch(layer.style, style))
         }
-        return null
     }
 
-    private fun containsPoint(layer: PcsLayer, x: Float, y: Float): Boolean {
-        val left = layer.x
-        val top = layer.y
-        val right = layer.x + max(layer.width, 1f)
-        val bottom = layer.y + max(layer.height, 1f)
-        if (abs(layer.rotation) < 0.01f) {
-            return x in left..right && y in top..bottom
-        }
-        val cx = (left + right) / 2f
-        val cy = (top + bottom) / 2f
-        val rad = Math.toRadians(-layer.rotation.toDouble())
-        val dx = x - cx
-        val dy = y - cy
-        val rx = (dx * kotlin.math.cos(rad) - dy * kotlin.math.sin(rad) + cx)
-        val ry = (dx * kotlin.math.sin(rad) + dy * kotlin.math.cos(rad) + cy)
-        return rx in left..right && ry in top..bottom
+    fun setLayerOpacity(scene: PcsSceneDocument, layerId: String, opacity: Float): PcsSceneDocument {
+        return updateLayer(scene, layerId) { it.copy(opacity = opacity.coerceIn(0f, 1f)) }
     }
+
+    fun setImageIndex(scene: PcsSceneDocument, layerId: String, index: Int, maxIndex: Int): PcsSceneDocument {
+        val safe = index.coerceIn(0, maxIndex.coerceAtLeast(0))
+        return updateLayer(scene, layerId) { it.copy(imageIndex = safe) }
+    }
+
+    fun setObjectFit(scene: PcsSceneDocument, layerId: String, fit: String): PcsSceneDocument {
+        val normalized = if (fit == "contain") "contain" else "cover"
+        return updateLayer(scene, layerId) { layer ->
+            layer.copy(
+                objectFit = normalized,
+                style = PcsLayerTransformOps.mergeStylePatch(
+                    layer.style,
+                    PcsTextStyle(objectFit = normalized),
+                ),
+            )
+        }
+    }
+
+    fun setCropStyle(
+        scene: PcsSceneDocument,
+        layerId: String,
+        panX: Float?,
+        panY: Float?,
+        zoom: Float?,
+    ): PcsSceneDocument {
+        return updateLayer(scene, layerId) { layer ->
+            val patch = PcsTextStyle(
+                cropPanX = panX,
+                cropPanY = panY,
+                cropZoom = zoom,
+            )
+            layer.copy(style = PcsLayerTransformOps.mergeStylePatch(layer.style, patch))
+        }
+    }
+
+    fun hitTestLayer(scene: PcsSceneDocument, x: Float, y: Float): String? =
+        PcsLayerHitTest.hitTestLayer(scene, x, y)
 }

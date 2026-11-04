@@ -69,6 +69,11 @@ object PcsSceneMerger {
             cropPanY = draft.cropPanY ?: base.cropPanY,
             cropZoom = draft.cropZoom ?: base.cropZoom,
             textPreset = draft.textPreset ?: base.textPreset,
+            fontStyle = draft.fontStyle ?: base.fontStyle,
+            textDecoration = draft.textDecoration ?: base.textDecoration,
+            brightness = draft.brightness ?: base.brightness,
+            blur = draft.blur ?: base.blur,
+            opacity = draft.opacity ?: base.opacity,
         )
     }
 

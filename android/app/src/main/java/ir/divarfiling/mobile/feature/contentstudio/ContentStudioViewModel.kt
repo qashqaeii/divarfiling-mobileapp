@@ -21,7 +21,12 @@ import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsStudioProperty
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsTextStyle
 import ir.divarfiling.mobile.feature.contentstudio.ai.PcsAiResponseParser
 import ir.divarfiling.mobile.feature.contentstudio.draft.ContentStudioDraftPersistence
+import ir.divarfiling.mobile.feature.contentstudio.editor.PcsAlignmentSnap
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsCanvasInteractionMode
+import ir.divarfiling.mobile.feature.contentstudio.editor.PcsGuideLine
+import ir.divarfiling.mobile.feature.contentstudio.editor.PcsHandleKind
+import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerEditorRules
+import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerHitTest
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsSceneHistory
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsSceneMutator
 import ir.divarfiling.mobile.feature.contentstudio.export.PcsPngExporter
@@ -79,6 +84,9 @@ data class ContentStudioUiState(
     val canRedo: Boolean = false,
     val aiLoading: Boolean = false,
     val aiSuggestions: List<String> = emptyList(),
+    val snapEnabled: Boolean = true,
+    val alignmentGuides: List<PcsGuideLine> = emptyList(),
+    val rotateHintDegrees: Float? = null,
 )
 
 @HiltViewModel
@@ -103,7 +111,14 @@ class ContentStudioViewModel @Inject constructor(
     private var loadNonce = 0
     private var autosaveJob: Job? = null
     private var saveRequestId = 0
-    private var dragHistoryCaptured = false
+    private var gestureHistoryCaptured = false
+    private var activeHandle: PcsHandleKind = PcsHandleKind.None
+    private var rotateGestureBase: Float = 0f
+    private var rotatePointerBase: Float = 0f
+    private var gestureSceneX: Float = 0f
+    private var gestureSceneY: Float = 0f
+    private var gestureRenderJob: Job? = null
+    private val touchRadiusScene = 36f
 
     init {
         refresh()
@@ -172,6 +187,7 @@ class ContentStudioViewModel @Inject constructor(
                 selectedTemplateId = templateId,
                 posterConfHeadline = headline,
                 showTemplatePicker = false,
+                selectedLayerId = null,
                 saveStatus = if (it.canEditDraft) PcsSaveStatus.Unsaved else it.saveStatus,
             )
         }
@@ -224,6 +240,14 @@ class ContentStudioViewModel @Inject constructor(
 
     fun setActiveTool(tab: PcsStudioToolTab?) {
         _uiState.update { it.copy(activeTool = tab) }
+    }
+
+    fun setSnapEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(snapEnabled = enabled) }
+    }
+
+    fun toggleSnapEnabled() {
+        _uiState.update { it.copy(snapEnabled = !it.snapEnabled) }
     }
 
     fun setInteractionMode(mode: PcsCanvasInteractionMode) {
@@ -369,45 +393,173 @@ class ContentStudioViewModel @Inject constructor(
         _uiState.update { it.copy(selectedLayerId = layerId) }
     }
 
-    fun selectLayerAt(sceneX: Float, sceneY: Float) {
-        val scene = _uiState.value.editableScene ?: return
-        val id = PcsSceneMutator.hitTestLayer(scene, sceneX, sceneY)
-        _uiState.update { it.copy(selectedLayerId = id) }
-    }
-
-    fun beginLayerDrag() {
-        if (!_uiState.value.canEditDraft) return
-        val id = _uiState.value.selectedLayerId ?: return
-        val layer = _uiState.value.editableScene?.layers?.find { it.id == id } ?: return
-        if (layer.locked) return
-        if (!dragHistoryCaptured) {
-            _uiState.value.editableScene?.let { sceneHistory.pushBeforeChange(it) }
-            dragHistoryCaptured = true
+    private fun scheduleGesturePreviewRender() {
+        gestureRenderJob?.cancel()
+        gestureRenderJob = viewModelScope.launch {
+            delay(350)
+            renderPreview()
         }
     }
 
-    fun moveSelectedLayer(dx: Float, dy: Float) {
-        val id = _uiState.value.selectedLayerId ?: return
-        val scene = _uiState.value.editableScene ?: return
-        val layer = scene.layers.find { it.id == id } ?: return
-        if (layer.locked || !_uiState.value.canEditDraft) return
-        val moved = PcsSceneMutator.moveLayer(scene, id, dx, dy)
+    private fun applyGestureScene(newScene: PcsSceneDocument) {
         _uiState.update {
             it.copy(
-                editableScene = moved,
-                saveStatus = PcsSaveStatus.Unsaved,
+                editableScene = newScene,
+                saveStatus = if (it.canEditDraft) PcsSaveStatus.Unsaved else it.saveStatus,
             )
         }
-        renderPreview()
+        scheduleGesturePreviewRender()
+    }
+
+    private fun captureGestureHistoryOnce() {
+        if (gestureHistoryCaptured || !_uiState.value.canEditDraft) return
+        _uiState.value.editableScene?.let { sceneHistory.pushBeforeChange(it) }
+        gestureHistoryCaptured = true
+    }
+
+    fun selectLayerAt(sceneX: Float, sceneY: Float) {
+        val state = _uiState.value
+        val scene = state.editableScene ?: return
+        val selectedId = state.selectedLayerId
+        if (selectedId != null) {
+            val handle = PcsLayerHitTest.hitTestHandle(
+                scene,
+                selectedId,
+                sceneX,
+                sceneY,
+                touchRadiusScene,
+            )
+            if (handle != PcsHandleKind.None) {
+                return
+            }
+        }
+        val id = PcsSceneMutator.hitTestLayer(scene, sceneX, sceneY)
+        _uiState.update {
+            it.copy(
+                selectedLayerId = id,
+                alignmentGuides = emptyList(),
+                rotateHintDegrees = null,
+            )
+        }
+    }
+
+    fun beginCanvasGesture(sceneX: Float, sceneY: Float) {
+        if (!_uiState.value.canEditDraft) return
+        val state = _uiState.value
+        val scene = state.editableScene ?: return
+        val selectedId = state.selectedLayerId
+        activeHandle = if (selectedId != null) {
+            PcsLayerHitTest.hitTestHandle(scene, selectedId, sceneX, sceneY, touchRadiusScene)
+        } else {
+            PcsHandleKind.None
+        }
+        if (activeHandle == PcsHandleKind.None) {
+            val hit = PcsSceneMutator.hitTestLayer(scene, sceneX, sceneY)
+            if (hit != null) {
+                _uiState.update { it.copy(selectedLayerId = hit) }
+                activeHandle = PcsHandleKind.Move
+            } else {
+                return
+            }
+        }
+        val layerId = _uiState.value.selectedLayerId ?: return
+        val layer = PcsLayerHitTest.findLayer(scene, layerId) ?: return
+        if (!PcsLayerEditorRules.canTransform(layer) && activeHandle != PcsHandleKind.Move) return
+        if (layer.locked) return
+        captureGestureHistoryOnce()
+        if (activeHandle == PcsHandleKind.Rotate) {
+            rotateGestureBase = layer.rotation
+            rotatePointerBase = PcsLayerHitTest.angleForRotateHandle(layer, sceneX, sceneY)
+            gestureSceneX = sceneX
+            gestureSceneY = sceneY
+        } else {
+            gestureSceneX = sceneX
+            gestureSceneY = sceneY
+        }
+    }
+
+    fun continueCanvasGesture(dx: Float, dy: Float) {
+        gestureSceneX += dx
+        gestureSceneY += dy
+        val state = _uiState.value
+        val scene = state.editableScene ?: return
+        val layerId = state.selectedLayerId ?: return
+        val layer = PcsLayerHitTest.findLayer(scene, layerId) ?: return
+        if (layer.locked || !state.canEditDraft) return
+        val canvasW = (state.manifest?.canvas?.width ?: scene.canvas?.width ?: 1080).toFloat()
+        val canvasH = (state.manifest?.canvas?.height ?: scene.canvas?.height ?: 1920).toFloat()
+        when (activeHandle) {
+            PcsHandleKind.Move -> {
+                val snap = PcsAlignmentSnap.snapMove(
+                    layer,
+                    dx,
+                    dy,
+                    scene,
+                    canvasW,
+                    canvasH,
+                    thresholdScene = 8f,
+                    enabled = state.snapEnabled,
+                )
+                val moved = PcsSceneMutator.moveLayer(scene, layerId, snap.dx, snap.dy)
+                applyGestureScene(moved)
+                _uiState.update { it.copy(alignmentGuides = snap.guides) }
+            }
+            PcsHandleKind.Rotate -> {
+                val pointerAngle = PcsLayerHitTest.angleForRotateHandle(layer, gestureSceneX, gestureSceneY)
+                val currentAngle = rotateGestureBase + (pointerAngle - rotatePointerBase)
+                val snapped = PcsLayerHitTest.snapAngle(currentAngle, state.snapEnabled)
+                val rotated = PcsSceneMutator.setLayerRotation(scene, layerId, snapped)
+                applyGestureScene(rotated)
+                _uiState.update { it.copy(rotateHintDegrees = snapped, alignmentGuides = emptyList()) }
+            }
+            PcsHandleKind.ResizeTopLeft,
+            PcsHandleKind.ResizeTop,
+            PcsHandleKind.ResizeTopRight,
+            PcsHandleKind.ResizeRight,
+            PcsHandleKind.ResizeBottomRight,
+            PcsHandleKind.ResizeBottom,
+            PcsHandleKind.ResizeBottomLeft,
+            PcsHandleKind.ResizeLeft,
+            -> {
+                val (ldx, ldy) = PcsLayerHitTest.sceneDeltaToLocal(layer, dx, dy)
+                val resized = PcsSceneMutator.resizeLayerWithHandle(scene, layerId, activeHandle, ldx, ldy)
+                applyGestureScene(resized)
+                _uiState.update { it.copy(alignmentGuides = emptyList(), rotateHintDegrees = null) }
+            }
+            else -> Unit
+        }
+    }
+
+    fun endCanvasGesture() {
+        gestureRenderJob?.cancel()
+        gestureRenderJob = null
+        activeHandle = PcsHandleKind.None
+        if (gestureHistoryCaptured) {
+            gestureHistoryCaptured = false
+            _uiState.update {
+                it.copy(
+                    canUndo = sceneHistory.canUndo(),
+                    canRedo = sceneHistory.canRedo(),
+                    alignmentGuides = emptyList(),
+                    rotateHintDegrees = null,
+                )
+            }
+            renderPreview()
+            scheduleFullAutosave()
+        } else {
+            _uiState.update { it.copy(alignmentGuides = emptyList(), rotateHintDegrees = null) }
+        }
+    }
+
+    /** @deprecated Use canvas gesture pipeline from [PcsEditorPosterCanvas]. */
+    fun beginLayerDrag() = Unit
+
+    fun moveSelectedLayer(dx: Float, dy: Float) {
+        continueCanvasGesture(dx, dy)
     }
 
     fun endLayerDrag() {
-        if (!dragHistoryCaptured) return
-        dragHistoryCaptured = false
-        _uiState.update {
-            it.copy(canUndo = sceneHistory.canUndo(), canRedo = sceneHistory.canRedo())
-        }
-        scheduleFullAutosave()
+        endCanvasGesture()
     }
 
     fun updateHeadline(text: String) {
@@ -419,7 +571,47 @@ class ContentStudioViewModel @Inject constructor(
     fun updateSelectedLayerText(text: String) {
         val id = _uiState.value.selectedLayerId ?: return
         val scene = _uiState.value.editableScene ?: return
-        applySceneChange(PcsSceneMutator.setLayerTextDetached(scene, id, text))
+        applySceneChange(PcsSceneMutator.setLayerTextOverride(scene, id, text))
+    }
+
+    fun restoreSelectedLayerTextLinked() {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        val base = _uiState.value.baseScene ?: return
+        applySceneChange(PcsSceneMutator.restoreLayerTextLinked(scene, base, id))
+    }
+
+    fun resetSelectedLayerFromTemplate() {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        val base = _uiState.value.baseScene ?: return
+        val layer = PcsLayerHitTest.findLayer(scene, id) ?: return
+        if (PcsLayerEditorRules.isStructureProtected(layer)) return
+        applySceneChange(PcsSceneMutator.resetLayerFromBase(scene, base, id))
+    }
+
+    fun updateSelectedLayerStyle(patch: PcsTextStyle) {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        applySceneChange(PcsSceneMutator.setLayerStyle(scene, id, patch))
+    }
+
+    fun updateSelectedLayerOpacity(opacity: Float) {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        applySceneChange(PcsSceneMutator.setLayerOpacity(scene, id, opacity))
+    }
+
+    fun updateSelectedCrop(panX: Float?, panY: Float?, zoom: Float?) {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        applySceneChange(PcsSceneMutator.setCropStyle(scene, id, panX, panY, zoom))
+    }
+
+    fun setSelectedObjectFit(fit: String) {
+        val id = _uiState.value.selectedLayerId ?: return
+        val scene = _uiState.value.editableScene ?: return
+        applySceneChange(PcsSceneMutator.setObjectFit(scene, id, fit))
     }
 
     fun toggleLayerVisibility(layerId: String) {
@@ -442,7 +634,8 @@ class ContentStudioViewModel @Inject constructor(
     fun setImageSlotForSelected(index: Int) {
         val id = _uiState.value.selectedLayerId ?: return
         val scene = _uiState.value.editableScene ?: return
-        applySceneChange(PcsSceneMutator.setImageIndex(scene, id, index))
+        val maxIdx = (_uiState.value.property?.images?.size ?: 1) - 1
+        applySceneChange(PcsSceneMutator.setImageIndex(scene, id, index, maxIdx))
     }
 
     fun saveNow() {

@@ -78,6 +78,11 @@ data class PcsTextStyle(
     @SerialName("cropPanY") val cropPanY: Float? = null,
     @SerialName("cropZoom") val cropZoom: Float? = null,
     @SerialName("textPreset") val textPreset: String? = null,
+    @SerialName("fontStyle") val fontStyle: String? = null,
+    @SerialName("textDecoration") val textDecoration: String? = null,
+    val brightness: Float? = null,
+    val blur: Float? = null,
+    val opacity: Float? = null,
 )
 
 @Serializable
