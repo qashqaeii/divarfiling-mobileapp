@@ -133,7 +133,7 @@ class PcsAndroidCanvasRenderer @Inject constructor(
         val style = layer.style
         val radius = style?.borderRadius ?: layer.borderRadius ?: 0f
         val blur = style?.blur ?: 0f
-        val workingBmp = if (blur > 0.5f && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
+        val workingBmp = if (blur > 0.5f) {
             PcsBitmapEffects.blurredBitmapSource(bmp, blur)
         } else {
             bmp

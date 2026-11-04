@@ -9,18 +9,6 @@ object PcsBitmapEffects {
     fun configureImagePaint(paint: android.graphics.Paint, style: PcsTextStyle?, alpha: Int) {
         paint.alpha = alpha
         brightnessColorFilter(style?.brightness)?.let { paint.colorFilter = it }
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            val blurRadius = style?.blur ?: 0f
-            if (blurRadius > 0.5f) {
-                paint.setRenderEffect(
-                    android.graphics.RenderEffect.createBlurEffect(
-                        blurRadius.coerceIn(0f, 12f),
-                        blurRadius.coerceIn(0f, 12f),
-                        android.graphics.Shader.TileMode.CLAMP,
-                    ),
-                )
-            }
-        }
     }
 
     fun brightnessColorFilter(brightness: Float?): android.graphics.ColorMatrixColorFilter? {
@@ -40,7 +28,6 @@ object PcsBitmapEffects {
 
     fun blurredBitmapSource(src: Bitmap, blurRadius: Float): Bitmap {
         if (blurRadius <= 0.5f || src.isRecycled) return src
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) return src
         val radius = blurRadius.coerceIn(1f, 12f)
         val scale = if (max(src.width, src.height) > 900) 0.45f else 1f
         val w = max(1, (src.width * scale).toInt())

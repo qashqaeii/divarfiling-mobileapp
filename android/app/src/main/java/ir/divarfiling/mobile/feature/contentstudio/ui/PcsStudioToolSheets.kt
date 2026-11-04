@@ -212,12 +212,37 @@ private fun TextSheet(
             Text("فونت: ${PcsFontResolver.resolvedFontLabel(style?.fontKey)}")
             var weight by remember(layer.id) { mutableFloatStateOf((style?.fontWeight ?: 400).toFloat()) }
             Text("Weight: ${weight.toInt()}")
-            Slider(weight, { weight = it; if (canEdit) onLayerStyleChange(PcsTextStyle(fontWeight = it.toInt())) }, 400f..900f, enabled = canEdit)
+            Slider(
+                value = weight,
+                onValueChange = {
+                    weight = it
+                    if (canEdit) onLayerStyleChange(PcsTextStyle(fontWeight = it.toInt()))
+                },
+                valueRange = 400f..900f,
+                enabled = canEdit,
+            )
             var fill by remember(layer.id) { mutableStateOf(style?.fill.orEmpty()) }
-            OutlinedTextField(fill, { fill = it; if (canEdit) onLayerStyleChange(PcsTextStyle(fill = it)) }, label = { Text("رنگ متن") }, modifier = Modifier.fillMaxWidth(), enabled = canEdit)
+            OutlinedTextField(
+                value = fill,
+                onValueChange = {
+                    fill = it
+                    if (canEdit) onLayerStyleChange(PcsTextStyle(fill = it))
+                },
+                label = { Text("رنگ متن") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = canEdit,
+            )
             var lineH by remember(layer.id) { mutableFloatStateOf(style?.lineHeight ?: 1.2f) }
             Text("Line height")
-            Slider(lineH, { lineH = it; if (canEdit) onLayerStyleChange(PcsTextStyle(lineHeight = it)) }, 0.8f..3f, enabled = canEdit)
+            Slider(
+                value = lineH,
+                onValueChange = {
+                    lineH = it
+                    if (canEdit) onLayerStyleChange(PcsTextStyle(lineHeight = it))
+                },
+                valueRange = 0.8f..3f,
+                enabled = canEdit,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                 DfSecondaryButton(
                     text = "Bold",
@@ -315,11 +340,35 @@ private fun ImageSheet(
         var panY by remember(selectedLayer.id) { mutableFloatStateOf(style?.cropPanY ?: 50f) }
         var zoom by remember(selectedLayer.id) { mutableFloatStateOf(style?.cropZoom ?: 1f) }
         Text("Pan X")
-        Slider(panX, { panX = it; if (canEdit) onCropChange(it, null, null) }, 0f..100f, enabled = canEdit)
+        Slider(
+            value = panX,
+            onValueChange = {
+                panX = it
+                if (canEdit) onCropChange(it, null, null)
+            },
+            valueRange = 0f..100f,
+            enabled = canEdit,
+        )
         Text("Pan Y")
-        Slider(panY, { panY = it; if (canEdit) onCropChange(null, it, null) }, 0f..100f, enabled = canEdit)
+        Slider(
+            value = panY,
+            onValueChange = {
+                panY = it
+                if (canEdit) onCropChange(null, it, null)
+            },
+            valueRange = 0f..100f,
+            enabled = canEdit,
+        )
         Text("Zoom")
-        Slider(zoom, { zoom = it; if (canEdit) onCropChange(null, null, it) }, 0.5f..3f, enabled = canEdit)
+        Slider(
+            value = zoom,
+            onValueChange = {
+                zoom = it
+                if (canEdit) onCropChange(null, null, it)
+            },
+            valueRange = 0.5f..3f,
+            enabled = canEdit,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)) {
             DfSecondaryButton(
                 text = "Cover",
@@ -348,17 +397,25 @@ private fun ImageSheet(
         var brightness by remember(selectedLayer.id) { mutableFloatStateOf(style?.brightness ?: 100f) }
         Text("Brightness")
         Slider(
-            brightness,
-            {
+            value = brightness,
+            onValueChange = {
                 brightness = it
                 if (canEdit) onLayerStyleChange(PcsTextStyle(brightness = it))
             },
-            40f..160f,
+            valueRange = 40f..160f,
             enabled = canEdit,
         )
         var opacity by remember(selectedLayer.id) { mutableFloatStateOf(selectedLayer.opacity) }
         Text("Opacity")
-        Slider(opacity, { opacity = it; if (canEdit) onLayerOpacityChange(it) }, 0f..1f, enabled = canEdit)
+        Slider(
+            value = opacity,
+            onValueChange = {
+                opacity = it
+                if (canEdit) onLayerOpacityChange(it)
+            },
+            valueRange = 0f..1f,
+            enabled = canEdit,
+        )
     }
 }
 
