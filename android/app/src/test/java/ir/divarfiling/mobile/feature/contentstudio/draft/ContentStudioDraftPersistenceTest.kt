@@ -40,7 +40,7 @@ class ContentStudioDraftPersistenceTest {
 
     @Test
     fun readPosterSceneReturnsNullWhenMissing() {
-        assertNull(ContentStudioDraftPersistence.readPosterScene(null, "pearlescent", json))
+        assertNull(ContentStudioDraftPersistence.readPosterScene(null, "pearlescent", "story", json))
     }
 
     @Test
@@ -50,6 +50,9 @@ class ContentStudioDraftPersistenceTest {
         val posters = patch["posters"] as kotlinx.serialization.json.JsonObject
         val conf = posters["pearlescent"] as kotlinx.serialization.json.JsonObject
         assertEquals("سلام", conf["headline"].toString().trim('"'))
+        assertEquals(true, conf.containsKey("scene"))
+    }
+
     @Test
     fun buildPosterPatchStoresScenesByFormat() {
         val story = PcsSceneDocument(

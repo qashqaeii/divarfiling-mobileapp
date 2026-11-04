@@ -80,7 +80,7 @@ class InsightsPresentationTest {
         assertEquals(1, block.amenities.size)
         assertEquals("آسانسور", block.amenities.first().label)
         assertTrue(block.facts.none { it.label == "listing id" })
-        assertTrue(block.facts.none { it.value.contains("field:"))
+        assertTrue(block.facts.none { it.value.contains("field:") })
     }
 
     @Test
