@@ -7,30 +7,27 @@ import org.junit.Test
 
 class ExtractionLicenseGateTest {
 
-  private val repo = ExtractionRepository(
-        api = error(""),
-        divarClient = error(""),
-        sessionStore = error(""),
-        licenseRepository = error(""),
-        authRepository = error(""),
-        json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
-    )
-
     @Test
     fun `deny extract when license invalid`() {
-        val gate = repo.gateFromLicense(LicenseState(valid = false, lightExtractEnabled = true))
+        val gate = ExtractionRepository.gateFromLicenseStatic(
+            LicenseState(valid = false, lightExtractEnabled = true),
+        )
         assertTrue(gate is ExtractGateResult.Denied)
     }
 
     @Test
     fun `deny extract when light extract disabled`() {
-        val gate = repo.gateFromLicense(LicenseState(valid = true, lightExtractEnabled = false))
+        val gate = ExtractionRepository.gateFromLicenseStatic(
+            LicenseState(valid = true, lightExtractEnabled = false),
+        )
         assertTrue(gate is ExtractGateResult.Denied)
     }
 
     @Test
     fun `allow extract with valid license and light extract`() {
-        val gate = repo.gateFromLicense(LicenseState(valid = true, lightExtractEnabled = true))
+        val gate = ExtractionRepository.gateFromLicenseStatic(
+            LicenseState(valid = true, lightExtractEnabled = true),
+        )
         assertEquals(ExtractGateResult.Allowed, gate)
     }
 }

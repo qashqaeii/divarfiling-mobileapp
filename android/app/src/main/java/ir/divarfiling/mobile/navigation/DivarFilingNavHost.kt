@@ -28,6 +28,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import android.net.Uri
+import ir.divarfiling.mobile.core.UrlQueryEncoding
 import ir.divarfiling.mobile.core.design.components.DfBottomNavigation
 import ir.divarfiling.mobile.core.design.components.DfDecorIcons
 import ir.divarfiling.mobile.core.design.components.DfNavItem
@@ -137,7 +138,8 @@ object Routes {
     const val WORKSPACE_WEB = "workspace/web?bridgeUrl={bridgeUrl}&webTitle={webTitle}"
 
     fun workspaceWeb(bridgeUrl: String, webTitle: String = "میزکار") =
-        "workspace/web?bridgeUrl=${Uri.encode(bridgeUrl)}&webTitle=${Uri.encode(webTitle)}"
+        "workspace/web?bridgeUrl=${UrlQueryEncoding.encodeQueryComponent(bridgeUrl)}" +
+            "&webTitle=${UrlQueryEncoding.encodeQueryComponent(webTitle)}"
     const val GLOBAL_SEARCH = "search/global"
     const val CRM_PROPERTY_MAP = "crm/properties/map"
     const val CRM_PROPERTIES = "crm/properties"

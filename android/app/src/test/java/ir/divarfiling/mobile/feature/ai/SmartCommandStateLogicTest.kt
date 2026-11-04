@@ -361,7 +361,7 @@ class SmartCommandStateLogicTest {
                 aiEnabled = true,
                 hasLicense = true,
                 canUseCrmMessage = true,
-                crmMessage = AiFeatureQuota(remaining = 0, limit = 5),
+                crmMessage = AiFeatureQuota(featureRemaining = 0, featureLimit = 5),
                 messages = AiCapabilitiesMessages(quotaExhausted = "تمام"),
             ),
         )

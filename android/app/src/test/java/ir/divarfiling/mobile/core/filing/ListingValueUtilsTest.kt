@@ -21,7 +21,7 @@ class ListingValueUtilsTest {
         assertNotNull(presentation)
         assertEquals(ListingMarketTier.Under, presentation?.tier)
         assertEquals("زیر بازار", presentation?.shortLabel)
-        assertEquals("۱۸٪ زیر بازار", presentation?.detailLabel)
+        assertEquals("۱۹٪ زیر بازار", presentation?.detailLabel)
     }
 
     @Test

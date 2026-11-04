@@ -117,14 +117,14 @@ class PostCallLogicTest {
 
     @Test
     fun pick_call_log_does_not_select_unrelated_old_record() {
-        val now = 20_000L
+        val sessionStart = 50_000L
         val entries = listOf(
             PostCallLogic.CallLogEntry("09129999999", CallLog.Calls.MISSED_TYPE, 1_000L, 0L),
         )
         val picked = PostCallLogic.pickCallLogNumber(
             entries = entries,
             kind = PostCallLogic.CallEndKind.Missed,
-            notBeforeMs = now,
+            notBeforeMs = sessionStart,
             hintedNormalized = null,
             normalize = { it },
             isValidMobile = { it.startsWith("09") },

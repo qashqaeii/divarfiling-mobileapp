@@ -1,6 +1,6 @@
 package ir.divarfiling.mobile.core
 
-import android.net.Uri
+import java.net.URI
 
 /**
  * مقصدهای ثابت میزکار که اپ مستقیماً برای Bridge درخواست می‌دهد.
@@ -29,9 +29,10 @@ object WorkspaceBridgePaths {
         if (trimmed.isEmpty()) return null
         val path = when {
             trimmed.startsWith("http://") || trimmed.startsWith("https://") -> {
-                val parsed = Uri.parse(trimmed)
-                val base = parsed.path ?: return null
-                if (parsed.query.isNullOrBlank()) base else "$base?${parsed.query}"
+                val parsed = URI(trimmed)
+                val base = parsed.path?.takeIf { it.isNotBlank() } ?: return null
+                val query = parsed.query
+                if (query.isNullOrBlank()) base else "$base?$query"
             }
             trimmed.startsWith("/") -> trimmed
             else -> "/${trimmed.trimStart('/')}"

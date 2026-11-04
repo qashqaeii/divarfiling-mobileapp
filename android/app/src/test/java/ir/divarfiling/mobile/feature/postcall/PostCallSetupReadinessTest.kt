@@ -67,7 +67,7 @@ class PostCallSetupReadinessTest {
     fun enableBlockedReason_nullWhenReady() {
         assertNull(
             PostCallSetupReadiness.enableBlockedReason(
-                snapshot(phone = true, callLogRuntime = true, overlay = true),
+                snapshot(phone = true, callLogGranted = true, callLogRuntime = true, overlay = true),
             ),
         )
     }

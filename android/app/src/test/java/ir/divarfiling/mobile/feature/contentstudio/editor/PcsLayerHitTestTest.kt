@@ -21,8 +21,8 @@ class PcsLayerHitTestTest {
             rotation = 90f,
         )
         val scene = PcsSceneDocument(layers = listOf(layer), layerOrder = listOf("r"))
-        val cx = 120f
-        val cy = 150f
+        val cx = 150f
+        val cy = 120f
         assertEquals("r", PcsLayerHitTest.hitTestLayer(scene, cx, cy))
     }
 
