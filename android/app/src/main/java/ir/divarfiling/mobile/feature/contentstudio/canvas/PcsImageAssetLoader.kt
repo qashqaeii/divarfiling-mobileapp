@@ -2,9 +2,9 @@ package ir.divarfiling.mobile.feature.contentstudio.canvas
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import androidx.core.graphics.drawable.toBitmap
 import coil.ImageLoader
 import coil.request.ErrorResult
 import coil.request.ImageRequest
@@ -118,7 +118,7 @@ class PcsImageAssetLoader @Inject constructor(
             .build()
         return when (val result = imageLoader.execute(request)) {
             is SuccessResult -> {
-                val bitmap = drawableToBitmap(result.drawable, result.image.width, result.image.height)
+                val bitmap = drawableToBitmap(result.drawable)
                 if (bitmap == null) {
                     val failure = PcsAssetFailure(
                         kind = kind,
@@ -164,28 +164,21 @@ class PcsImageAssetLoader @Inject constructor(
         }
     }
 
-    private fun drawableToBitmap(drawable: Drawable, imageWidth: Int, imageHeight: Int): Bitmap? {
+    private fun drawableToBitmap(drawable: Drawable): Bitmap? {
         if (drawable is BitmapDrawable) {
             val source = drawable.bitmap
             if (source != null && !source.isRecycled) {
                 return source.copy(Bitmap.Config.ARGB_8888, false)
             }
         }
-        val width = when {
-            imageWidth > 0 -> imageWidth
-            drawable.intrinsicWidth > 0 -> drawable.intrinsicWidth
-            else -> return null
-        }
-        val height = when {
-            imageHeight > 0 -> imageHeight
-            drawable.intrinsicHeight > 0 -> drawable.intrinsicHeight
-            else -> return null
-        }
-        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also { bmp ->
-            Canvas(bmp).apply {
-                drawable.setBounds(0, 0, width, height)
-                drawable.draw(this)
+        val width = drawable.intrinsicWidth
+        val height = drawable.intrinsicHeight
+        return runCatching {
+            if (width > 0 && height > 0) {
+                drawable.toBitmap(width = width, height = height, config = Bitmap.Config.ARGB_8888)
+            } else {
+                drawable.toBitmap(config = Bitmap.Config.ARGB_8888)
             }
-        }
+        }.getOrNull()
     }
 }
