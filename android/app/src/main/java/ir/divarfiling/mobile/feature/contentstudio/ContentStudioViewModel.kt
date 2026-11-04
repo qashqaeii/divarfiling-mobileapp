@@ -14,6 +14,7 @@ import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsAndroidCanvasRender
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsBrandFooter
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsImageAssetLoader
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsManifestValidator
+import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsMediaUrlResolver
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsRenderInput
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsSceneDocument
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsStudioBrand
@@ -95,6 +96,8 @@ data class ContentStudioUiState(
     val userBrandDefaults: PcsStudioBrand? = null,
     val posterBrandOverride: PcsBrandOverrideDraft = PcsBrandOverrideDraft(),
     val expandedLayerGroups: Set<String> = emptySet(),
+    val overlayLoadFailed: Boolean = false,
+    val assetNotice: String? = null,
 )
 
 @HiltViewModel
@@ -136,7 +139,16 @@ class ContentStudioViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.update { it.copy(loading = true, error = null, errorCode = null, successMessage = null) }
+            _uiState.update {
+                it.copy(
+                    loading = true,
+                    error = null,
+                    errorCode = null,
+                    successMessage = null,
+                    assetNotice = null,
+                    overlayLoadFailed = false,
+                )
+            }
             when (val result = repository.loadSession(propertyId)) {
                 is ApiResult.Error -> _uiState.update {
                     it.copy(loading = false, error = result.message, errorCode = result.code)
@@ -319,6 +331,11 @@ class ContentStudioViewModel @Inject constructor(
         }
     }
 
+    fun retryAssetLoad() {
+        _uiState.update { it.copy(assetNotice = null, overlayLoadFailed = false, error = null) }
+        renderPreview()
+    }
+
     private fun renderPreview() {
         val gen = ++renderGeneration
         renderJob?.cancel()
@@ -327,18 +344,17 @@ class ContentStudioViewModel @Inject constructor(
             val scene = state.editableScene ?: return@launch
             val property = state.property ?: return@launch
             val manifest = state.manifest ?: return@launch
-            _uiState.update { it.copy(assetsLoading = true, error = null) }
+            _uiState.update { it.copy(assetsLoading = true) }
+            val overlayUrl = PcsMediaUrlResolver.resolveOverlayUrl(manifest.overlayUrl, manifest.overlayPath)
             val assets = assetLoader.load(
                 property = property,
-                overlayUrl = manifest.overlayUrl,
+                overlayUrl = overlayUrl,
                 brandLogoUrl = state.brand?.logoUrl,
                 scene = scene,
+                templateId = state.selectedTemplateId,
             )
             if (gen != renderGeneration) return@launch
-            if (assets.hasCriticalFailure) {
-                _uiState.update { it.copy(assetsLoading = false, error = "بارگذاری تصاویر یا Overlay ناموفق بود", previewBitmap = null) }
-                return@launch
-            }
+            val assetUi = ContentStudioAssetUiMapper.mapLoadedAssets(assets)
             val input = PcsRenderInput(
                 scene = scene,
                 property = property,
@@ -357,9 +373,22 @@ class ContentStudioViewModel @Inject constructor(
             if (gen != renderGeneration) return@launch
             rendered.onSuccess { bmp ->
                 replacePreviewBitmap(bmp)
-                _uiState.update { it.copy(assetsLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        assetsLoading = false,
+                        overlayLoadFailed = assetUi.overlayLoadFailed,
+                        assetNotice = assetUi.assetNotice,
+                    )
+                }
             }.onFailure { err ->
-                _uiState.update { it.copy(assetsLoading = false, error = err.message, previewBitmap = null) }
+                _uiState.update {
+                    it.copy(
+                        assetsLoading = false,
+                        error = err.message,
+                        overlayLoadFailed = assetUi.overlayLoadFailed,
+                        assetNotice = assetUi.assetNotice,
+                    )
+                }
             }
         }
     }
@@ -866,13 +895,20 @@ class ContentStudioViewModel @Inject constructor(
             val property = state.property ?: return@launch
             val manifest = state.manifest ?: return@launch
             _uiState.update { it.copy(exporting = true, error = null) }
-            val assets = assetLoader.load(property, manifest.overlayUrl, state.brand?.logoUrl, scene)
+            val overlayUrl = PcsMediaUrlResolver.resolveOverlayUrl(manifest.overlayUrl, manifest.overlayPath)
+            val assets = assetLoader.load(
+                property,
+                overlayUrl,
+                state.brand?.logoUrl,
+                scene,
+                state.selectedTemplateId,
+            )
             if (exportGen != exportGeneration) {
                 _uiState.update { it.copy(exporting = false) }
                 return@launch
             }
-            if (assets.hasCriticalFailure) {
-                _uiState.update { it.copy(exporting = false, error = "بارگذاری Asset برای خروجی ناموفق بود") }
+            ContentStudioAssetUiMapper.exportBlockedMessage(assets)?.let { msg ->
+                _uiState.update { it.copy(exporting = false, error = msg) }
                 return@launch
             }
             val input = PcsRenderInput(
@@ -929,8 +965,12 @@ class ContentStudioViewModel @Inject constructor(
 
     fun hasUnsavedChanges(): Boolean = _uiState.value.saveStatus == PcsSaveStatus.Unsaved
 
+    fun dismissAssetNotice() {
+        _uiState.update { it.copy(assetNotice = null) }
+    }
+
     fun clearMessage() {
-        _uiState.update { it.copy(successMessage = null, error = null) }
+        _uiState.update { it.copy(successMessage = null, error = null, assetNotice = null) }
     }
 
     override fun onCleared() {

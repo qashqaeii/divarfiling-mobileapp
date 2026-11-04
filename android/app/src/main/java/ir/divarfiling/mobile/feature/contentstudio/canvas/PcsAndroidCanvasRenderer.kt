@@ -34,9 +34,6 @@ class PcsAndroidCanvasRenderer @Inject constructor(
     )
 
     fun render(input: PcsRenderInput, width: Int, height: Int): Result<Bitmap> {
-        if (input.assets.hasCriticalFailure) {
-            return Result.failure(IllegalStateException("بارگذاری تصویر ناموفق بود"))
-        }
         val unsupported = input.scene.layers.filter { it.type !in supportedTypes }.map { "${it.id}:${it.type}" }
         if (unsupported.isNotEmpty()) {
             return Result.failure(IllegalStateException("لایه پشتیبانی‌نشده: ${unsupported.first()}"))
@@ -108,8 +105,13 @@ class PcsAndroidCanvasRenderer @Inject constructor(
         images: List<Bitmap?>,
     ) {
         val idx = layer.imageIndex ?: 0
-        val bmp = images.getOrNull(idx) ?: images.firstNotNullOfOrNull { it } ?: return
-        drawBitmapInRect(canvas, bmp, layer, rect, alpha)
+        val bmp = images.getOrNull(idx)?.takeIf { !it.isRecycled }
+            ?: images.firstNotNullOfOrNull { it?.takeIf { b -> !b.isRecycled } }
+        if (bmp != null) {
+            drawBitmapInRect(canvas, bmp, layer, rect, alpha)
+        } else {
+            PcsImagePlaceholder.draw(canvas, rect, alpha)
+        }
     }
 
     private fun drawLogoLayer(canvas: Canvas, layer: PcsLayer, rect: RectF, alpha: Int, assets: PcsLoadedAssets) {

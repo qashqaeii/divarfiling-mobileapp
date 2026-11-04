@@ -11,8 +11,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,8 +37,11 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
+import ir.divarfiling.mobile.core.design.components.DfErrorBanner
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
+import ir.divarfiling.mobile.feature.contentstudio.ui.PcsStudioCanvasStage
+import ir.divarfiling.mobile.feature.contentstudio.ui.PcsStudioFormatBar
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsCanvasInteractionMode
 import ir.divarfiling.mobile.feature.contentstudio.editor.PcsLayerHitTest
 import ir.divarfiling.mobile.feature.contentstudio.ui.PcsEditorPosterCanvas
@@ -77,12 +82,31 @@ fun ContentStudioScreen(
         )
     }
 
-    LaunchedEffect(state.successMessage, state.error) {
-        state.successMessage?.let { snackbar.showSnackbar(it); viewModel.clearMessage() }
-        state.error?.let { msg ->
-            if (state.previewBitmap == null || !state.assetsLoading) {
-                snackbar.showSnackbar(msg)
-            }
+    LaunchedEffect(state.successMessage) {
+        state.successMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearMessage()
+        }
+    }
+
+    LaunchedEffect(state.error, state.errorCode, state.editableScene) {
+        val msg = state.error ?: return@LaunchedEffect
+        if (state.editableScene == null || ContentStudioAssetUiMapper.isSessionLevelNotFound(state.errorCode)) {
+            snackbar.showSnackbar(msg)
+        }
+    }
+
+    LaunchedEffect(state.assetNotice, state.overlayLoadFailed) {
+        val notice = state.assetNotice ?: return@LaunchedEffect
+        val result = snackbar.showSnackbar(
+            message = notice,
+            actionLabel = if (state.overlayLoadFailed) "تلاش مجدد" else null,
+            duration = SnackbarDuration.Long,
+        )
+        if (result == SnackbarResult.ActionPerformed && state.overlayLoadFailed) {
+            viewModel.retryAssetLoad()
+        } else {
+            viewModel.dismissAssetNotice()
         }
     }
 
@@ -181,22 +205,19 @@ fun ContentStudioScreen(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = AppSpacing.screenHorizontal),
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-                    ) {
-                        listOf("story", "post", "square").forEach { fmt ->
-                            DfPrimaryButton(
-                                text = when (fmt) {
-                                    "story" -> "استوری"
-                                    "post" -> "پست"
-                                    else -> "مربع"
-                                },
-                                onClick = { viewModel.selectFormat(fmt) },
-                                modifier = Modifier.weight(1f),
-                                enabled = state.selectedFormat != fmt,
-                            )
-                        }
+                    PcsStudioFormatBar(
+                        selectedFormat = state.selectedFormat,
+                        onSelectFormat = viewModel::selectFormat,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AppSpacing.screenHorizontal),
+                    )
+                    if (state.overlayLoadFailed && !state.assetsLoading) {
+                        DfErrorBanner(
+                            message = "قالب گرافیکی بارگذاری نشد. بقیهٔ پوستر قابل ویرایش است.",
+                            modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
+                            onRetry = viewModel::retryAssetLoad,
+                        )
                     }
                     if (state.assetsLoading && state.previewBitmap == null) {
                         LoadingBlock(Modifier.weight(1f))
@@ -204,25 +225,29 @@ fun ContentStudioScreen(
                         val selectedLayer = state.selectedLayerId?.let { id ->
                             state.editableScene?.let { scene -> PcsLayerHitTest.findLayer(scene, id) }
                         }
-                        PcsEditorPosterCanvas(
-                            bitmap = state.previewBitmap,
-                            sceneWidth = state.manifest?.canvas?.width ?: 1080,
-                            sceneHeight = state.manifest?.canvas?.height ?: 1920,
-                            interactionMode = state.interactionMode,
-                            selectedLayer = selectedLayer,
-                            activeGuides = state.alignmentGuides,
-                            rotateHintDegrees = state.rotateHintDegrees,
-                            onTapScene = viewModel::selectLayerAt,
-                            onDragSceneStart = viewModel::beginCanvasGesture,
-                            onDragScene = { dx, dy -> viewModel.continueCanvasGesture(dx, dy) },
-                            onDragSceneEnd = viewModel::endCanvasGesture,
-                            onCropPan = viewModel::continueCropGesture,
-                            onCropZoom = viewModel::continueCropZoom,
-                            showCropFrame = state.interactionMode == PcsCanvasInteractionMode.CropImage,
+                        PcsStudioCanvasStage(
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = AppSpacing.screenHorizontal),
-                        )
+                        ) {
+                            PcsEditorPosterCanvas(
+                                bitmap = state.previewBitmap,
+                                sceneWidth = state.manifest?.canvas?.width ?: 1080,
+                                sceneHeight = state.manifest?.canvas?.height ?: 1920,
+                                interactionMode = state.interactionMode,
+                                selectedLayer = selectedLayer,
+                                activeGuides = state.alignmentGuides,
+                                rotateHintDegrees = state.rotateHintDegrees,
+                                onTapScene = viewModel::selectLayerAt,
+                                onDragSceneStart = viewModel::beginCanvasGesture,
+                                onDragScene = { dx, dy -> viewModel.continueCanvasGesture(dx, dy) },
+                                onDragSceneEnd = viewModel::endCanvasGesture,
+                                onCropPan = viewModel::continueCropGesture,
+                                onCropZoom = viewModel::continueCropZoom,
+                                showCropFrame = state.interactionMode == PcsCanvasInteractionMode.CropImage,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
                     if (state.interactionMode == PcsCanvasInteractionMode.CropImage) {
                         Row(
@@ -313,7 +338,12 @@ private fun LoadingBlock(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        CircularProgressIndicator()
-        Text("در حال بارگذاری…", modifier = Modifier.padding(top = AppSpacing.md))
+        CircularProgressIndicator(color = DfThemeColors.primary())
+        Text(
+            "در حال آماده‌سازی استودیو…",
+            style = AppTypography.body,
+            color = DfThemeColors.textSecondary(),
+            modifier = Modifier.padding(top = AppSpacing.md),
+        )
     }
 }

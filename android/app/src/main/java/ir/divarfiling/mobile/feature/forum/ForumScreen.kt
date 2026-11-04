@@ -3,13 +3,17 @@ package ir.divarfiling.mobile.feature.forum
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -102,33 +106,43 @@ fun ForumScreen(
         state.snackbar?.let { snackbar.showDfMessage(it); viewModel.clearSnackbar() }
     }
 
-    LaunchedEffect(state.access, state.messages.size) {
+    val chatItems = remember(state.messages, state.selectedMessageId) {
+        ForumChatTimeline.build(state.messages, state.selectedMessageId)
+    }
+
+    LaunchedEffect(state.access, chatItems.size) {
         if (
             state.access == ForumAccessKind.Ready &&
-            state.messages.isNotEmpty() &&
+            chatItems.isNotEmpty() &&
             !didInitialScroll
         ) {
-            listState.scrollToItem(state.messages.lastIndex)
+            listState.scrollToItem(chatItems.lastIndex)
             didInitialScroll = true
             userAtBottom = true
             viewModel.setUserAtBottom(true)
         }
     }
 
-    LaunchedEffect(state.messages.lastOrNull()?.id, userAtBottom) {
-        if (!didInitialScroll || state.messages.isEmpty()) return@LaunchedEffect
+    LaunchedEffect(chatItems.lastOrNull()?.stableKey, userAtBottom) {
+        if (!didInitialScroll || chatItems.isEmpty()) return@LaunchedEffect
         if (userAtBottom) {
-            listState.animateScrollToItem(state.messages.lastIndex)
+            listState.animateScrollToItem(chatItems.lastIndex)
         }
     }
 
-    LaunchedEffect(state.loadingOlder) {
+    LaunchedEffect(state.loadingOlder, chatItems) {
         if (state.loadingOlder && !wasLoadingOlder) {
-            val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
-            scrollAnchorMessageId = state.messages.getOrNull(first?.index ?: 0)?.id ?: 0L
-            scrollAnchorOffset = first?.offset ?: 0
+            val firstIdx = listState.firstVisibleItemIndex
+            scrollAnchorMessageId = chatItems
+                .drop(firstIdx.coerceAtLeast(0))
+                .firstOrNull { it is ForumChatListItem.Message }
+                ?.let { (it as ForumChatListItem.Message).message.id }
+                ?: 0L
+            scrollAnchorOffset = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.offset ?: 0
         } else if (!state.loadingOlder && wasLoadingOlder && scrollAnchorMessageId != 0L) {
-            val idx = state.messages.indexOfFirst { it.id == scrollAnchorMessageId }
+            val idx = chatItems.indexOfFirst {
+                it is ForumChatListItem.Message && it.message.id == scrollAnchorMessageId
+            }
             if (idx >= 0) {
                 listState.scrollToItem(idx, scrollAnchorOffset)
             }
@@ -159,27 +173,60 @@ fun ForumScreen(
         }
     }
 
-    LaunchedEffect(listState, state.messages) {
+    LaunchedEffect(listState, chatItems) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.map { it.index } }
             .distinctUntilChanged()
             .collect { indices ->
-                indices.mapNotNull { idx -> state.messages.getOrNull(idx)?.id }
-                    .forEach { viewModel.onMessageVisible(it) }
+                indices.mapNotNull { idx ->
+                    when (val item = chatItems.getOrNull(idx)) {
+                        is ForumChatListItem.Message -> item.message.id
+                        else -> null
+                    }
+                }.forEach { viewModel.onMessageVisible(it) }
             }
+    }
+
+    state.selectedMessageId?.let { selectedId ->
+        messageById(state.messages, selectedId)?.let { msg ->
+            ForumMessageContextSheet(
+                message = msg,
+                canModerate = state.bootstrap?.canModerate == true,
+                onDismiss = { viewModel.selectMessage(null) },
+                onReply = { viewModel.startReply(msg) },
+                onCopy = {
+                    copyText(context, msg.body)
+                    scope.launch { snackbar.showSnackbar("متن کپی شد") }
+                },
+                onEdit = { viewModel.startEdit(msg) },
+                onDelete = {
+                    deleteTarget = msg.id
+                    showDeleteConfirm = true
+                },
+                onReport = { viewModel.openReport(msg.id) },
+                onPin = { viewModel.pinMessage(msg.id, !msg.isPinned) },
+                onReaction = { viewModel.react(msg.id, it) },
+            )
+        }
     }
 
     if (state.showWelcomeSheet) {
         DfModalBottomSheet(onDismissRequest = { viewModel.dismissWelcome() }) {
-            Column(Modifier.padding(AppSpacing.lg)) {
-                Text("به تالار گفتگو خوش آمدید", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
+            DfSheetScaffold(
+                title = "به تالار گفتگو خوش آمدید",
+                subtitle = "فضای گفت‌وگوی جامعه فایلینگ دیوار",
+                icon = DfIcons.MessageCircle,
+                onClose = { viewModel.dismissWelcome() },
+                footer = {
+                    TextButton(onClick = { viewModel.dismissWelcome() }) {
+                        Text("شروع گفتگو")
+                    }
+                },
+            ) {
                 Text(
-                    "در این فضا با سایر کاربران فایلینگ تجربه‌ها را مبادله کنید. از انتشار اطلاعات شخصی خودداری کنید.",
+                    "تجربه‌ها و نکات حرفه‌ای را با سایر مشاوران به اشتراک بگذارید. از انتشار اطلاعات شخصی، شماره تماس یا جزئیات محرمانهٔ مشتری خودداری کنید.",
                     style = AppTypography.body,
-                    modifier = Modifier.padding(vertical = AppSpacing.md),
+                    color = DfThemeColors.textSecondary(),
                 )
-                TextButton(onClick = { viewModel.dismissWelcome() }) {
-                    Text("متوجه شدم")
-                }
             }
         }
     }
@@ -231,31 +278,11 @@ fun ForumScreen(
         containerColor = DfScreenContainerColor,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("تالار گفتگو", style = AppTypography.cardTitle, fontWeight = FontWeight.Bold)
-                        Text(
-                            "جامعه کاربران فایلینگ",
-                            style = AppTypography.labelSmall,
-                            color = DfThemeColors.textSecondary(),
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(DfIcons.ArrowRight, contentDescription = "بازگشت")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.toggleSearch(!state.searchOpen) }) {
-                        Icon(DfIcons.Search, contentDescription = "جستجو")
-                    }
-                    IconButton(onClick = { viewModel.openProfileSheet() }) {
-                        Icon(DfIcons.User, contentDescription = "پروفایل")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DfScreenContainerColor),
+            ForumTopBar(
+                searchOpen = state.searchOpen,
+                onBack = onBack,
+                onToggleSearch = { viewModel.toggleSearch(!state.searchOpen) },
+                onOpenProfile = { viewModel.openProfileSheet() },
             )
         },
         bottomBar = {
@@ -323,48 +350,6 @@ fun ForumScreen(
                                     modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
                                 )
                             }
-                            if (state.newMessagesBelow > 0) {
-                                TextButton(
-                                    onClick = {
-                                        viewModel.scrollToLatest()
-                                        scope.launch {
-                                            if (state.messages.isNotEmpty()) {
-                                                listState.animateScrollToItem(state.messages.lastIndex)
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text("${state.newMessagesBelow} پیام جدید")
-                                }
-                            }
-                            state.selectedMessageId?.let { selectedId ->
-                                messageById(state.messages, selectedId)?.let { msg ->
-                                    ForumMessageActionBar(
-                                        message = msg,
-                                        canModerate = state.bootstrap?.canModerate == true,
-                                        onReply = { viewModel.startReply(msg); viewModel.selectMessage(null) },
-                                        onReaction = { viewModel.showReactionPicker(msg.id) },
-                                        onCopy = { copyText(context, msg.body) },
-                                        onEdit = { viewModel.startEdit(msg) },
-                                        onDelete = {
-                                            deleteTarget = msg.id
-                                            showDeleteConfirm = true
-                                        },
-                                        onReport = { viewModel.openReport(msg.id) },
-                                        onPin = {
-                                            viewModel.pinMessage(msg.id, !msg.isPinned)
-                                        },
-                                        onDismiss = { viewModel.selectMessage(null) },
-                                    )
-                                }
-                            }
-                            state.showReactionPickerFor?.let { reactionTarget ->
-                                ForumReactionPicker(
-                                    onPick = { viewModel.react(reactionTarget, it) },
-                                    onDismiss = { viewModel.showReactionPicker(null) },
-                                )
-                            }
                             if (state.messages.isEmpty() && state.pendingSend == null) {
                                 DfEmptyState(
                                     variant = DfEmptyVariant.Empty,
@@ -373,20 +358,73 @@ fun ForumScreen(
                                     modifier = Modifier.weight(1f),
                                 )
                             } else {
-                                LazyColumn(
-                                    state = listState,
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                        horizontal = AppSpacing.screenHorizontal,
-                                        vertical = AppSpacing.sm,
-                                    ),
-                                ) {
-                                    items(state.messages, key = { it.id }) { message ->
-                                        ForumMessageRow(
-                                            message = message,
-                                            selected = state.selectedMessageId == message.id,
-                                            onLongPress = { viewModel.selectMessage(message.id) },
-                                            onClick = { viewModel.selectMessage(message.id) },
+                                Box(Modifier.weight(1f).fillMaxSize()) {
+                                    Column(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .background(DfThemeColors.background()),
+                                    ) {
+                                        LazyColumn(
+                                            state = listState,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                                horizontal = AppSpacing.screenHorizontal,
+                                                vertical = AppSpacing.sm,
+                                            ),
+                                        ) {
+                                            if (state.loadingOlder) {
+                                                item(key = "forum-loading-older") {
+                                                    Box(
+                                                        Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(AppSpacing.sm),
+                                                        contentAlignment = Alignment.Center,
+                                                    ) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(22.dp),
+                                                            strokeWidth = 2.dp,
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            items(
+                                                items = chatItems,
+                                                key = { it.stableKey },
+                                            ) { item ->
+                                                when (item) {
+                                                    is ForumChatListItem.DaySeparator -> {
+                                                        ForumChatDaySeparator(label = item.label)
+                                                    }
+                                                    is ForumChatListItem.Message -> {
+                                                        ForumMessageRow(
+                                                            message = item.message,
+                                                            showSenderName = item.showSenderName,
+                                                            showAvatar = item.showAvatar,
+                                                            isContextTarget = item.isContextTarget,
+                                                            onLongPress = { viewModel.selectMessage(item.message.id) },
+                                                            onReactionClick = { emoji ->
+                                                                viewModel.react(item.message.id, emoji)
+                                                            },
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (state.newMessagesBelow > 0) {
+                                        ForumNewMessagesPill(
+                                            count = state.newMessagesBelow,
+                                            onClick = {
+                                                viewModel.scrollToLatest()
+                                                scope.launch {
+                                                    if (chatItems.isNotEmpty()) {
+                                                        listState.animateScrollToItem(chatItems.lastIndex)
+                                                    }
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .align(Alignment.TopCenter)
+                                                .padding(top = AppSpacing.sm),
                                         )
                                     }
                                 }
@@ -428,9 +466,8 @@ private fun ForumSearchPanel(
                 items(results, key = { it.id }) { message ->
                     ForumMessageRow(
                         message = message,
-                        selected = false,
                         onLongPress = {},
-                        onClick = {},
+                        onReactionClick = null,
                     )
                 }
                 if (results.size < total) {
