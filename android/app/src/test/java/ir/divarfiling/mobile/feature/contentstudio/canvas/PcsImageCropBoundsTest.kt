@@ -1,7 +1,5 @@
 package ir.divarfiling.mobile.feature.contentstudio.canvas
 
-import android.graphics.RectF
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -9,13 +7,13 @@ class PcsImageCropBoundsTest {
 
     @Test
     fun cropPanClampedInsideBitmap() {
-        val rect = RectF(0f, 0f, 400f, 300f)
-        val src = PcsImageCrop.computeCropSrc(
-            800,
-            600,
-            rect,
-            PcsTextStyle(cropPanX = 100f, cropPanY = 100f, cropZoom = 3f),
-            "cover",
+        val src = PcsImageCropMath.computeCropSrc(
+            bmpWidth = 800,
+            bmpHeight = 600,
+            dstWidth = 400f,
+            dstHeight = 300f,
+            style = PcsTextStyle(cropPanX = 100f, cropPanY = 100f, cropZoom = 3f),
+            objectFit = "cover",
         )
         assertTrue(src.left >= 0)
         assertTrue(src.top >= 0)

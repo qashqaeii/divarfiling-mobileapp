@@ -1,6 +1,5 @@
 package ir.divarfiling.mobile.feature.contentstudio.canvas
 
-import android.graphics.RectF
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -9,14 +8,13 @@ class PcsRenderCropGoldenTest {
 
     @Test
     fun cropRectStableAcrossViewportScales() {
-        val dst = RectF(0f, 0f, 1080f, 1080f)
         val style = PcsTextStyle(cropPanX = 30f, cropPanY = 70f, cropZoom = 1.4f)
-        val small = PcsImageCrop.computeCropSrc(800, 600, dst, style, "cover")
-        val large = PcsImageCrop.computeCropSrc(800, 600, dst, style, "cover")
+        val small = PcsImageCropMath.computeCropSrc(800, 600, 1080f, 1080f, style, "cover")
+        val large = PcsImageCropMath.computeCropSrc(800, 600, 1080f, 1080f, style, "cover")
         assertEqualsRect(small, large)
     }
 
-    private fun assertEqualsRect(a: android.graphics.Rect, b: android.graphics.Rect) {
+    private fun assertEqualsRect(a: PcsCropRect, b: PcsCropRect) {
         assertTrue(a.width() == b.width() && a.height() == b.height())
     }
 }
