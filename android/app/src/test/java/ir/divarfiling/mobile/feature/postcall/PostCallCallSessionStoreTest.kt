@@ -1,7 +1,7 @@
 package ir.divarfiling.mobile.feature.postcall
 
+import ir.divarfiling.mobile.feature.postcall.PostCallLogic
 import ir.divarfiling.mobile.feature.postcall.call.PostCallCallSessionStore
-import ir.divarfiling.mobile.feature.postcall.call.PostCallLogic
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

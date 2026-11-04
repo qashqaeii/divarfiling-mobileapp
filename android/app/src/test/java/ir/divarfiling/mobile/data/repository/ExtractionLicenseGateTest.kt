@@ -12,6 +12,7 @@ class ExtractionLicenseGateTest {
         divarClient = error(""),
         sessionStore = error(""),
         licenseRepository = error(""),
+        authRepository = error(""),
         json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
     )
 

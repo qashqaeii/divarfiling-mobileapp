@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.ai.smartcommand
 
+import ir.divarfiling.mobile.core.network.SmartCommandExampleDto
 import ir.divarfiling.mobile.core.network.NlCommandParseResult
 import ir.divarfiling.mobile.core.network.NlContactCandidateDto
 import ir.divarfiling.mobile.core.network.SmartCommandProfileDto
@@ -32,7 +33,12 @@ class SmartCommandMappingTest {
 
     @Test
     fun unknownMessage_includesExamples() {
-        val msg = SmartCommandMapping.unknownUserMessage(listOf("نمونه ۱", "نمونه ۲"))
+        val msg = SmartCommandMapping.unknownUserMessage(
+            listOf(
+                SmartCommandExampleDto(text = "نمونه ۱"),
+                SmartCommandExampleDto(text = "نمونه ۲"),
+            ),
+        )
         assertTrue(msg.contains("متوجه نشدم"))
         assertTrue(msg.contains("نمونه ۱"))
     }
