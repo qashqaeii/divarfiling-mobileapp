@@ -36,7 +36,7 @@ fun TemplatePickerSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
             "انتخاب قالب",
-            style = AppTypography.titleSmall,
+            style = AppTypography.sectionTitle,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
         )

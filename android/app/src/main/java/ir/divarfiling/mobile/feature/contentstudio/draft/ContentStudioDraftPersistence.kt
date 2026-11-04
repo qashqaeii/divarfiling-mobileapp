@@ -1,5 +1,6 @@
 package ir.divarfiling.mobile.feature.contentstudio.draft
 
+import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsSceneCanvas
 import ir.divarfiling.mobile.feature.contentstudio.canvas.PcsSceneDocument
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -105,10 +106,12 @@ object ContentStudioDraftPersistence {
         val scenesMap = readPosterScenesMap(existingDraft, templateId, json).toMutableMap()
         if (scene != null) {
             scenesMap[format] = scene.copy(
-                canvas = scene.canvas?.copy(format = format) ?: ir.divarfiling.mobile.feature.contentstudio.canvas.PcsSceneCanvas(
-                    width = scene.canvas?.width ?: 1080,
-                    height = scene.canvas?.height ?: 1920,
-                ),
+                canvas = scene.canvas?.copy(format = format)
+                    ?: PcsSceneCanvas(
+                        width = scene.canvas?.width ?: 1080,
+                        height = scene.canvas?.height ?: 1920,
+                        format = format,
+                    ),
             )
         }
         return buildJsonObject {

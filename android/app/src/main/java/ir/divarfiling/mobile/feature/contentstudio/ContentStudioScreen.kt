@@ -122,7 +122,7 @@ fun ContentStudioScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("استودیوی تولید محتوا", style = AppTypography.titleSmall)
+                        Text("استودیوی تولید محتوا", style = AppTypography.sectionTitle)
                         Text(
                             state.projectTitle.ifBlank { "فایل شخصی" },
                             style = AppTypography.labelSmall,

@@ -16,6 +16,7 @@ data class PcsSceneDocument(
 data class PcsSceneCanvas(
     val width: Int = 1080,
     val height: Int = 1920,
+    val format: String = "story",
 )
 
 @Serializable
