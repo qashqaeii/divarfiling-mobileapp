@@ -46,6 +46,7 @@ import ir.divarfiling.mobile.feature.crm.WorkspaceWebScreen
 import ir.divarfiling.mobile.feature.crm.DealFinanceDashboardScreen
 import ir.divarfiling.mobile.feature.crm.DealsScreen
 import ir.divarfiling.mobile.feature.crm.PropertiesScreen
+import ir.divarfiling.mobile.feature.contentstudio.ContentStudioScreen
 import ir.divarfiling.mobile.feature.crm.PropertyDetailScreen
 import ir.divarfiling.mobile.feature.crm.TodayScreen
 import ir.divarfiling.mobile.feature.extract.ExtractScreen
@@ -141,6 +142,7 @@ object Routes {
     const val CRM_PROPERTY_MAP = "crm/properties/map"
     const val CRM_PROPERTIES = "crm/properties"
     const val CRM_PROPERTY_DETAIL = "crm/properties/{propertyId}?openEdit={openEdit}"
+    const val CRM_PROPERTY_CONTENT_STUDIO = "crm/properties/{propertyId}/content-studio"
     const val NOTIFICATIONS = "notifications"
     const val TOOLS = "tools"
     const val TOOL_CALCULATOR = "tools/{toolId}"
@@ -196,6 +198,7 @@ object Routes {
     ) = "crm/deals?customerId=${customerId ?: 0}&propertyId=${propertyId ?: 0}&openCreate=$openCreate"
     fun propertyDetail(propertyId: Long, openEdit: Boolean = false) =
         "crm/properties/$propertyId?openEdit=$openEdit"
+    fun propertyContentStudio(propertyId: Long) = "crm/properties/$propertyId/content-studio"
     fun listingDetail(token: String) = "filing/listing/$token"
     fun datasetInsights(datasetId: String) = "filing/$datasetId/insights"
     fun datasetMap(datasetId: String) = "filing/$datasetId/map"
@@ -641,6 +644,9 @@ fun DivarFilingNavHost(
                         PropertyDetailScreen(
                             onBack = { navController.popBackStack() },
                             onContactClick = { id -> navController.navigate(Routes.contactDetail(id)) },
+                            onOpenContentStudio = { id ->
+                                navController.navigate(Routes.propertyContentStudio(id))
+                            },
                             onOpenAgencySpaceItem = { id ->
                                 navController.navigate(Routes.teamSpaceDetail(id))
                             },
@@ -662,6 +668,14 @@ fun DivarFilingNavHost(
                                 }
                             },
                         )
+                    }
+                    composable(
+                        route = Routes.CRM_PROPERTY_CONTENT_STUDIO,
+                        arguments = listOf(
+                            navArgument("propertyId") { type = NavType.LongType },
+                        ),
+                    ) {
+                        ContentStudioScreen(onBack = { navController.popBackStack() })
                     }
                     composable(Routes.CRM_TODAY) {
                         TodayScreen(

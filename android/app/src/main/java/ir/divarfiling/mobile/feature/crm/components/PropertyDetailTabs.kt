@@ -116,6 +116,7 @@ fun PropertyDetailTabbedContent(
     aiNegotiationTip: String = "",
     onGenerateSummary: () -> Unit = {},
     onCopySummary: () -> Unit = {},
+    onOpenContentStudio: (() -> Unit)? = null,
 ) {
     val property = detail.property
     val tabs = buildPropertyTabs(detail)
@@ -162,6 +163,7 @@ fun PropertyDetailTabbedContent(
                 onCreateDeal = onCreateDeal,
                 onTeamShare = if (detail.canEdit) onTeamShare else null,
                 onAgencySpace = onAgencySpace,
+                onContentStudio = onOpenContentStudio,
                 modifier = Modifier.padding(horizontal = AppSpacing.screenHorizontal),
             )
         }

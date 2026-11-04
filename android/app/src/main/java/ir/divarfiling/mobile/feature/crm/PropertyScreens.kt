@@ -726,6 +726,7 @@ fun PropertyDetailScreen(
     onCreateDeal: (customerId: Long?, propertyId: Long) -> Unit = { _, _ -> },
     onDuplicated: (Long) -> Unit = {},
     onOpenAgencySpaceItem: (Long) -> Unit = {},
+    onOpenContentStudio: (Long) -> Unit = {},
     viewModel: PropertyDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -869,6 +870,7 @@ fun PropertyDetailScreen(
                                 scope.launch { snackbar.showSnackbar("خلاصه کپی شد") }
                             }
                         },
+                        onOpenContentStudio = { onOpenContentStudio(property.id) },
                     )
                 }
             }

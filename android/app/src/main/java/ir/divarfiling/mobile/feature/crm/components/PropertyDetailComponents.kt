@@ -770,9 +770,11 @@ fun PropertyDetailQuickActions(
     onCreateDeal: (() -> Unit)? = null,
     onTeamShare: (() -> Unit)? = null,
     onAgencySpace: (() -> Unit)? = null,
+    onContentStudio: (() -> Unit)? = null,
 ) {
     var showMore by remember { mutableStateOf(false) }
     val moreActions = buildList {
+        onContentStudio?.let { add(DfMoreAction("استودیوی تولید محتوا", it, DfIcons.Sparkles)) }
         add(DfMoreAction("ویرایش", onEdit, DfIcons.Pencil))
         onCreateDeal?.let { add(DfMoreAction("معامله جدید", it, DfIcons.Handshake)) }
         onTeamShare?.let { add(DfMoreAction("اشتراک با تیم", it, DfIcons.Users)) }
@@ -786,6 +788,16 @@ fun PropertyDetailQuickActions(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
     ) {
+        if (onContentStudio != null) {
+            PropertyQuickAction(
+                label = "استودیو",
+                icon = DfIcons.Sparkles,
+                bg = DfThemeColors.primaryContainer(),
+                tint = DfThemeColors.primary(),
+                onClick = onContentStudio,
+                modifier = Modifier.weight(1f),
+            )
+        }
         PropertyQuickAction(
             label = "اشتراک",
             icon = DfIcons.Share2,

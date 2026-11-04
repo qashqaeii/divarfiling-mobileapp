@@ -642,6 +642,35 @@ interface MobileApi {
         @Part image: okhttp3.MultipartBody.Part,
     ): ApiEnvelope
 
+    @GET("crm/properties/{id}/content-studio/session")
+    suspend fun getContentStudioSession(@Path("id") propertyId: Long): ApiEnvelope
+
+    @PUT("crm/properties/{id}/content-studio/draft")
+    suspend fun putContentStudioDraft(
+        @Path("id") propertyId: Long,
+        @Body body: ContentStudioDraftPutRequest,
+    ): ApiEnvelope
+
+    @PUT("crm/properties/{id}/content-studio/brand")
+    suspend fun putContentStudioBrand(
+        @Path("id") propertyId: Long,
+        @Body body: Map<String, @JvmSuppressWildcards Any>,
+    ): ApiEnvelope
+
+    @POST("crm/properties/{id}/content-studio/ai/{action}")
+    suspend fun postContentStudioAi(
+        @Path("id") propertyId: Long,
+        @Path("action") action: String,
+        @Body body: Map<String, @JvmSuppressWildcards Any> = emptyMap(),
+    ): ApiEnvelope
+
+    @GET("crm/properties/{id}/content-studio/templates/{templateId}/manifest")
+    suspend fun getContentStudioManifest(
+        @Path("id") propertyId: Long,
+        @Path("templateId") templateId: String,
+        @Query("format") format: String = "story",
+    ): ApiEnvelope
+
     @GET("filing/datasets")
     suspend fun getDatasets(
         @Query("page") page: Int = 1,
