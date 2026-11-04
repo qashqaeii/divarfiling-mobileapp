@@ -16,6 +16,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +34,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
+import ir.divarfiling.mobile.core.filing.ListingLocationUtils
 import ir.divarfiling.mobile.core.filing.ListingMarketTier
 import ir.divarfiling.mobile.core.filing.ListingSpecUtils
 import ir.divarfiling.mobile.core.filing.ListingValueUtils
@@ -48,12 +50,8 @@ fun ListingDetailHeader(
 ) {
     val advertiserBadge = ListingAdvertiserUtils.badgeStyle(listing)
     val hasAnalysis = ListingAdvertiserUtils.hasInteractiveAnalysis(listing)
-    val location = listOfNotNull(
-        listing.address?.takeIf { it.isNotBlank() },
-        listing.region?.takeIf { it.isNotBlank() },
-        listing.district,
-        listing.city,
-    ).distinct().joinToString("، ")
+    val locationParts = remember(listing) { ListingLocationUtils.parts(listing) }
+    val location = remember(locationParts) { ListingLocationUtils.headline(locationParts) }
     val isRent = listing.rent != null || listing.deposit != null
     val marketPresentation = ListingValueUtils.presentationFor(listing.market)
     val floorLabel = when {

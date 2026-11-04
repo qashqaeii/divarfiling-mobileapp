@@ -64,7 +64,8 @@ fun FilingListingCard(
     val advertiserBadge = ListingAdvertiserUtils.badgeStyle(listing)
     val txLabel = ListingPriceUtils.transactionLabel(listing)
     val txColor = if (ListingPriceUtils.isRental(listing)) DfThemeColors.info() else DfThemeColors.primary()
-    val location = listOfNotNull(listing.district, listing.city).filter { it.isNotBlank() }.joinToString("، ")
+    val location = listing.locationSummary?.takeIf { it.isNotBlank() }
+        ?: listOfNotNull(listing.district, listing.city).filter { it.isNotBlank() }.joinToString("، ")
     val amenities = ListingAmenityUtils.buildAmenities(listing)
     val primaryPrice = ListingPriceUtils.primaryPriceLine(listing)
     val secondaryPrices = ListingPriceUtils.secondaryPriceLines(listing)

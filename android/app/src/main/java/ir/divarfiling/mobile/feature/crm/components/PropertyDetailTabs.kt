@@ -352,6 +352,9 @@ private fun propertyLocationDossierRows(property: PropertyDto): List<Pair<String
         property.city?.takeIf { it.isNotBlank() }?.let { add("شهر" to it) }
         property.district?.takeIf { it.isNotBlank() }?.let { add("منطقه" to it) }
         property.neighborhood?.takeIf { it.isNotBlank() }?.let { add("محله" to it) }
+        property.featureData["خیابان"]?.takeIf { it.isNotBlank() }
+            ?: property.featureData["مکان_خیابان"]?.takeIf { it.isNotBlank() }
+            ?.let { add("خیابان" to it) }
         property.postalCode?.takeIf { it.isNotBlank() }?.let { add("کد پستی" to it) }
         property.address?.takeIf { it.isNotBlank() }?.let { add("آدرس" to it) }
     }

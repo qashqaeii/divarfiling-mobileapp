@@ -31,9 +31,11 @@ object ContentStudioAssetUiMapper {
     }
 
     fun exportBlockedMessage(assets: PcsLoadedAssets): String? {
-        if (assets.propertyImages.all { it == null } && assets.missingPropertyIndices.isNotEmpty()) {
-            return "هیچ تصویر ملک برای خروجی در دسترس نیست."
-        }
-        return null
+        if (assets.propertyImages.isEmpty()) return null
+        val allMissing = assets.propertyImages.all { it == null }
+        if (!allMissing) return null
+        if (assets.missingPropertyIndices.size != assets.propertyImages.size) return null
+        if (assets.propertyImages.size <= 1) return null
+        return "هیچ تصویر ملک برای خروجی در دسترس نیست."
     }
 }

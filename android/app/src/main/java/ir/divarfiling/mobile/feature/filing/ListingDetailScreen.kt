@@ -41,6 +41,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.components.DfStatusBanner
 import ir.divarfiling.mobile.core.design.components.DfStatusTone
 import ir.divarfiling.mobile.core.design.components.DfDetailPageHeader
+import ir.divarfiling.mobile.core.filing.ListingLocationUtils
 import ir.divarfiling.mobile.core.filing.ListingRetentionUtils
 import ir.divarfiling.mobile.core.design.components.DfHeaderSections
 import ir.divarfiling.mobile.core.design.components.DfEmptyState
@@ -520,12 +521,10 @@ private fun ListingDetailContent(
 ) {
     val context = LocalContext.current
     val galleryImages = ListingImageUtils.buildGalleryUrls(listing)
-    val location = listOfNotNull(
-        listing.address?.takeIf { it.isNotBlank() },
-        listing.region?.takeIf { it.isNotBlank() },
-        listing.district,
-        listing.city,
-    ).distinct().joinToString("، ")
+    val locationParts = remember(listing) { ListingLocationUtils.parts(listing) }
+    val hasLocationInfo = remember(locationParts) {
+        ListingLocationUtils.hasLocationContent(locationParts)
+    }
     val hasCoordinates = listing.latitude != null && listing.longitude != null
     val canOpenDivar = onOpenDivar != null
     val canNavigate = hasCoordinates
@@ -647,15 +646,10 @@ private fun ListingDetailContent(
                 )
             }
 
-            if (location.isNotBlank() || hasCoordinates || onOpenDivar != null) {
+            if (hasLocationInfo || hasCoordinates || onOpenDivar != null) {
                 item {
                     ListingLocationSection(
-                        address = listing.address.orEmpty(),
-                        city = listing.city.orEmpty(),
-                        region = listing.region.orEmpty(),
-                        neighborhood = listing.neighborhood?.takeIf { it.isNotBlank() } ?: listing.district.orEmpty(),
-                        latitude = listing.latitude,
-                        longitude = listing.longitude,
+                        listing = listing,
                         hasCoordinates = hasCoordinates,
                         onNavigate = onNavigate,
                         onCopyLink = onCopyLink,

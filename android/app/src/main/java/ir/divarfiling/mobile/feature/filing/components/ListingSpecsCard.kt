@@ -34,6 +34,7 @@ import ir.divarfiling.mobile.core.design.DfIcons
 import ir.divarfiling.mobile.core.design.DfThemeColors
 import ir.divarfiling.mobile.core.design.FormatUtils
 import ir.divarfiling.mobile.core.filing.ListingAdvertiserUtils
+import ir.divarfiling.mobile.core.filing.ListingLocationUtils
 import ir.divarfiling.mobile.core.filing.ListingSpecUtils
 import ir.divarfiling.mobile.core.network.ListingDetailDto
 import ir.divarfiling.mobile.feature.extract.components.ExtractSectionCard
@@ -189,6 +190,9 @@ private fun SpecSection(section: ListingSpecSection) {
 }
 
 private fun buildListingSpecSections(listing: ListingDetailDto): List<ListingSpecSection> {
+    val locationItems = ListingLocationUtils.dossierRows(ListingLocationUtils.parts(listing)).map { (label, value) ->
+        ListingSpecItem(label, value)
+    }
     val main = listOfNotNull(
         ListingSpecItem("وضعیت آگهی", if (listing.isExpired) "منقضی" else "فعال"),
         ListingSpecItem("آگهی‌دهنده", listing.businessType?.takeIf { it.isNotBlank() } ?: ListingAdvertiserUtils.displayLabel(listing)),
@@ -231,6 +235,7 @@ private fun buildListingSpecSections(listing: ListingDetailDto): List<ListingSpe
     )
 
     return listOfNotNull(
+        ListingSpecSection("موقعیت", DfIcons.MapPin, locationItems).takeIf { it.items.isNotEmpty() },
         ListingSpecSection("اطلاعات اصلی", DfIcons.File, main).takeIf { it.items.isNotEmpty() },
         ListingSpecSection("اطلاعات مالی", DfIcons.Coins, money).takeIf { it.items.isNotEmpty() },
         ListingSpecSection("مالک و سکونت", DfIcons.User, owner).takeIf { it.items.isNotEmpty() },
