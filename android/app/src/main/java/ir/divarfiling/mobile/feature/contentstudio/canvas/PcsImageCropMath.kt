@@ -36,14 +36,19 @@ object PcsImageCropMath {
             "contain" -> minOf(dstWidth / bw, dstHeight / bh) * zoom
             else -> max(dstWidth / bw, dstHeight / bh) * zoom
         }
-        val sw = dstWidth / scale
-        val sh = dstHeight / scale
+        var sw = dstWidth / scale
+        var sh = dstHeight / scale
+        if (sw > bw || sh > bh) {
+            val factor = minOf(bw / sw, bh / sh)
+            sw *= factor
+            sh *= factor
+        }
         var left = (bw - sw) * panX
         var top = (bh - sh) * panY
         left = left.coerceIn(0f, max(0f, bw - sw))
         top = top.coerceIn(0f, max(0f, bh - sh))
-        val right = (left + sw).coerceAtMost(bw)
-        val bottom = (top + sh).coerceAtMost(bh)
+        val right = left + sw
+        val bottom = top + sh
         return PcsCropRect(
             left = left.toInt().coerceIn(0, bmpWidth),
             top = top.toInt().coerceIn(0, bmpHeight),
