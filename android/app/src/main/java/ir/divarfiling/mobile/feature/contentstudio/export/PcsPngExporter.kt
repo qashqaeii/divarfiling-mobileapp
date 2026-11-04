@@ -15,6 +15,7 @@ class PcsPngExporter @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     fun saveToGallery(bitmap: Bitmap, displayName: String): Result<Uri> {
+        var uri: Uri? = null
         return try {
             val resolver = context.contentResolver
             val values = ContentValues().apply {
@@ -26,13 +27,17 @@ class PcsPngExporter @Inject constructor(
                 }
             }
             val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            val uri = resolver.insert(collection, values)
+            uri = resolver.insert(collection, values)
                 ?: return Result.failure(IllegalStateException("ذخیره در گالری ممکن نشد"))
             resolver.openOutputStream(uri)?.use { out ->
                 if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) {
+                    cleanupPending(uri)
                     return Result.failure(IllegalStateException("فشرده‌سازی PNG ناموفق بود"))
                 }
-            } ?: return Result.failure(IllegalStateException("نوشتن فایل ناموفق بود"))
+            } ?: run {
+                cleanupPending(uri)
+                return Result.failure(IllegalStateException("نوشتن فایل ناموفق بود"))
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 values.clear()
                 values.put(MediaStore.MediaColumns.IS_PENDING, 0)
@@ -40,7 +45,12 @@ class PcsPngExporter @Inject constructor(
             }
             Result.success(uri)
         } catch (e: Exception) {
+            uri?.let { cleanupPending(it) }
             Result.failure(e)
         }
+    }
+
+    private fun cleanupPending(uri: Uri) {
+        runCatching { context.contentResolver.delete(uri, null, null) }
     }
 }

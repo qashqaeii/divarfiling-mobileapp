@@ -43,9 +43,24 @@ object PcsColorParser {
 
     private fun parseLinearGradient(raw: String, width: Float, height: Float): Shader? {
         if (!raw.startsWith("linear-gradient", ignoreCase = true)) return null
+        val angleDeg = Regex("""linear-gradient\s*\(\s*([\d.]+)\s*deg""", RegexOption.IGNORE_CASE)
+            .find(raw)?.groupValues?.getOrNull(1)?.toFloatOrNull() ?: 180f
         val colors = rgbaRegex.findAll(raw).map { parseRgba(it.value) ?: Color.TRANSPARENT }.toList()
         if (colors.size < 2) return null
-        return LinearGradient(0f, 0f, max(width, 1f), max(height, 1f), colors.toIntArray(), null, Shader.TileMode.CLAMP)
+        val w = max(width, 1f)
+        val h = max(height, 1f)
+        val rad = Math.toRadians(angleDeg.toDouble())
+        val dx = (kotlin.math.sin(rad) * w).toFloat()
+        val dy = (-kotlin.math.cos(rad) * h).toFloat()
+        return LinearGradient(
+            w / 2f - dx / 2f,
+            h / 2f - dy / 2f,
+            w / 2f + dx / 2f,
+            h / 2f + dy / 2f,
+            colors.toIntArray(),
+            null,
+            Shader.TileMode.CLAMP,
+        )
     }
 
     private val rgbaRegex = Regex("rgba\\([^)]+\\)", RegexOption.IGNORE_CASE)

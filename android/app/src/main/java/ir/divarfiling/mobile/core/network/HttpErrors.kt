@@ -42,6 +42,10 @@ fun mapApiError(code: String?, serverMessage: String?, httpCode: Int?, default: 
         "OTP_INVALID_PHONE" -> "شماره موبایل معتبر نیست."
         "OTP_CHALLENGE_INVALID" -> "مهلت تأیید به پایان رسیده. دوباره کد بگیرید."
         "VALIDATION_ERROR" -> serverMessage?.takeIf { it.isNotBlank() } ?: "اطلاعات واردشده معتبر نیست."
+        "MANIFEST_VERSION_MISMATCH" -> serverMessage?.takeIf { it.isNotBlank() }
+            ?: "نسخه قالب با سرور هماهنگ نیست. دوباره تلاش کنید."
+        "MANIFEST_UNAVAILABLE" -> serverMessage?.takeIf { it.isNotBlank() }
+            ?: "قالب در حال حاضر در دسترس نیست."
         "PLAN_NOT_FOUND" -> "این پلن دیگر در دسترس نیست."
         "PLAN_BLOCKED" -> serverMessage?.takeIf { it.isNotBlank() } ?: "امکان خرید این پلن وجود ندارد."
         "PHONE_VERIFY_REQUIRED" -> "برای خرید، ابتدا شماره موبایل حساب را تأیید کنید."

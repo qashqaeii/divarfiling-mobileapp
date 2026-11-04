@@ -8,6 +8,7 @@ data class PcsStudioBrand(
     @SerialName("brand_name") val brandName: String = "",
     @SerialName("consultant_name") val consultantName: String = "",
     @SerialName("contact_phone") val contactPhone: String = "",
+    @SerialName("logo_url") val logoUrl: String = "",
     val visibility: PcsBrandVisibility? = null,
 )
 

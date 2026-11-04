@@ -10,6 +10,7 @@ import ir.divarfiling.mobile.core.network.MobileApi
 import ir.divarfiling.mobile.core.network.parseData
 import ir.divarfiling.mobile.core.network.requireData
 import kotlinx.serialization.json.Json
+import ir.divarfiling.mobile.core.network.toApiFailure
 import kotlinx.serialization.json.JsonElement
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,7 +30,8 @@ class ContentStudioRepository @Inject constructor(
             }
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه")
+            val failure = e.toApiFailure("خطا در بارگذاری استودیو")
+            ApiResult.Error(failure.message, failure.code)
         }
     }
 
@@ -60,7 +62,8 @@ class ContentStudioRepository @Inject constructor(
             manifestCache[cacheKey] = data
             ApiResult.Success(data)
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه")
+            val failure = e.toApiFailure("خطا در Manifest")
+            ApiResult.Error(failure.message, failure.code)
         }
     }
 
@@ -82,7 +85,25 @@ class ContentStudioRepository @Inject constructor(
             }
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه")
+            val failure = e.toApiFailure("خطا در ذخیره")
+            ApiResult.Error(failure.message, failure.code)
+        }
+    }
+
+    suspend fun runAiAction(
+        propertyId: Long,
+        action: String,
+        body: Map<String, String> = emptyMap(),
+    ): ApiResult<JsonElement> {
+        return try {
+            val response = api.postContentStudioAi(propertyId, action, body)
+            if (!response.ok) {
+                return ApiResult.Error(response.error ?: "خطای AI", response.code)
+            }
+            ApiResult.Success(response.data ?: kotlinx.serialization.json.JsonNull)
+        } catch (e: Exception) {
+            val failure = e.toApiFailure("خطای AI")
+            ApiResult.Error(failure.message, failure.code)
         }
     }
 
@@ -97,7 +118,8 @@ class ContentStudioRepository @Inject constructor(
             }
             ApiResult.Success(response.requireData(json))
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "خطای شبکه")
+            val failure = e.toApiFailure("خطا در همگام‌سازی")
+            ApiResult.Error(failure.message, failure.code)
         }
     }
 

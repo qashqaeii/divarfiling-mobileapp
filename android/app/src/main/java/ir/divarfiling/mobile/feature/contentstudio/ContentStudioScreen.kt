@@ -33,7 +33,10 @@ import ir.divarfiling.mobile.core.design.components.DfEmptyState
 import ir.divarfiling.mobile.core.design.components.DfEmptyVariant
 import ir.divarfiling.mobile.core.design.components.DfPrimaryButton
 import ir.divarfiling.mobile.core.design.components.DfSecondaryButton
-import ir.divarfiling.mobile.feature.contentstudio.ui.PcsZoomablePosterPreview
+import ir.divarfiling.mobile.feature.contentstudio.editor.PcsCanvasInteractionMode
+import ir.divarfiling.mobile.feature.contentstudio.ui.PcsEditorPosterCanvas
+import ir.divarfiling.mobile.feature.contentstudio.ui.PcsStudioToolSheets
+import ir.divarfiling.mobile.feature.contentstudio.ui.PcsStudioToolbar
 import ir.divarfiling.mobile.feature.contentstudio.ui.TemplatePickerSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,6 +65,30 @@ fun ContentStudioScreen(
         onDismiss = { viewModel.toggleTemplatePicker(false) },
     )
 
+    PcsStudioToolSheets(
+        activeTool = state.activeTool,
+        onDismiss = { viewModel.setActiveTool(null) },
+        property = state.property,
+        brand = state.brand,
+        layers = state.editableScene?.layers.orEmpty(),
+        layerOrder = state.editableScene?.layerOrder.orEmpty(),
+        selectedLayerId = state.selectedLayerId,
+        headline = state.posterConfHeadline,
+        aiLoading = state.aiLoading,
+        aiSuggestions = state.aiSuggestions,
+        canEdit = state.canEditDraft,
+        onHeadlineChange = viewModel::updateHeadline,
+        onLayerSelect = viewModel::selectLayer,
+        onToggleVisibility = viewModel::toggleLayerVisibility,
+        onToggleLock = viewModel::toggleLayerLock,
+        onReorder = viewModel::reorderLayer,
+        onImageIndex = viewModel::setImageSlotForSelected,
+        onRunAi = viewModel::runPosterHeadlineAi,
+        onApplyAi = viewModel::applyAiHeadline,
+        onOpenTemplates = { viewModel.toggleTemplatePicker(true) },
+        onInteractionMode = viewModel::setInteractionMode,
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -82,15 +109,24 @@ fun ContentStudioScreen(
                     }
                 },
                 actions = {
-                    TextButton(
-                        onClick = viewModel::saveSelection,
-                        enabled = state.canSaveSelection && !state.saving,
-                    ) {
-                        Text(if (state.saving) "…" else "ذخیره انتخاب")
+                    Text(
+                        when (state.saveStatus) {
+                            PcsSaveStatus.Saving -> "در حال ذخیره…"
+                            PcsSaveStatus.Unsaved -> "ذخیره نشده"
+                            PcsSaveStatus.Error -> "خطای ذخیره"
+                            PcsSaveStatus.Saved -> "ذخیره شد"
+                        },
+                        style = AppTypography.labelSmall,
+                        modifier = Modifier.padding(end = AppSpacing.xs),
+                    )
+                    TextButton(onClick = viewModel::saveNow, enabled = state.canEditDraft && state.saveStatus == PcsSaveStatus.Unsaved) {
+                        Text("ذخیره")
                     }
+                    TextButton(onClick = viewModel::undo, enabled = state.canUndo) { Text("Undo") }
+                    TextButton(onClick = viewModel::redo, enabled = state.canRedo) { Text("Redo") }
                     TextButton(
                         onClick = viewModel::exportPng,
-                        enabled = state.previewBitmap != null && !state.exporting && !state.assetsLoading,
+                        enabled = state.editableScene != null && !state.exporting && !state.assetsLoading,
                     ) {
                         Text(if (state.exporting) "…" else "PNG")
                     }
@@ -112,20 +148,15 @@ fun ContentStudioScreen(
                     variant = DfEmptyVariant.Offline,
                 )
             }
-            state.scene != null && state.property != null -> {
+            state.editableScene != null && state.property != null -> {
                 Column(
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = AppSpacing.screenHorizontal),
                         horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                     ) {
-                        DfSecondaryButton(
-                            text = "قالب‌ها",
-                            onClick = { viewModel.toggleTemplatePicker(true) },
-                            modifier = Modifier.weight(1f),
-                        )
                         listOf("story", "post", "square").forEach { fmt ->
                             DfPrimaryButton(
                                 text = when (fmt) {
@@ -139,15 +170,46 @@ fun ContentStudioScreen(
                             )
                         }
                     }
-                    if (state.assetsLoading) {
+                    if (state.assetsLoading && state.previewBitmap == null) {
                         LoadingBlock(Modifier.weight(1f))
                     } else {
-                        PcsZoomablePosterPreview(
+                        PcsEditorPosterCanvas(
                             bitmap = state.previewBitmap,
-                            overlayLoading = false,
+                            sceneWidth = state.manifest?.canvas?.width ?: 1080,
+                            sceneHeight = state.manifest?.canvas?.height ?: 1920,
+                            interactionMode = state.interactionMode,
+                            onTapScene = { x, y -> viewModel.selectLayerAt(x, y) },
+                            onDragScene = { dx, dy -> viewModel.moveSelectedLayer(dx, dy) },
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = AppSpacing.screenHorizontal),
+                        )
+                    }
+                    PcsStudioToolbar(
+                        activeTool = state.activeTool,
+                        onToolSelected = { tab ->
+                            when (tab) {
+                                PcsStudioToolTab.Templates -> viewModel.toggleTemplatePicker(true)
+                                else -> viewModel.setActiveTool(tab)
+                            }
+                        },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = AppSpacing.screenHorizontal),
+                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    ) {
+                        DfSecondaryButton(
+                            text = if (state.interactionMode == PcsCanvasInteractionMode.EditLayer) "جابجایی بوم" else "ویرایش لایه",
+                            onClick = {
+                                viewModel.setInteractionMode(
+                                    if (state.interactionMode == PcsCanvasInteractionMode.EditLayer) {
+                                        PcsCanvasInteractionMode.PanZoom
+                                    } else {
+                                        PcsCanvasInteractionMode.EditLayer
+                                    },
+                                )
+                            },
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
